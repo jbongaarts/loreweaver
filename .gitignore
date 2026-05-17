@@ -3,3 +3,8 @@
 .dolt/
 *.db
 .beads-credential-key
+
+# Node / TypeScript build artifacts
+node_modules/
+dist/
+*.tsbuildinfo
