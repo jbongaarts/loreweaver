@@ -3,3 +3,16 @@
 .dolt/
 *.db
 .beads-credential-key
+# Passive JSONL exports: data lives on the refs/dolt/data git ref
+# (sync via `bd dolt push`/`pull`), not committed to source branches.
+.beads/issues.jsonl
+.beads/interactions.jsonl
+
+# Node / TypeScript build artifacts
+node_modules/
+dist/
+*.tsbuildinfo
+.env
+
+# Windows/Cygwin crash dumps
+*.stackdump

@@ -53,13 +53,63 @@ bd close <id>         # Complete work
 
 ## Build & Test
 
-_Add your build and test commands here_
+Monorepo (npm workspaces): `@loreweaver/core` + `@loreweaver/cli`.
 
 ```bash
-# Example:
-# npm install
-# npm test
+npm ci             # clean install (CI)
+npm install        # local install
+npm run build      # tsc --build (incremental)
+npm run typecheck  # tsc --build --force (deterministic full build; used by CI)
+npm run test       # vitest run
 ```
+
+Expected test result: **20 passed / 1 skipped** (the skipped one is
+`model.integration.test.ts`, a live-API integration test gated off by default).
+
+### better-sqlite3 native binary / CI
+
+`better-sqlite3` is the **only** native/compiled dependency. Its npm install
+script is `prebuild-install || node-gyp rebuild`: it first tries to download a
+precompiled `.node` binary matching the running Node ABI
+(`NODE_MODULE_VERSION`); if no matching prebuilt exists it falls back to
+**compiling from source** with node-gyp + a C++ toolchain (MSVC on Windows,
+build-essential on Linux).
+
+**Failure mode:** The pinned `better-sqlite3@^11.3.0` (resolved `11.10.0`)
+ships prebuilt binaries for Node ABIs `v108/v115/v127/v131`
+(Node 18/20/22/23) but **NOT `v137` (Node 24)**. On Node 24, `prebuild-install`
+gets an HTTP 404 and the install silently falls back to a source compile —
+which **fails on any clean/CI environment without a C++ toolchain**. (This is
+why the dev machine compiled better-sqlite3 from source under Node 24 during
+cck.3.)
+
+**CI strategy (primary path — no compiler required):**
+
+- CI runs on **Node 22 LTS** (ABI `v127`), which has a confirmed `11.10.0`
+  prebuilt (`better-sqlite3-v11.10.0-node-v127-linux-x64.tar.gz`).
+- CI sets `npm_config_build_from_source=false` so a missing prebuilt **fails
+  the job loudly** instead of silently attempting a source compile.
+- Verified locally: `prebuild-install` for the Node 22 ABI downloads the
+  prebuilt binary over HTTP 200 with **no node-gyp / no MSVC invocation**.
+
+**Node version divergence from the E0 epic (intentional):** the epic targets
+Node 24, but CI runs Node 22 LTS because the pinned better-sqlite3 11.x has no
+Node 24 prebuilt. Moving CI to Node 24 requires upgrading better-sqlite3 to the
+**12.x line** (12.x ships the `v137`/Node-24 prebuilt) — a separate
+major-version-upgrade decision, not part of CI setup. Dev machines on Node 24
+still work because they compiled better-sqlite3 from source locally.
+
+**Documented fallback** (if a prebuilt is ever unavailable for the chosen
+Node/OS):
+
+1. Provision a C++ build toolchain on the runner and run
+   `npm rebuild better-sqlite3` (Linux: `build-essential python3`;
+   Windows: `windows-build-tools` / Visual Studio Build Tools), **or**
+2. Upgrade `better-sqlite3` to a version whose prebuilds cover the target
+   Node ABI (e.g. 12.x for Node 24 / ABI `v137`).
+
+The CI strategy and rationale are also summarized at the top of
+`.github/workflows/ci.yml`.
 
 ## Architecture Overview
 

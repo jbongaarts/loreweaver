@@ -1,0 +1,8 @@
+{
+  "name": "@loreweaver/cli",
+  "version": "0.0.0",
+  "type": "module",
+  "bin": { "loreweaver": "./dist/index.js" },
+  "scripts": { "build": "tsc --build" },
+  "dependencies": { "@loreweaver/core": "0.0.0" }
+}

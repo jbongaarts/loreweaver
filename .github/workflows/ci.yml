@@ -1,0 +1,74 @@
+# CI: build + test on a clean runner with NO local C++ build toolchain.
+#
+# WHY THIS IS PINNED THE WAY IT IS (better-sqlite3 native binary):
+#
+#   better-sqlite3 is the only native/compiled dependency. It is installed via
+#   `prebuild-install || node-gyp rebuild`: it first tries to download a
+#   precompiled `.node` binary matching the Node ABI (NODE_MODULE_VERSION); if
+#   none exists it falls back to compiling from source with node-gyp + a C++
+#   toolchain (MSVC / build-essential).
+#
+#   FAILURE MODE (the risk this workflow exists to prevent):
+#   The pinned `better-sqlite3@^11.3.0` (resolved 11.10.0) ships prebuilt
+#   binaries for Node ABIs v108/v115/v127/v131 (Node 18/20/22/23) but NOT
+#   v137 (Node 24). On Node 24, prebuild-install gets a 404 and the install
+#   silently falls back to compiling from source — which fails on any runner
+#   without a C++ toolchain. (This is exactly what happened on the dev machine
+#   during cck.3: it compiled from source under Node 24.)
+#
+#   STRATEGY (primary path = prebuilt binary, no compiler required):
+#   - Run CI on Node 22 LTS, whose ABI (v127) HAS a confirmed 11.10.0 prebuilt
+#     (better-sqlite3-v11.10.0-node-v127-linux-x64.tar.gz, verified to download
+#     with HTTP 200 and no node-gyp invocation).
+#   - Set npm_config_build_from_source=false so the install can NEVER silently
+#     compile: a missing prebuilt fails the job loudly instead of attempting an
+#     MSVC/node-gyp build that would produce a confusing error.
+#
+#   NODE VERSION DIVERGENCE FROM EPIC (intentional, documented):
+#   The E0 epic targets Node 24. CI runs Node 22 LTS because the pinned
+#   better-sqlite3 11.x has no Node 24 prebuilt. Adopting Node 24 in CI
+#   requires upgrading better-sqlite3 to the 12.x line (12.x ships the
+#   v137/Node-24 prebuilt) — that is a separate major-version-upgrade decision,
+#   out of scope for this CI task. Dev machines on Node 24 still work because
+#   they compiled better-sqlite3 from source locally.
+#
+#   DOCUMENTED FALLBACK (if a prebuilt is ever unavailable for the chosen
+#   Node/OS): see CLAUDE.md "Build & Test" -> better-sqlite3 native binary.
+#   In short: either provision build tools on the runner and run
+#   `npm rebuild better-sqlite3`, or upgrade better-sqlite3 to a version whose
+#   prebuilds cover the target Node ABI.
+
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    env:
+      # Prebuilt-binary-only: never silently compile better-sqlite3 from source.
+      # If no matching prebuilt exists, `npm ci` fails loudly here.
+      npm_config_build_from_source: "false"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node 22 LTS (has a confirmed better-sqlite3 11.x prebuilt)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies (prebuilt better-sqlite3, no C++ toolchain)
+        run: npm ci
+
+      # `npm run typecheck` is `tsc --build --force`. The plain `build`
+      # (`tsc --build`) is incremental and keys off committed-state-independent
+      # tsbuildinfo; --force guarantees a deterministic full build and avoids a
+      # stale-incremental false green (see bead loreweaver-2l0).
+      - name: Build / typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm run test
