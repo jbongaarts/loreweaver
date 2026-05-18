@@ -16,3 +16,6 @@ dist/
 
 # Windows/Cygwin crash dumps
 *.stackdump
+
+# bd-managed git worktrees (local, per-machine)
+.worktrees/
