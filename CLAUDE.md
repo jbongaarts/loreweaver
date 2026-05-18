@@ -63,8 +63,33 @@ _Add your build and test commands here_
 
 ## Architecture Overview
 
-_Add a brief overview of your project architecture_
+Loreweaver is a text-first, persistent AI Dungeon Master for long-running
+fantasy campaigns. The core is a UI-agnostic TypeScript library with a thin CLI
+front end for MVP development and power-user testing. Future public UX is
+expected to be a mobile-friendly web app/PWA, not native mobile first.
+
+Core architecture principles:
+
+- Keep rules/mechanics, campaign/module content, live campaign state,
+  user-private content, and generated campaign memory separate.
+- Keep deterministic math, dice, and canon writes in tools; narration and
+  rulings go through the DM model under a bounded-context orchestration layer.
+- Use SQLite as the live per-turn store and Dolt only for checkpoint/history/
+  branch operations outside the per-turn path.
+- Isolate model access behind provider adapters and model profiles. Claude Agent
+  SDK is an initial adapter, not a core assumption.
+- Target premium frontier-model quality for the primary DM profile; cheaper
+  models are experimental or auxiliary unless validated.
+
+See `docs/architecture-report.md` and
+`docs/adr/0001-product-model-deployment-content-strategy.md`.
 
 ## Conventions & Patterns
 
-_Add your project-specific conventions here_
+- Use beads for all task tracking.
+- Public or bundled content packs must be open-licensed, public domain,
+  original, or publisher-licensed. Do not rely on fair use as the load-bearing
+  permission model.
+- Do not make native VTT, native mobile, hosted billing, or custom/local primary
+  DM replacement work part of early scope unless a new decision record changes
+  that strategy.
