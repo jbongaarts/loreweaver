@@ -14,3 +14,5 @@ export type {
   ContextAssembler,
   Orchestrator,
 } from './seams.js';
+export type { ModelClient, ModelMessage, ModelCompleteInput } from './model/client.js';
+export { AgentSdkModelClient } from './model/agentSdkClient.js';
