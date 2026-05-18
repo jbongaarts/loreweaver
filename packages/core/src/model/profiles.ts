@@ -190,6 +190,10 @@ function envKey(profile: ModelProfileName, suffix: 'PROVIDER' | 'MODEL'): string
  *   LOREWEAVER_PROFILE_<PROFILE>_PROVIDER  (a neutral provider id)
  *   LOREWEAVER_PROFILE_<PROFILE>_MODEL     (a provider-specific model id)
  * Unset overrides fall back to {@link DEFAULT_PROFILE_REGISTRY}.
+ *
+ * Overrides intentionally do NOT recompute `tier`/`canonChanging`: pointing a
+ * profile at a cheaper provider/model never relaxes its declared capability
+ * tier, and capability-floor enforcement is deferred to downstream bead ws9.1.
  */
 export function resolveProfileRegistry(
   env: Record<string, string | undefined> = process.env,
