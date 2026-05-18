@@ -16,3 +16,20 @@ export type {
 } from './seams.js';
 export type { ModelClient, ModelMessage, ModelCompleteInput } from './model/client.js';
 export { AgentSdkModelClient } from './model/agentSdkClient.js';
+export {
+  MODEL_PROFILES,
+  PROVIDER_IDS,
+  DEFAULT_PROFILE_REGISTRY,
+  PREMIUM_DM_CAPABILITY_FLOOR,
+  ProfileConfigError,
+  isProviderId,
+  getProfile,
+  resolveProfileRegistry,
+} from './model/profiles.js';
+export type {
+  ModelProfileName,
+  ProviderId,
+  ProfileTier,
+  ProfileEntry,
+  ProfileRegistry,
+} from './model/profiles.js';
