@@ -1,3 +1,4 @@
+import { pathToFileURL } from 'node:url';
 import { CORE_VERSION, ConfigError, loadConfig } from '@loreweaver/core';
 
 export function buildBanner(version: string): string {
@@ -19,6 +20,6 @@ export function main(): void {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   main();
 }
