@@ -1,4 +1,5 @@
 import { query } from '@anthropic-ai/claude-agent-sdk';
+import type { SDKResultSuccess } from '@anthropic-ai/claude-agent-sdk';
 import type { ModelClient, ModelCompleteInput } from './client.js';
 
 /**
@@ -6,17 +7,12 @@ import type { ModelClient, ModelCompleteInput } from './client.js';
  * surface differs from the assumptions below, adapt ONLY this file — the
  * ModelClient contract and all unit tests stay unchanged.
  *
- * Assumption: `query({ prompt, options })` returns an async iterable of messages;
- * assistant text arrives on messages of type 'assistant' / 'result'. Verify against
- * the installed package's exported types before implementing; adjust extraction
- * accordingly.
- *
  * Verified against @anthropic-ai/claude-agent-sdk@0.3.143:
  * - `query()` returns `Query extends AsyncGenerator<SDKMessage, void>`
  * - `SDKResultSuccess` has `type: 'result'`, `subtype: 'success'`, and `result: string`
- * - `SDKResultError` has `type: 'result'` and `is_error: true` (no `result` field)
- * - Extraction checks `m.type === 'result' && typeof m.result === 'string'` which
- *   matches SDKResultSuccess and safely ignores SDKResultError (no result field).
+ * - `SDKResultError` has `type: 'result'` and a non-'success' `subtype` (e.g. 'error_during_execution')
+ * - Extraction narrows to `SDKResultSuccess` by checking `type === 'result'` AND
+ *   `subtype === 'success'`, which correctly excludes SDKResultError.
  */
 export class AgentSdkModelClient implements ModelClient {
   constructor(private readonly model: string) {}
@@ -31,8 +27,8 @@ export class AgentSdkModelClient implements ModelClient {
         ...(input.system ? { systemPrompt: input.system } : {}),
       },
     })) {
-      const m = message as { type?: string; result?: string };
-      if (m.type === 'result' && typeof m.result === 'string') {
+      if (message.type === 'result' && message.subtype === 'success') {
+        const m = message as SDKResultSuccess;
         out = m.result;
       }
     }
