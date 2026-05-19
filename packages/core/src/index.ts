@@ -48,4 +48,21 @@ export {
   DoltUnavailableError,
 } from './persistence/checkpoint/doltBinary.js';
 export type { ResolveDoltOptions } from './persistence/checkpoint/doltBinary.js';
+export {
+  DOLT_PINNED_VERSION,
+  DoltUnverifiedError,
+  doltAssetFor,
+  sha256File,
+  verifyArchive,
+  provisionDolt,
+  ensureDoltAvailable,
+} from './persistence/checkpoint/doltProvision.js';
+export type {
+  DoltAsset,
+  ProvisionOptions,
+  DoltInstallReason,
+  DoltInstallPrompt,
+  DoltConfirmFn,
+  EnsureDoltOptions,
+} from './persistence/checkpoint/doltProvision.js';
 export { CheckpointStore } from './persistence/checkpoint/store.js';
