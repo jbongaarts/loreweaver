@@ -38,3 +38,5 @@ export {
   assertSeparateFromBeads,
   BEADS_RESERVED_REF,
 } from './persistence/checkpoint/separation.js';
+export { serializeCampaign, canonicalize } from './persistence/checkpoint/serialize.js';
+export type { SnapshotRecord } from './persistence/checkpoint/serialize.js';
