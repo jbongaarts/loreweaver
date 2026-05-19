@@ -1,0 +1,275 @@
+import type {
+  Encounter,
+  Lore,
+  Location,
+  ModuleMeta,
+  ModulePack,
+  Npc,
+  PackLicense,
+  Trigger,
+} from './types.js';
+
+export class WorldModuleError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'WorldModuleError';
+  }
+}
+
+type Obj = Record<string, unknown>;
+
+function obj(value: unknown, path: string): Obj {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new WorldModuleError(`${path} must be an object`);
+  }
+  return value as Obj;
+}
+
+function str(value: unknown, path: string): string {
+  if (typeof value !== 'string' || value.length === 0) {
+    throw new WorldModuleError(`${path} must be a non-empty string`);
+  }
+  return value;
+}
+
+function bool(value: unknown, path: string): boolean {
+  if (typeof value !== 'boolean') {
+    throw new WorldModuleError(`${path} must be a boolean`);
+  }
+  return value;
+}
+
+function int(value: unknown, path: string, min: number): number {
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < min) {
+    throw new WorldModuleError(`${path} must be an integer >= ${min}`);
+  }
+  return value;
+}
+
+function arr(value: unknown, path: string): unknown[] {
+  if (!Array.isArray(value)) {
+    throw new WorldModuleError(`${path} must be an array`);
+  }
+  return value;
+}
+
+function strArray(value: unknown, path: string): string[] {
+  return arr(value, path).map((item, i) => str(item, `${path}[${i}]`));
+}
+
+function oneOf<T extends string>(
+  value: unknown,
+  path: string,
+  allowed: readonly T[],
+): T {
+  const s = str(value, path);
+  if (!(allowed as readonly string[]).includes(s)) {
+    throw new WorldModuleError(
+      `${path} must be one of: ${allowed.join(', ')}`,
+    );
+  }
+  return s as T;
+}
+
+function license(value: unknown): PackLicense {
+  const o = obj(value, 'meta.license');
+  return {
+    licenseClass: oneOf(o.licenseClass, 'meta.license.licenseClass', [
+      'open',
+      'public-domain',
+      'original',
+      'publisher-licensed',
+      'user-private',
+    ]),
+    licenseName: str(o.licenseName, 'meta.license.licenseName'),
+    attributionText: str(o.attributionText, 'meta.license.attributionText'),
+    requiresAttribution: bool(
+      o.requiresAttribution,
+      'meta.license.requiresAttribution',
+    ),
+    commercialUseAllowed: bool(
+      o.commercialUseAllowed,
+      'meta.license.commercialUseAllowed',
+    ),
+    hostedUseAllowed: bool(o.hostedUseAllowed, 'meta.license.hostedUseAllowed'),
+    redistributionAllowed: bool(
+      o.redistributionAllowed,
+      'meta.license.redistributionAllowed',
+    ),
+    publicSharingAllowed: bool(
+      o.publicSharingAllowed,
+      'meta.license.publicSharingAllowed',
+    ),
+    derivativeAllowed: bool(
+      o.derivativeAllowed,
+      'meta.license.derivativeAllowed',
+    ),
+    containsUserSuppliedText: bool(
+      o.containsUserSuppliedText,
+      'meta.license.containsUserSuppliedText',
+    ),
+    containsTrademarkedSettingMaterial: bool(
+      o.containsTrademarkedSettingMaterial,
+      'meta.license.containsTrademarkedSettingMaterial',
+    ),
+    sourceMaterialDescription: str(
+      o.sourceMaterialDescription,
+      'meta.license.sourceMaterialDescription',
+    ),
+    provenancePolicy: str(
+      o.provenancePolicy,
+      'meta.license.provenancePolicy',
+    ),
+    outputRestrictions: str(
+      o.outputRestrictions,
+      'meta.license.outputRestrictions',
+    ),
+  };
+}
+
+function meta(value: unknown): ModuleMeta {
+  const o = obj(value, 'meta');
+  return {
+    packId: str(o.packId, 'meta.packId'),
+    title: str(o.title, 'meta.title'),
+    packType: oneOf(o.packType, 'meta.packType', [
+      'adventure',
+      'setting',
+      'bestiary',
+      'mixed',
+    ]),
+    description: str(o.description, 'meta.description'),
+    startingLocationId: str(
+      o.startingLocationId,
+      'meta.startingLocationId',
+    ),
+    license: license(o.license),
+  };
+}
+
+function location(value: unknown, i: number): Location {
+  const o = obj(value, `locations[${i}]`);
+  return {
+    id: str(o.id, `locations[${i}].id`),
+    name: str(o.name, `locations[${i}].name`),
+    summary: str(o.summary, `locations[${i}].summary`),
+    description: str(o.description, `locations[${i}].description`),
+    exits: arr(o.exits, `locations[${i}].exits`).map((e, j) => {
+      const eo = obj(e, `locations[${i}].exits[${j}]`);
+      return {
+        direction: str(eo.direction, `locations[${i}].exits[${j}].direction`),
+        toLocationId: str(
+          eo.toLocationId,
+          `locations[${i}].exits[${j}].toLocationId`,
+        ),
+      };
+    }),
+    encounterIds: strArray(o.encounterIds, `locations[${i}].encounterIds`),
+    npcIds: strArray(o.npcIds, `locations[${i}].npcIds`),
+    tags: strArray(o.tags, `locations[${i}].tags`),
+  };
+}
+
+function encounter(value: unknown, i: number): Encounter {
+  const o = obj(value, `encounters[${i}]`);
+  return {
+    id: str(o.id, `encounters[${i}].id`),
+    name: str(o.name, `encounters[${i}].name`),
+    description: str(o.description, `encounters[${i}].description`),
+    locationId: str(o.locationId, `encounters[${i}].locationId`),
+    creatures: arr(o.creatures, `encounters[${i}].creatures`).map((c, j) => {
+      const co = obj(c, `encounters[${i}].creatures[${j}]`);
+      return {
+        srdRef: str(co.srdRef, `encounters[${i}].creatures[${j}].srdRef`),
+        count: int(co.count, `encounters[${i}].creatures[${j}].count`, 1),
+        role: str(co.role, `encounters[${i}].creatures[${j}].role`),
+      };
+    }),
+    reward: str(o.reward, `encounters[${i}].reward`),
+  };
+}
+
+function npc(value: unknown, i: number): Npc {
+  const o = obj(value, `npcs[${i}]`);
+  return {
+    id: str(o.id, `npcs[${i}].id`),
+    name: str(o.name, `npcs[${i}].name`),
+    role: str(o.role, `npcs[${i}].role`),
+    locationId: str(o.locationId, `npcs[${i}].locationId`),
+    disposition: str(o.disposition, `npcs[${i}].disposition`),
+    summary: str(o.summary, `npcs[${i}].summary`),
+    secret: str(o.secret, `npcs[${i}].secret`),
+  };
+}
+
+function trigger(value: unknown, i: number): Trigger {
+  const o = obj(value, `triggers[${i}]`);
+  return {
+    id: str(o.id, `triggers[${i}].id`),
+    when: str(o.when, `triggers[${i}].when`),
+    effect: str(o.effect, `triggers[${i}].effect`),
+    once: bool(o.once, `triggers[${i}].once`),
+  };
+}
+
+function lore(value: unknown, i: number): Lore {
+  const o = obj(value, `lore[${i}]`);
+  return {
+    id: str(o.id, `lore[${i}].id`),
+    title: str(o.title, `lore[${i}].title`),
+    text: str(o.text, `lore[${i}].text`),
+    scope: oneOf(o.scope, `lore[${i}].scope`, ['public', 'dm']),
+  };
+}
+
+function assertUniqueIds(items: readonly { id: string }[], path: string): void {
+  const seen = new Set<string>();
+  for (const item of items) {
+    if (seen.has(item.id)) {
+      throw new WorldModuleError(`${path} has duplicate id: ${item.id}`);
+    }
+    seen.add(item.id);
+  }
+}
+
+/**
+ * Structurally validate an untrusted value as a {@link ModulePack}. Throws
+ * {@link WorldModuleError} on the first problem; on success returns a typed
+ * pack. Also enforces referential integrity: ids are unique within a kind and
+ * `startingLocationId` resolves to a real location.
+ */
+export function validateModulePack(value: unknown): ModulePack {
+  const o = obj(value, 'module');
+  const pack: ModulePack = {
+    meta: meta(o.meta),
+    locations: arr(o.locations, 'locations').map(location),
+    encounters: arr(o.encounters, 'encounters').map(encounter),
+    npcs: arr(o.npcs, 'npcs').map(npc),
+    triggers: arr(o.triggers, 'triggers').map(trigger),
+    lore: arr(o.lore, 'lore').map(lore),
+  };
+
+  assertUniqueIds(pack.locations, 'locations');
+  assertUniqueIds(pack.encounters, 'encounters');
+  assertUniqueIds(pack.npcs, 'npcs');
+  assertUniqueIds(pack.triggers, 'triggers');
+  assertUniqueIds(pack.lore, 'lore');
+
+  const locationIds = new Set(pack.locations.map((l) => l.id));
+  if (!locationIds.has(pack.meta.startingLocationId)) {
+    throw new WorldModuleError(
+      `meta.startingLocationId '${pack.meta.startingLocationId}' does not resolve to a location`,
+    );
+  }
+  for (const l of pack.locations) {
+    for (const exit of l.exits) {
+      if (!locationIds.has(exit.toLocationId)) {
+        throw new WorldModuleError(
+          `locations[${l.id}] exit '${exit.direction}' points at unknown location '${exit.toLocationId}'`,
+        );
+      }
+    }
+  }
+
+  return pack;
+}
