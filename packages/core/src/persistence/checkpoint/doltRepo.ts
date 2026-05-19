@@ -92,4 +92,8 @@ export class DoltRepo {
       payload: r.payload,
     }));
   }
+
+  branch(name: string, fromId: string): void {
+    this.run(['branch', name, fromId]);
+  }
 }

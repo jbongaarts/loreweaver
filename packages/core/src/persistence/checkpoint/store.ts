@@ -33,6 +33,15 @@ export class CheckpointStore {
     materialize(records, destDbPath);
     return destDbPath;
   }
+
+  forkFromCheckpoint(
+    checkpointId: string,
+    branchName: string,
+    destDbPath: string,
+  ): string {
+    this.repo.branch(branchName, checkpointId);
+    return this.restoreToNewWorkingCopy(checkpointId, destDbPath);
+  }
 }
 
 function materialize(records: SnapshotRecord[], destDbPath: string): void {
