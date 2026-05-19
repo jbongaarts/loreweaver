@@ -40,3 +40,5 @@ export {
 } from './persistence/checkpoint/separation.js';
 export { serializeCampaign, canonicalize } from './persistence/checkpoint/serialize.js';
 export type { SnapshotRecord } from './persistence/checkpoint/serialize.js';
+export { DoltRepo } from './persistence/checkpoint/doltRepo.js';
+export type { Checkpoint } from './persistence/checkpoint/doltRepo.js';
