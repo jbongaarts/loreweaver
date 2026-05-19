@@ -62,3 +62,27 @@ export interface SrdCatalog {
   readonly spells: readonly SrdSpellRecord[];
   readonly classes: readonly SrdClassRecord[];
 }
+
+export type SrdLookupInput =
+  | {
+      readonly kind: SrdKind;
+      readonly ref: string;
+      readonly name?: never;
+    }
+  | {
+      readonly kind: SrdKind;
+      readonly name: string;
+      readonly ref?: never;
+    };
+
+export type SrdLookupResult =
+  | {
+      readonly ok: true;
+      readonly record: SrdRecord;
+      readonly license: SrdLicenseMetadata;
+    }
+  | {
+      readonly ok: false;
+      readonly code: 'not_found';
+      readonly message: string;
+    };
