@@ -19,3 +19,6 @@ dist/
 
 # bd-managed git worktrees (local, per-machine)
 .worktrees/
+
+# Claude Code local/personal settings (shared settings.json is tracked)
+.claude/settings.local.json
