@@ -42,4 +42,10 @@ export { serializeCampaign, canonicalize } from './persistence/checkpoint/serial
 export type { SnapshotRecord } from './persistence/checkpoint/serialize.js';
 export { DoltRepo } from './persistence/checkpoint/doltRepo.js';
 export type { Checkpoint } from './persistence/checkpoint/doltRepo.js';
+export {
+  resolveDoltBinary,
+  managedDoltDir,
+  DoltUnavailableError,
+} from './persistence/checkpoint/doltBinary.js';
+export type { ResolveDoltOptions } from './persistence/checkpoint/doltBinary.js';
 export { CheckpointStore } from './persistence/checkpoint/store.js';

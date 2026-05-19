@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync } from 'node:fs';
+import { resolveDoltBinary } from './doltBinary.js';
 import type { SnapshotRecord } from './serialize.js';
 
 export interface Checkpoint {
@@ -14,9 +15,17 @@ function sq(s: string): string {
 export class DoltRepo {
   constructor(private readonly dir: string) {}
 
+  /** Resolved lazily so a missing binary never throws at construction time. */
+  private bin?: string;
+
+  private binary(): string {
+    if (this.bin === undefined) this.bin = resolveDoltBinary();
+    return this.bin;
+  }
+
   static available(): boolean {
     try {
-      execFileSync('dolt', ['version'], { stdio: 'ignore' });
+      execFileSync(resolveDoltBinary(), ['version'], { stdio: 'ignore' });
       return true;
     } catch {
       return false;
@@ -24,7 +33,7 @@ export class DoltRepo {
   }
 
   private run(args: string[], input?: string): string {
-    return execFileSync('dolt', args, {
+    return execFileSync(this.binary(), args, {
       cwd: this.dir,
       input,
       encoding: 'utf8',
@@ -34,7 +43,7 @@ export class DoltRepo {
   init(): void {
     if (!existsSync(this.dir)) mkdirSync(this.dir, { recursive: true });
     if (!existsSync(`${this.dir}/.dolt`)) {
-      execFileSync('dolt', ['init'], { cwd: this.dir, stdio: 'ignore' });
+      execFileSync(this.binary(), ['init'], { cwd: this.dir, stdio: 'ignore' });
     }
     this.run(['config', '--local', '--add', 'user.name', 'loreweaver']);
     this.run(['config', '--local', '--add', 'user.email', 'loreweaver@local']);
