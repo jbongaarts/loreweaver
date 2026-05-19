@@ -1,51 +1,66 @@
-# Agent Instructions
+# Agent & Contributor Guide
 
-This project uses **bd** (beads) for issue tracking. Run `bd prime` for full workflow context.
+Single source of operational guidance for AI agents (Claude Code, Codex) and
+humans. `CLAUDE.md` just imports this file — keep shared guidance here only so
+the two can't drift. Issue-tracker workflow and the mandatory session-close
+protocol are in the **Beads Issue Tracker** / **Session Completion** sections
+below.
 
-> **Architecture in one line:** Issues live in a local Dolt database
-> (`.beads/dolt/`); cross-machine sync uses `bd dolt push/pull` (a
-> git-compatible protocol), stored under `refs/dolt/data` on your git
-> remote — separate from `refs/heads/*` where your code lives.
-> `.beads/issues.jsonl` is a passive export, not the wire protocol.
->
-> See [SYNC_CONCEPTS.md](https://github.com/gastownhall/beads/blob/main/docs/SYNC_CONCEPTS.md)
-> for the one-screen overview and anti-patterns (don't treat JSONL as the
-> source of truth; don't `bd import` during normal operation; don't
-> reach for third-party Dolt hosting before trying the default).
+## Build & Test
 
-## Quick Reference
+Monorepo (npm workspaces): `@loreweaver/core` + `@loreweaver/cli`.
 
 ```bash
-bd ready              # Find available work
-bd show <id>          # View issue details
-bd update <id> --claim  # Claim work atomically
-bd close <id>         # Complete work
-bd dolt push          # Push beads data to remote
+npm ci             # clean install (CI)
+npm install        # local install
+npm run build      # tsc --build (incremental)
+npm run typecheck  # tsc --build --force (deterministic full build; used by CI)
+npm run test       # vitest run
 ```
 
-## Non-Interactive Shell Commands
+Expected: **20 passed / 1 skipped** (skipped = `model.integration.test.ts`, a
+live-API test gated off by default).
 
-**ALWAYS use non-interactive flags** with file operations to avoid hanging on confirmation prompts.
+**Native dep — `better-sqlite3` (the only compiled dependency):** use
+**Node 22 LTS**. The pinned `11.x` ships a Node 22 prebuilt but **no Node 24
+prebuilt**; on Node 24 the install silently source-compiles and fails without a
+C++ toolchain. CI pins Node 22 and sets `npm_config_build_from_source=false` so
+a missing prebuilt fails loud instead. Fallback: install a C++ toolchain and
+`npm rebuild better-sqlite3`, or upgrade to `better-sqlite3` 12.x (ships the
+Node 24 prebuilt). Full rationale: header comment in
+`.github/workflows/ci.yml`.
 
-Shell commands like `cp`, `mv`, and `rm` may be aliased to include `-i` (interactive) mode on some systems, causing the agent to hang indefinitely waiting for y/n input.
+## Architecture
 
-**Use these forms instead:**
-```bash
-# Force overwrite without prompting
-cp -f source dest           # NOT: cp source dest
-mv -f source dest           # NOT: mv source dest
-rm -f file                  # NOT: rm file
+Text-first, persistent AI Dungeon Master for long-running fantasy campaigns;
+UI-agnostic TypeScript core with a thin CLI. Full strategy in
+`docs/architecture-report.md` and `docs/adr/0001-product-model-deployment-content-strategy.md`.
+Load-bearing principles:
 
-# For recursive operations
-rm -rf directory            # NOT: rm -r directory
-cp -rf source dest          # NOT: cp -r source dest
-```
+- Keep rules/mechanics, campaign/module content, live state, user-private
+  content, and generated memory separate.
+- Deterministic math/dice/canon writes go in tools; narration and rulings go
+  through the DM model under bounded-context orchestration.
+- SQLite is the live per-turn store; Dolt is only for checkpoint/history/branch
+  work off the per-turn path.
+- Model access sits behind provider adapters + capability profiles (Claude
+  Agent SDK is one adapter, not a core assumption).
+- Primary DM targets premium frontier quality; cheaper models are
+  auxiliary/experimental unless validated.
 
-**Other commands that may prompt:**
-- `scp` - use `-o BatchMode=yes` for non-interactive
-- `ssh` - use `-o BatchMode=yes` to fail instead of prompting
-- `apt-get` - use `-y` flag
-- `brew` - use `HOMEBREW_NO_AUTO_UPDATE=1` env var
+## Conventions
+
+- All task tracking via beads (see below) — never TodoWrite or markdown TODOs.
+- Bundled/public content must be open-licensed, public domain, original, or
+  publisher-licensed; fair use is not the permission model.
+- Native VTT, native mobile, hosted billing, and custom/local primary-DM
+  replacement are out of early scope absent a new decision record.
+
+## Non-Interactive Shell
+
+Always pass non-interactive flags so aliased confirmation prompts can't hang
+the agent: `cp -f`, `mv -f`, `rm -f` / `rm -rf`, `apt-get -y`, and
+`ssh`/`scp -o BatchMode=yes`.
 
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:7510c1e2 -->
 ## Beads Issue Tracker
