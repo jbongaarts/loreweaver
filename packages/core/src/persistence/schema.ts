@@ -1,6 +1,6 @@
 import type { Db } from './db.js';
 
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 export function initSchema(db: Db): void {
   db.exec(
@@ -59,6 +59,53 @@ export function initSchema(db: Db): void {
       provenance TEXT NOT NULL,
       session_id TEXT NOT NULL,
       updated_at TEXT NOT NULL
+    );
+
+    -- E2: immutable campaign template forked from an authored module pack.
+    -- These rows are never mutated during play; live divergence is recorded
+    -- as overlay_facts and resolved by worldQuery.
+    CREATE TABLE IF NOT EXISTS module_meta (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      pack_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      pack_type TEXT NOT NULL,
+      description TEXT NOT NULL,
+      starting_location_id TEXT NOT NULL,
+      license_json TEXT NOT NULL,
+      data_json TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS module_location (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      summary TEXT NOT NULL,
+      data_json TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS module_encounter (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      location_id TEXT NOT NULL,
+      data_json TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS module_npc (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      location_id TEXT NOT NULL,
+      data_json TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS module_trigger (
+      id TEXT PRIMARY KEY,
+      data_json TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS module_lore (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      scope TEXT NOT NULL,
+      data_json TEXT NOT NULL
     );
     `,
   );

@@ -85,6 +85,39 @@ export type {
   EnsureDoltOptions,
 } from './persistence/checkpoint/doltProvision.js';
 export { CheckpointStore } from './persistence/checkpoint/store.js';
+export { validateModulePack, WorldModuleError } from './world/validate.js';
+export {
+  parseModulePack,
+  loadModuleFromDir,
+  MODULE_FILE,
+} from './world/loadModule.js';
+export { forkModuleIntoCampaign } from './world/forkCampaign.js';
+export { worldQuery, worldOverlayKey } from './world/worldQuery.js';
+export {
+  evaluatePackPolicy,
+  assertShippablePack,
+} from './world/license.js';
+export type { PackUsePolicy } from './world/license.js';
+export { EMBERFALL_HOLLOW } from './world/samples/emberfallHollow.js';
+export type {
+  ModulePack,
+  ModuleMeta,
+  PackLicense,
+  PackLicenseClass,
+  PackType,
+  Location,
+  LocationExit,
+  Encounter,
+  EncounterCreature,
+  Npc,
+  Trigger,
+  Lore,
+  LoreScope,
+  WorldTargetType,
+  WorldQueryTarget,
+  WorldQueryResult,
+  WorldOverlay,
+} from './world/types.js';
 export { SRD_CATALOG, SRD_LICENSE } from './srd/data.js';
 export { lookupSrd } from './srd/lookup.js';
 export { buildSrdIndex, lookupSrdRecord } from './srd/store.js';

@@ -1,0 +1,115 @@
+import type { Db } from '../persistence/db.js';
+import type {
+  WorldOverlay,
+  WorldQueryResult,
+  WorldQueryTarget,
+  WorldTargetType,
+} from './types.js';
+
+/**
+ * Build the `overlay_facts` key that records a live divergence of a module
+ * template field. Live writes go through `mutateState` with
+ * `target: 'overlay_facts'` and `field` set to this key; `worldQuery` folds
+ * matching overlay facts back over the template at read time.
+ *
+ * `meta` has no id; pass `''`.
+ */
+export function worldOverlayKey(
+  type: WorldTargetType,
+  id: string,
+  field: string,
+): string {
+  return `world:${type}:${id}:${field}`;
+}
+
+const TABLE_BY_TYPE: Record<WorldTargetType, string> = {
+  location: 'module_location',
+  encounter: 'module_encounter',
+  npc: 'module_npc',
+  lore: 'module_lore',
+  meta: 'module_meta',
+};
+
+interface OverlayRow {
+  key: string;
+  value_json: string;
+  provenance: string;
+  session_id: string;
+  updated_at: string;
+}
+
+/**
+ * Resolve a world target to template-plus-overlay truth so the model never
+ * narrates a stale template. Reads the immutable forked template, then applies
+ * latest-wins overlay facts (an overlay key is unique, so the latest accepted
+ * write for a field is the one stored). Returns the resolved view, the raw
+ * template, and the overlay fields that diverged it.
+ */
+export function worldQuery(
+  db: Db,
+  target: WorldQueryTarget,
+): WorldQueryResult {
+  const table = TABLE_BY_TYPE[target.type];
+  const id = target.type === 'meta' ? '' : target.id;
+
+  if (target.type !== 'meta' && (id === undefined || id.length === 0)) {
+    return {
+      ok: false,
+      code: 'not_found',
+      message: `world target ${target.type} requires an id`,
+    };
+  }
+
+  const templateRow = (
+    target.type === 'meta'
+      ? db.prepare(`SELECT data_json FROM ${table} WHERE id = 1`).get()
+      : db.prepare(`SELECT data_json FROM ${table} WHERE id = ?`).get(id)
+  ) as { data_json: string } | undefined;
+
+  if (templateRow === undefined) {
+    return {
+      ok: false,
+      code: 'not_found',
+      message: `no ${target.type} '${id ?? ''}' in the campaign template`,
+    };
+  }
+
+  const template = JSON.parse(templateRow.data_json) as Record<string, unknown>;
+
+  const prefix = worldOverlayKey(target.type, id ?? '', '');
+  const overlayRows = db
+    .prepare(
+      `SELECT key, value_json, provenance, session_id, updated_at
+       FROM overlay_facts
+       WHERE key LIKE ? || '%'
+       ORDER BY updated_at ASC`,
+    )
+    .all(prefix) as OverlayRow[];
+
+  const overlays: WorldOverlay[] = [];
+  const resolved: Record<string, unknown> = { ...template };
+  for (const row of overlayRows) {
+    const field = row.key.slice(prefix.length);
+    if (field.length === 0) {
+      continue;
+    }
+    const value = JSON.parse(row.value_json) as unknown;
+    resolved[field] = value;
+    overlays.push({
+      field,
+      value,
+      provenance: row.provenance,
+      sessionId: row.session_id,
+      updatedAt: row.updated_at,
+    });
+  }
+
+  return {
+    ok: true,
+    type: target.type,
+    id: target.type === 'meta' ? undefined : id,
+    resolved,
+    template,
+    overlays,
+  };
+}
