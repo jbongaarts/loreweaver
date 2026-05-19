@@ -33,7 +33,7 @@
 #   they compiled better-sqlite3 from source locally.
 #
 #   DOCUMENTED FALLBACK (if a prebuilt is ever unavailable for the chosen
-#   Node/OS): see CLAUDE.md "Build & Test" -> better-sqlite3 native binary.
+#   Node/OS): see AGENTS.md "Build & Test" -> better-sqlite3 native binary.
 #   In short: either provision build tools on the runner and run
 #   `npm rebuild better-sqlite3`, or upgrade better-sqlite3 to a version whose
 #   prebuilds cover the target Node ABI.
