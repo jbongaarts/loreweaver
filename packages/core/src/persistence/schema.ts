@@ -1,6 +1,6 @@
 import type { Db } from './db.js';
 
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 export function initSchema(db: Db): void {
   db.exec(
@@ -106,6 +106,27 @@ export function initSchema(db: Db): void {
       title TEXT NOT NULL,
       scope TEXT NOT NULL,
       data_json TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS turn_trace (
+      campaign_id TEXT NOT NULL,
+      session_id TEXT NOT NULL,
+      turn_id TEXT NOT NULL,
+      consent_scope TEXT NOT NULL,
+      player_input TEXT NOT NULL,
+      retrieved_context_json TEXT NOT NULL,
+      prompt_profile TEXT NOT NULL,
+      model_output TEXT NOT NULL,
+      tool_calls_json TEXT NOT NULL,
+      rules_resolution_json TEXT NOT NULL,
+      accepted_state_delta_json TEXT NOT NULL,
+      rejected_candidates_json TEXT NOT NULL,
+      final_narration TEXT NOT NULL,
+      memory_updates_json TEXT NOT NULL,
+      human_corrections_json TEXT NOT NULL,
+      quality_flags_json TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      PRIMARY KEY (campaign_id, session_id, turn_id)
     );
     `,
   );

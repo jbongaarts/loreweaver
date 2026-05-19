@@ -5,6 +5,17 @@ export { openDatabase, withTransaction } from './persistence/db.js';
 export type { Db } from './persistence/db.js';
 export { initSchema, SCHEMA_VERSION } from './persistence/schema.js';
 export {
+  TurnTraceError,
+  getTurnTrace,
+  recordTurnTrace,
+} from './memory/turnTrace.js';
+export type {
+  TraceJsonValue,
+  TurnTraceConsentScope,
+  TurnTraceKey,
+  TurnTraceRecord,
+} from './memory/turnTrace.js';
+export {
   getStateProvenance,
   mutateState,
   mutateStateBatch,
