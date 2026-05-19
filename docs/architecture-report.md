@@ -126,7 +126,7 @@ Existing beads epics remain the implementation structure:
 - E0 owns the provider/profile abstraction seam, initial Claude Agent SDK adapter, and CLI/local configuration.
 - E1 owns structured open-licensed rules data and attribution for SRD-derived material.
 - E2 owns pack schema, license metadata, immutable campaign templates, user-private pack posture, and `world_query`.
-- E3 owns canonical live state and provenance-backed canon writes.
+- E3 owns canonical live state and provenance-backed canon writes. See `docs/game-state.md` for the canonical schema and tool contract.
 - E4 owns campaign memory, roll-ups, structured trace capture, and future training/eval data.
 - E5 owns turn orchestration, bounded context assembly, tool discipline, prompt caching opportunities, cost metrics, and model evaluation harness hooks.
 - E6 owns local CLI session lifecycle, checkpoint-facing UX, and medium-term web/PWA handoff boundaries.
