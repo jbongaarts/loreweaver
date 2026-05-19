@@ -56,6 +56,7 @@ export {
   verifyArchive,
   provisionDolt,
   ensureDoltAvailable,
+  extractInvocation,
 } from './persistence/checkpoint/doltProvision.js';
 export type {
   DoltAsset,

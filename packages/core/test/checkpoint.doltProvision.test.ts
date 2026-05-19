@@ -9,6 +9,7 @@ import {
   DoltUnverifiedError,
   doltAssetFor,
   ensureDoltAvailable,
+  extractInvocation,
   provisionDolt,
   verifyArchive,
 } from '../src/persistence/checkpoint/doltProvision.js';
@@ -51,6 +52,22 @@ describe('verifyArchive (fail closed)', () => {
     const f = tmpFile('payload');
     const good = createHash('sha256').update('payload').digest('hex');
     expect(() => verifyArchive(f, good)).not.toThrow();
+  });
+});
+
+describe('extractInvocation', () => {
+  it('uses system bsdtar by absolute path for a .zip on win32', () => {
+    const inv = extractInvocation('C:\\t\\dolt-windows-amd64.zip', 'C:\\t\\x', 'win32', {
+      SystemRoot: 'C:\\Windows',
+    });
+    expect(inv.file).toBe('C:\\Windows\\System32\\tar.exe');
+    expect(inv.args).toEqual(['-xf', 'C:\\t\\dolt-windows-amd64.zip', '-C', 'C:\\t\\x']);
+  });
+
+  it('uses plain tar for a .tar.gz on any platform', () => {
+    const inv = extractInvocation('/t/dolt-linux-amd64.tar.gz', '/t/x', 'linux');
+    expect(inv.file).toBe('tar');
+    expect(inv.args).toEqual(['-xf', '/t/dolt-linux-amd64.tar.gz', '-C', '/t/x']);
   });
 });
 

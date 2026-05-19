@@ -22,6 +22,12 @@ function fakeBin(name: string): string {
 const isWin = process.platform === 'win32';
 const BIN = isWin ? 'dolt.exe' : 'dolt';
 
+/** An isolated, empty managed-home so a real ~/.loreweaver/dolt install on the
+ * host machine can never leak into precedence assertions. */
+function emptyHome(): string {
+  return mkdtempSync(join(tmpdir(), 'lw-emptyhome-'));
+}
+
 describe('resolveDoltBinary precedence', () => {
   it('returns an explicit override path when it exists', () => {
     const p = fakeBin(BIN);
@@ -50,14 +56,20 @@ describe('resolveDoltBinary precedence', () => {
   it('falls back to a PATH directory', () => {
     const p = fakeBin(BIN);
     expect(
-      resolveDoltBinary({ env: {}, pathDirs: [join(p, '..')] }),
+      resolveDoltBinary({
+        env: { LOREWEAVER_DOLT_HOME: emptyHome() },
+        pathDirs: [join(p, '..')],
+      }),
     ).toBe(p);
   });
 
   it('throws an actionable DoltUnavailableError when nothing resolves', () => {
     let err: unknown;
     try {
-      resolveDoltBinary({ env: {}, pathDirs: [] });
+      resolveDoltBinary({
+        env: { LOREWEAVER_DOLT_HOME: emptyHome() },
+        pathDirs: [],
+      });
     } catch (e) {
       err = e;
     }
@@ -71,7 +83,7 @@ describe('resolveDoltBinary precedence', () => {
     expect(() =>
       resolveDoltBinary({
         explicitPath: join(tmpdir(), 'definitely-not-here', BIN),
-        env: {},
+        env: { LOREWEAVER_DOLT_HOME: emptyHome() },
         pathDirs: [],
       }),
     ).toThrow(DoltUnavailableError);

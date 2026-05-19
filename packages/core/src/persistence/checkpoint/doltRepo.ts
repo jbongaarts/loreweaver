@@ -37,13 +37,30 @@ export class DoltRepo {
       cwd: this.dir,
       input,
       encoding: 'utf8',
+      // dolt colorizes `log` with ANSI escapes that corrupt hash parsing;
+      // NO_COLOR is honored repo-wide as defense in depth.
+      env: { ...process.env, NO_COLOR: '1' },
     });
+  }
+
+  /** Run a query and return its JSON rows (clean — no ANSI, machine-stable). */
+  private sqlRows<T>(query: string): T[] {
+    const out = this.run(['sql', '-r', 'json', '-q', query]);
+    const parsed = JSON.parse(out) as { rows?: T[] };
+    return parsed.rows ?? [];
   }
 
   init(): void {
     if (!existsSync(this.dir)) mkdirSync(this.dir, { recursive: true });
     if (!existsSync(`${this.dir}/.dolt`)) {
-      execFileSync(this.binary(), ['init'], { cwd: this.dir, stdio: 'ignore' });
+      // --name/--email keep identity repo-local: `dolt init` fails with
+      // "Author identity unknown" otherwise, and we must NOT mutate the
+      // user's global dolt config.
+      execFileSync(
+        this.binary(),
+        ['init', '--name', 'loreweaver', '--email', 'loreweaver@local'],
+        { cwd: this.dir, stdio: 'ignore' },
+      );
     }
     this.run(['config', '--local', '--add', 'user.name', 'loreweaver']);
     this.run(['config', '--local', '--add', 'user.email', 'loreweaver@local']);
@@ -68,18 +85,17 @@ export class DoltRepo {
   commit(message: string): string {
     this.run(['add', '-A']);
     this.run(['commit', '--allow-empty', '-m', message]);
-    return this.run(['log', '-n', '1', '--oneline']).trim().split(/\s+/)[0] ?? '';
+    // Full HEAD hash via SQL — `log --oneline` wraps it in ANSI escapes and
+    // an abbreviated form `AS OF` later rejects.
+    const rows = this.sqlRows<{ h: string }>("SELECT HASHOF('HEAD') AS h");
+    return rows[0]?.h ?? '';
   }
 
   log(): Checkpoint[] {
-    const out = this.run(['log', '--oneline']).trim();
-    if (!out) return [];
-    return out.split('\n').map((line) => {
-      const sp = line.indexOf(' ');
-      return sp === -1
-        ? { id: line, message: '' }
-        : { id: line.slice(0, sp), message: line.slice(sp + 1) };
-    });
+    // dolt_log is newest-first; full commit_hash, clean message.
+    return this.sqlRows<{ commit_hash: string; message: string }>(
+      'SELECT commit_hash, message FROM dolt_log',
+    ).map((r) => ({ id: r.commit_hash, message: r.message }));
   }
 
   readSnapshotAt(id: string): SnapshotRecord[] {

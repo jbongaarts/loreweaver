@@ -129,9 +129,31 @@ async function defaultDownload(url: string, destFile: string): Promise<void> {
   writeFileSync(destFile, Buffer.from(await res.arrayBuffer()));
 }
 
+/**
+ * Choose the extraction command. `.tar.gz` works with any `tar` (GNU or
+ * bsdtar). `.zip` (only the Windows asset) needs bsdtar — and a git-bash
+ * `tar` is msys GNU tar, which CANNOT read zip — so on win32 we invoke the
+ * system bsdtar (`%SystemRoot%\System32\tar.exe`) by absolute path.
+ */
+export function extractInvocation(
+  archive: string,
+  destDir: string,
+  platform: NodeJS.Platform = process.platform,
+  env: Record<string, string | undefined> = process.env,
+): { file: string; args: string[] } {
+  if (archive.toLowerCase().endsWith('.zip') && platform === 'win32') {
+    const sysRoot = env.SystemRoot ?? 'C:\\Windows';
+    return {
+      file: join(sysRoot, 'System32', 'tar.exe'),
+      args: ['-xf', archive, '-C', destDir],
+    };
+  }
+  return { file: 'tar', args: ['-xf', archive, '-C', destDir] };
+}
+
 function defaultExtract(archive: string, destDir: string): void {
-  // Win10+/macOS/Linux bundle a `tar` that reads both .tar.gz and .zip.
-  execFileSync('tar', ['-xf', archive, '-C', destDir], { stdio: 'ignore' });
+  const { file, args } = extractInvocation(archive, destDir);
+  execFileSync(file, args, { stdio: 'ignore' });
 }
 
 function findBinary(root: string, binName: string): string | undefined {
