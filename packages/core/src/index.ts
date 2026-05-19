@@ -33,3 +33,8 @@ export type {
   ProfileEntry,
   ProfileRegistry,
 } from './model/profiles.js';
+export {
+  SeparationError,
+  assertSeparateFromBeads,
+  BEADS_RESERVED_REF,
+} from './persistence/checkpoint/separation.js';
