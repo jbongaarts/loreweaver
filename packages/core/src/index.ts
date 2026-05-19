@@ -33,3 +33,18 @@ export type {
   ProfileEntry,
   ProfileRegistry,
 } from './model/profiles.js';
+export { SRD_CATALOG, SRD_LICENSE } from './srd/data.js';
+export { lookupSrd } from './srd/lookup.js';
+export { buildSrdIndex, lookupSrdRecord } from './srd/store.js';
+export type {
+  SrdBaseRecord,
+  SrdCatalog,
+  SrdClassRecord,
+  SrdKind,
+  SrdLicenseMetadata,
+  SrdLookupInput,
+  SrdLookupResult,
+  SrdMonsterRecord,
+  SrdRecord,
+  SrdSpellRecord,
+} from './srd/types.js';

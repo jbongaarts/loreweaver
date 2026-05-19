@@ -1,4 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import {
+  lookupSrd as lookupSrdFromIndex,
+  SRD_CATALOG as SRD_CATALOG_FROM_INDEX,
+  SRD_LICENSE as SRD_LICENSE_FROM_INDEX,
+} from '../src/index.js';
 import { SRD_CATALOG, SRD_LICENSE } from '../src/srd/data.js';
 import { lookupSrd } from '../src/srd/lookup.js';
 
@@ -43,6 +48,18 @@ describe('SRD catalog', () => {
     expect(lookupSrd({ kind: 'spell', ref: 'spell:unknown' })).toMatchObject({
       ok: false,
       code: 'not_found',
+    });
+  });
+
+  it('exports the SRD catalog, license, and lookup facade from the package barrel', () => {
+    const result = lookupSrdFromIndex({ kind: 'monster', name: 'Goblin' });
+
+    expect(SRD_CATALOG_FROM_INDEX.monsters).toBe(SRD_CATALOG.monsters);
+    expect(SRD_LICENSE_FROM_INDEX).toBe(SRD_LICENSE);
+    expect(result).toMatchObject({
+      ok: true,
+      license: SRD_LICENSE,
+      record: { ref: 'monster:goblin' },
     });
   });
 });
