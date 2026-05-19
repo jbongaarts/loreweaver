@@ -128,6 +128,48 @@ export function initSchema(db: Db): void {
       created_at TEXT NOT NULL,
       PRIMARY KEY (campaign_id, session_id, turn_id)
     );
+
+    CREATE TABLE IF NOT EXISTS scene_summary (
+      campaign_id TEXT NOT NULL,
+      session_id TEXT NOT NULL,
+      scene_id TEXT NOT NULL,
+      summary TEXT NOT NULL,
+      salient_refs_json TEXT NOT NULL,
+      source_turn_ids_json TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY (campaign_id, session_id, scene_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS session_recap (
+      campaign_id TEXT NOT NULL,
+      session_id TEXT NOT NULL,
+      recap TEXT NOT NULL,
+      source_scene_ids_json TEXT NOT NULL,
+      state_delta_json TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY (campaign_id, session_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS arc_summary (
+      campaign_id TEXT NOT NULL,
+      arc_id TEXT NOT NULL,
+      summary TEXT NOT NULL,
+      source_session_ids_json TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY (campaign_id, arc_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS campaign_bible (
+      campaign_id TEXT PRIMARY KEY,
+      world_facts_json TEXT NOT NULL,
+      major_npcs_json TEXT NOT NULL,
+      factions_json TEXT NOT NULL,
+      open_threads_json TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
     `,
   );
   const now = new Date(0).toISOString();
