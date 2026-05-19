@@ -33,6 +33,43 @@ export type {
   ProfileEntry,
   ProfileRegistry,
 } from './model/profiles.js';
+export {
+  SeparationError,
+  assertSeparateFromBeads,
+  normalizeRemoteUrl,
+  readDoltRemotes,
+  BEADS_RESERVED_REF,
+} from './persistence/checkpoint/separation.js';
+export type { DoltRemote } from './persistence/checkpoint/separation.js';
+export { serializeCampaign, canonicalize } from './persistence/checkpoint/serialize.js';
+export type { SnapshotRecord } from './persistence/checkpoint/serialize.js';
+export { DoltRepo } from './persistence/checkpoint/doltRepo.js';
+export type { Checkpoint } from './persistence/checkpoint/doltRepo.js';
+export {
+  resolveDoltBinary,
+  managedDoltDir,
+  DoltUnavailableError,
+} from './persistence/checkpoint/doltBinary.js';
+export type { ResolveDoltOptions } from './persistence/checkpoint/doltBinary.js';
+export {
+  DOLT_PINNED_VERSION,
+  DoltUnverifiedError,
+  doltAssetFor,
+  sha256File,
+  verifyArchive,
+  provisionDolt,
+  ensureDoltAvailable,
+  extractInvocation,
+} from './persistence/checkpoint/doltProvision.js';
+export type {
+  DoltAsset,
+  ProvisionOptions,
+  DoltInstallReason,
+  DoltInstallPrompt,
+  DoltConfirmFn,
+  EnsureDoltOptions,
+} from './persistence/checkpoint/doltProvision.js';
+export { CheckpointStore } from './persistence/checkpoint/store.js';
 export { SRD_CATALOG, SRD_LICENSE } from './srd/data.js';
 export { lookupSrd } from './srd/lookup.js';
 export { buildSrdIndex, lookupSrdRecord } from './srd/store.js';
