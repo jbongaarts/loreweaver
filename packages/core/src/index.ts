@@ -36,8 +36,11 @@ export type {
 export {
   SeparationError,
   assertSeparateFromBeads,
+  normalizeRemoteUrl,
+  readDoltRemotes,
   BEADS_RESERVED_REF,
 } from './persistence/checkpoint/separation.js';
+export type { DoltRemote } from './persistence/checkpoint/separation.js';
 export { serializeCampaign, canonicalize } from './persistence/checkpoint/serialize.js';
 export type { SnapshotRecord } from './persistence/checkpoint/serialize.js';
 export { DoltRepo } from './persistence/checkpoint/doltRepo.js';
