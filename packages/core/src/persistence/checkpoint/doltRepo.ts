@@ -72,4 +72,24 @@ export class DoltRepo {
         : { id: line.slice(0, sp), message: line.slice(sp + 1) };
     });
   }
+
+  readSnapshotAt(id: string): SnapshotRecord[] {
+    const out = this.run([
+      'sql',
+      '-r',
+      'json',
+      '-q',
+      `SELECT tbl, kind, ordinal, payload FROM campaign_snapshot ` +
+        `AS OF '${id.replace(/'/g, "''")}' ORDER BY tbl, kind, ordinal`,
+    ]);
+    const parsed = JSON.parse(out) as {
+      rows: { tbl: string; kind: string; ordinal: number; payload: string }[];
+    };
+    return parsed.rows.map((r) => ({
+      table: r.tbl,
+      kind: r.kind === 'schema' ? 'schema' : 'row',
+      ordinal: Number(r.ordinal),
+      payload: r.payload,
+    }));
+  }
 }
