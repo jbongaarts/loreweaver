@@ -10,7 +10,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, win32 as winPath } from 'node:path';
+import { join } from 'node:path';
 import {
   DoltUnavailableError,
   managedDoltDir,
@@ -130,23 +130,20 @@ async function defaultDownload(url: string, destFile: string): Promise<void> {
 }
 
 /**
- * Choose the extraction command. `.tar.gz` works with any `tar` (GNU or
- * bsdtar). `.zip` (only the Windows asset) needs bsdtar — and a git-bash
- * `tar` is msys GNU tar, which CANNOT read zip — so on win32 we invoke the
- * system bsdtar (`%SystemRoot%\System32\tar.exe`) by absolute path.
+ * Choose the extraction command for the current host. `.tar.gz` works with
+ * any `tar` (GNU or bsdtar). `.zip` (only the Windows asset) needs bsdtar —
+ * and a git-bash `tar` is msys GNU tar, which CANNOT read zip — so on win32
+ * we invoke the system bsdtar (`%SystemRoot%\System32\tar.exe`) by absolute
+ * path. The host OS is ambient truth here, not an injected dependency.
  */
 export function extractInvocation(
   archive: string,
   destDir: string,
-  platform: NodeJS.Platform = process.platform,
-  env: Record<string, string | undefined> = process.env,
 ): { file: string; args: string[] } {
-  if (archive.toLowerCase().endsWith('.zip') && platform === 'win32') {
-    const sysRoot = env.SystemRoot ?? 'C:\\Windows';
-    // win32.join so the path is canonical backslash form even when this code
-    // is exercised on a non-Windows host (CI). Only ever executed on win32.
+  if (archive.toLowerCase().endsWith('.zip') && process.platform === 'win32') {
+    const sysRoot = process.env.SystemRoot ?? 'C:\\Windows';
     return {
-      file: winPath.join(sysRoot, 'System32', 'tar.exe'),
+      file: join(sysRoot, 'System32', 'tar.exe'),
       args: ['-xf', archive, '-C', destDir],
     };
   }

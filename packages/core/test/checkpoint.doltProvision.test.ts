@@ -56,16 +56,26 @@ describe('verifyArchive (fail closed)', () => {
 });
 
 describe('extractInvocation', () => {
-  it('uses system bsdtar by absolute path for a .zip on win32', () => {
-    const inv = extractInvocation('C:\\t\\dolt-windows-amd64.zip', 'C:\\t\\x', 'win32', {
-      SystemRoot: 'C:\\Windows',
-    });
-    expect(inv.file).toBe('C:\\Windows\\System32\\tar.exe');
-    expect(inv.args).toEqual(['-xf', 'C:\\t\\dolt-windows-amd64.zip', '-C', 'C:\\t\\x']);
-  });
+  // Asserts the host's real behavior — skips where it can't be truthfully
+  // verified (the win32 zip branch only exists/runs on Windows).
+  it.skipIf(process.platform !== 'win32')(
+    'uses system bsdtar by absolute path for a .zip on win32',
+    () => {
+      const inv = extractInvocation('C:\\t\\dolt-windows-amd64.zip', 'C:\\t\\x');
+      expect(inv.file).toBe(
+        join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'tar.exe'),
+      );
+      expect(inv.args).toEqual([
+        '-xf',
+        'C:\\t\\dolt-windows-amd64.zip',
+        '-C',
+        'C:\\t\\x',
+      ]);
+    },
+  );
 
-  it('uses plain tar for a .tar.gz on any platform', () => {
-    const inv = extractInvocation('/t/dolt-linux-amd64.tar.gz', '/t/x', 'linux');
+  it('uses plain tar for a .tar.gz', () => {
+    const inv = extractInvocation('/t/dolt-linux-amd64.tar.gz', '/t/x');
     expect(inv.file).toBe('tar');
     expect(inv.args).toEqual(['-xf', '/t/dolt-linux-amd64.tar.gz', '-C', '/t/x']);
   });
