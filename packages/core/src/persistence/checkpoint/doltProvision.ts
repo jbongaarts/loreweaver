@@ -10,7 +10,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, win32 as winPath } from 'node:path';
 import {
   DoltUnavailableError,
   managedDoltDir,
@@ -143,8 +143,10 @@ export function extractInvocation(
 ): { file: string; args: string[] } {
   if (archive.toLowerCase().endsWith('.zip') && platform === 'win32') {
     const sysRoot = env.SystemRoot ?? 'C:\\Windows';
+    // win32.join so the path is canonical backslash form even when this code
+    // is exercised on a non-Windows host (CI). Only ever executed on win32.
     return {
-      file: join(sysRoot, 'System32', 'tar.exe'),
+      file: winPath.join(sysRoot, 'System32', 'tar.exe'),
       args: ['-xf', archive, '-C', destDir],
     };
   }
