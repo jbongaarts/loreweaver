@@ -4,11 +4,20 @@ export type { LoreweaverConfig } from './config.js';
 export { openDatabase, withTransaction } from './persistence/db.js';
 export type { Db } from './persistence/db.js';
 export { initSchema, SCHEMA_VERSION } from './persistence/schema.js';
-export { mutateState, MutateStateError } from './state/mutateState.js';
+export {
+  getStateProvenance,
+  mutateState,
+  mutateStateBatch,
+  MutateStateError,
+} from './state/mutateState.js';
 export type {
+  MutateStateBatchOptions,
   MutateStateInput,
   MutateStateOp,
   MutateStateTarget,
+  MutateStateValue,
+  StateProvenanceQuery,
+  StateProvenanceRecord,
 } from './state/mutateState.js';
 export { SEAMS } from './seams.js';
 export type {
