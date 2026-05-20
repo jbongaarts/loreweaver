@@ -5,6 +5,47 @@ export { openDatabase, withTransaction } from './persistence/db.js';
 export type { Db } from './persistence/db.js';
 export { initSchema, SCHEMA_VERSION } from './persistence/schema.js';
 export {
+  TurnTraceError,
+  getTurnTrace,
+  recordTurnTrace,
+} from './memory/turnTrace.js';
+export type {
+  TraceJsonValue,
+  TurnTraceConsentScope,
+  TurnTraceKey,
+  TurnTraceRecord,
+} from './memory/turnTrace.js';
+export {
+  MemorySummaryError,
+  getArcSummary,
+  getCampaignBible,
+  getSessionRecap,
+  listSceneSummaries,
+  memoryDrilldown,
+  recordSceneSummary,
+  selectAlwaysOnMemory,
+  rollupArcSummary,
+  rollupSessionRecap,
+} from './memory/summary.js';
+export type {
+  ArcSummaryInput,
+  ArcSummaryKey,
+  ArcSummaryRecord,
+  AlwaysOnMemoryContext,
+  AlwaysOnMemorySelector,
+  CampaignBibleEntry,
+  CampaignBibleInput,
+  CampaignBibleKey,
+  CampaignBibleRecord,
+  MemoryRef,
+  MemoryDrilldownResult,
+  MemoryDrilldownSelector,
+  SceneSummaryRecord,
+  SceneSummarySelector,
+  SessionRecapInput,
+  SessionRecapRecord,
+} from './memory/summary.js';
+export {
   getStateProvenance,
   mutateState,
   mutateStateBatch,

@@ -1,6 +1,6 @@
 import type { Db } from './db.js';
 
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 export function initSchema(db: Db): void {
   db.exec(
@@ -106,6 +106,69 @@ export function initSchema(db: Db): void {
       title TEXT NOT NULL,
       scope TEXT NOT NULL,
       data_json TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS turn_trace (
+      campaign_id TEXT NOT NULL,
+      session_id TEXT NOT NULL,
+      turn_id TEXT NOT NULL,
+      consent_scope TEXT NOT NULL,
+      player_input TEXT NOT NULL,
+      retrieved_context_json TEXT NOT NULL,
+      prompt_profile TEXT NOT NULL,
+      model_output TEXT NOT NULL,
+      tool_calls_json TEXT NOT NULL,
+      rules_resolution_json TEXT NOT NULL,
+      accepted_state_delta_json TEXT NOT NULL,
+      rejected_candidates_json TEXT NOT NULL,
+      final_narration TEXT NOT NULL,
+      memory_updates_json TEXT NOT NULL,
+      human_corrections_json TEXT NOT NULL,
+      quality_flags_json TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      PRIMARY KEY (campaign_id, session_id, turn_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS scene_summary (
+      campaign_id TEXT NOT NULL,
+      session_id TEXT NOT NULL,
+      scene_id TEXT NOT NULL,
+      summary TEXT NOT NULL,
+      salient_refs_json TEXT NOT NULL,
+      source_turn_ids_json TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY (campaign_id, session_id, scene_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS session_recap (
+      campaign_id TEXT NOT NULL,
+      session_id TEXT NOT NULL,
+      recap TEXT NOT NULL,
+      source_scene_ids_json TEXT NOT NULL,
+      state_delta_json TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY (campaign_id, session_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS arc_summary (
+      campaign_id TEXT NOT NULL,
+      arc_id TEXT NOT NULL,
+      summary TEXT NOT NULL,
+      source_session_ids_json TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY (campaign_id, arc_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS campaign_bible (
+      campaign_id TEXT PRIMARY KEY,
+      world_facts_json TEXT NOT NULL,
+      major_npcs_json TEXT NOT NULL,
+      factions_json TEXT NOT NULL,
+      open_threads_json TEXT NOT NULL,
+      updated_at TEXT NOT NULL
     );
     `,
   );
