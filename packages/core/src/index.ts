@@ -60,6 +60,26 @@ export type {
   StateProvenanceQuery,
   StateProvenanceRecord,
 } from './state/mutateState.js';
+export {
+  SceneError,
+  openScene,
+  closeScene,
+  getScene,
+  getOpenScene,
+  appendSceneLog,
+  listSceneLog,
+} from './orchestrator/scene.js';
+export type {
+  SceneStatus,
+  SceneLogRole,
+  SceneKey,
+  SessionSelector,
+  OpenSceneInput,
+  CloseSceneInput,
+  SceneRecord,
+  SceneLogInput,
+  SceneLogRecord,
+} from './orchestrator/scene.js';
 export { SEAMS } from './seams.js';
 export type {
   SeamName,
