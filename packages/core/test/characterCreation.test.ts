@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   buildCharacterCreationMutations,
   CharacterCreationError,
+  completeCharacterCreation,
+  initSchema,
+  openDatabase,
   validateCharacterDraft,
 } from '../src/index.js';
 
@@ -155,5 +158,77 @@ describe('character creation', () => {
         at: '2026-05-20T22:45:00.000Z',
       },
     ]);
+  });
+
+  it('returns correction guidance without writes when a guided draft is illegal', () => {
+    const db = openDatabase(':memory:');
+    initSchema(db);
+
+    const result = completeCharacterCreation(db, {
+      draft: { ...validDraft, className: 'Warlock' },
+      sessionId: 'session-0',
+      at: '2026-05-20T22:46:00.000Z',
+    });
+
+    expect(result).toEqual({
+      ok: false,
+      errors: ['unsupported SRD class: Warlock', 'level-1 hit point maximum must be 2'],
+      prompt:
+        'Revise the character draft before persisting it: unsupported SRD class: Warlock; level-1 hit point maximum must be 2',
+    });
+    expect(
+      db.prepare('SELECT name, class_name FROM character WHERE id = 1').get(),
+    ).toEqual({ name: null, class_name: null });
+
+    db.close();
+  });
+
+  it('persists an accepted guided draft into canonical state', () => {
+    const db = openDatabase(':memory:');
+    initSchema(db);
+
+    const result = completeCharacterCreation(db, {
+      draft: validDraft,
+      sessionId: 'session-0',
+      at: '2026-05-20T22:47:00.000Z',
+    });
+
+    expect(result).toEqual({
+      ok: true,
+      character: {
+        name: 'Mira',
+        ancestry: 'Human',
+        className: 'Fighter',
+        level: 1,
+        abilityScores: validDraft.abilityScores,
+        maxHitPoints: 12,
+        spells: [],
+      },
+      mutationsApplied: 8,
+      prompt: 'Character creation complete: Mira is a level 1 Human Fighter.',
+    });
+    expect(
+      db
+        .prepare(
+          `SELECT name, ancestry, class_name, level, hp_current, hp_max,
+                  ability_scores_json, provenance, session_id, updated_at
+           FROM character
+           WHERE id = 1`,
+        )
+        .get(),
+    ).toEqual({
+      name: 'Mira',
+      ancestry: 'Human',
+      class_name: 'Fighter',
+      level: 1,
+      hp_current: 12,
+      hp_max: 12,
+      ability_scores_json: JSON.stringify(validDraft.abilityScores),
+      provenance: 'character_creation:complete',
+      session_id: 'session-0',
+      updated_at: '2026-05-20T22:47:00.000Z',
+    });
+
+    db.close();
   });
 });

@@ -177,6 +177,7 @@ export type {
 export {
   buildCharacterCreationMutations,
   CharacterCreationError,
+  completeCharacterCreation,
   validateCharacterDraft,
 } from './characterCreation.js';
 export type {
@@ -186,5 +187,7 @@ export type {
   CharacterCreationDraft,
   CharacterCreationMutationMetadata,
   CharacterCreationResult,
+  CompleteCharacterCreationInput,
+  CompleteCharacterCreationResult,
   CreatedCharacter,
 } from './characterCreation.js';

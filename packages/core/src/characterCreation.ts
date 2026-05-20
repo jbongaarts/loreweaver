@@ -1,4 +1,8 @@
-import type { MutateStateInput } from './state/mutateState.js';
+import type { Db } from './persistence/db.js';
+import {
+  mutateStateBatch,
+  type MutateStateInput,
+} from './state/mutateState.js';
 import { SRD_CATALOG } from './srd/data.js';
 import { lookupSrdRecord } from './srd/store.js';
 import type {
@@ -56,6 +60,26 @@ export interface CharacterCreationMutationMetadata {
   readonly sessionId: string;
   readonly at: string;
 }
+
+export interface CompleteCharacterCreationInput {
+  readonly draft: CharacterCreationDraft;
+  readonly sessionId: string;
+  readonly at: string;
+  readonly provenance?: string;
+}
+
+export type CompleteCharacterCreationResult =
+  | {
+      readonly ok: true;
+      readonly character: CreatedCharacter;
+      readonly mutationsApplied: number;
+      readonly prompt: string;
+    }
+  | {
+      readonly ok: false;
+      readonly errors: readonly string[];
+      readonly prompt: string;
+    };
 
 const ABILITY_SCORE_NAMES: readonly AbilityScoreName[] = [
   'strength',
@@ -128,7 +152,76 @@ export function buildCharacterCreationMutations(
   if (!result.ok) {
     throw new CharacterCreationError(result.errors);
   }
-  const character = result.character;
+  return characterMutations(result.character, metadata);
+}
+
+export function completeCharacterCreation(
+  db: Db,
+  input: CompleteCharacterCreationInput,
+  catalog: SrdCatalog = SRD_CATALOG,
+): CompleteCharacterCreationResult {
+  try {
+    const validation = validateCharacterDraft(input.draft, catalog);
+    if (!validation.ok) {
+      return correctionResult(validation.errors);
+    }
+
+    const metadata = {
+      provenance: input.provenance ?? 'character_creation:complete',
+      sessionId: input.sessionId,
+      at: input.at,
+    };
+    const mutations = characterMutations(validation.character, metadata);
+    mutateStateBatch(db, mutations);
+
+    return {
+      ok: true,
+      character: validation.character,
+      mutationsApplied: mutations.length,
+      prompt: completionPrompt(validation.character),
+    };
+  } catch (error) {
+    if (error instanceof CharacterCreationError) {
+      return correctionResult(error.errors);
+    }
+
+    throw error;
+  }
+}
+
+function validateIdentity(
+  draft: CharacterCreationDraft,
+  errors: string[],
+): void {
+  if (draft.name.trim().length === 0) {
+    errors.push('character name is required');
+  }
+  if (!SRD_ANCESTRIES.has(draft.ancestry.trim())) {
+    errors.push(`unsupported SRD ancestry: ${draft.ancestry}`);
+  }
+  if (draft.level !== 1) {
+    errors.push('character creation currently supports level 1 only');
+  }
+}
+
+function correctionResult(
+  errors: readonly string[],
+): CompleteCharacterCreationResult {
+  return {
+    ok: false,
+    errors,
+    prompt: `Revise the character draft before persisting it: ${errors.join('; ')}`,
+  };
+}
+
+function completionPrompt(character: CreatedCharacter): string {
+  return `Character creation complete: ${character.name} is a level ${character.level} ${character.ancestry} ${character.className}.`;
+}
+
+function characterMutations(
+  character: CreatedCharacter,
+  metadata: CharacterCreationMutationMetadata,
+): MutateStateInput[] {
   const base = {
     target: 'character',
     op: 'set',
@@ -151,21 +244,6 @@ export function buildCharacterCreationMutations(
     },
     { ...base, field: 'conditions_json', value: JSON.stringify([]) },
   ];
-}
-
-function validateIdentity(
-  draft: CharacterCreationDraft,
-  errors: string[],
-): void {
-  if (draft.name.trim().length === 0) {
-    errors.push('character name is required');
-  }
-  if (!SRD_ANCESTRIES.has(draft.ancestry.trim())) {
-    errors.push(`unsupported SRD ancestry: ${draft.ancestry}`);
-  }
-  if (draft.level !== 1) {
-    errors.push('character creation currently supports level 1 only');
-  }
 }
 
 function validateClass(
