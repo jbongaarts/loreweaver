@@ -110,6 +110,13 @@ export {
   renderToolResults,
 } from './orchestrator/protocol.js';
 export type { ParsedToolCall } from './orchestrator/protocol.js';
+export { OrchestratorError, runTurn } from './orchestrator/orchestrator.js';
+export type {
+  RunTurnDeps,
+  RunTurnInput,
+  RunTurnResult,
+  ExecutedToolCall,
+} from './orchestrator/orchestrator.js';
 export { SEAMS } from './seams.js';
 export type {
   SeamName,
