@@ -104,6 +104,12 @@ export type {
   InventoryItem,
   ClockSnapshot,
 } from './orchestrator/contextAssembler.js';
+export {
+  buildSystemPrompt,
+  parseToolCalls,
+  renderToolResults,
+} from './orchestrator/protocol.js';
+export type { ParsedToolCall } from './orchestrator/protocol.js';
 export { SEAMS } from './seams.js';
 export type {
   SeamName,
