@@ -9,7 +9,8 @@ through deterministic state tools.
 `character` is a singleton row (`id = 1`) for the active character sheet. It is
 the convergence target for character creation and future import flows. The
 initial schema tracks identity, class, level, hit points, ability scores, and
-conditions.
+conditions. See `docs/character-creation.md` for the creation flow contract and
+the deferred importer mandate.
 
 `inventory` stores one row per item stack or unique carried object. Each row has
 an application-level `id`, display `name`, quantity, optional location, and JSON

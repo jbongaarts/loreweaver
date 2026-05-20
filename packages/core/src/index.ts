@@ -174,3 +174,20 @@ export type {
   SrdRecord,
   SrdSpellRecord,
 } from './srd/types.js';
+export {
+  buildCharacterCreationMutations,
+  CharacterCreationError,
+  completeCharacterCreation,
+  validateCharacterDraft,
+} from './characterCreation.js';
+export type {
+  AbilityScoreMethod,
+  AbilityScoreName,
+  AbilityScores,
+  CharacterCreationDraft,
+  CharacterCreationMutationMetadata,
+  CharacterCreationResult,
+  CompleteCharacterCreationInput,
+  CompleteCharacterCreationResult,
+  CreatedCharacter,
+} from './characterCreation.js';
