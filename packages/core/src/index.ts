@@ -80,6 +80,16 @@ export type {
   SceneLogInput,
   SceneLogRecord,
 } from './orchestrator/scene.js';
+export { createSeededRng } from './orchestrator/rng.js';
+export type { Rng } from './orchestrator/rng.js';
+export { DiceError, parseDice, rollDice } from './orchestrator/dice.js';
+export type { DiceNotation, DiceRoll } from './orchestrator/dice.js';
+export {
+  ToolRegistry,
+  DEFAULT_TOOLS,
+  createDefaultToolRegistry,
+} from './orchestrator/tools.js';
+export type { Tool, ToolContext, ToolResult } from './orchestrator/tools.js';
 export { SEAMS } from './seams.js';
 export type {
   SeamName,
