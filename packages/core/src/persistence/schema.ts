@@ -1,6 +1,6 @@
 import type { Db } from './db.js';
 
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
 export function initSchema(db: Db): void {
   db.exec(
@@ -169,6 +169,33 @@ export function initSchema(db: Db): void {
       factions_json TEXT NOT NULL,
       open_threads_json TEXT NOT NULL,
       updated_at TEXT NOT NULL
+    );
+
+    -- E5: scene boundaries. Exactly one scene is 'open' per session at a time;
+    -- the mark_scene tool closes one before opening the next.
+    CREATE TABLE IF NOT EXISTS scene (
+      campaign_id TEXT NOT NULL,
+      session_id TEXT NOT NULL,
+      scene_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      status TEXT NOT NULL CHECK (status IN ('open', 'closed')),
+      opened_at TEXT NOT NULL,
+      closed_at TEXT,
+      PRIMARY KEY (campaign_id, session_id, scene_id)
+    );
+
+    -- E5: live per-scene transcript. The Context Assembler feeds the current
+    -- scene's log verbatim; older scenes roll up into scene_summary.
+    CREATE TABLE IF NOT EXISTS scene_log (
+      campaign_id TEXT NOT NULL,
+      session_id TEXT NOT NULL,
+      scene_id TEXT NOT NULL,
+      seq INTEGER NOT NULL,
+      turn_id TEXT NOT NULL,
+      role TEXT NOT NULL CHECK (role IN ('player', 'dm')),
+      content TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      PRIMARY KEY (campaign_id, session_id, scene_id, seq)
     );
     `,
   );

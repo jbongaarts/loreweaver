@@ -60,6 +60,63 @@ export type {
   StateProvenanceQuery,
   StateProvenanceRecord,
 } from './state/mutateState.js';
+export {
+  SceneError,
+  openScene,
+  closeScene,
+  getScene,
+  getOpenScene,
+  appendSceneLog,
+  listSceneLog,
+} from './orchestrator/scene.js';
+export type {
+  SceneStatus,
+  SceneLogRole,
+  SceneKey,
+  SessionSelector,
+  OpenSceneInput,
+  CloseSceneInput,
+  SceneRecord,
+  SceneLogInput,
+  SceneLogRecord,
+} from './orchestrator/scene.js';
+export { createSeededRng } from './orchestrator/rng.js';
+export type { Rng } from './orchestrator/rng.js';
+export { DiceError, parseDice, rollDice } from './orchestrator/dice.js';
+export type { DiceNotation, DiceRoll } from './orchestrator/dice.js';
+export {
+  ToolRegistry,
+  DEFAULT_TOOLS,
+  createDefaultToolRegistry,
+} from './orchestrator/tools.js';
+export type { Tool, ToolContext, ToolResult } from './orchestrator/tools.js';
+export {
+  assembleContext,
+  renderContextMessage,
+  readStateSnapshot,
+} from './orchestrator/contextAssembler.js';
+export type {
+  ContextAssemblyInput,
+  AssembledContext,
+  AssembledSceneRef,
+  StateSnapshot,
+  CharacterSnapshot,
+  InventoryItem,
+  ClockSnapshot,
+} from './orchestrator/contextAssembler.js';
+export {
+  buildSystemPrompt,
+  parseToolCalls,
+  renderToolResults,
+} from './orchestrator/protocol.js';
+export type { ParsedToolCall } from './orchestrator/protocol.js';
+export { OrchestratorError, runTurn } from './orchestrator/orchestrator.js';
+export type {
+  RunTurnDeps,
+  RunTurnInput,
+  RunTurnResult,
+  ExecutedToolCall,
+} from './orchestrator/orchestrator.js';
 export { SEAMS } from './seams.js';
 export type {
   SeamName,
