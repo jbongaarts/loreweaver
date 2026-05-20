@@ -90,6 +90,20 @@ export {
   createDefaultToolRegistry,
 } from './orchestrator/tools.js';
 export type { Tool, ToolContext, ToolResult } from './orchestrator/tools.js';
+export {
+  assembleContext,
+  renderContextMessage,
+  readStateSnapshot,
+} from './orchestrator/contextAssembler.js';
+export type {
+  ContextAssemblyInput,
+  AssembledContext,
+  AssembledSceneRef,
+  StateSnapshot,
+  CharacterSnapshot,
+  InventoryItem,
+  ClockSnapshot,
+} from './orchestrator/contextAssembler.js';
 export { SEAMS } from './seams.js';
 export type {
   SeamName,
