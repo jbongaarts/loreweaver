@@ -147,6 +147,25 @@ export type {
   ProfileRegistry,
 } from './model/profiles.js';
 export {
+  EVALUATION_DIMENSIONS,
+  PREMIUM_DM_EVALUATION_THRESHOLD,
+  evaluateModelProfile,
+} from './model/evaluation.js';
+export type {
+  EvaluationCostInput,
+  EvaluationCostReport,
+  EvaluationDimension,
+  EvaluationLatencyReport,
+  EvaluationReport,
+  EvaluationScenario,
+  EvaluationScenarioReport,
+  EvaluationScores,
+  EvaluationTurn,
+  EvaluationTurnRecord,
+  EvaluateModelProfileInput,
+  PremiumDmEvaluationThreshold,
+} from './model/evaluation.js';
+export {
   SeparationError,
   assertSeparateFromBeads,
   normalizeRemoteUrl,
