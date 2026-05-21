@@ -159,6 +159,7 @@ function validateCommonInput(input: MutateStateInput): void {
 
 function setCharacterField(db: Db, input: MutateStateInput): void {
   requireAllowedField('character', input.field, CHARACTER_SET_FIELDS);
+  const value = validatedCharacterValue(input.field, input.value);
   db.prepare(
     `UPDATE character
      SET ${input.field} = ?,
@@ -166,7 +167,7 @@ function setCharacterField(db: Db, input: MutateStateInput): void {
          session_id = ?,
          updated_at = ?
      WHERE id = 1`,
-  ).run(input.value, input.provenance, input.sessionId, input.at);
+  ).run(value, input.provenance, input.sessionId, input.at);
 }
 
 function setInventoryField(db: Db, input: MutateStateInput): void {
@@ -174,6 +175,7 @@ function setInventoryField(db: Db, input: MutateStateInput): void {
     throw new MutateStateError('inventory mutate_state id is required');
   }
   requireAllowedField('inventory', input.field, INVENTORY_SET_FIELDS);
+  const value = validatedInventoryValue(input.field, input.value);
 
   db.prepare(
     `INSERT INTO inventory(
@@ -187,7 +189,7 @@ function setInventoryField(db: Db, input: MutateStateInput): void {
      ON CONFLICT(id) DO NOTHING`,
   ).run(
     input.id,
-    input.field === 'name' ? input.value : input.id,
+    input.field === 'name' ? value : input.id,
     input.provenance,
     input.sessionId,
     input.at,
@@ -199,11 +201,12 @@ function setInventoryField(db: Db, input: MutateStateInput): void {
          session_id = ?,
          updated_at = ?
      WHERE id = ?`,
-  ).run(input.value, input.provenance, input.sessionId, input.at, input.id);
+  ).run(value, input.provenance, input.sessionId, input.at, input.id);
 }
 
 function setClockField(db: Db, input: MutateStateInput): void {
   requireAllowedField('clock', input.field, CLOCK_SET_FIELDS);
+  const value = validatedClockValue(input.field, input.value);
   db.prepare(
     `UPDATE clock
      SET ${input.field} = ?,
@@ -211,7 +214,7 @@ function setClockField(db: Db, input: MutateStateInput): void {
          session_id = ?,
          updated_at = ?
      WHERE id = 1`,
-  ).run(input.value, input.provenance, input.sessionId, input.at);
+  ).run(value, input.provenance, input.sessionId, input.at);
 }
 
 function requireAllowedField(
@@ -298,6 +301,7 @@ function setKeyedJsonFact(
   table: 'plot_flags' | 'overlay_facts',
   input: MutateStateInput,
 ): void {
+  const valueJson = serializeJsonValue(input.value, `${table}.${input.field}`);
   db.prepare(
     `INSERT INTO ${table}(
        key,
@@ -314,9 +318,153 @@ function setKeyedJsonFact(
        updated_at = excluded.updated_at`,
   ).run(
     input.field,
-    JSON.stringify(input.value),
+    valueJson,
     input.provenance,
     input.sessionId,
     input.at,
   );
+}
+
+type SqlValue = string | number | null;
+
+const CHARACTER_TEXT_FIELDS = new Set(['name', 'ancestry', 'class_name']);
+const CHARACTER_INTEGER_FIELDS = new Set(['level', 'hp_current', 'hp_max']);
+const CHARACTER_JSON_FIELDS = new Set([
+  'ability_scores_json',
+  'conditions_json',
+]);
+const INVENTORY_TEXT_FIELDS = new Set(['name', 'location']);
+const INVENTORY_JSON_FIELDS = new Set(['properties_json']);
+const CLOCK_TEXT_FIELDS = new Set(['in_game_time', 'current_location_id']);
+
+function validatedCharacterValue(
+  field: string,
+  value: MutateStateValue,
+): SqlValue {
+  if (CHARACTER_TEXT_FIELDS.has(field)) {
+    return nullableStringValue('character', field, value);
+  }
+  if (CHARACTER_INTEGER_FIELDS.has(field)) {
+    return nonNegativeIntegerValue('character', field, value, {
+      min: field === 'level' ? 1 : 0,
+    });
+  }
+  if (CHARACTER_JSON_FIELDS.has(field)) {
+    return jsonColumnValue('character', field, value, {
+      expectedRoot: field === 'conditions_json' ? 'array' : 'object',
+    });
+  }
+  throw new MutateStateError(`Unsupported character mutate_state field: ${field}`);
+}
+
+function validatedInventoryValue(
+  field: string,
+  value: MutateStateValue,
+): SqlValue {
+  if (INVENTORY_TEXT_FIELDS.has(field)) {
+    return field === 'name'
+      ? requiredStringValue('inventory', field, value)
+      : nullableStringValue('inventory', field, value);
+  }
+  if (field === 'quantity') {
+    return nonNegativeIntegerValue('inventory', field, value, { min: 0 });
+  }
+  if (INVENTORY_JSON_FIELDS.has(field)) {
+    return jsonColumnValue('inventory', field, value, {
+      expectedRoot: 'object',
+    });
+  }
+  throw new MutateStateError(`Unsupported inventory mutate_state field: ${field}`);
+}
+
+function validatedClockValue(field: string, value: MutateStateValue): SqlValue {
+  if (CLOCK_TEXT_FIELDS.has(field)) {
+    return field === 'in_game_time'
+      ? requiredStringValue('clock', field, value)
+      : nullableStringValue('clock', field, value);
+  }
+  throw new MutateStateError(`Unsupported clock mutate_state field: ${field}`);
+}
+
+function requiredStringValue(
+  target: string,
+  field: string,
+  value: MutateStateValue,
+): string {
+  if (typeof value !== 'string') {
+    throw new MutateStateError(`${target}.${field} must be a string`);
+  }
+  return value;
+}
+
+function nullableStringValue(
+  target: string,
+  field: string,
+  value: MutateStateValue,
+): string | null {
+  if (value === null) {
+    return null;
+  }
+  return requiredStringValue(target, field, value);
+}
+
+function nonNegativeIntegerValue(
+  target: string,
+  field: string,
+  value: MutateStateValue,
+  options: { min: number },
+): number {
+  if (
+    typeof value !== 'number' ||
+    !Number.isInteger(value) ||
+    value < options.min
+  ) {
+    throw new MutateStateError(
+      `${target}.${field} must be an integer >= ${options.min}`,
+    );
+  }
+  return value;
+}
+
+function jsonColumnValue(
+  target: string,
+  field: string,
+  value: MutateStateValue,
+  options: { expectedRoot: 'array' | 'object' },
+): string {
+  const parsed = parseOrUseJsonValue(target, field, value);
+  const rootIsArray = Array.isArray(parsed);
+  if (
+    (options.expectedRoot === 'array' && !rootIsArray) ||
+    (options.expectedRoot === 'object' &&
+      (rootIsArray || typeof parsed !== 'object' || parsed === null))
+  ) {
+    throw new MutateStateError(
+      `${target}.${field} must be a JSON ${options.expectedRoot}`,
+    );
+  }
+  return serializeJsonValue(parsed, `${target}.${field}`);
+}
+
+function parseOrUseJsonValue(
+  target: string,
+  field: string,
+  value: MutateStateValue,
+): unknown {
+  if (typeof value !== 'string') {
+    return value;
+  }
+  try {
+    return JSON.parse(value) as unknown;
+  } catch {
+    throw new MutateStateError(`${target}.${field} must be valid JSON`);
+  }
+}
+
+function serializeJsonValue(value: unknown, label: string): string {
+  const serialized = JSON.stringify(value);
+  if (serialized === undefined) {
+    throw new MutateStateError(`${label} must be JSON-serializable`);
+  }
+  return serialized;
 }

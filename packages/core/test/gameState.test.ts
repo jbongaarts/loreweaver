@@ -160,6 +160,67 @@ describe('game state', () => {
     db.close();
   });
 
+  it('mutateState rejects invalid typed values without changing canon', () => {
+    const db = openDatabase(':memory:');
+    initSchema(db);
+
+    expect(() =>
+      mutateState(db, {
+        target: 'character',
+        field: 'hp_current',
+        op: 'set',
+        value: 'dead',
+        provenance: 'narration:turn-4',
+        sessionId: 'session-1',
+        at: '2026-05-19T04:06:00.000Z',
+      }),
+    ).toThrow(MutateStateError);
+
+    expect(() =>
+      mutateState(db, {
+        target: 'inventory',
+        id: 'torch',
+        field: 'quantity',
+        op: 'set',
+        value: 'many',
+        provenance: 'narration:turn-4',
+        sessionId: 'session-1',
+        at: '2026-05-19T04:06:00.000Z',
+      }),
+    ).toThrow(MutateStateError);
+
+    expect(() =>
+      mutateState(db, {
+        target: 'character',
+        field: 'conditions_json',
+        op: 'set',
+        value: 'poisoned',
+        provenance: 'narration:turn-4',
+        sessionId: 'session-1',
+        at: '2026-05-19T04:06:00.000Z',
+      }),
+    ).toThrow(MutateStateError);
+
+    expect(
+      db
+        .prepare(
+          `SELECT hp_current, conditions_json, provenance
+           FROM character
+           WHERE id = 1`,
+        )
+        .get(),
+    ).toEqual({
+      hp_current: 0,
+      conditions_json: '[]',
+      provenance: 'system:init_schema',
+    });
+    expect(
+      db.prepare("SELECT id FROM inventory WHERE id = 'torch'").get(),
+    ).toBeUndefined();
+
+    db.close();
+  });
+
   it('mutateStateBatch rolls back all in-flight changes when a turn fails', () => {
     const db = openDatabase(':memory:');
     initSchema(db);

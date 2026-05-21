@@ -217,6 +217,22 @@ describe('mutate_state tool', () => {
     );
     expect(result.ok).toBe(false);
   });
+
+  it('returns a structured error for an invalid canonical value', () => {
+    const c = ctx();
+    const result = createDefaultToolRegistry().invoke(
+      'mutate_state',
+      { target: 'character', field: 'hp_current', op: 'set', value: 'dead' },
+      c,
+    );
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.code).toBe('mutate_error');
+    }
+    expect(
+      c.db.prepare('SELECT hp_current FROM character WHERE id = 1').get(),
+    ).toEqual({ hp_current: 0 });
+  });
 });
 
 describe('world_query tool', () => {
