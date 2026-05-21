@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -114,6 +114,24 @@ describe('entrypoint guard', () => {
     expect(stdout).toContain('Loreweaver — core v');
     expect(stdout).toContain('db=/tmp/lw-entrypoint.db');
   });
+});
+
+/**
+ * The `bin` target is `./dist/index.js`. Without a shebang an installed
+ * `loreweaver` fails on POSIX shells, which exec the bin file directly. tsc
+ * preserves a leading shebang from the source file into the emitted output.
+ * Skipped when `dist/` is absent; CI builds before testing.
+ */
+describe('cli bin shebang', () => {
+  const cliDist = fileURLToPath(new URL('../dist/index.js', import.meta.url));
+
+  it.skipIf(!existsSync(cliDist))(
+    'built dist/index.js starts with a node shebang',
+    () => {
+      const firstLine = readFileSync(cliDist, 'utf8').split('\n', 1)[0];
+      expect(firstLine).toBe('#!/usr/bin/env node');
+    },
+  );
 });
 
 /**
