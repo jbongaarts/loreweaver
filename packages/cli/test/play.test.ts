@@ -1,8 +1,12 @@
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import {
   appendSceneLog,
   createCampaign,
   createDefaultToolRegistry,
+  DoltRepo,
   EMBERFALL_HOLLOW,
   getCampaign,
   getOpenScene,
@@ -19,7 +23,12 @@ import {
   type RunTurnInput,
   type RunTurnResult,
 } from '@loreweaver/core';
-import { runPlay, type CliIO, type PlayDeps } from '../src/play.js';
+import {
+  doltCheckpointRunner,
+  runPlay,
+  type CliIO,
+  type PlayDeps,
+} from '../src/play.js';
 
 /**
  * An in-memory database whose `close()` is a no-op, so a test can assert on
@@ -111,6 +120,7 @@ function baseDeps(
   db: Db,
   io: CliIO,
   runTurn: PlayDeps['runTurn'] = fakeRunTurn,
+  makeCheckpointRunner: PlayDeps['makeCheckpointRunner'] = () => undefined,
 ): PlayDeps {
   let ids = 0;
   let clock = 0;
@@ -125,6 +135,7 @@ function baseDeps(
       new Date(Date.UTC(2026, 4, 20, 0, 0, clock++)).toISOString(),
     nextId: (prefix) => `${prefix}-${++ids}`,
     seed: () => 1,
+    makeCheckpointRunner,
   };
 }
 
@@ -190,7 +201,9 @@ describe('runPlay', () => {
 
     await runPlay(baseDeps(db, io), { dbPath: 'demo.db' });
 
-    expect(lines.join('\n')).toContain('Previous session closed and recapped');
+    expect(lines.join('\n')).toContain(
+      'Session crashed-session closed and recapped',
+    );
     expect(
       getSession(db, { campaignId: 'camp', sessionId: 'crashed-session' })
         ?.status,
@@ -229,6 +242,85 @@ describe('runPlay', () => {
     expect(out).toContain('model boom');
     expect(out).toContain('closed and recapped');
     dispose();
+  });
+
+  it('checkpoints the campaign on graceful exit and reports the id', async () => {
+    const { db, dispose } = makeDb();
+    const { io, lines } = scriptedIO(['explore', '/quit']);
+    const run = vi.fn((_liveDbPath: string, message: string) => {
+      expect(message).toContain('session');
+      return 'checkpoint-abc123';
+    });
+
+    const code = await runPlay(
+      baseDeps(db, io, fakeRunTurn, (dbPath) => ({ liveDbPath: dbPath, run })),
+      { dbPath: 'campaign.db' },
+    );
+
+    expect(code).toBe(0);
+    expect(run).toHaveBeenCalledOnce();
+    // The runner is handed the actual campaign DB path to snapshot.
+    expect(run.mock.calls[0][0]).toBe('campaign.db');
+    expect(lines.join('\n')).toContain('(checkpoint checkpoint-abc123)');
+    dispose();
+  });
+
+  it('closes gracefully without a checkpoint when Dolt is unavailable', async () => {
+    const { db, dispose } = makeDb();
+    const { io, lines } = scriptedIO(['/quit']);
+
+    await runPlay(baseDeps(db, io, fakeRunTurn, () => undefined), {
+      dbPath: 'campaign.db',
+    });
+
+    const out = lines.join('\n');
+    expect(out).toContain('closed and recapped');
+    expect(out).toMatch(/Dolt is not available/i);
+    expect(getOpenSession(db, { campaignId: campaignId(db) })).toBeUndefined();
+    dispose();
+  });
+
+  it('still closes the session when the checkpoint itself fails', async () => {
+    const { db, dispose } = makeDb();
+    const { io, lines } = scriptedIO(['/quit']);
+
+    const code = await runPlay(
+      baseDeps(db, io, fakeRunTurn, (dbPath) => ({
+        liveDbPath: dbPath,
+        run: () => {
+          throw new Error('dolt exploded');
+        },
+      })),
+      { dbPath: 'campaign.db' },
+    );
+
+    expect(code).toBe(0);
+    const out = lines.join('\n');
+    expect(out).toContain('checkpoint failed');
+    expect(out).toContain('dolt exploded');
+    // The session is still closed — the close pipeline ran before the
+    // checkpoint, so a checkpoint failure never strands an open session.
+    expect(getOpenSession(db, { campaignId: campaignId(db) })).toBeUndefined();
+    dispose();
+  });
+});
+
+describe.skipIf(!DoltRepo.available())('runPlay Dolt checkpoint integration', () => {
+  it('writes a real Dolt checkpoint of the campaign on graceful exit', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'lw-play-cp-'));
+    const dbPath = join(root, 'campaign.db');
+    const db = openDatabase(dbPath);
+    initSchema(db);
+    const { io, lines } = scriptedIO(['look around', '/quit']);
+
+    const code = await runPlay(
+      { ...baseDeps(db, io), makeCheckpointRunner: doltCheckpointRunner },
+      { dbPath },
+    );
+
+    expect(code).toBe(0);
+    // A real Dolt commit hash was produced and reported.
+    expect(lines.join('\n')).toMatch(/\(checkpoint [0-9a-z]+\)/);
   });
 });
 
