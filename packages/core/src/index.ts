@@ -150,6 +150,8 @@ export type {
   GracefulSessionArcRollup,
   SessionCheckpointRunner,
 } from './sessionClose.js';
+export { getSessionLaunchState } from './sessionLaunch.js';
+export type { SessionLaunchState } from './sessionLaunch.js';
 export type { ModelClient, ModelMessage, ModelCompleteInput } from './model/client.js';
 export { ModelClientError } from './model/client.js';
 export { AgentSdkModelClient } from './model/agentSdkClient.js';
