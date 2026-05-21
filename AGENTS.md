@@ -14,12 +14,21 @@ Monorepo (npm workspaces): `@loreweaver/core` + `@loreweaver/cli`.
 npm ci             # clean install (CI)
 npm install        # local install
 npm run build      # tsc --build (incremental)
+npm run clean      # tsc --build --clean (removes dist AND .tsbuildinfo)
 npm run typecheck  # tsc --build --force (deterministic full build; used by CI)
 npm run test       # vitest run
 ```
 
 Expected: **20 passed / 1 skipped** (skipped = `model.integration.test.ts`, a
 live-API test gated off by default).
+
+**Deterministic builds / core-alone boundary proof:** `tsc --build` is
+incremental and keys off `packages/*/tsconfig.tsbuildinfo`. Deleting only
+`dist/` leaves a stale `tsbuildinfo`, so `tsc` reports up-to-date, emits
+nothing, and exits 0 — a false negative for any proof that builds `@loreweaver/core`
+alone and asserts `packages/core/dist/index.js` exists. Always reset with
+`npm run clean` (clears `dist` **and** `tsbuildinfo`) before such a proof, or
+use `npm run typecheck` (`--force`). CI uses `--force` for this reason.
 
 **Native dep — `better-sqlite3` (the only compiled dependency):** use
 **Node 22 LTS**. The pinned `11.x` ships a Node 22 prebuilt but **no Node 24

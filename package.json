@@ -5,6 +5,7 @@
   "workspaces": ["packages/core", "packages/cli"],
   "scripts": {
     "build": "tsc --build",
+    "clean": "tsc --build --clean",
     "typecheck": "tsc --build --force",
     "test": "vitest run"
   },
