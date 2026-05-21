@@ -95,26 +95,42 @@ bd close <id>         # Complete work
 
 ## Session Completion
 
-**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
+**When ending a work session**, you MUST complete ALL steps below. Work is NOT
+complete until the branch is pushed and a pull request exists. `main` is updated
+only by merging a PR; do not push directly to `main`.
 
 **MANDATORY WORKFLOW:**
 
 1. **File issues for remaining work** - Create issues for anything that needs follow-up
 2. **Run quality gates** (if code changed) - Tests, linters, builds
 3. **Update issue status** - Close finished work, update in-progress items
-4. **PUSH TO REMOTE** - This is MANDATORY:
+4. **Commit on a feature branch** - Do not commit completed work directly on `main`
+5. **Sync with main before publishing**:
    ```bash
-   git pull --rebase
-   git push
-   git status  # MUST show "up to date with origin"
+   git fetch origin
+   git rebase origin/main
    ```
-5. **Clean up** - Clear stashes, prune remote branches
-6. **Verify** - All changes committed AND pushed
-7. **Hand off** - Provide context for next session
+6. **Push the branch to remote** - This is MANDATORY:
+   ```bash
+   git push -u origin HEAD
+   git status  # MUST show clean and up to date with origin/<branch>
+   ```
+7. **Open a pull request targeting `main`**:
+   ```bash
+   gh pr create --base main --fill
+   ```
+8. **Merge through the PR** - After checks/review requirements are satisfied,
+   merge the PR with `gh pr merge` or the GitHub UI. Never bypass this with a
+   direct push to `main`.
+9. **Clean up** - Clear stashes, prune remote branches after merge
+10. **Verify** - All changes committed, pushed, and represented by a PR
+11. **Hand off** - Provide PR URL, verification results, and context for next session
 
 **CRITICAL RULES:**
-- Work is NOT complete until `git push` succeeds
-- NEVER stop before pushing - that leaves work stranded locally
-- NEVER say "ready to push when you are" - YOU must push
-- If push fails, resolve and retry until it succeeds
+- Work is NOT complete until the branch push succeeds and the PR exists
+- `main` changes only through PR merge; never direct-push completed work to `main`
+- NEVER stop before pushing the branch - that leaves work stranded locally
+- NEVER say "ready to push when you are" - YOU must push the branch and open the PR
+- If push or PR creation fails, resolve and retry until it succeeds or file a
+  blocker with the failure details
 <!-- END BEADS INTEGRATION -->
