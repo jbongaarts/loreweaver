@@ -12,6 +12,7 @@ import { closeScene, getOpenScene, listSceneLog } from './orchestrator/scene.js'
 import {
   closeSession,
   getSession,
+  SessionError,
   type SessionKey,
   type SessionRecord,
 } from './session.js';
@@ -45,47 +46,56 @@ export function closeSessionGracefully(
   db: Db,
   input: CloseSessionGracefullyInput,
 ): CloseSessionGracefullyResult {
-  const wasClosed = getSession(db, input)?.status === 'closed';
-  const closedSceneIds = withTransaction(db, (txnDb) => {
+  const { session, closedSceneIds, wasClosed } = withTransaction(db, (txnDb) => {
+    const existing = getSession(txnDb, input);
+    if (existing === undefined) {
+      throw new SessionError(
+        `cannot close unknown session '${input.sessionId}' in campaign '${input.campaignId}'`,
+      );
+    }
+    const wasClosed = existing.status === 'closed';
     const openScene = getOpenScene(txnDb, input);
-    if (openScene === undefined) {
-      return [];
+    const closedSceneIds: string[] = [];
+
+    if (openScene !== undefined) {
+      closeScene(txnDb, {
+        campaignId: input.campaignId,
+        sessionId: input.sessionId,
+        sceneId: openScene.sceneId,
+        at: input.closedAt,
+      });
+      ensureSceneSummary(txnDb, input, openScene.sceneId);
+      closedSceneIds.push(openScene.sceneId);
     }
 
-    closeScene(txnDb, {
+    rollupSessionRecap(txnDb, {
       campaignId: input.campaignId,
       sessionId: input.sessionId,
-      sceneId: openScene.sceneId,
-      at: input.closedAt,
-    });
-    ensureSceneSummary(txnDb, input, openScene.sceneId);
-    return [openScene.sceneId];
-  });
-
-  rollupSessionRecap(db, {
-    campaignId: input.campaignId,
-    sessionId: input.sessionId,
-    recap: input.recap,
-    stateDelta: input.stateDelta,
-    createdAt: input.closedAt,
-  });
-
-  if (input.arcRollup !== undefined) {
-    rollupArcSummary(db, {
-      campaignId: input.campaignId,
-      arcId: input.arcRollup.arcId,
-      summary: input.arcRollup.summary,
-      sourceSessionIds: [input.sessionId],
-      campaignBible: input.arcRollup.campaignBible,
+      recap: input.recap,
+      stateDelta: input.stateDelta,
       createdAt: input.closedAt,
     });
-  }
 
-  const session = closeSession(db, {
-    campaignId: input.campaignId,
-    sessionId: input.sessionId,
-    closedAt: input.closedAt,
+    if (input.arcRollup !== undefined) {
+      rollupArcSummary(txnDb, {
+        campaignId: input.campaignId,
+        arcId: input.arcRollup.arcId,
+        summary: input.arcRollup.summary,
+        sourceSessionIds: [input.sessionId],
+        campaignBible: input.arcRollup.campaignBible,
+        createdAt: input.closedAt,
+      });
+    }
+
+    const session = closeSession(txnDb, {
+      campaignId: input.campaignId,
+      sessionId: input.sessionId,
+      closedAt: input.closedAt,
+    });
+
+    return { session, closedSceneIds, wasClosed };
   });
+
   const checkpointId =
     wasClosed || input.checkpoint === undefined
       ? undefined
