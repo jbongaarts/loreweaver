@@ -233,6 +233,24 @@ function assertUniqueIds(items: readonly { id: string }[], path: string): void {
 }
 
 /**
+ * `:` is the segment delimiter in a world overlay key
+ * (`world:<type>:<id>:<field>`). An entity id containing `:` could let two
+ * distinct ids/fields collapse onto one overlay key, so reject it here.
+ */
+function assertColonFreeIds(
+  items: readonly { id: string }[],
+  path: string,
+): void {
+  for (const item of items) {
+    if (item.id.includes(':')) {
+      throw new WorldModuleError(
+        `${path} id must not contain ':': '${item.id}'`,
+      );
+    }
+  }
+}
+
+/**
  * Structurally validate an untrusted value as a {@link ModulePack}. Throws
  * {@link WorldModuleError} on the first problem; on success returns a typed
  * pack. Also enforces referential integrity: ids are unique within a kind,
@@ -256,6 +274,13 @@ export function validateModulePack(value: unknown): ModulePack {
   assertUniqueIds(pack.npcs, 'npcs');
   assertUniqueIds(pack.triggers, 'triggers');
   assertUniqueIds(pack.lore, 'lore');
+
+  // World overlay targets (location/encounter/npc/lore) key their overlays by
+  // id, so their ids must be colon-free.
+  assertColonFreeIds(pack.locations, 'locations');
+  assertColonFreeIds(pack.encounters, 'encounters');
+  assertColonFreeIds(pack.npcs, 'npcs');
+  assertColonFreeIds(pack.lore, 'lore');
 
   const locationIds = new Set(pack.locations.map((l) => l.id));
   const encounterIds = new Set(pack.encounters.map((e) => e.id));
