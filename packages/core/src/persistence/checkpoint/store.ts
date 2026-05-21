@@ -1,5 +1,5 @@
 import { existsSync, renameSync, rmSync } from 'node:fs';
-import { openDatabase } from '../db.js';
+import { openDatabase, withTransaction } from '../db.js';
 import { assertSeparateFromBeads } from './separation.js';
 import { serializeCampaign } from './serialize.js';
 import { DoltRepo, type Checkpoint } from './doltRepo.js';
@@ -58,6 +58,11 @@ export class CheckpointStore {
  * into a sibling temp file that is renamed into place only after every record
  * has been applied. Any failure removes the temp file, so a partial restore
  * can never leave a usable-looking database at `destDbPath`.
+ *
+ * Schema and rows are applied in one transaction with `defer_foreign_keys`, so
+ * snapshot rows can be inserted in table-name order — the order `serialize`
+ * emits them — without a dependency-ordered topological sort. Foreign-key
+ * enforcement is checked once at commit, when every table and row is present.
  */
 function materialize(records: SnapshotRecord[], destDbPath: string): void {
   if (existsSync(destDbPath)) {
@@ -69,27 +74,33 @@ function materialize(records: SnapshotRecord[], destDbPath: string): void {
   try {
     const db = openDatabase(tmpDbPath);
     try {
-      for (const r of records.filter((x) => x.kind === 'schema')) {
-        const { create } = JSON.parse(r.payload) as { create: string };
-        db.exec(`${create};`);
-      }
-      for (const r of records.filter((x) => x.kind === 'row')) {
-        const row = JSON.parse(r.payload) as Record<string, unknown>;
-        const cols = Object.keys(row);
-        const ph = cols.map(() => '?').join(', ');
-        const vals = cols.map((c) => {
-          const v = row[c] as unknown;
-          if (v && typeof v === 'object' && '__blob' in (v as object)) {
-            return Buffer.from((v as { __blob: string }).__blob, 'base64');
-          }
-          return v as string | number | null;
-        });
-        db.prepare(
-          `INSERT INTO "${r.table}" (${cols
-            .map((c) => `"${c}"`)
-            .join(', ')}) VALUES (${ph})`,
-        ).run(...vals);
-      }
+      withTransaction(db, (txnDb) => {
+        // Resets automatically at commit; must be set per transaction.
+        txnDb.pragma('defer_foreign_keys = ON');
+        for (const r of records.filter((x) => x.kind === 'schema')) {
+          const { create } = JSON.parse(r.payload) as { create: string };
+          txnDb.exec(`${create};`);
+        }
+        for (const r of records.filter((x) => x.kind === 'row')) {
+          const row = JSON.parse(r.payload) as Record<string, unknown>;
+          const cols = Object.keys(row);
+          const ph = cols.map(() => '?').join(', ');
+          const vals = cols.map((c) => {
+            const v = row[c] as unknown;
+            if (v && typeof v === 'object' && '__blob' in (v as object)) {
+              return Buffer.from((v as { __blob: string }).__blob, 'base64');
+            }
+            return v as string | number | null;
+          });
+          txnDb
+            .prepare(
+              `INSERT INTO "${r.table}" (${cols
+                .map((c) => `"${c}"`)
+                .join(', ')}) VALUES (${ph})`,
+            )
+            .run(...vals);
+        }
+      });
     } finally {
       db.close();
     }

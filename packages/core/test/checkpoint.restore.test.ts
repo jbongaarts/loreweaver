@@ -43,6 +43,36 @@ describe.skipIf(!doltOk)('CheckpointStore.restoreToNewWorkingCopy', () => {
     expect(after).toBe(before);
   });
 
+  it('restores a snapshot whose tables have foreign keys', () => {
+    const root = mkdtempSync(join(tmpdir(), 'lw-rs-'));
+    const src = join(root, 'live.db');
+    const db = openDatabase(src);
+    // 'child' sorts before 'parent', so the serializer emits child rows first;
+    // the FK is satisfiable on restore only because FK checks are deferred to
+    // commit, by which point the parent row exists.
+    db.exec('CREATE TABLE parent (id INTEGER PRIMARY KEY);');
+    db.exec(
+      'CREATE TABLE child (id INTEGER PRIMARY KEY, ' +
+        'parent_id INTEGER NOT NULL REFERENCES parent(id));',
+    );
+    db.prepare('INSERT INTO parent(id) VALUES (1)').run();
+    db.prepare('INSERT INTO child(id, parent_id) VALUES (10, 1)').run();
+    db.close();
+
+    const store = new CheckpointStore(join(root, 'dolt'), join(root, '.beads'));
+    const id = store.checkpoint(src, 'cp1');
+
+    const dest = join(root, 'restored.db');
+    store.restoreToNewWorkingCopy(id, dest);
+
+    const rdb = openDatabase(dest);
+    const child = rdb
+      .prepare('SELECT parent_id FROM child WHERE id = 10')
+      .get() as { parent_id: number } | undefined;
+    rdb.close();
+    expect(child?.parent_id).toBe(1);
+  });
+
   it('refuses to restore onto an existing destination', () => {
     const root = mkdtempSync(join(tmpdir(), 'lw-rs-'));
     const src = join(root, 'live.db');
