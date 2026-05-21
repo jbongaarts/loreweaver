@@ -143,6 +143,13 @@ export type {
   SessionStatus,
   StartSessionInput,
 } from './session.js';
+export { closeSessionGracefully } from './sessionClose.js';
+export type {
+  CloseSessionGracefullyInput,
+  CloseSessionGracefullyResult,
+  GracefulSessionArcRollup,
+  SessionCheckpointRunner,
+} from './sessionClose.js';
 export type { ModelClient, ModelMessage, ModelCompleteInput } from './model/client.js';
 export { ModelClientError } from './model/client.js';
 export { AgentSdkModelClient } from './model/agentSdkClient.js';
