@@ -58,7 +58,8 @@ strategy,
 [docs/adr/0001-product-model-deployment-content-strategy.md](docs/adr/0001-product-model-deployment-content-strategy.md)
 for the product/model/content decision record, and
 [docs/adr/0002-hosted-web-pwa-byok-deployment-path.md](docs/adr/0002-hosted-web-pwa-byok-deployment-path.md)
-for the CLI-to-hosted deployment path.
+for the CLI-to-hosted deployment path. The local CLI release plan is in
+[docs/cli-distribution.md](docs/cli-distribution.md).
 
 ## Repository Layout
 
