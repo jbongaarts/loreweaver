@@ -203,6 +203,53 @@ describe('campaign fork + worldQuery', () => {
     db.close();
   });
 
+  it('matches overlay keys exactly when ids contain LIKE wildcards', () => {
+    const db = openDatabase(':memory:');
+    initSchema(db);
+    const insertNpc = db.prepare(
+      `INSERT INTO module_npc(id, name, location_id, data_json)
+       VALUES (?, ?, ?, ?)`,
+    );
+    // Three ids that collide if '_' and '%' are treated as LIKE wildcards
+    // rather than literals.
+    insertNpc.run('gob_lin', 'Underscore', 'loc-1', JSON.stringify({ mood: 'calm' }));
+    insertNpc.run('gobXlin', 'Decoy', 'loc-1', JSON.stringify({ mood: 'calm' }));
+    insertNpc.run('gob%lin', 'Percent', 'loc-1', JSON.stringify({ mood: 'calm' }));
+
+    const writeOverlay = (id: string, value: string) =>
+      mutateState(db, {
+        target: 'overlay_facts',
+        field: worldOverlayKey('npc', id, 'mood'),
+        op: 'set',
+        value,
+        provenance: 'test',
+        sessionId: 'session-1',
+        at: '2026-05-20T00:00:00.000Z',
+      });
+
+    writeOverlay('gobXlin', 'enraged');
+    writeOverlay('gob_lin', 'wary');
+
+    // '_' must match literally, not as a single-char wildcard: the underscore
+    // id sees only its own overlay, never the decoy's.
+    const underscore = worldQuery(db, { type: 'npc', id: 'gob_lin' });
+    expect(underscore.ok).toBe(true);
+    if (underscore.ok) {
+      expect(underscore.resolved.mood).toBe('wary');
+      expect(underscore.overlays.map((o) => o.value)).toEqual(['wary']);
+    }
+
+    // '%' must match literally, not as a multi-char wildcard: the percent id
+    // has no overlay and must not absorb every other id's overlays.
+    const percent = worldQuery(db, { type: 'npc', id: 'gob%lin' });
+    expect(percent.ok).toBe(true);
+    if (percent.ok) {
+      expect(percent.resolved.mood).toBe('calm');
+      expect(percent.overlays).toEqual([]);
+    }
+    db.close();
+  });
+
   it('returns not_found for unknown targets and missing ids', () => {
     const db = freshCampaign();
     expect(worldQuery(db, { type: 'npc', id: 'ghost' })).toMatchObject({
