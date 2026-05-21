@@ -1,13 +1,20 @@
 import { createInterface } from 'node:readline/promises';
 import { pathToFileURL } from 'node:url';
 import {
+  AgentSdkModelClient,
   CORE_VERSION,
   ConfigError,
+  EMBERFALL_HOLLOW,
+  createDefaultToolRegistry,
   ensureDoltAvailable,
   loadConfig,
+  openDatabase,
+  runTurn,
   type DoltInstallPrompt,
   type EnsureDoltOptions,
+  type LoreweaverConfig,
 } from '@loreweaver/core';
+import { nodeIO, runPlay, type PlayDeps } from './play.js';
 
 export function buildBanner(version: string): string {
   return `Loreweaver — core v${version}`;
@@ -68,9 +75,57 @@ export async function runDoltInstall(
   }
 }
 
+/**
+ * Build the real, terminal-and-model-backed dependencies for `loreweaver play`.
+ * Ids embed a timestamp plus randomness so they are unique and order-stable.
+ */
+function buildPlayDeps(cfg: LoreweaverConfig, io: PlayDeps['io']): PlayDeps {
+  return {
+    io,
+    openDb: (path) => openDatabase(path),
+    model: new AgentSdkModelClient(cfg.model),
+    registry: createDefaultToolRegistry(),
+    runTurn,
+    pack: EMBERFALL_HOLLOW,
+    now: () => new Date().toISOString(),
+    nextId: (prefix) =>
+      `${prefix}-${Date.now().toString(36)}-${Math.random()
+        .toString(36)
+        .slice(2, 8)}`,
+    seed: () => (Math.random() * 0x7fffffff) | 0,
+  };
+}
+
+/** `loreweaver play` — the interactive campaign front-end. */
+export async function runPlaySubcommand(): Promise<number> {
+  let cfg: LoreweaverConfig;
+  try {
+    cfg = loadConfig();
+  } catch (err) {
+    if (err instanceof ConfigError) {
+      console.error(`config error: ${err.message}`);
+      return 1;
+    }
+    throw err;
+  }
+  const io = nodeIO();
+  try {
+    return await runPlay(buildPlayDeps(cfg, io), { dbPath: cfg.campaignDbPath });
+  } finally {
+    io.close();
+  }
+}
+
 export function main(argv: string[] = process.argv): void {
   if (argv[2] === 'dolt' && argv[3] === 'install') {
     void runDoltInstall().then((code) => {
+      process.exitCode = code;
+    });
+    return;
+  }
+
+  if (argv[2] === 'play') {
+    void runPlaySubcommand().then((code) => {
       process.exitCode = code;
     });
     return;

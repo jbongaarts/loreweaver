@@ -152,6 +152,8 @@ export type {
 } from './sessionClose.js';
 export { getSessionLaunchState } from './sessionLaunch.js';
 export type { SessionLaunchState } from './sessionLaunch.js';
+export { CampaignError, createCampaign, getCampaign } from './campaign.js';
+export type { CampaignInfo, CreateCampaignInput } from './campaign.js';
 export {
   DEMO_TURN_CAP,
   DEFAULT_DEMO_PACK,
