@@ -160,6 +160,68 @@ describe('graceful session close pipeline', () => {
     db.close();
   });
 
+  it('retries the checkpoint after a close-time checkpoint failure', () => {
+    const db = freshDb();
+    startSession(db, {
+      campaignId: CAMPAIGN,
+      sessionId: SESSION,
+      startedAt: '2026-05-21T00:00:00.000Z',
+    });
+    openScene(db, {
+      campaignId: CAMPAIGN,
+      sessionId: SESSION,
+      sceneId: 'scene-1',
+      title: 'The Road',
+      at: '2026-05-21T00:01:00.000Z',
+    });
+
+    let attempts = 0;
+    const input = {
+      campaignId: CAMPAIGN,
+      sessionId: SESSION,
+      closedAt: '2026-05-21T01:00:00.000Z',
+      recap: 'The session closes cleanly.',
+      stateDelta: [],
+      checkpoint: {
+        liveDbPath: 'campaign.db',
+        run: () => {
+          attempts += 1;
+          if (attempts === 1) {
+            throw new Error('dolt unavailable');
+          }
+          return `checkpoint-${attempts}`;
+        },
+      },
+    } as const;
+
+    // First close: rollups + session close commit, then the checkpoint fails.
+    expect(() => closeSessionGracefully(db, input)).toThrow('dolt unavailable');
+    expect(
+      getSession(db, { campaignId: CAMPAIGN, sessionId: SESSION })?.status,
+    ).toBe('closed');
+
+    // Retry: the checkpoint runs again and succeeds; rollups are not repeated
+    // and the session is not reopened.
+    const retry = closeSessionGracefully(db, input);
+    expect(retry.checkpointId).toBe('checkpoint-2');
+    expect(attempts).toBe(2);
+    expect(
+      getSession(db, { campaignId: CAMPAIGN, sessionId: SESSION })?.status,
+    ).toBe('closed');
+    expect(
+      listSceneSummaries(db, { campaignId: CAMPAIGN, sessionId: SESSION }),
+    ).toHaveLength(1);
+    expect(
+      db.prepare('SELECT COUNT(*) AS count FROM session_recap').get(),
+    ).toEqual({ count: 1 });
+
+    // A further close once the checkpoint has succeeded is a no-op for it.
+    const third = closeSessionGracefully(db, input);
+    expect(third.checkpointId).toBeUndefined();
+    expect(attempts).toBe(2);
+    db.close();
+  });
+
   it('rejects an unknown session before writing rollups', () => {
     const db = freshDb();
 
