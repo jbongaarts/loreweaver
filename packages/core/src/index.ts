@@ -249,7 +249,7 @@ export type {
   DoltConfirmFn,
   EnsureDoltOptions,
 } from './persistence/checkpoint/doltProvision.js';
-export { CheckpointStore } from './persistence/checkpoint/store.js';
+export { CheckpointStore, CheckpointError } from './persistence/checkpoint/store.js';
 export { validateModulePack, WorldModuleError } from './world/validate.js';
 export {
   parseModulePack,

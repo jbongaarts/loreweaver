@@ -1,10 +1,18 @@
-import { mkdtempSync } from 'node:fs';
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { openDatabase } from '../src/persistence/db.js';
 import { DoltRepo } from '../src/persistence/checkpoint/doltRepo.js';
-import { CheckpointStore } from '../src/persistence/checkpoint/store.js';
+import {
+  CheckpointError,
+  CheckpointStore,
+} from '../src/persistence/checkpoint/store.js';
 import {
   serializeCampaign,
   canonicalize,
@@ -33,5 +41,43 @@ describe.skipIf(!doltOk)('CheckpointStore.restoreToNewWorkingCopy', () => {
     const after = canonicalize(serializeCampaign(rdb));
     rdb.close();
     expect(after).toBe(before);
+  });
+
+  it('refuses to restore onto an existing destination', () => {
+    const root = mkdtempSync(join(tmpdir(), 'lw-rs-'));
+    const src = join(root, 'live.db');
+    const db = openDatabase(src);
+    db.exec('CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);');
+    db.prepare('INSERT INTO meta(key, value) VALUES (?, ?)').run('hp', '7');
+    db.close();
+
+    const store = new CheckpointStore(join(root, 'dolt'), join(root, '.beads'));
+    const id = store.checkpoint(src, 'cp1');
+
+    // A pre-existing file at the destination must not be clobbered.
+    const dest = join(root, 'occupied.db');
+    writeFileSync(dest, 'EXISTING CAMPAIGN');
+    expect(() => store.restoreToNewWorkingCopy(id, dest)).toThrow(
+      CheckpointError,
+    );
+    expect(readFileSync(dest, 'utf8')).toBe('EXISTING CAMPAIGN');
+  });
+
+  it('leaves no database at the destination when a restore fails', () => {
+    const root = mkdtempSync(join(tmpdir(), 'lw-rs-'));
+    const src = join(root, 'live.db');
+    const db = openDatabase(src);
+    db.exec('CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);');
+    db.prepare('INSERT INTO meta(key, value) VALUES (?, ?)').run('hp', '7');
+    db.close();
+
+    const store = new CheckpointStore(join(root, 'dolt'), join(root, '.beads'));
+    const id = store.checkpoint(src, 'cp1');
+
+    // Destination directory does not exist: materialization fails. The temp
+    // file is cleaned up and no partial database is left at the destination.
+    const dest = join(root, 'missing-dir', 'restored.db');
+    expect(() => store.restoreToNewWorkingCopy(id, dest)).toThrow();
+    expect(existsSync(dest)).toBe(false);
   });
 });

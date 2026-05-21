@@ -279,6 +279,29 @@ describe('orchestrator turn loop', () => {
     db.close();
   });
 
+  it('persists the turn into a fallback scene when the model never marks one', async () => {
+    const db = freshDb();
+    // No withOpenScene, and the model narrates without calling mark_scene.
+    const model = new ScriptedModel(['You step into the misty clearing.']);
+
+    const result = await runTurn(
+      { db, model, registry: createDefaultToolRegistry() },
+      baseInput(),
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.sceneId).toBeDefined();
+    const log = listSceneLog(db, {
+      campaignId: CAMPAIGN,
+      sessionId: SESSION,
+      sceneId: result.sceneId as string,
+    });
+    expect(log.map((e) => e.role)).toEqual(['player', 'dm']);
+    expect(log[0].content).toBe('I look around the tavern.');
+    expect(log[1].content).toBe('You step into the misty clearing.');
+    db.close();
+  });
+
   it('fails the turn when tool rounds are exhausted without narration', async () => {
     const db = freshDb();
     withOpenScene(db);
