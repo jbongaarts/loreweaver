@@ -2,7 +2,7 @@ import type { Db } from '../persistence/db.js';
 import type { ModelClient, ModelMessage } from '../model/client.js';
 import type { TraceJsonValue, TurnTraceConsentScope } from '../memory/turnTrace.js';
 import { recordTurnTrace } from '../memory/turnTrace.js';
-import { recordSceneSummary } from '../memory/summary.js';
+import { summarizeSceneFromLog } from '../memory/summary.js';
 import { createSeededRng } from './rng.js';
 import { ToolRegistry } from './tools.js';
 import type { ToolContext, ToolResult } from './tools.js';
@@ -12,12 +12,7 @@ import {
   parseToolCalls,
   renderToolResults,
 } from './protocol.js';
-import {
-  appendSceneLog,
-  getOpenScene,
-  listSceneLog,
-  openScene,
-} from './scene.js';
+import { appendSceneLog, getOpenScene, openScene } from './scene.js';
 
 /**
  * Orchestrator turn loop (E5) — the integrating loop.
@@ -100,28 +95,6 @@ function isClosedSceneResult(call: ExecutedToolCall): string | undefined {
   return typeof sceneId === 'string' ? sceneId : undefined;
 }
 
-function writeSceneSummary(
-  db: Db,
-  key: { campaignId: string; sessionId: string; sceneId: string },
-  at: string,
-): void {
-  const log = listSceneLog(db, key);
-  const dmLines = log.filter((e) => e.role === 'dm').map((e) => e.content);
-  const summary =
-    dmLines.length > 0 ? dmLines.join(' ') : '(scene closed with no narration)';
-  const sourceTurnIds = [...new Set(log.map((e) => e.turnId))];
-  recordSceneSummary(db, {
-    campaignId: key.campaignId,
-    sessionId: key.sessionId,
-    sceneId: key.sceneId,
-    summary,
-    salientRefs: [],
-    sourceTurnIds,
-    createdAt: at,
-    updatedAt: at,
-  });
-}
-
 export async function runTurn(
   deps: RunTurnDeps,
   input: RunTurnInput,
@@ -200,7 +173,7 @@ export async function runTurn(
         .map(isClosedSceneResult)
         .filter((id): id is string => id !== undefined),
     )) {
-      writeSceneSummary(
+      summarizeSceneFromLog(
         db,
         {
           campaignId: input.campaignId,

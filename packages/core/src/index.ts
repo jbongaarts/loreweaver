@@ -26,6 +26,7 @@ export {
   selectAlwaysOnMemory,
   rollupArcSummary,
   rollupSessionRecap,
+  summarizeSceneFromLog,
 } from './memory/summary.js';
 export type {
   ArcSummaryInput,

@@ -17,6 +17,7 @@
  */
 
 import type { Db } from './persistence/db.js';
+import { createCampaign } from './campaign.js';
 import { startSession, type SessionRecord } from './session.js';
 import {
   DEFAULT_PROFILE_REGISTRY,
@@ -27,7 +28,6 @@ import {
   type ProviderId,
 } from './model/profiles.js';
 import { evaluatePackPolicy } from './world/license.js';
-import { forkModuleIntoCampaign } from './world/forkCampaign.js';
 import { EMBERFALL_HOLLOW } from './world/samples/emberfallHollow.js';
 import type { ModulePack } from './world/types.js';
 
@@ -177,7 +177,9 @@ export function createDemoCampaign(
     options.dmProfile ?? 'premium_dm',
   );
 
-  forkModuleIntoCampaign(db, pack);
+  // createCampaign forks the template AND records the campaign id, so a demo
+  // campaign is discoverable by getCampaign and resumable like any other.
+  createCampaign(db, { campaignId: options.campaignId, pack });
   const session = startSession(db, {
     campaignId: options.campaignId,
     sessionId: options.sessionId,

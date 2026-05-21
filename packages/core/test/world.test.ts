@@ -100,6 +100,14 @@ describe('module schema validation', () => {
     (bad.locations[0].npcIds as string[]).push('ghost-npc');
     expect(() => validateModulePack(bad)).toThrow(/unknown npc/);
   });
+
+  it('rejects an entity id containing a colon', () => {
+    const bad = clone();
+    const extra = JSON.parse(JSON.stringify(bad.npcs[0])) as { id: string };
+    extra.id = 'evil:npc';
+    (bad.npcs as unknown[]).push(extra);
+    expect(() => validateModulePack(bad)).toThrow(/must not contain/);
+  });
 });
 
 describe('module pack loading', () => {
@@ -285,5 +293,23 @@ describe('campaign fork + worldQuery', () => {
       code: 'not_found',
     });
     db.close();
+  });
+});
+
+describe('world overlay key safety', () => {
+  it('rejects a colon in an overlay id or field', () => {
+    // Without this guard, ('a:b','c') and ('a','b:c') would build the same key.
+    expect(() => worldOverlayKey('npc', 'a:b', 'mood')).toThrow(
+      WorldModuleError,
+    );
+    expect(() => worldOverlayKey('location', 'crypt', 'door:open')).toThrow(
+      WorldModuleError,
+    );
+  });
+
+  it('builds a normal overlay key unchanged', () => {
+    expect(worldOverlayKey('npc', 'warden-sela', 'disposition')).toBe(
+      'world:npc:warden-sela:disposition',
+    );
   });
 });

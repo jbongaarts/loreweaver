@@ -2,12 +2,18 @@ import { dirname, join } from 'node:path';
 import { createInterface } from 'node:readline/promises';
 import {
   CheckpointStore,
+  DEMO_TURN_CAP,
   DoltRepo,
   closeSessionGracefully,
   createCampaign,
+  createDemoCampaign,
   getCampaign,
+  getDemoTurnBudget,
   getSessionLaunchState,
+  getSessionRecap,
   initSchema,
+  listSessions,
+  rollupArcSummary,
   startSession,
   type CampaignInfo,
   type CloseSessionGracefullyInput,
@@ -19,6 +25,7 @@ import {
   type RunTurnResult,
   type SessionCheckpointRunner,
   type SessionLaunchState,
+  type SessionRecapRecord,
   type ToolRegistry,
 } from '@loreweaver/core';
 
@@ -81,6 +88,11 @@ export interface PlayDeps {
 export interface PlayOptions {
   /** Path to the campaign database; created on first run. */
   dbPath: string;
+  /**
+   * When set, the turn loop stops once this many player turns have been
+   * recorded — the bounded-demo turn cap. Unset for an unbounded campaign.
+   */
+  turnCap?: number;
 }
 
 /** Inputs that end the turn loop and trigger a graceful close. */
@@ -102,7 +114,60 @@ export async function runPlay(
     initSchema(db);
     const campaign = resolveCampaign(deps, db);
     const sessionId = await launch(deps, db, options.dbPath, campaign);
-    await turnLoop(deps, db, options.dbPath, campaign.campaignId, sessionId);
+    await turnLoop(
+      deps,
+      db,
+      options.dbPath,
+      campaign.campaignId,
+      sessionId,
+      options.turnCap,
+    );
+    return 0;
+  } finally {
+    db.close();
+  }
+}
+
+/**
+ * Run the bounded public demo: an ordinary campaign restricted to demo-legal
+ * content and capped at a turn budget. Creates a fresh demo campaign on first
+ * run (or resumes an existing one), plays capped turns, and graceful-exits.
+ * Returns a process exit code.
+ */
+export async function runDemo(
+  deps: PlayDeps,
+  options: PlayOptions,
+): Promise<number> {
+  const cap = options.turnCap ?? DEMO_TURN_CAP;
+  const db = deps.openDb(options.dbPath);
+  try {
+    initSchema(db);
+    const existing = getCampaign(db);
+    let campaignId: string;
+    let sessionId: string;
+    if (existing === undefined) {
+      const demo = createDemoCampaign(db, {
+        campaignId: deps.nextId('campaign'),
+        sessionId: deps.nextId('session'),
+        startedAt: deps.now(),
+        pack: deps.pack,
+        turnCap: cap,
+      });
+      campaignId = demo.campaignId;
+      sessionId = demo.session.sessionId;
+      deps.io.write(`Demo campaign '${demo.campaignId}' — ${demo.packTitle}.`);
+      deps.io.write(
+        `Bounded demo: ${demo.turnCap} turns. Type /quit to save and exit.`,
+      );
+      if (demo.model.disclaimer !== undefined) {
+        deps.io.write(demo.model.disclaimer);
+      }
+    } else {
+      campaignId = existing.campaignId;
+      deps.io.write(`Demo campaign: ${existing.title} (${existing.campaignId}).`);
+      sessionId = await launch(deps, db, options.dbPath, existing);
+    }
+    await turnLoop(deps, db, options.dbPath, campaignId, sessionId, cap);
     return 0;
   } finally {
     db.close();
@@ -197,8 +262,19 @@ async function turnLoop(
   dbPath: string,
   campaignId: string,
   sessionId: string,
+  turnCap?: number,
 ): Promise<void> {
   for (;;) {
+    if (turnCap !== undefined) {
+      const budget = getDemoTurnBudget(db, { campaignId, sessionId, turnCap });
+      if (budget.capReached) {
+        deps.io.write(
+          `Demo turn cap reached (${budget.turnsUsed}/${budget.turnCap}). ` +
+            'Start a full campaign to keep playing.',
+        );
+        break;
+      }
+    }
     const input = await deps.io.prompt('> ');
     if (input === undefined || QUIT_COMMANDS.has(input.toLowerCase())) {
       break;
@@ -255,23 +331,67 @@ function gracefulClose(
       `Session ${closed.session.sessionId} closed and recapped ` +
         '(no checkpoint — Dolt is not available).',
     );
+  } else {
+    try {
+      const closed = closeSessionGracefully(db, { ...input, checkpoint });
+      deps.io.write(
+        `Session ${closed.session.sessionId} closed and recapped` +
+          `${closed.checkpointId ? ` (checkpoint ${closed.checkpointId})` : ''}.`,
+      );
+    } catch (error) {
+      // closeSessionGracefully marks the session closed and writes the recap
+      // BEFORE running the checkpoint, so a checkpoint failure still leaves a
+      // fully closed, recapped session — only the Dolt snapshot is missing.
+      deps.io.write(
+        `Session ${sessionId} closed and recapped, but the checkpoint ` +
+          `failed: ${error instanceof Error ? error.message : String(error)}.`,
+      );
+    }
+  }
+  // The session is now closed and recapped on every path above (the recap is
+  // written before the checkpoint, so a checkpoint failure does not skip it).
+  // Roll the campaign's arc up so the arc tier of the memory pyramid reflects
+  // the closed session.
+  rollupCampaignArc(deps, db, campaignId);
+}
+
+/** The campaign's single ongoing arc. Multi-arc support is future work. */
+const CAMPAIGN_ARC_ID = 'arc-1';
+
+/**
+ * Roll the campaign's closed sessions up into its arc summary, so the arc tier
+ * of the memory pyramid stays current and `assembleContext` can surface it.
+ *
+ * The arc summary is composed mechanically by joining the session recaps; a
+ * model-authored arc summary is future work and tracked with the session-recap
+ * rollup (loreweaver-32m). The campaign bible is reconciled with no new entries
+ * — populating world facts / NPCs / factions / threads needs an extraction
+ * source and is deferred — but the row is created so the tier is live.
+ */
+function rollupCampaignArc(
+  deps: PlayDeps,
+  db: Db,
+  campaignId: string,
+): void {
+  const recaps = listSessions(db, { campaignId })
+    .map((session) => getSessionRecap(db, { campaignId, sessionId: session.sessionId }))
+    .filter((recap): recap is SessionRecapRecord => recap !== undefined);
+  if (recaps.length === 0) {
     return;
   }
-  try {
-    const closed = closeSessionGracefully(db, { ...input, checkpoint });
-    deps.io.write(
-      `Session ${closed.session.sessionId} closed and recapped` +
-        `${closed.checkpointId ? ` (checkpoint ${closed.checkpointId})` : ''}.`,
-    );
-  } catch (error) {
-    // closeSessionGracefully marks the session closed and writes the recap
-    // BEFORE running the checkpoint, so a checkpoint failure still leaves a
-    // fully closed, recapped session — only the Dolt snapshot is missing.
-    deps.io.write(
-      `Session ${sessionId} closed and recapped, but the checkpoint failed: ` +
-        `${error instanceof Error ? error.message : String(error)}.`,
-    );
-  }
+  rollupArcSummary(db, {
+    campaignId,
+    arcId: CAMPAIGN_ARC_ID,
+    summary: recaps.map((recap) => recap.recap).join(' '),
+    sourceSessionIds: recaps.map((recap) => recap.sessionId),
+    campaignBible: {
+      worldFacts: [],
+      majorNpcs: [],
+      factions: [],
+      openThreads: [],
+    },
+    createdAt: deps.now(),
+  });
 }
 
 /**

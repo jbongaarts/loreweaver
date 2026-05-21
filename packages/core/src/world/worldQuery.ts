@@ -5,6 +5,7 @@ import type {
   WorldQueryTarget,
   WorldTargetType,
 } from './types.js';
+import { WorldModuleError } from './validate.js';
 
 /**
  * Build the `overlay_facts` key that records a live divergence of a module
@@ -12,13 +13,25 @@ import type {
  * `target: 'overlay_facts'` and `field` set to this key; `worldQuery` folds
  * matching overlay facts back over the template at read time.
  *
- * `meta` has no id; pass `''`.
+ * `meta` has no id; pass `''`. Rejects `:` in `id` or `field`: it is the key
+ * segment delimiter, so allowing it would let two distinct `(id, field)` pairs
+ * collapse onto one overlay key and silently overwrite each other.
  */
 export function worldOverlayKey(
   type: WorldTargetType,
   id: string,
   field: string,
 ): string {
+  if (id.includes(':')) {
+    throw new WorldModuleError(
+      `world overlay id must not contain ':' (got '${id}')`,
+    );
+  }
+  if (field.includes(':')) {
+    throw new WorldModuleError(
+      `world overlay field must not contain ':' (got '${field}')`,
+    );
+  }
   return `world:${type}:${id}:${field}`;
 }
 

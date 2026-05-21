@@ -8,6 +8,7 @@ import {
   createDefaultToolRegistry,
   DoltRepo,
   EMBERFALL_HOLLOW,
+  getArcSummary,
   getCampaign,
   getOpenScene,
   getOpenSession,
@@ -25,6 +26,7 @@ import {
 } from '@loreweaver/core';
 import {
   doltCheckpointRunner,
+  runDemo,
   runPlay,
   type CliIO,
   type PlayDeps,
@@ -167,6 +169,22 @@ describe('runPlay', () => {
     dispose();
   });
 
+  it('rolls the campaign arc up after a session closes', async () => {
+    const { db, dispose } = makeDb();
+    const { io } = scriptedIO(['look around', '/quit']);
+
+    await runPlay(baseDeps(db, io), { dbPath: 'demo.db' });
+
+    const cid = campaignId(db);
+    const arc = getArcSummary(db, { campaignId: cid, arcId: 'arc-1' });
+    expect(arc).toBeDefined();
+    // The arc summary mechanically includes the closed session's recap.
+    const session = listSessions(db, { campaignId: cid })[0];
+    expect(arc?.sourceSessionIds).toContain(session.sessionId);
+    expect(arc?.summary.length).toBeGreaterThan(0);
+    dispose();
+  });
+
   it('quits gracefully when input ends (EOF) before any turn', async () => {
     const { db, dispose } = makeDb();
     const { io, lines } = scriptedIO([]); // prompt() immediately returns EOF
@@ -301,6 +319,56 @@ describe('runPlay', () => {
     // The session is still closed — the close pipeline ran before the
     // checkpoint, so a checkpoint failure never strands an open session.
     expect(getOpenSession(db, { campaignId: campaignId(db) })).toBeUndefined();
+    dispose();
+  });
+});
+
+describe('runDemo', () => {
+  it('creates a bounded demo campaign and stops at the turn cap', async () => {
+    const { db, dispose } = makeDb();
+    const { io, lines } = scriptedIO([
+      'look around',
+      'open the door',
+      'third turn',
+    ]);
+
+    const code = await runDemo(baseDeps(db, io), {
+      dbPath: 'demo.db',
+      turnCap: 2,
+    });
+
+    expect(code).toBe(0);
+    const out = lines.join('\n');
+    expect(out).toContain('Demo campaign');
+    expect(out).toContain('Bounded demo: 2 turns');
+    expect(out).toContain('DM: you said "look around"');
+    expect(out).toContain('DM: you said "open the door"');
+    // The cap stops the loop before the third input is ever read.
+    expect(out).toContain('Demo turn cap reached (2/2)');
+    expect(out).not.toContain('third turn');
+    expect(out).toContain('closed and recapped');
+    dispose();
+  });
+
+  it('reuses an existing demo campaign on a later run', async () => {
+    const { db, dispose } = makeDb();
+    // First run creates the demo campaign and plays one turn.
+    await runDemo(baseDeps(db, scriptedIO(['first turn']).io), {
+      dbPath: 'demo.db',
+      turnCap: 5,
+    });
+
+    // A second run on the same db reuses the campaign rather than recreating.
+    const { io, lines } = scriptedIO(['/quit']);
+    const code = await runDemo(baseDeps(db, io), {
+      dbPath: 'demo.db',
+      turnCap: 5,
+    });
+
+    expect(code).toBe(0);
+    const out = lines.join('\n');
+    expect(out).toContain('Demo campaign:'); // the "existing campaign" branch
+    expect(out).not.toContain("Demo campaign '"); // not the "created" branch
     dispose();
   });
 });

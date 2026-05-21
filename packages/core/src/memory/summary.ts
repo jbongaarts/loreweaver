@@ -1,5 +1,6 @@
 import type { Db } from '../persistence/db.js';
 import { withTransaction } from '../persistence/db.js';
+import { listSceneLog } from '../orchestrator/scene.js';
 import type { MutateStateTarget } from '../state/mutateState.js';
 import type { TraceJsonValue } from './turnTrace.js';
 
@@ -167,6 +168,47 @@ export function recordSceneSummary(db: Db, summary: SceneSummaryRecord): void {
         summary.createdAt,
         summary.updatedAt,
       );
+  });
+}
+
+/**
+ * Roll a scene's live transcript up into a `scene_summary`, idempotently. The
+ * summary is the scene's DM narration joined into one string (or a fallback
+ * when the scene closed unnarrated); `sourceTurnIds` are the distinct turns the
+ * scene spanned. If the scene already has a summary it is left untouched, so
+ * the orchestrator turn loop and the session-close pipeline can both call this
+ * for the same scene without disagreeing or double-writing.
+ */
+export function summarizeSceneFromLog(
+  db: Db,
+  key: { campaignId: string; sessionId: string; sceneId: string },
+  at: string,
+): void {
+  if (
+    memoryDrilldown(db, {
+      target: 'scene',
+      campaignId: key.campaignId,
+      sessionId: key.sessionId,
+      sceneId: key.sceneId,
+    }) !== undefined
+  ) {
+    return;
+  }
+  const log = listSceneLog(db, key);
+  const dmLines = log
+    .filter((entry) => entry.role === 'dm')
+    .map((entry) => entry.content);
+  const summary =
+    dmLines.length > 0 ? dmLines.join(' ') : '(scene closed with no narration)';
+  recordSceneSummary(db, {
+    campaignId: key.campaignId,
+    sessionId: key.sessionId,
+    sceneId: key.sceneId,
+    summary,
+    salientRefs: [],
+    sourceTurnIds: [...new Set(log.map((entry) => entry.turnId))],
+    createdAt: at,
+    updatedAt: at,
   });
 }
 

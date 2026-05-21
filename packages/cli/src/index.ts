@@ -1,10 +1,12 @@
 #!/usr/bin/env node
+import { dirname, join } from 'node:path';
 import { createInterface } from 'node:readline/promises';
 import { pathToFileURL } from 'node:url';
 import {
   AgentSdkModelClient,
   CORE_VERSION,
   ConfigError,
+  DEMO_TURN_CAP,
   EMBERFALL_HOLLOW,
   createDefaultToolRegistry,
   ensureDoltAvailable,
@@ -18,6 +20,7 @@ import {
 import {
   doltCheckpointRunner,
   nodeIO,
+  runDemo,
   runPlay,
   type PlayDeps,
 } from './play.js';
@@ -103,21 +106,57 @@ function buildPlayDeps(cfg: LoreweaverConfig, io: PlayDeps['io']): PlayDeps {
   };
 }
 
-/** `loreweaver play` — the interactive campaign front-end. */
-export async function runPlaySubcommand(): Promise<number> {
-  let cfg: LoreweaverConfig;
+/**
+ * Load config, or report a {@link ConfigError} to stderr and yield an exit
+ * code. Shared by the `play` and `demo` subcommands.
+ */
+function loadCliConfig():
+  | { ok: true; cfg: LoreweaverConfig }
+  | { ok: false; code: number } {
   try {
-    cfg = loadConfig();
+    return { ok: true, cfg: loadConfig() };
   } catch (err) {
     if (err instanceof ConfigError) {
       console.error(`config error: ${err.message}`);
-      return 1;
+      return { ok: false, code: 1 };
     }
     throw err;
   }
+}
+
+/** `loreweaver play` — the interactive campaign front-end. */
+export async function runPlaySubcommand(): Promise<number> {
+  const config = loadCliConfig();
+  if (!config.ok) {
+    return config.code;
+  }
   const io = nodeIO();
   try {
-    return await runPlay(buildPlayDeps(cfg, io), { dbPath: cfg.campaignDbPath });
+    return await runPlay(buildPlayDeps(config.cfg, io), {
+      dbPath: config.cfg.campaignDbPath,
+    });
+  } finally {
+    io.close();
+  }
+}
+
+/** Demo campaign DB path: a sibling of the configured campaign DB. */
+function demoDbPath(campaignDbPath: string): string {
+  return join(dirname(campaignDbPath), 'loreweaver-demo.db');
+}
+
+/** `loreweaver demo` — the bounded public demo campaign. */
+export async function runDemoSubcommand(): Promise<number> {
+  const config = loadCliConfig();
+  if (!config.ok) {
+    return config.code;
+  }
+  const io = nodeIO();
+  try {
+    return await runDemo(buildPlayDeps(config.cfg, io), {
+      dbPath: demoDbPath(config.cfg.campaignDbPath),
+      turnCap: DEMO_TURN_CAP,
+    });
   } finally {
     io.close();
   }
@@ -133,6 +172,13 @@ export function main(argv: string[] = process.argv): void {
 
   if (argv[2] === 'play') {
     void runPlaySubcommand().then((code) => {
+      process.exitCode = code;
+    });
+    return;
+  }
+
+  if (argv[2] === 'demo') {
+    void runDemoSubcommand().then((code) => {
       process.exitCode = code;
     });
     return;

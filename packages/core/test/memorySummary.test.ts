@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  appendSceneLog,
   initSchema,
   getSessionRecap,
   getArcSummary,
@@ -7,10 +8,13 @@ import {
   listSceneSummaries,
   memoryDrilldown,
   openDatabase,
+  openScene,
   recordSceneSummary,
   selectAlwaysOnMemory,
   rollupArcSummary,
   rollupSessionRecap,
+  startSession,
+  summarizeSceneFromLog,
 } from '../src/index.js';
 
 describe('memory summaries', () => {
@@ -395,6 +399,93 @@ describe('memory summaries', () => {
       drilldownAvailable: true,
     });
 
+    db.close();
+  });
+});
+
+describe('summarizeSceneFromLog', () => {
+  function sceneDb() {
+    const db = openDatabase(':memory:');
+    initSchema(db);
+    startSession(db, {
+      campaignId: 'c1',
+      sessionId: 's1',
+      startedAt: '2026-05-20T09:00:00.000Z',
+    });
+    openScene(db, {
+      campaignId: 'c1',
+      sessionId: 's1',
+      sceneId: 'sc1',
+      title: 'The Road',
+      at: '2026-05-20T10:00:00.000Z',
+    });
+    return db;
+  }
+
+  it('rolls a scene log into a summary and is idempotent', () => {
+    const db = sceneDb();
+    appendSceneLog(db, {
+      campaignId: 'c1',
+      sessionId: 's1',
+      sceneId: 'sc1',
+      turnId: 't1',
+      role: 'player',
+      content: 'I scout ahead.',
+      at: '2026-05-20T10:01:00.000Z',
+    });
+    appendSceneLog(db, {
+      campaignId: 'c1',
+      sessionId: 's1',
+      sceneId: 'sc1',
+      turnId: 't1',
+      role: 'dm',
+      content: 'The road forks at a broken shrine.',
+      at: '2026-05-20T10:01:00.000Z',
+    });
+
+    summarizeSceneFromLog(
+      db,
+      { campaignId: 'c1', sessionId: 's1', sceneId: 'sc1' },
+      '2026-05-20T11:00:00.000Z',
+    );
+    const first = listSceneSummaries(db, { campaignId: 'c1', sessionId: 's1' });
+    expect(first).toHaveLength(1);
+    expect(first[0].summary).toBe('The road forks at a broken shrine.');
+    expect(first[0].sourceTurnIds).toEqual(['t1']);
+
+    // A second call must not overwrite the existing summary.
+    appendSceneLog(db, {
+      campaignId: 'c1',
+      sessionId: 's1',
+      sceneId: 'sc1',
+      turnId: 't2',
+      role: 'dm',
+      content: 'LATER NARRATION',
+      at: '2026-05-20T10:05:00.000Z',
+    });
+    summarizeSceneFromLog(
+      db,
+      { campaignId: 'c1', sessionId: 's1', sceneId: 'sc1' },
+      '2026-05-20T12:00:00.000Z',
+    );
+    const second = listSceneSummaries(db, { campaignId: 'c1', sessionId: 's1' });
+    expect(second).toHaveLength(1);
+    expect(second[0].summary).toBe('The road forks at a broken shrine.');
+    db.close();
+  });
+
+  it('falls back when a scene closed with no DM narration', () => {
+    const db = sceneDb();
+    summarizeSceneFromLog(
+      db,
+      { campaignId: 'c1', sessionId: 's1', sceneId: 'sc1' },
+      '2026-05-20T11:00:00.000Z',
+    );
+    const summaries = listSceneSummaries(db, {
+      campaignId: 'c1',
+      sessionId: 's1',
+    });
+    expect(summaries[0].summary).toBe('(scene closed with no narration)');
     db.close();
   });
 });

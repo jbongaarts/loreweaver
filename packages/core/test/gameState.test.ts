@@ -285,6 +285,51 @@ describe('game state', () => {
     db.close();
   });
 
+  it('mutateStateBatch invokes afterMutation per mutation and commits on success', () => {
+    const db = openDatabase(':memory:');
+    initSchema(db);
+    const seen: number[] = [];
+
+    mutateStateBatch(
+      db,
+      [
+        {
+          target: 'character',
+          field: 'name',
+          op: 'set',
+          value: 'Mira',
+          provenance: 'narration:turn-4',
+          sessionId: 'session-1',
+          at: '2026-05-19T04:08:00.000Z',
+        },
+        {
+          target: 'plot_flags',
+          field: 'accepted_the_oath',
+          op: 'set',
+          value: true,
+          provenance: 'narration:turn-4',
+          sessionId: 'session-1',
+          at: '2026-05-19T04:08:00.000Z',
+        },
+      ],
+      { afterMutation: (index) => seen.push(index) },
+    );
+
+    // afterMutation fires once per mutation, in order.
+    expect(seen).toEqual([0, 1]);
+    // A successful return is the durable signal: every mutation committed.
+    expect(db.prepare('SELECT name FROM character WHERE id = 1').get()).toEqual({
+      name: 'Mira',
+    });
+    expect(
+      db
+        .prepare("SELECT key FROM plot_flags WHERE key = 'accepted_the_oath'")
+        .get(),
+    ).toBeDefined();
+
+    db.close();
+  });
+
   it('getStateProvenance returns provenance for narrative callbacks', () => {
     const db = openDatabase(':memory:');
     initSchema(db);

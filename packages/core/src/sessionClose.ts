@@ -1,14 +1,13 @@
 import type { TraceJsonValue } from './memory/turnTrace.js';
 import {
-  memoryDrilldown,
-  recordSceneSummary,
   rollupArcSummary,
   rollupSessionRecap,
+  summarizeSceneFromLog,
   type CampaignBibleInput,
 } from './memory/summary.js';
 import type { Db } from './persistence/db.js';
 import { withTransaction } from './persistence/db.js';
-import { closeScene, getOpenScene, listSceneLog } from './orchestrator/scene.js';
+import { closeScene, getOpenScene } from './orchestrator/scene.js';
 import {
   closeSession,
   getSession,
@@ -75,7 +74,15 @@ export function closeSessionGracefully(
             sceneId: openScene.sceneId,
             at: input.closedAt,
           });
-          ensureSceneSummary(txnDb, input, openScene.sceneId);
+          summarizeSceneFromLog(
+            txnDb,
+            {
+              campaignId: input.campaignId,
+              sessionId: input.sessionId,
+              sceneId: openScene.sceneId,
+            },
+            input.closedAt,
+          );
           closedSceneIds.push(openScene.sceneId);
         }
 
@@ -156,34 +163,3 @@ function markCheckpointDone(
   );
 }
 
-function ensureSceneSummary(
-  db: Db,
-  key: SessionKey & { closedAt: string },
-  sceneId: string,
-): void {
-  if (
-    memoryDrilldown(db, {
-      target: 'scene',
-      campaignId: key.campaignId,
-      sessionId: key.sessionId,
-      sceneId,
-    }) !== undefined
-  ) {
-    return;
-  }
-
-  const log = listSceneLog(db, { ...key, sceneId });
-  const dmLines = log.filter((e) => e.role === 'dm').map((e) => e.content);
-  const summary =
-    dmLines.length > 0 ? dmLines.join(' ') : '(scene closed with no narration)';
-  recordSceneSummary(db, {
-    campaignId: key.campaignId,
-    sessionId: key.sessionId,
-    sceneId,
-    summary,
-    salientRefs: [],
-    sourceTurnIds: [...new Set(log.map((e) => e.turnId))],
-    createdAt: key.closedAt,
-    updatedAt: key.closedAt,
-  });
-}
