@@ -22,6 +22,16 @@ export function worldOverlayKey(
   return `world:${type}:${id}:${field}`;
 }
 
+/**
+ * Escape SQL LIKE wildcards so an overlay-key prefix matches literally. Without
+ * this, an overlay key for an id containing `_` (single-char wildcard) or `%`
+ * (any-string wildcard) would fold over the wrong template record. Pairs with
+ * `ESCAPE '\'` on the query. The backslash itself is escaped first.
+ */
+function escapeLikePrefix(prefix: string): string {
+  return prefix.replace(/[\\%_]/g, (char) => `\\${char}`);
+}
+
 const TABLE_BY_TYPE: Record<WorldTargetType, string> = {
   location: 'module_location',
   encounter: 'module_encounter',
@@ -81,10 +91,10 @@ export function worldQuery(
     .prepare(
       `SELECT key, value_json, provenance, session_id, updated_at
        FROM overlay_facts
-       WHERE key LIKE ? || '%'
+       WHERE key LIKE ? ESCAPE '\\'
        ORDER BY updated_at ASC`,
     )
-    .all(prefix) as OverlayRow[];
+    .all(`${escapeLikePrefix(prefix)}%`) as OverlayRow[];
 
   const overlays: WorldOverlay[] = [];
   const resolved: Record<string, unknown> = { ...template };
