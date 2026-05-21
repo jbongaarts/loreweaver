@@ -6,6 +6,7 @@ import {
   getCampaignBible,
   getOpenScene,
   getOpenSession,
+  getSession,
   getSessionRecap,
   initSchema,
   listSceneSummaries,
@@ -156,6 +157,91 @@ describe('graceful session close pipeline', () => {
     expect(
       db.prepare('SELECT COUNT(*) AS count FROM session_recap').get(),
     ).toEqual({ count: 1 });
+    db.close();
+  });
+
+  it('rejects an unknown session before writing rollups', () => {
+    const db = freshDb();
+
+    expect(() =>
+      closeSessionGracefully(db, {
+        campaignId: CAMPAIGN,
+        sessionId: 'missing',
+        closedAt: '2026-05-21T01:00:00.000Z',
+        recap: 'This should not be written.',
+        stateDelta: [],
+      }),
+    ).toThrow("cannot close unknown session 'missing'");
+
+    expect(
+      getSessionRecap(db, { campaignId: CAMPAIGN, sessionId: 'missing' }),
+    ).toBeUndefined();
+    expect(
+      db.prepare('SELECT COUNT(*) AS count FROM session_recap').get(),
+    ).toEqual({ count: 0 });
+    db.close();
+  });
+
+  it('rolls back scene close, summaries, recap, and session close when a rollup fails', () => {
+    const db = freshDb();
+    startSession(db, {
+      campaignId: CAMPAIGN,
+      sessionId: SESSION,
+      startedAt: '2026-05-21T00:00:00.000Z',
+    });
+    openScene(db, {
+      campaignId: CAMPAIGN,
+      sessionId: SESSION,
+      sceneId: 'scene-1',
+      title: 'The Road',
+      at: '2026-05-21T00:01:00.000Z',
+    });
+    appendSceneLog(db, {
+      campaignId: CAMPAIGN,
+      sessionId: SESSION,
+      sceneId: 'scene-1',
+      turnId: 'turn-1',
+      role: 'dm',
+      content: 'The road bends north.',
+      at: '2026-05-21T00:02:00.000Z',
+    });
+
+    expect(() =>
+      closeSessionGracefully(db, {
+        campaignId: CAMPAIGN,
+        sessionId: SESSION,
+        closedAt: '2026-05-21T01:00:00.000Z',
+        recap: 'The road bends north.',
+        stateDelta: [],
+        arcRollup: {
+          arcId: 'arc-1',
+          summary: 'Invalid campaign bible payload.',
+          campaignBible: {
+            worldFacts: [1n as unknown as string],
+            majorNpcs: [],
+            factions: [],
+            openThreads: [],
+          },
+        },
+      }),
+    ).toThrow();
+
+    expect(getSession(db, { campaignId: CAMPAIGN, sessionId: SESSION })?.status)
+      .toBe('open');
+    expect(getOpenSession(db, { campaignId: CAMPAIGN })?.sessionId).toBe(
+      SESSION,
+    );
+    expect(getOpenScene(db, { campaignId: CAMPAIGN, sessionId: SESSION })
+      ?.sceneId).toBe('scene-1');
+    expect(
+      listSceneSummaries(db, { campaignId: CAMPAIGN, sessionId: SESSION }),
+    ).toEqual([]);
+    expect(
+      getSessionRecap(db, { campaignId: CAMPAIGN, sessionId: SESSION }),
+    ).toBeUndefined();
+    expect(getArcSummary(db, { campaignId: CAMPAIGN, arcId: 'arc-1' }))
+      .toBeUndefined();
+    expect(getCampaignBible(db, { campaignId: CAMPAIGN })).toBeUndefined();
     db.close();
   });
 });
