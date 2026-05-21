@@ -10,7 +10,10 @@ import {
   getCampaign,
   getDemoTurnBudget,
   getSessionLaunchState,
+  getSessionRecap,
   initSchema,
+  listSessions,
+  rollupArcSummary,
   startSession,
   type CampaignInfo,
   type CloseSessionGracefullyInput,
@@ -22,6 +25,7 @@ import {
   type RunTurnResult,
   type SessionCheckpointRunner,
   type SessionLaunchState,
+  type SessionRecapRecord,
   type ToolRegistry,
 } from '@loreweaver/core';
 
@@ -327,23 +331,67 @@ function gracefulClose(
       `Session ${closed.session.sessionId} closed and recapped ` +
         '(no checkpoint — Dolt is not available).',
     );
+  } else {
+    try {
+      const closed = closeSessionGracefully(db, { ...input, checkpoint });
+      deps.io.write(
+        `Session ${closed.session.sessionId} closed and recapped` +
+          `${closed.checkpointId ? ` (checkpoint ${closed.checkpointId})` : ''}.`,
+      );
+    } catch (error) {
+      // closeSessionGracefully marks the session closed and writes the recap
+      // BEFORE running the checkpoint, so a checkpoint failure still leaves a
+      // fully closed, recapped session — only the Dolt snapshot is missing.
+      deps.io.write(
+        `Session ${sessionId} closed and recapped, but the checkpoint ` +
+          `failed: ${error instanceof Error ? error.message : String(error)}.`,
+      );
+    }
+  }
+  // The session is now closed and recapped on every path above (the recap is
+  // written before the checkpoint, so a checkpoint failure does not skip it).
+  // Roll the campaign's arc up so the arc tier of the memory pyramid reflects
+  // the closed session.
+  rollupCampaignArc(deps, db, campaignId);
+}
+
+/** The campaign's single ongoing arc. Multi-arc support is future work. */
+const CAMPAIGN_ARC_ID = 'arc-1';
+
+/**
+ * Roll the campaign's closed sessions up into its arc summary, so the arc tier
+ * of the memory pyramid stays current and `assembleContext` can surface it.
+ *
+ * The arc summary is composed mechanically by joining the session recaps; a
+ * model-authored arc summary is future work and tracked with the session-recap
+ * rollup (loreweaver-32m). The campaign bible is reconciled with no new entries
+ * — populating world facts / NPCs / factions / threads needs an extraction
+ * source and is deferred — but the row is created so the tier is live.
+ */
+function rollupCampaignArc(
+  deps: PlayDeps,
+  db: Db,
+  campaignId: string,
+): void {
+  const recaps = listSessions(db, { campaignId })
+    .map((session) => getSessionRecap(db, { campaignId, sessionId: session.sessionId }))
+    .filter((recap): recap is SessionRecapRecord => recap !== undefined);
+  if (recaps.length === 0) {
     return;
   }
-  try {
-    const closed = closeSessionGracefully(db, { ...input, checkpoint });
-    deps.io.write(
-      `Session ${closed.session.sessionId} closed and recapped` +
-        `${closed.checkpointId ? ` (checkpoint ${closed.checkpointId})` : ''}.`,
-    );
-  } catch (error) {
-    // closeSessionGracefully marks the session closed and writes the recap
-    // BEFORE running the checkpoint, so a checkpoint failure still leaves a
-    // fully closed, recapped session — only the Dolt snapshot is missing.
-    deps.io.write(
-      `Session ${sessionId} closed and recapped, but the checkpoint failed: ` +
-        `${error instanceof Error ? error.message : String(error)}.`,
-    );
-  }
+  rollupArcSummary(db, {
+    campaignId,
+    arcId: CAMPAIGN_ARC_ID,
+    summary: recaps.map((recap) => recap.recap).join(' '),
+    sourceSessionIds: recaps.map((recap) => recap.sessionId),
+    campaignBible: {
+      worldFacts: [],
+      majorNpcs: [],
+      factions: [],
+      openThreads: [],
+    },
+    createdAt: deps.now(),
+  });
 }
 
 /**
