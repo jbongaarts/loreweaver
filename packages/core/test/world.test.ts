@@ -76,6 +76,30 @@ describe('module schema validation', () => {
       'void';
     expect(() => validateModulePack(bad)).toThrow(/unknown location/);
   });
+
+  it('rejects an encounter whose locationId does not resolve', () => {
+    const bad = clone();
+    (bad.encounters[0] as { locationId: string }).locationId = 'nowhere';
+    expect(() => validateModulePack(bad)).toThrow(/encounters\[.*\] locationId/);
+  });
+
+  it('rejects an npc whose locationId does not resolve', () => {
+    const bad = clone();
+    (bad.npcs[0] as { locationId: string }).locationId = 'nowhere';
+    expect(() => validateModulePack(bad)).toThrow(/npcs\[.*\] locationId/);
+  });
+
+  it('rejects a location encounterIds reference that does not resolve', () => {
+    const bad = clone();
+    (bad.locations[0].encounterIds as string[]).push('ghost-encounter');
+    expect(() => validateModulePack(bad)).toThrow(/unknown encounter/);
+  });
+
+  it('rejects a location npcIds reference that does not resolve', () => {
+    const bad = clone();
+    (bad.locations[0].npcIds as string[]).push('ghost-npc');
+    expect(() => validateModulePack(bad)).toThrow(/unknown npc/);
+  });
 });
 
 describe('module pack loading', () => {

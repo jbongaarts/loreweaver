@@ -235,8 +235,10 @@ function assertUniqueIds(items: readonly { id: string }[], path: string): void {
 /**
  * Structurally validate an untrusted value as a {@link ModulePack}. Throws
  * {@link WorldModuleError} on the first problem; on success returns a typed
- * pack. Also enforces referential integrity: ids are unique within a kind and
- * `startingLocationId` resolves to a real location.
+ * pack. Also enforces referential integrity: ids are unique within a kind,
+ * `startingLocationId` and exits resolve to real locations, encounter/NPC
+ * `locationId`s resolve to locations, and a location's `encounterIds`/`npcIds`
+ * resolve to real encounters/NPCs.
  */
 export function validateModulePack(value: unknown): ModulePack {
   const o = obj(value, 'module');
@@ -256,6 +258,9 @@ export function validateModulePack(value: unknown): ModulePack {
   assertUniqueIds(pack.lore, 'lore');
 
   const locationIds = new Set(pack.locations.map((l) => l.id));
+  const encounterIds = new Set(pack.encounters.map((e) => e.id));
+  const npcIds = new Set(pack.npcs.map((n) => n.id));
+
   if (!locationIds.has(pack.meta.startingLocationId)) {
     throw new WorldModuleError(
       `meta.startingLocationId '${pack.meta.startingLocationId}' does not resolve to a location`,
@@ -268,6 +273,34 @@ export function validateModulePack(value: unknown): ModulePack {
           `locations[${l.id}] exit '${exit.direction}' points at unknown location '${exit.toLocationId}'`,
         );
       }
+    }
+    for (const encounterId of l.encounterIds) {
+      if (!encounterIds.has(encounterId)) {
+        throw new WorldModuleError(
+          `locations[${l.id}] encounterIds references unknown encounter '${encounterId}'`,
+        );
+      }
+    }
+    for (const npcId of l.npcIds) {
+      if (!npcIds.has(npcId)) {
+        throw new WorldModuleError(
+          `locations[${l.id}] npcIds references unknown npc '${npcId}'`,
+        );
+      }
+    }
+  }
+  for (const e of pack.encounters) {
+    if (!locationIds.has(e.locationId)) {
+      throw new WorldModuleError(
+        `encounters[${e.id}] locationId '${e.locationId}' does not resolve to a location`,
+      );
+    }
+  }
+  for (const n of pack.npcs) {
+    if (!locationIds.has(n.locationId)) {
+      throw new WorldModuleError(
+        `npcs[${n.id}] locationId '${n.locationId}' does not resolve to a location`,
+      );
     }
   }
 
