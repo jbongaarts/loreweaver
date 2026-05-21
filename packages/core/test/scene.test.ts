@@ -3,20 +3,34 @@ import {
   SceneError,
   appendSceneLog,
   closeScene,
+  closeSession,
   getOpenScene,
   getScene,
   initSchema,
   listSceneLog,
   openDatabase,
   openScene,
+  startSession,
 } from '../src/index.js';
 
 const CAMPAIGN = 'campaign-1';
 const SESSION = 'session-1';
 
-function freshDb() {
+/** Schema only — no campaign_session row exists yet. */
+function bareDb() {
   const db = openDatabase(':memory:');
   initSchema(db);
+  return db;
+}
+
+/** Schema plus an open session, the valid setup for scene writes. */
+function freshDb() {
+  const db = bareDb();
+  startSession(db, {
+    campaignId: CAMPAIGN,
+    sessionId: SESSION,
+    startedAt: '2026-05-20T09:00:00.000Z',
+  });
   return db;
 }
 
@@ -252,6 +266,67 @@ describe('scene persistence', () => {
         sceneId: 'nope',
       }),
     ).toBeUndefined();
+    db.close();
+  });
+
+  it('rejects opening a scene for a session that does not exist', () => {
+    const db = bareDb();
+    expect(() =>
+      openScene(db, {
+        campaignId: CAMPAIGN,
+        sessionId: SESSION,
+        sceneId: 'scene-1',
+        title: 'The Tavern',
+        at: '2026-05-20T10:00:00.000Z',
+      }),
+    ).toThrow(SceneError);
+    db.close();
+  });
+
+  it('rejects opening a scene for a closed session', () => {
+    const db = freshDb();
+    closeSession(db, {
+      campaignId: CAMPAIGN,
+      sessionId: SESSION,
+      closedAt: '2026-05-20T12:00:00.000Z',
+    });
+    expect(() =>
+      openScene(db, {
+        campaignId: CAMPAIGN,
+        sessionId: SESSION,
+        sceneId: 'scene-1',
+        title: 'The Tavern',
+        at: '2026-05-20T13:00:00.000Z',
+      }),
+    ).toThrow(SceneError);
+    db.close();
+  });
+
+  it('rejects appending a scene log once its session is closed', () => {
+    const db = freshDb();
+    openScene(db, {
+      campaignId: CAMPAIGN,
+      sessionId: SESSION,
+      sceneId: 'scene-1',
+      title: 'The Tavern',
+      at: '2026-05-20T10:00:00.000Z',
+    });
+    closeSession(db, {
+      campaignId: CAMPAIGN,
+      sessionId: SESSION,
+      closedAt: '2026-05-20T12:00:00.000Z',
+    });
+    expect(() =>
+      appendSceneLog(db, {
+        campaignId: CAMPAIGN,
+        sessionId: SESSION,
+        sceneId: 'scene-1',
+        turnId: 'turn-1',
+        role: 'player',
+        content: 'too late',
+        at: '2026-05-20T13:00:00.000Z',
+      }),
+    ).toThrow(SceneError);
     db.close();
   });
 

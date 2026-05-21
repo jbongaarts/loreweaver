@@ -11,12 +11,18 @@ import {
   parseDice,
   recordSceneSummary,
   rollDice,
+  startSession,
 } from '../src/index.js';
 import type { ToolContext } from '../src/index.js';
 
 function ctx(overrides: Partial<ToolContext> = {}): ToolContext {
   const db = openDatabase(':memory:');
   initSchema(db);
+  startSession(db, {
+    campaignId: 'campaign-1',
+    sessionId: 'session-1',
+    startedAt: '2026-05-20T09:00:00.000Z',
+  });
   return {
     db,
     rng: createSeededRng(42),

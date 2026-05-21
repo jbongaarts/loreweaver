@@ -9,6 +9,7 @@ import {
   openScene,
   rollupSessionRecap,
   runTurn,
+  startSession,
 } from '../src/index.js';
 import type {
   Db,
@@ -43,6 +44,11 @@ const toolCall = (tool: string, args: unknown): string =>
 function freshDb(): Db {
   const db = openDatabase(':memory:');
   initSchema(db);
+  startSession(db, {
+    campaignId: CAMPAIGN,
+    sessionId: SESSION,
+    startedAt: '2026-05-20T09:00:00.000Z',
+  });
   return db;
 }
 

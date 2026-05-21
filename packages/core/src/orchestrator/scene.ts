@@ -1,5 +1,6 @@
 import type { Db } from '../persistence/db.js';
 import { withTransaction } from '../persistence/db.js';
+import { getSession } from '../session.js';
 
 /**
  * Live per-scene transcript and scene-boundary records (E5).
@@ -89,6 +90,29 @@ function requireFields(
   }
 }
 
+/**
+ * Scenes and scene logs are live state owned by an open `campaign_session`.
+ * Writing them for a missing or closed session strands records that session
+ * close and resume never see, so reject the write at the API boundary.
+ */
+function requireOpenSession(
+  db: Db,
+  context: string,
+  selector: SessionSelector,
+): void {
+  const session = getSession(db, selector);
+  if (session === undefined) {
+    throw new SceneError(
+      `${context} requires an open session, but no session '${selector.sessionId}' exists in campaign '${selector.campaignId}'`,
+    );
+  }
+  if (session.status === 'closed') {
+    throw new SceneError(
+      `${context} requires an open session, but session '${selector.sessionId}' in campaign '${selector.campaignId}' is closed`,
+    );
+  }
+}
+
 export function openScene(db: Db, input: OpenSceneInput): SceneRecord {
   requireFields('openScene', [
     ['campaignId', input.campaignId],
@@ -99,6 +123,7 @@ export function openScene(db: Db, input: OpenSceneInput): SceneRecord {
   ]);
 
   return withTransaction(db, (txnDb) => {
+    requireOpenSession(txnDb, 'openScene', input);
     const existingOpen = getOpenScene(txnDb, input);
     if (existingOpen !== undefined) {
       throw new SceneError(
@@ -209,6 +234,7 @@ export function appendSceneLog(
   }
 
   return withTransaction(db, (txnDb) => {
+    requireOpenSession(txnDb, 'appendSceneLog', input);
     if (getScene(txnDb, input) === undefined) {
       throw new SceneError(
         `cannot append to unknown scene '${input.sceneId}' in session '${input.sessionId}'`,

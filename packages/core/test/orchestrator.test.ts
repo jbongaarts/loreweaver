@@ -8,6 +8,7 @@ import {
   openDatabase,
   openScene,
   runTurn,
+  startSession,
 } from '../src/index.js';
 import type { Db, ModelClient, ModelCompleteInput } from '../src/index.js';
 
@@ -37,6 +38,11 @@ class FailingModel implements ModelClient {
 function freshDb(): Db {
   const db = openDatabase(':memory:');
   initSchema(db);
+  startSession(db, {
+    campaignId: CAMPAIGN,
+    sessionId: SESSION,
+    startedAt: '2026-05-20T09:00:00.000Z',
+  });
   return db;
 }
 
