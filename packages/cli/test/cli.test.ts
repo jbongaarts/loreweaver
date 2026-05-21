@@ -1,6 +1,13 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  getCampaign,
+  getOpenSession,
+  openDatabase,
+} from '@loreweaver/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { buildBanner, main, runDoltInstall } from '../src/index.js';
 
@@ -107,4 +114,59 @@ describe('entrypoint guard', () => {
     expect(stdout).toContain('Loreweaver — core v');
     expect(stdout).toContain('db=/tmp/lw-entrypoint.db');
   });
+});
+
+/**
+ * `loreweaver play` must run the graceful close pipeline on EOF/Ctrl-D, not
+ * just on `/quit` — the `nodeIO` prompt contract promises a closed stdin is
+ * treated as a graceful quit. Spawn the built CLI with an empty (immediately
+ * EOF) stdin: no turns run, so no model call is made, and on graceful close
+ * the session must end up `closed`. Skipped when `dist/` is absent; CI builds
+ * before testing.
+ */
+describe('play graceful close on stdin EOF', () => {
+  const cliDist = fileURLToPath(new URL('../dist/index.js', import.meta.url));
+
+  it.skipIf(!existsSync(cliDist))(
+    'runs the close pipeline when stdin reaches EOF before any turn',
+    () => {
+      const dir = mkdtempSync(join(tmpdir(), 'lw-eof-'));
+      const dbPath = join(dir, 'campaign.db');
+      try {
+        const stdout = execFileSync(process.execPath, [cliDist, 'play'], {
+          encoding: 'utf8',
+          input: '', // empty stdin -> immediate EOF, no turns, no model call
+          timeout: 30_000,
+          env: {
+            ...process.env,
+            LOREWEAVER_DB_PATH: dbPath,
+            ANTHROPIC_API_KEY: 'sk-eof-test-not-used',
+          },
+        });
+
+        expect(stdout).toContain('Started session');
+        expect(stdout).toContain('closed and recapped');
+
+        const db = openDatabase(dbPath);
+        try {
+          const campaign = getCampaign(db);
+          expect(campaign).toBeDefined();
+          expect(
+            getOpenSession(db, { campaignId: campaign!.campaignId }),
+          ).toBeUndefined();
+        } finally {
+          db.close();
+        }
+      } finally {
+        // Best-effort: the graceful close writes a Dolt `.checkpoints` repo
+        // whose storage files are read-only, which can EPERM on Windows. The
+        // dir lives under the OS temp root, so a failed unlink is harmless.
+        try {
+          rmSync(dir, { recursive: true, force: true });
+        } catch {
+          /* leave it for OS temp cleanup */
+        }
+      }
+    },
+  );
 });

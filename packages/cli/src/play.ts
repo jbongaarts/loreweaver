@@ -321,15 +321,32 @@ export function doltCheckpointRunner(
  */
 export function nodeIO(): CliIO & { close: () => void } {
   const rl = createInterface({ input: process.stdin, output: process.stdout });
+  // On stdin EOF (Ctrl-D) or a closed stream, readline emits 'close' and a
+  // pending `rl.question()` then never settles — it does not reject. A bare
+  // `await rl.question()` would hang the turn loop forever and silently skip
+  // the graceful close pipeline. Track the close and race every prompt against
+  // it so a closed stream resolves as end-of-input (`undefined`) instead.
+  let closed = false;
+  const onClose = new Promise<undefined>((resolve) => {
+    rl.once('close', () => {
+      closed = true;
+      resolve(undefined);
+    });
+  });
   return {
     write: (line: string) => {
       process.stdout.write(`${line}\n`);
     },
     prompt: async (question: string) => {
+      if (closed) {
+        return undefined;
+      }
       try {
-        return (await rl.question(question)).trim();
+        // Whichever settles first wins: a typed answer, or stdin closing.
+        const answer = await Promise.race([rl.question(question), onClose]);
+        return answer?.trim();
       } catch {
-        // The stream closed (EOF / Ctrl-D) — treat as end of input.
+        // Defensive: any other readline failure is also end of input.
         return undefined;
       }
     },
