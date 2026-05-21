@@ -71,6 +71,19 @@ Always pass non-interactive flags so aliased confirmation prompts can't hang
 the agent: `cp -f`, `mv -f`, `rm -f` / `rm -rf`, `apt-get -y`, and
 `ssh`/`scp -o BatchMode=yes`.
 
+## Git & PR Workflow
+
+Completed work is integrated to `main` by pull request, not by direct pushes to
+`main`. Agents should work on a feature branch, run the relevant quality gates,
+commit, push the branch, open a PR targeting `main`, and hand off the PR URL for
+review.
+
+Routine agent handoff stops at an open PR. Do not merge the PR yourself unless
+the user explicitly asks you to merge after review/check requirements are
+satisfied. The generated Beads session-completion block below still requires
+pushing so work is not stranded locally; in this repository that means pushing
+the feature branch and opening the PR for review.
+
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:7510c1e2 -->
 ## Beads Issue Tracker
 
@@ -95,42 +108,26 @@ bd close <id>         # Complete work
 
 ## Session Completion
 
-**When ending a work session**, you MUST complete ALL steps below. Work is NOT
-complete until the branch is pushed and a pull request exists. `main` is updated
-only by merging a PR; do not push directly to `main`.
+**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
 
 **MANDATORY WORKFLOW:**
 
 1. **File issues for remaining work** - Create issues for anything that needs follow-up
 2. **Run quality gates** (if code changed) - Tests, linters, builds
 3. **Update issue status** - Close finished work, update in-progress items
-4. **Commit on a feature branch** - Do not commit completed work directly on `main`
-5. **Sync with main before publishing**:
+4. **PUSH TO REMOTE** - This is MANDATORY:
    ```bash
-   git fetch origin
-   git rebase origin/main
+   git pull --rebase
+   git push
+   git status  # MUST show "up to date with origin"
    ```
-6. **Push the branch to remote** - This is MANDATORY:
-   ```bash
-   git push -u origin HEAD
-   git status  # MUST show clean and up to date with origin/<branch>
-   ```
-7. **Open a pull request targeting `main`**:
-   ```bash
-   gh pr create --base main --fill
-   ```
-8. **Merge through the PR** - After checks/review requirements are satisfied,
-   merge the PR with `gh pr merge` or the GitHub UI. Never bypass this with a
-   direct push to `main`.
-9. **Clean up** - Clear stashes, prune remote branches after merge
-10. **Verify** - All changes committed, pushed, and represented by a PR
-11. **Hand off** - Provide PR URL, verification results, and context for next session
+5. **Clean up** - Clear stashes, prune remote branches
+6. **Verify** - All changes committed AND pushed
+7. **Hand off** - Provide context for next session
 
 **CRITICAL RULES:**
-- Work is NOT complete until the branch push succeeds and the PR exists
-- `main` changes only through PR merge; never direct-push completed work to `main`
-- NEVER stop before pushing the branch - that leaves work stranded locally
-- NEVER say "ready to push when you are" - YOU must push the branch and open the PR
-- If push or PR creation fails, resolve and retry until it succeeds or file a
-  blocker with the failure details
+- Work is NOT complete until `git push` succeeds
+- NEVER stop before pushing - that leaves work stranded locally
+- NEVER say "ready to push when you are" - YOU must push
+- If push fails, resolve and retry until it succeeds
 <!-- END BEADS INTEGRATION -->
