@@ -111,6 +111,8 @@ Optional:
 - `LOREWEAVER_PROFILE_*_PROVIDER` / `LOREWEAVER_PROFILE_*_MODEL` - per-profile
   provider/model overrides for the provider-neutral profile registry.
 - `LOREWEAVER_DOLT_BIN` - explicit path to a Dolt binary for checkpoints.
+- `LOREWEAVER_DOLT_HOME` - managed Dolt cache directory used by
+  `loreweaver dolt install`; defaults to `~/.loreweaver/dolt`.
 
 PowerShell example:
 
@@ -155,14 +157,17 @@ download.
 
 ## Storage Model
 
-Current local CLI storage is explicit and file-based:
+Current local CLI storage is explicit and file-based. See
+[docs/storage.md](docs/storage.md) for the full user-facing storage boundary.
 
 - **Static bundled content** lives in the package source/build output, including
-  sample module data and SRD catalog data.
+  `EMBERFALL_HOLLOW` sample module data and SRD catalog data.
 - **Live campaign state** lives in the SQLite file named by
-  `LOREWEAVER_DB_PATH`.
+  `LOREWEAVER_DB_PATH`. SQLite sidecar files such as `-wal`, `-shm`, or
+  `-journal` may appear beside it while the database is open.
 - **Dolt checkpoints** live beside that database in `<dbPath>.checkpoints` when
-  Dolt is available.
+  Dolt is available. Restore/fork commands materialize checkpoints into a new
+  SQLite database path chosen by the caller.
 - **Beads tracker data** is separate from campaign checkpoints. Checkpoint code
   guards against reusing the beads Dolt ref/remote.
 - **Provider secrets** come from the local environment in the CLI MVP. They
