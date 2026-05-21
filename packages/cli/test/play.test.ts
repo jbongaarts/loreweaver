@@ -25,6 +25,7 @@ import {
 } from '@loreweaver/core';
 import {
   doltCheckpointRunner,
+  runDemo,
   runPlay,
   type CliIO,
   type PlayDeps,
@@ -301,6 +302,56 @@ describe('runPlay', () => {
     // The session is still closed — the close pipeline ran before the
     // checkpoint, so a checkpoint failure never strands an open session.
     expect(getOpenSession(db, { campaignId: campaignId(db) })).toBeUndefined();
+    dispose();
+  });
+});
+
+describe('runDemo', () => {
+  it('creates a bounded demo campaign and stops at the turn cap', async () => {
+    const { db, dispose } = makeDb();
+    const { io, lines } = scriptedIO([
+      'look around',
+      'open the door',
+      'third turn',
+    ]);
+
+    const code = await runDemo(baseDeps(db, io), {
+      dbPath: 'demo.db',
+      turnCap: 2,
+    });
+
+    expect(code).toBe(0);
+    const out = lines.join('\n');
+    expect(out).toContain('Demo campaign');
+    expect(out).toContain('Bounded demo: 2 turns');
+    expect(out).toContain('DM: you said "look around"');
+    expect(out).toContain('DM: you said "open the door"');
+    // The cap stops the loop before the third input is ever read.
+    expect(out).toContain('Demo turn cap reached (2/2)');
+    expect(out).not.toContain('third turn');
+    expect(out).toContain('closed and recapped');
+    dispose();
+  });
+
+  it('reuses an existing demo campaign on a later run', async () => {
+    const { db, dispose } = makeDb();
+    // First run creates the demo campaign and plays one turn.
+    await runDemo(baseDeps(db, scriptedIO(['first turn']).io), {
+      dbPath: 'demo.db',
+      turnCap: 5,
+    });
+
+    // A second run on the same db reuses the campaign rather than recreating.
+    const { io, lines } = scriptedIO(['/quit']);
+    const code = await runDemo(baseDeps(db, io), {
+      dbPath: 'demo.db',
+      turnCap: 5,
+    });
+
+    expect(code).toBe(0);
+    const out = lines.join('\n');
+    expect(out).toContain('Demo campaign:'); // the "existing campaign" branch
+    expect(out).not.toContain("Demo campaign '"); // not the "created" branch
     dispose();
   });
 });
