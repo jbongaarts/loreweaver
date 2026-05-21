@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { createInterface } from 'node:readline/promises';
 import { pathToFileURL } from 'node:url';
 import {
