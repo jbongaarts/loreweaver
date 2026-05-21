@@ -95,6 +95,73 @@ function isClosedSceneResult(call: ExecutedToolCall): string | undefined {
   return typeof sceneId === 'string' ? sceneId : undefined;
 }
 
+interface DerivedTraceFields {
+  rulesResolution: TraceJsonValue;
+  acceptedStateDelta: TraceJsonValue[];
+  rejectedCandidates: TraceJsonValue[];
+  memoryUpdates: TraceJsonValue[];
+  qualityFlags: string[];
+}
+
+/**
+ * Project a turn's executed tool calls into the structured turn-trace fields,
+ * so the trace records what actually happened rather than placeholders:
+ * - `acceptedStateDelta` — canon mutations the tool layer applied.
+ * - `rejectedCandidates` — mutations / tool calls the model proposed that a
+ *   tool refused (invalid args, unknown tool, malformed tool call).
+ * - `rulesResolution` — the deterministic-layer outcomes (dice, SRD lookups).
+ * - `memoryUpdates` — scene summaries the turn rolled up.
+ * - `qualityFlags` — signals worth surfacing for later review.
+ *
+ * `humanCorrections` has no source in an unattended turn and stays empty.
+ */
+function deriveTraceFields(
+  toolCalls: readonly ExecutedToolCall[],
+  summarizedSceneIds: readonly string[],
+): DerivedTraceFields {
+  const argsOf = (call: ExecutedToolCall): TraceJsonValue =>
+    (call.args ?? null) as TraceJsonValue;
+  const okData = (tool: string): TraceJsonValue[] =>
+    toolCalls
+      .filter((call) => call.tool === tool && call.result.ok)
+      .map((call) =>
+        call.result.ok ? (call.result.data as TraceJsonValue) : null,
+      );
+
+  const acceptedStateDelta = toolCalls
+    .filter((call) => call.tool === 'mutate_state' && call.result.ok)
+    .map(argsOf);
+
+  const rejectedCandidates = toolCalls
+    .filter((call) => !call.result.ok)
+    .map(
+      (call): TraceJsonValue => ({
+        tool: call.tool,
+        args: argsOf(call),
+        code: call.result.ok ? null : call.result.code,
+        message: call.result.ok ? null : call.result.message,
+      }),
+    );
+
+  const qualityFlags: string[] = [];
+  if (toolCalls.some((call) => call.tool === 'unknown')) {
+    qualityFlags.push('tool_parse_error');
+  }
+  if (toolCalls.some((call) => call.tool !== 'unknown' && !call.result.ok)) {
+    qualityFlags.push('tool_error');
+  }
+
+  return {
+    rulesResolution: { rolls: okData('roll'), srdLookups: okData('lookup_srd') },
+    acceptedStateDelta,
+    rejectedCandidates,
+    memoryUpdates: summarizedSceneIds.map(
+      (sceneId): TraceJsonValue => ({ kind: 'scene_summary', sceneId }),
+    ),
+    qualityFlags,
+  };
+}
+
 export async function runTurn(
   deps: RunTurnDeps,
   input: RunTurnInput,
@@ -168,11 +235,14 @@ export async function runTurn(
     }
 
     // Summarize any scene the model closed this turn.
-    for (const sceneId of new Set(
-      toolCalls
-        .map(isClosedSceneResult)
-        .filter((id): id is string => id !== undefined),
-    )) {
+    const closedSceneIds = [
+      ...new Set(
+        toolCalls
+          .map(isClosedSceneResult)
+          .filter((id): id is string => id !== undefined),
+      ),
+    ];
+    for (const sceneId of closedSceneIds) {
       summarizeSceneFromLog(
         db,
         {
@@ -234,13 +304,9 @@ export async function runTurn(
           result: c.result as unknown as TraceJsonValue,
         }),
       ),
-      rulesResolution: {},
-      acceptedStateDelta: [],
-      rejectedCandidates: [],
+      ...deriveTraceFields(toolCalls, closedSceneIds),
       finalNarration: narration,
-      memoryUpdates: [],
       humanCorrections: [],
-      qualityFlags: [],
       createdAt: input.at,
     });
 
