@@ -28,6 +28,15 @@ export interface MutateStateInput {
 }
 
 export interface MutateStateBatchOptions {
+  /**
+   * Invoked once per mutation, with that mutation's index, immediately after it
+   * is applied. The call happens **inside the batch transaction, before
+   * commit** (see {@link mutateStateBatch}): it observes state that is not yet
+   * durable, and throwing from it rolls the whole batch back. It is a supported
+   * veto / mid-batch failure hook — not a post-commit or progress-durability
+   * signal. A caller that needs a durable per-mutation signal must react to a
+   * successful return of `mutateStateBatch`, not to this callback.
+   */
   afterMutation?: (index: number) => void;
 }
 
@@ -104,6 +113,14 @@ export function mutateState(db: Db, input: MutateStateInput): void {
   });
 }
 
+/**
+ * Apply a list of mutations as one atomic transaction: either every mutation
+ * commits, or — on any thrown error — none do.
+ *
+ * `options.afterMutation` runs inside that transaction, after each mutation and
+ * before commit, so it sees pre-commit state and a throw from it aborts the
+ * whole batch. See {@link MutateStateBatchOptions.afterMutation}.
+ */
 export function mutateStateBatch(
   db: Db,
   inputs: MutateStateInput[],
