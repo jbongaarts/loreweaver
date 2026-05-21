@@ -16,109 +16,173 @@ It is built for two overlapping kinds of player:
   door games but wanted worlds that could understand actions the designer
   never pre-authored.
 
-The promise: open-ended text adventure **plus** tabletop rules and
-consequences **plus** persistent campaign memory. It should feel like a real
-DM inhabiting a living world, not a video game missing its graphics.
+The promise: open-ended text adventure plus tabletop rules and consequences
+plus persistent campaign memory. It should feel like a real DM inhabiting a
+living world, not a video game missing its graphics.
 
-> **Project status:** early scaffolding / pre-MVP. The repository currently
-> contains the provider-neutral core seam, model-profile configuration, a
-> SQLite persistence layer, and a thin CLI that loads config and prints a
-> banner. The campaign game loop is not yet implemented. Expect rapid change.
+> **Project status:** local CLI MVP. The repository now contains the
+> provider-neutral core, SQLite persistence, module/world loading, SRD-backed
+> rules lookup, deterministic tools, model orchestration, session launch/resume,
+> graceful session close, and optional Dolt checkpoints. The CLI can create or
+> resume a local campaign and run interactive model-backed turns. The project is
+> still pre-distribution: packaging, release workflow, and default user data
+> locations are being planned after the MVP epic.
 
-## Why it's built this way
+## Why It's Built This Way
 
 - **Text-first.** The MVP is pure text: narration, player input, dice/results,
   state tracking, campaign memory, summaries, checkpoints, and
   theater-of-the-mind combat. Structured UI panels, tactical abstractions, and
-  any VTT export come later — native VTT and native mobile are explicit
-  non-goals for early scope.
-- **CLI now, web later.** Near-term development is CLI/local-friendly (fastest
-  route to the core game loop, local campaign state, bring-your-own-key use).
-  The likely public product is a hosted, mobile-friendly web app / PWA.
+  VTT export come later; native VTT and native mobile are explicit non-goals
+  for early scope.
+- **CLI now, web later.** The current surface is CLI/local-friendly because it
+  is the fastest route to the core game loop, local campaign state, and
+  bring-your-own-key use. The likely public product is a hosted,
+  mobile-friendly web app / PWA. The CLI remains supported as the local and
+  power-user surface.
 - **Provider-neutral core.** Model access is isolated behind provider adapters
-  and capability-based **model profiles** (e.g. `premium_dm`,
-  `state_extractor`, `summarizer`). The Claude Agent SDK is the initial
-  adapter, not a hardcoded assumption.
+  and capability-based model profiles such as `premium_dm`, `state_extractor`,
+  and `summarizer`. The Claude Agent SDK is the initial adapter, not a hardcoded
+  core assumption.
 - **Premium quality floor.** The primary DM targets frontier-model quality
   (Opus 4.6+ / GPT-5.5-class or a future equivalent). Cheaper models are only
   for bounded auxiliary tasks that cannot corrupt canon. Loreweaver targets a
-  *capability* floor, not a *price* floor.
+  capability floor, not a price floor.
 - **Separated knowledge.** Rules/mechanics, campaign/module content, live
-  campaign state, user-private content, and generated memory are kept
-  separate. Bundled/public content must be open-licensed, public domain,
-  original, or publisher-licensed — fair use is not the permission model.
+  campaign state, user-private content, and generated memory are kept separate.
+  Bundled/public content must be open-licensed, public domain, original, or
+  publisher-licensed; fair use is not the permission model.
 
-See [`docs/architecture-report.md`](docs/architecture-report.md) for the full
-strategy and [`docs/adr/0001-product-model-deployment-content-strategy.md`](docs/adr/0001-product-model-deployment-content-strategy.md)
-for the governing decision record.
+See [docs/architecture-report.md](docs/architecture-report.md) for the full
+strategy,
+[docs/adr/0001-product-model-deployment-content-strategy.md](docs/adr/0001-product-model-deployment-content-strategy.md)
+for the product/model/content decision record, and
+[docs/adr/0002-hosted-web-pwa-byok-deployment-path.md](docs/adr/0002-hosted-web-pwa-byok-deployment-path.md)
+for the CLI-to-hosted deployment path.
 
-## Repository layout
+## Repository Layout
 
 Monorepo using npm workspaces:
 
 | Package            | Path             | Role                                                    |
 | ------------------ | ---------------- | ------------------------------------------------------- |
-| `@loreweaver/core` | `packages/core`  | UI-agnostic engine: config, model adapters, persistence |
-| `@loreweaver/cli`  | `packages/cli`   | Thin CLI front end for development and power-user use    |
+| `@loreweaver/core` | `packages/core`  | UI-agnostic engine: config, models, tools, persistence  |
+| `@loreweaver/cli`  | `packages/cli`   | Thin CLI front end for local play and development       |
 
-## Getting started
+## Getting Started
 
 ### Prerequisites
 
-- **Node.js 22 LTS recommended.** The one native dependency
-  (`better-sqlite3`) ships a prebuilt binary for Node 22 but **not** Node 24;
-  on Node 24 the install falls back to compiling from source and needs a C++
-  toolchain. See the *Build & Test* section of
-  [AGENTS.md](AGENTS.md#better-sqlite3-native-binary--ci) for details.
+- **Node.js 22 LTS recommended.** CI pins Node 22 for the native
+  `better-sqlite3` dependency. Local Node 24 may work when a compatible native
+  binding is available, but Node 22 is the supported baseline.
+- **Anthropic API key.** The only concrete model adapter today is the Claude
+  Agent SDK adapter.
+- **Dolt optional.** Dolt is used only for local campaign checkpoints on
+  graceful session close. Play still works without Dolt; the CLI reports that
+  the session was closed without a checkpoint.
 
-### Install, build, test
+### Install, Build, Test
 
 ```bash
-npm install        # local install (use `npm ci` for a clean/CI install)
+npm install        # local install
 npm run build      # tsc --build (incremental)
 npm run typecheck  # tsc --build --force (full deterministic build)
 npm run test       # vitest run
 ```
 
-Expected test result: **20 passed / 1 skipped** (the skipped test is a
-live-API integration test, gated off by default).
+Use `npm ci` for clean CI-style installs and `npm run clean` before any proof
+that needs fresh build output. Incremental TypeScript builds can otherwise
+report "up to date" after `dist/` was deleted if `.tsbuildinfo` remains.
 
-### Configuration
+## Configuration
 
-Copy `.env.example` to `.env` and fill in values:
+The CLI reads configuration from environment variables. `.env.example` is a
+template, but the CLI does not currently load `.env` files by itself.
 
-```bash
-cp .env.example .env
+Required:
+
+- `LOREWEAVER_DB_PATH` - SQLite database file for the active local campaign.
+- `ANTHROPIC_API_KEY` - API key used by the Claude Agent SDK adapter.
+
+Optional:
+
+- `LOREWEAVER_MODEL` - Claude model id for the current flat config path.
+- `LOREWEAVER_PROFILE_*_PROVIDER` / `LOREWEAVER_PROFILE_*_MODEL` - per-profile
+  provider/model overrides for the provider-neutral profile registry.
+- `LOREWEAVER_DOLT_BIN` - explicit path to a Dolt binary for checkpoints.
+
+PowerShell example:
+
+```powershell
+$env:LOREWEAVER_DB_PATH = ".\campaigns\dev.db"
+$env:ANTHROPIC_API_KEY = "sk-ant-..."
+npm run build
+node packages\cli\dist\index.js play
 ```
 
-Key settings:
+## CLI Usage
 
-- `LOREWEAVER_DB_PATH` — SQLite database file for the active campaign.
-- `LOREWEAVER_MODEL` / `ANTHROPIC_API_KEY` — model and credentials for the
-  Claude Agent SDK adapter (bring your own key).
-- `LOREWEAVER_PROFILE_*` — optional per-profile provider/model overrides.
-  Loreweaver routes tasks to capability-based profiles rather than hardcoded
-  provider names.
-
-### Run the CLI
+After `npm run build`, run the CLI from the built entrypoint:
 
 ```bash
-node packages/cli/src/index.ts
+node packages/cli/dist/index.js
 ```
 
-Currently this prints the core version and resolved config (database path and
-model) — the campaign loop is not wired up yet.
+This prints the core version and resolved config.
+
+Start or resume a campaign:
+
+```bash
+node packages/cli/dist/index.js play
+```
+
+`play` opens or creates the SQLite database at `LOREWEAVER_DB_PATH`, forks the
+bundled `EMBERFALL_HOLLOW` module into a new campaign when needed, starts or
+resumes a session, and sends each player input through the core turn
+orchestrator. Type `/quit` or `/exit` to close and recap the session.
+
+Install Dolt into the managed cache when you want local checkpoints and Dolt is
+not already on `PATH`:
+
+```bash
+node packages/cli/dist/index.js dolt install
+```
+
+Managed Dolt install is consent-based. Non-interactive shells decline
+automatically so CI and automation cannot trigger an unattended binary
+download.
+
+## Storage Model
+
+Current local CLI storage is explicit and file-based:
+
+- **Static bundled content** lives in the package source/build output, including
+  sample module data and SRD catalog data.
+- **Live campaign state** lives in the SQLite file named by
+  `LOREWEAVER_DB_PATH`.
+- **Dolt checkpoints** live beside that database in `<dbPath>.checkpoints` when
+  Dolt is available.
+- **Beads tracker data** is separate from campaign checkpoints. Checkpoint code
+  guards against reusing the beads Dolt ref/remote.
+- **Provider secrets** come from the local environment in the CLI MVP. They
+  must not be written to campaign SQLite databases, Dolt checkpoints,
+  `turn_trace`, exports, or logs. Hosted BYOK secret handling is governed by
+  ADR 0002.
+
+Default app-data directories and release-package storage conventions are not
+settled yet; they are part of the post-MVP distribution planning work.
 
 ## Contributing
 
-- Issue tracking uses **bd (beads)**, not GitHub issues or markdown TODO
-  lists. Run `bd ready` to find available work and `bd prime` for the full
-  workflow.
-- Operational guidance for both humans and AI agents lives in **[AGENTS.md](AGENTS.md)**
-  (build, test, conventions, and the session-completion / push protocol).
-  `CLAUDE.md` simply imports it.
+- Issue tracking uses **bd (beads)**, not GitHub issues or markdown TODO lists.
+  Run `bd ready` to find available work and `bd prime` for the full workflow.
+- Operational guidance for both humans and AI agents lives in
+  [AGENTS.md](AGENTS.md). `CLAUDE.md` simply imports it.
+- Bundled or publicly shared campaign/rules content must be open-licensed,
+  public domain, original, or publisher-licensed.
 
 ## License
 
-Not yet finalized. Note that any bundled or publicly shared campaign/rules
-content must be open-licensed, public domain, original, or publisher-licensed.
+Not yet finalized. Any bundled or publicly shared campaign/rules content must
+be open-licensed, public domain, original, or publisher-licensed.
