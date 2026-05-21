@@ -1,5 +1,8 @@
+import { dirname, join } from 'node:path';
 import { createInterface } from 'node:readline/promises';
 import {
+  CheckpointStore,
+  DoltRepo,
   closeSessionGracefully,
   createCampaign,
   getCampaign,
@@ -14,6 +17,7 @@ import {
   type RunTurnDeps,
   type RunTurnInput,
   type RunTurnResult,
+  type SessionCheckpointRunner,
   type SessionLaunchState,
   type ToolRegistry,
 } from '@loreweaver/core';
@@ -65,6 +69,13 @@ export interface PlayDeps {
   nextId: (prefix: string) => string;
   /** Per-turn RNG seed source (each turn is reproducible from its seed). */
   seed: () => number;
+  /**
+   * Build a checkpoint runner for the campaign DB at `dbPath`, or `undefined`
+   * when checkpointing is unavailable (e.g. no `dolt` binary). Injected so the
+   * close path is exercisable without Dolt; the default is
+   * {@link doltCheckpointRunner}.
+   */
+  makeCheckpointRunner: (dbPath: string) => SessionCheckpointRunner | undefined;
 }
 
 export interface PlayOptions {
@@ -90,8 +101,8 @@ export async function runPlay(
     // the database is brand-new or an existing campaign.
     initSchema(db);
     const campaign = resolveCampaign(deps, db);
-    const sessionId = await launch(deps, db, campaign);
-    await turnLoop(deps, db, campaign.campaignId, sessionId);
+    const sessionId = await launch(deps, db, options.dbPath, campaign);
+    await turnLoop(deps, db, options.dbPath, campaign.campaignId, sessionId);
     return 0;
   } finally {
     db.close();
@@ -123,6 +134,7 @@ function resolveCampaign(deps: PlayDeps, db: Db): CampaignInfo {
 async function launch(
   deps: PlayDeps,
   db: Db,
+  dbPath: string,
   campaign: CampaignInfo,
 ): Promise<string> {
   const state = getSessionLaunchState(db, { campaignId: campaign.campaignId });
@@ -141,11 +153,7 @@ async function launch(
   );
   const normalized = (answer ?? 'resume').toLowerCase();
   if (normalized === 'close' || normalized === 'c') {
-    closeSessionGracefully(
-      db,
-      closeInput(deps, campaign.campaignId, state.session.sessionId),
-    );
-    deps.io.write('Previous session closed and recapped.');
+    gracefulClose(deps, db, dbPath, campaign.campaignId, state.session.sessionId);
     return startNewSession(deps, db, campaign.campaignId);
   }
 
@@ -186,6 +194,7 @@ function startNewSession(deps: PlayDeps, db: Db, campaignId: string): string {
 async function turnLoop(
   deps: PlayDeps,
   db: Db,
+  dbPath: string,
   campaignId: string,
   sessionId: string,
 ): Promise<void> {
@@ -221,14 +230,48 @@ async function turnLoop(
     }
   }
 
-  const closed = closeSessionGracefully(
-    db,
-    closeInput(deps, campaignId, sessionId),
-  );
-  deps.io.write(
-    `Session ${closed.session.sessionId} closed and recapped` +
-      `${closed.checkpointId ? ` (checkpoint ${closed.checkpointId})` : ''}.`,
-  );
+  gracefulClose(deps, db, dbPath, campaignId, sessionId);
+}
+
+/**
+ * Run the graceful close pipeline and report the outcome. When a checkpoint
+ * runner is available the close also snapshots campaign canon to Dolt; when it
+ * is not (e.g. Dolt is not installed) the session still closes and recaps —
+ * checkpointing is optional and never blocks a clean exit. A checkpoint that
+ * fails after the session is already marked closed is reported, not fatal.
+ */
+function gracefulClose(
+  deps: PlayDeps,
+  db: Db,
+  dbPath: string,
+  campaignId: string,
+  sessionId: string,
+): void {
+  const input = closeInput(deps, campaignId, sessionId);
+  const checkpoint = deps.makeCheckpointRunner(dbPath);
+  if (checkpoint === undefined) {
+    const closed = closeSessionGracefully(db, input);
+    deps.io.write(
+      `Session ${closed.session.sessionId} closed and recapped ` +
+        '(no checkpoint — Dolt is not available).',
+    );
+    return;
+  }
+  try {
+    const closed = closeSessionGracefully(db, { ...input, checkpoint });
+    deps.io.write(
+      `Session ${closed.session.sessionId} closed and recapped` +
+        `${closed.checkpointId ? ` (checkpoint ${closed.checkpointId})` : ''}.`,
+    );
+  } catch (error) {
+    // closeSessionGracefully marks the session closed and writes the recap
+    // BEFORE running the checkpoint, so a checkpoint failure still leaves a
+    // fully closed, recapped session — only the Dolt snapshot is missing.
+    deps.io.write(
+      `Session ${sessionId} closed and recapped, but the checkpoint failed: ` +
+        `${error instanceof Error ? error.message : String(error)}.`,
+    );
+  }
 }
 
 /**
@@ -247,6 +290,28 @@ function closeInput(
     closedAt,
     recap: `Session ${sessionId} ended ${closedAt}.`,
     stateDelta: [],
+  };
+}
+
+/**
+ * Default {@link PlayDeps.makeCheckpointRunner}: a Dolt-backed checkpoint
+ * runner for the campaign DB, or `undefined` when no `dolt` binary is
+ * resolvable. The checkpoint repo lives in `<dbPath>.checkpoints`, kept
+ * disjoint from any beads Dolt repo (the {@link CheckpointStore} separation
+ * guard enforces it).
+ */
+export function doltCheckpointRunner(
+  dbPath: string,
+): SessionCheckpointRunner | undefined {
+  if (!DoltRepo.available()) {
+    return undefined;
+  }
+  const doltDir = `${dbPath}.checkpoints`;
+  const beadsDir = join(dirname(dbPath), '.beads');
+  return {
+    liveDbPath: dbPath,
+    run: (liveDbPath, message) =>
+      new CheckpointStore(doltDir, beadsDir).checkpoint(liveDbPath, message),
   };
 }
 

@@ -14,7 +14,12 @@ import {
   type EnsureDoltOptions,
   type LoreweaverConfig,
 } from '@loreweaver/core';
-import { nodeIO, runPlay, type PlayDeps } from './play.js';
+import {
+  doltCheckpointRunner,
+  nodeIO,
+  runPlay,
+  type PlayDeps,
+} from './play.js';
 
 export function buildBanner(version: string): string {
   return `Loreweaver — core v${version}`;
@@ -93,6 +98,7 @@ function buildPlayDeps(cfg: LoreweaverConfig, io: PlayDeps['io']): PlayDeps {
         .toString(36)
         .slice(2, 8)}`,
     seed: () => (Math.random() * 0x7fffffff) | 0,
+    makeCheckpointRunner: doltCheckpointRunner,
   };
 }
 
