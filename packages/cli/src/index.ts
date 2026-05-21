@@ -29,6 +29,16 @@ export function buildBanner(version: string): string {
   return `Loreweaver — core v${version}`;
 }
 
+/** Format config failures with the next command a fresh CLI user can run. */
+export function formatConfigError(err: ConfigError): string {
+  return [
+    `config error: ${err.message}`,
+    'Set LOREWEAVER_DB_PATH to the campaign SQLite file to open or create.',
+    'Set ANTHROPIC_API_KEY for the Claude Agent SDK adapter.',
+    'Then run: loreweaver play',
+  ].join('\n');
+}
+
 /**
  * Interactive consent for a managed dolt install. Default answer is NO, and a
  * non-interactive stdin always declines so automation/CI can never trigger an
@@ -117,7 +127,7 @@ function loadCliConfig():
     return { ok: true, cfg: loadConfig() };
   } catch (err) {
     if (err instanceof ConfigError) {
-      console.error(`config error: ${err.message}`);
+      console.error(formatConfigError(err));
       return { ok: false, code: 1 };
     }
     throw err;
@@ -190,7 +200,7 @@ export function main(argv: string[] = process.argv): void {
     console.log(`db=${cfg.campaignDbPath} model=${cfg.model}`);
   } catch (err) {
     if (err instanceof ConfigError) {
-      console.error(`config error: ${err.message}`);
+      console.error(formatConfigError(err));
       process.exitCode = 1;
       return;
     }

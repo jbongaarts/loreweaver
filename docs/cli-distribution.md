@@ -43,10 +43,6 @@ stays private; only the package workspaces are published.
 
 Before the first publish, package metadata should be tightened:
 
-- add `files` allowlists so source, tests, and local campaign files are not
-  published accidentally
-- confirm the CLI `bin` entrypoint has an executable shebang and works after
-  global install
 - add final `license`, `repository`, and npm provenance metadata
 - decide whether the first public version is `0.1.0` or another pre-1.0 semver
 
@@ -79,7 +75,8 @@ Initial automation can be manual plus CI-verified:
 5. Run a GitHub Actions release workflow that performs `npm ci`,
    `npm run clean`, `npm run typecheck`, `npm run test`, `npm pack`, and
    `npm publish --provenance`.
-6. Attach the generated tarballs and smoke-test transcript to the GitHub
+6. Run the fresh-install smoke test against the packed artifacts.
+7. Attach the generated tarballs and smoke-test transcript to the GitHub
    Release.
 
 ## Runtime Policy
@@ -125,6 +122,10 @@ Campaign checkpoints live in `<LOREWEAVER_DB_PATH>.checkpoints`; see
 rules.
 
 ## Fresh Install Smoke Test
+
+CI covers the package-content part of this path by running `npm pack
+--dry-run --json` for both packages after build. That test must keep proving
+the tarballs include `dist/**` and exclude source/test files.
 
 Run this on a machine or container with no repository checkout and Node 22 LTS:
 
@@ -175,9 +176,8 @@ available, the close reports a checkpoint id and creates
 The plan is intentionally compatible with the current workspace shape, but the
 first publish should not happen until these are resolved or explicitly waived:
 
-- executable global install behavior is verified after packaging
-- package `files`, license, repository, and provenance metadata are finalized
+- final license, repository, and provenance metadata are added
 - default user data directory decision is made or the required
   `LOREWEAVER_DB_PATH` MVP behavior is explicitly kept for the first release
-- package smoke tests are added to CI or release automation so a missing `dist`
-  file, bad `bin`, or missing native prebuild fails before publish
+- release automation installs the packed tarballs and invokes the global
+  `loreweaver` command in a clean prefix before publish

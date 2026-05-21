@@ -83,7 +83,20 @@ Monorepo using npm workspaces:
   graceful session close. Play still works without Dolt; the CLI reports that
   the session was closed without a checkpoint.
 
-### Install, Build, Test
+### Install The CLI
+
+After the CLI packages are published, install the command with npm:
+
+```bash
+npm install -g @loreweaver/cli
+loreweaver
+```
+
+That command prints the core version and resolved config. If required
+configuration is missing, it prints the missing setting instead of requiring a
+repository checkout or a direct `node packages/cli/dist/index.js` invocation.
+
+### Build From Source
 
 ```bash
 npm install        # local install
@@ -115,21 +128,20 @@ Optional:
 - `LOREWEAVER_DOLT_HOME` - managed Dolt cache directory used by
   `loreweaver dolt install`; defaults to `~/.loreweaver/dolt`.
 
-PowerShell example:
+Installed CLI PowerShell example:
 
 ```powershell
 $env:LOREWEAVER_DB_PATH = ".\campaigns\dev.db"
 $env:ANTHROPIC_API_KEY = "sk-ant-..."
-npm run build
-node packages\cli\dist\index.js play
+loreweaver play
 ```
 
 ## CLI Usage
 
-After `npm run build`, run the CLI from the built entrypoint:
+After install, run the CLI with:
 
 ```bash
-node packages/cli/dist/index.js
+loreweaver
 ```
 
 This prints the core version and resolved config.
@@ -137,7 +149,7 @@ This prints the core version and resolved config.
 Start or resume a campaign:
 
 ```bash
-node packages/cli/dist/index.js play
+loreweaver play
 ```
 
 `play` opens or creates the SQLite database at `LOREWEAVER_DB_PATH`, forks the
@@ -149,12 +161,16 @@ Install Dolt into the managed cache when you want local checkpoints and Dolt is
 not already on `PATH`:
 
 ```bash
-node packages/cli/dist/index.js dolt install
+loreweaver dolt install
 ```
 
 Managed Dolt install is consent-based. Non-interactive shells decline
 automatically so CI and automation cannot trigger an unattended binary
 download.
+
+When working directly from a repository checkout before package publication,
+run `npm run build` and invoke the built entrypoint with
+`node packages/cli/dist/index.js`.
 
 ## Storage Model
 
