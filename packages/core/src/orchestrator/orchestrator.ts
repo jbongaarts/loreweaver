@@ -12,7 +12,12 @@ import {
   parseToolCalls,
   renderToolResults,
 } from './protocol.js';
-import { appendSceneLog, getOpenScene, listSceneLog } from './scene.js';
+import {
+  appendSceneLog,
+  getOpenScene,
+  listSceneLog,
+  openScene,
+} from './scene.js';
 
 /**
  * Orchestrator turn loop (E5) — the integrating loop.
@@ -206,31 +211,39 @@ export async function runTurn(
       );
     }
 
-    // Append the turn to whatever scene is open at turn end.
-    const openScene = getOpenScene(db, {
+    // Append the turn to whatever scene is open at turn end. If the model
+    // never marked a scene this session, open a fallback one so a successful
+    // turn always has a persisted player/DM transcript.
+    const activeScene =
+      getOpenScene(db, {
+        campaignId: input.campaignId,
+        sessionId: input.sessionId,
+      }) ??
+      openScene(db, {
+        campaignId: input.campaignId,
+        sessionId: input.sessionId,
+        sceneId: `auto-scene-${input.turnId}`,
+        title: 'Untitled Scene',
+        at: input.at,
+      });
+    appendSceneLog(db, {
       campaignId: input.campaignId,
       sessionId: input.sessionId,
+      sceneId: activeScene.sceneId,
+      turnId: input.turnId,
+      role: 'player',
+      content: input.playerInput,
+      at: input.at,
     });
-    if (openScene !== undefined) {
-      appendSceneLog(db, {
-        campaignId: input.campaignId,
-        sessionId: input.sessionId,
-        sceneId: openScene.sceneId,
-        turnId: input.turnId,
-        role: 'player',
-        content: input.playerInput,
-        at: input.at,
-      });
-      appendSceneLog(db, {
-        campaignId: input.campaignId,
-        sessionId: input.sessionId,
-        sceneId: openScene.sceneId,
-        turnId: input.turnId,
-        role: 'dm',
-        content: narration,
-        at: input.at,
-      });
-    }
+    appendSceneLog(db, {
+      campaignId: input.campaignId,
+      sessionId: input.sessionId,
+      sceneId: activeScene.sceneId,
+      turnId: input.turnId,
+      role: 'dm',
+      content: narration,
+      at: input.at,
+    });
 
     recordTurnTrace(db, {
       campaignId: input.campaignId,
@@ -264,7 +277,7 @@ export async function runTurn(
       turnId: input.turnId,
       narration,
       toolCalls,
-      sceneId: openScene?.sceneId,
+      sceneId: activeScene.sceneId,
       modelRounds: rounds,
       error: undefined,
     };
