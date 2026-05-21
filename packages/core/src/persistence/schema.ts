@@ -1,6 +1,6 @@
 import type { Db } from './db.js';
 
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 
 export function initSchema(db: Db): void {
   db.exec(
@@ -197,6 +197,21 @@ export function initSchema(db: Db): void {
       created_at TEXT NOT NULL,
       PRIMARY KEY (campaign_id, session_id, scene_id, seq)
     );
+
+    -- E6: session lifecycle. Graceful close is idempotent; a crash leaves the
+    -- session open so launch code can offer resume or close-and-recap.
+    CREATE TABLE IF NOT EXISTS campaign_session (
+      campaign_id TEXT NOT NULL,
+      session_id TEXT NOT NULL,
+      status TEXT NOT NULL CHECK (status IN ('open', 'closed')),
+      started_at TEXT NOT NULL,
+      closed_at TEXT,
+      PRIMARY KEY (campaign_id, session_id)
+    );
+
+    CREATE UNIQUE INDEX IF NOT EXISTS campaign_session_one_open
+      ON campaign_session(campaign_id)
+      WHERE status = 'open';
     `,
   );
   const now = new Date(0).toISOString();

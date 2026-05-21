@@ -127,6 +127,51 @@ export type {
   ContextAssembler,
   Orchestrator,
 } from './seams.js';
+export {
+  SessionError,
+  closeSession,
+  getOpenSession,
+  getSession,
+  listSessions,
+  startSession,
+} from './session.js';
+export type {
+  CampaignSelector,
+  CloseSessionInput,
+  SessionKey,
+  SessionRecord,
+  SessionStatus,
+  StartSessionInput,
+} from './session.js';
+export { closeSessionGracefully } from './sessionClose.js';
+export type {
+  CloseSessionGracefullyInput,
+  CloseSessionGracefullyResult,
+  GracefulSessionArcRollup,
+  SessionCheckpointRunner,
+} from './sessionClose.js';
+export { getSessionLaunchState } from './sessionLaunch.js';
+export type { SessionLaunchState } from './sessionLaunch.js';
+export {
+  DEMO_TURN_CAP,
+  DEFAULT_DEMO_PACK,
+  DemoModeError,
+  assertDemoContentAllowed,
+  assertDemoTurnAllowed,
+  createDemoCampaign,
+  demoTurnBudget,
+  evaluateDemoContent,
+  getDemoTurnBudget,
+  resolveDemoModel,
+} from './demoMode.js';
+export type {
+  CreateDemoCampaignOptions,
+  DemoCampaign,
+  DemoContentPolicy,
+  DemoModelDecision,
+  DemoQualityLabel,
+  DemoTurnBudget,
+} from './demoMode.js';
 export type { ModelClient, ModelMessage, ModelCompleteInput } from './model/client.js';
 export { ModelClientError } from './model/client.js';
 export { AgentSdkModelClient } from './model/agentSdkClient.js';
