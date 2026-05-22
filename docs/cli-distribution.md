@@ -127,6 +127,16 @@ CI covers the package-content part of this path by running `npm pack
 --dry-run --json` for both packages after build. That test must keep proving
 the tarballs include `dist/**` and exclude source/test files.
 
+Release automation also runs the clean-prefix install smoke:
+
+```bash
+npm run smoke:cli-install
+```
+
+That script performs a clean TypeScript build, packs both workspaces, installs
+the local tarballs into a temporary global npm prefix, invokes the installed
+`loreweaver` command, and verifies the expected first-run config guidance.
+
 Run this on a machine or container with no repository checkout and Node 22 LTS:
 
 ```bash
