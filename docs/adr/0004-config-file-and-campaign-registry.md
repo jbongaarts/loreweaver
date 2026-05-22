@@ -9,10 +9,9 @@ Date: 2026-05-22
 [ADR 0003](0003-local-cli-first-release-storage.md) kept first-release storage
 explicit: `LOREWEAVER_DB_PATH` is required and names the single active campaign
 SQLite file. ADR 0003 deliberately deferred per-user app-data roots, a config
-file, and a campaign registry/picker until a design existed, so the first npm
-CLI release would have no hidden writes to OS-specific directories.
+file, and a campaign registry/picker until a design existed.
 
-That explicit-path model is a usability ceiling, not a permanent shape:
+That explicit-path model is a usability ceiling:
 
 - A new user must learn an environment variable before the CLI does anything.
 - Running a second campaign means editing `LOREWEAVER_DB_PATH`; there is no
@@ -21,20 +20,20 @@ That explicit-path model is a usability ceiling, not a permanent shape:
   settable through environment variables, which are awkward to persist on
   Windows and easy to lose between shells.
 
-This ADR is the deferred design (beads `loreweaver-d4r.2`, epic
-`loreweaver-d4r`). It fixes *where* managed data lives, *what* the config file
-holds, and *how* campaigns are registered and selected — without regressing the
-ADR 0003 explicit-path behavior that release smoke tests and CI depend on.
+Loreweaver has no released installations. There is no installed user base, no
+on-disk data, and no shipped behavior to preserve, so this design specifies the
+managed-storage model directly — it carries no migration path or compatibility
+constraint. This ADR is the design tracked by beads `loreweaver-d4r.2` under
+epic `loreweaver-d4r`; when accepted and implemented it replaces ADR 0003's
+explicit-only model.
 
-It does not cover provider-secret storage: [ADR 0002](0002-hosted-web-pwa-byok-deployment-path.md)
+Provider-secret storage is out of scope: [ADR 0002](0002-hosted-web-pwa-byok-deployment-path.md)
 keeps secrets in the environment (local) or a dedicated KMS-backed store
 (hosted), and that boundary is unchanged here.
 
 ## Decision
 
-Loreweaver gains three managed-storage components. All three are **opt-in by
-absence of `LOREWEAVER_DB_PATH`**: when that variable is set, the CLI behaves
-exactly as ADR 0003 specifies and ignores the registry entirely.
+Loreweaver's local storage is a managed per-user model with three components.
 
 ### 1. Per-user data root
 
@@ -57,10 +56,8 @@ The root contains:
   dolt/               # managed Dolt binary cache
 ```
 
-The managed Dolt cache moves under this root (`<root>/dolt`) so there is one
-Loreweaver directory per user. `LOREWEAVER_DOLT_HOME` still overrides it and,
-for compatibility, an existing `~/.loreweaver/dolt` cache is still honored when
-present; the new default only applies to fresh installs.
+The managed Dolt cache lives at `<root>/dolt` so there is one Loreweaver
+directory per user. `LOREWEAVER_DOLT_HOME` overrides that location.
 
 The CLI creates the root and its subdirectories lazily, on the first command
 that needs to write managed data — never on a plain `loreweaver` banner run.
@@ -88,8 +85,8 @@ Settings precedence, highest wins:
 explicit CLI flag  >  environment variable  >  config.json  >  built-in default
 ```
 
-Environment variables intentionally outrank the config file so existing
-scripted and CI usage keeps working unchanged after the config file ships.
+Environment variables outrank the config file so scripted and CI invocations
+can pin a value without editing per-user state.
 
 The CLI does not auto-load `.env` files; that ADR 0003 position is unchanged.
 
@@ -101,7 +98,7 @@ entry records non-content metadata only:
 - stable campaign id (slug)
 - display name
 - database path (under `<root>/campaigns/` for managed campaigns, or an
-  absolute path for an adopted external database)
+  absolute path for an externally located database)
 - created-at and last-played-at timestamps
 - module / rules-pack identity used to create it
 
@@ -109,7 +106,7 @@ The registry stores **pointers and metadata, never campaign content or
 secrets.** It is written with the atomic temp-file-plus-rename pattern already
 used by checkpoint restore, so a crash mid-write cannot corrupt it.
 
-CLI behavior when `LOREWEAVER_DB_PATH` is *not* set:
+CLI behavior, the default path:
 
 - `loreweaver new` creates `campaigns/<slug>.db`, forks the starting module
   into it, and registers the entry.
@@ -118,31 +115,27 @@ CLI behavior when `LOREWEAVER_DB_PATH` is *not* set:
   if it has several it shows a picker (honoring `defaultCampaignId`).
 - `loreweaver campaigns list | rename | remove | add <path>` manage entries.
   `remove` unregisters and does not delete the database file unless asked;
-  `add` adopts an existing explicit-path database into the registry.
+  `add` registers a database that lives outside `<root>/campaigns/`.
+
+### Explicit-path campaigns
+
+`LOREWEAVER_DB_PATH` is kept as a deliberate explicit-path option for scripted,
+CI, and power-user workflows — project directories, backup directories, and
+synced folders. When it is set the CLI opens exactly that database and does not
+register it; the campaign is unmanaged by design. A user who later wants such a
+database managed runs `loreweaver campaigns add <path>`. This is a chosen
+feature of the storage model, not a compatibility shim.
 
 `loreweaver-d4r.2` only commits this design. Implementation is split into
 follow-up beads under epic `loreweaver-d4r`.
-
-### Backward compatibility and migration
-
-- `LOREWEAVER_DB_PATH` remains supported indefinitely as the explicit,
-  unmanaged path. When set it takes precedence, the registry and picker are
-  bypassed, and ADR 0003 behavior is exact — so the release smoke test and CI
-  keep passing without change.
-- There is no implicit relocation of existing databases. First run after the
-  registry ships simply creates an empty `registry.json`.
-- A user with an ADR 0003 explicit-path campaign adopts it deliberately with
-  `loreweaver campaigns add <path>`; the database is not moved, only indexed.
-- The managed Dolt cache default moves to `<root>/dolt`, but an existing
-  `~/.loreweaver/dolt` is still detected, so no checkpoint cache is orphaned.
 
 ## Consequences
 
 - A new user can run `loreweaver` and create or pick a campaign without first
   learning an environment variable.
-- ADR 0003's explicit-path mode is retained as the advanced/unmanaged path, not
-  replaced; this preserves project-directory, backup-directory, and synced-
-  folder workflows and every existing test.
+- The managed registry is the default; the explicit `LOREWEAVER_DB_PATH` path
+  is a deliberate advanced option, so project-directory, backup-directory, and
+  synced-folder workflows remain available.
 - New code is required: per-platform root resolution, config-file load/validate
   with the documented precedence, registry read/write with atomic writes, and
   picker UX. None of it touches `@loreweaver/core` orchestration.
@@ -150,9 +143,11 @@ follow-up beads under epic `loreweaver-d4r`.
   validated to reject key-shaped values; ADR 0002's secret boundary is intact.
 - One Loreweaver directory per user (config, registry, managed campaigns, Dolt
   cache) makes the storage model easy to document, back up, and delete.
-- `docs/storage.md` and `docs/cli-distribution.md` will need updates once the
-  implementation lands; this ADR supersedes only the *deferral* recorded in
-  ADR 0003, not ADR 0003's explicit-path decision.
+- When accepted and implemented this ADR supersedes ADR 0003: the explicit-only
+  first-release model is replaced outright, with no migration step because no
+  installations exist. ADR 0003 should be marked superseded at that point, and
+  `docs/storage.md` and `docs/cli-distribution.md` updated to the managed
+  model.
 
 ## Rejected Alternatives
 
@@ -167,12 +162,9 @@ follow-up beads under epic `loreweaver-d4r`.
 - **Storing provider secrets in `config.json`:** rejected per ADR 0002 — local
   secrets stay in the environment; encrypted local secret storage is a
   separate future decision.
-- **Auto-migrating existing explicit-path databases into the managed root:**
-  rejected — silently moving a user's database is surprising and risks
-  breaking their own scripts; explicit `campaigns add` adoption is safer.
 - **Backing the registry with SQLite or Dolt:** rejected — the registry is a
   handful of pointer records; a JSON file with atomic writes avoids another
   schema, migration story, and the beads/`refs/dolt/data` separation concerns.
-- **Dropping `LOREWEAVER_DB_PATH`:** rejected — it would break CI, the release
-  smoke test, and scripted/power-user workflows that ADR 0003 deliberately
-  supports.
+- **Removing `LOREWEAVER_DB_PATH` entirely:** rejected — an explicit-path
+  option is genuinely useful for CI smoke tests and synced-folder workflows;
+  it is kept as a deliberate feature, distinct from the managed default.
