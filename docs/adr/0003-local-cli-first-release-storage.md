@@ -1,8 +1,13 @@
 # ADR 0003: Local CLI First-Release Storage
 
-Status: accepted
+Status: superseded by [ADR 0004](0004-config-file-and-campaign-registry.md)
 
 Date: 2026-05-22
+
+> **Superseded.** ADR 0004 replaces the explicit-only storage model below with
+> a managed per-user data root, a config file, and a campaign registry. The
+> `LOREWEAVER_DB_PATH` explicit path survives as a deliberate advanced option,
+> not as the only mechanism. There was no installed user base to migrate.
 
 ## Context
 

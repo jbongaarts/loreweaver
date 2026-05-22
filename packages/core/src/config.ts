@@ -28,7 +28,13 @@ export interface ProviderAuth {
 }
 
 export interface LoreweaverConfig {
-  campaignDbPath: string;
+  /**
+   * Explicit campaign database path from `LOREWEAVER_DB_PATH`, or `undefined`
+   * when it is unset. The CLI resolves the campaign to open from its
+   * registry/picker (ADR 0004) when this is absent; only provider auth and the
+   * model profile are mandatory here.
+   */
+  campaignDbPath?: string;
   /**
    * Resolved primary-DM model id. This is the `premium_dm` profile's model,
    * unless the legacy flat `LOREWEAVER_MODEL` override is set — that still
@@ -84,11 +90,9 @@ function resolveProviderAuth(
 export function loadConfig(
   env: Record<string, string | undefined> = process.env,
 ): LoreweaverConfig {
-  const campaignDbPath = env.LOREWEAVER_DB_PATH?.trim();
-
-  if (!campaignDbPath) {
-    throw new ConfigError('LOREWEAVER_DB_PATH is required');
-  }
+  // LOREWEAVER_DB_PATH is optional: when set it names an explicit campaign
+  // database; when unset the CLI resolves the campaign from its registry.
+  const campaignDbPath = env.LOREWEAVER_DB_PATH?.trim() || undefined;
   const auth = resolveProviderAuth(env);
 
   // The primary-DM model is resolved from the provider-neutral profile

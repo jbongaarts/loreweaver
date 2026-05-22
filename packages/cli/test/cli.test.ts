@@ -94,7 +94,6 @@ describe('main', () => {
     expect(process.exitCode).toBe(1);
     const printed = err.mock.calls.map((c) => String(c[0])).join('\n');
     expect(printed).toContain('config error:');
-    expect(printed).toContain('LOREWEAVER_DB_PATH');
     expect(printed).toContain('ANTHROPIC_API_KEY');
     expect(printed).toContain('loreweaver play');
   });
@@ -141,7 +140,6 @@ describe('entrypoint guard', () => {
         });
 
         expect(result.status).toBe(1);
-        expect(result.stderr).toContain('LOREWEAVER_DB_PATH');
         expect(result.stderr).toContain('ANTHROPIC_API_KEY');
         expect(result.stderr).toContain('loreweaver play');
       } finally {

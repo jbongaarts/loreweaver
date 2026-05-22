@@ -46,7 +46,6 @@ try {
   }
   for (const expected of [
     'Loreweaver',
-    'LOREWEAVER_DB_PATH',
     'ANTHROPIC_API_KEY',
     'loreweaver play',
   ]) {

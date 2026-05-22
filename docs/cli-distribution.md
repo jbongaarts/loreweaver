@@ -149,8 +149,9 @@ npm install -g @loreweaver/cli@<version>
 loreweaver
 ```
 
-Expected: the banner prints the core version. Without configuration, it should
-exit with a config error naming `LOREWEAVER_DB_PATH`.
+Expected: the banner prints the core version and the resolved data root.
+Without provider credentials it exits with a config error naming
+`ANTHROPIC_API_KEY` / `CLAUDE_CODE_OAUTH_TOKEN`.
 
 Then smoke the configured CLI:
 
@@ -162,7 +163,9 @@ export ANTHROPIC_API_KEY="<test key or live smoke key>"
 loreweaver
 ```
 
-Expected: the banner prints the resolved database path and model.
+Expected: the banner prints the resolved database path and model. (With
+`LOREWEAVER_DB_PATH` unset, the CLI instead manages campaigns through the data
+root registry — see [Local Storage](storage.md).)
 
 Optional Dolt smoke:
 
