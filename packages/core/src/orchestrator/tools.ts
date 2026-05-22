@@ -70,7 +70,8 @@ const rollTool: Tool = {
     if (
       a === undefined ||
       typeof a.dice !== 'string' ||
-      typeof a.reason !== 'string'
+      typeof a.reason !== 'string' ||
+      a.reason.length === 0
     ) {
       return err('invalid_args', 'roll requires { dice: string, reason: string }');
     }
