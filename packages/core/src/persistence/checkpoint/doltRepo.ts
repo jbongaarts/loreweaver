@@ -9,7 +9,12 @@ export interface Checkpoint {
 }
 
 function sq(s: string): string {
-  return `'${s.replace(/'/g, "''")}'`;
+  // dolt/MySQL string literals process backslash escapes, so a literal
+  // backslash in the value — every JSON escape (`\n`, `\"`, `\\`, ...) carries
+  // one — must itself be escaped or the stored value is silently corrupted
+  // (e.g. `\n` collapses to a real newline). Escape backslashes first, then
+  // double single quotes.
+  return `'${s.replace(/\\/g, '\\\\').replace(/'/g, "''")}'`;
 }
 
 export class DoltRepo {
@@ -92,19 +97,31 @@ export class DoltRepo {
   }
 
   log(): Checkpoint[] {
-    // dolt_log is newest-first; full commit_hash, clean message.
+    // dolt_log is newest-first; full commit_hash, clean message. The message
+    // is HEX-encoded in SQL and decoded here: dolt's `-r json` writer does not
+    // escape control characters in string values, so a multi-line commit
+    // message would otherwise emit a raw newline and break JSON.parse.
     return this.sqlRows<{ commit_hash: string; message: string }>(
-      'SELECT commit_hash, message FROM dolt_log',
-    ).map((r) => ({ id: r.commit_hash, message: r.message }));
+      'SELECT commit_hash, HEX(message) AS message FROM dolt_log',
+    ).map((r) => ({
+      id: r.commit_hash,
+      message: Buffer.from(r.message, 'hex').toString('utf8'),
+    }));
   }
 
   readSnapshotAt(id: string): SnapshotRecord[] {
+    // payload holds free text — multi-line CREATE statements and serialized
+    // row JSON. dolt's `-r json` writer does not escape control characters in
+    // string values, so a literal newline in payload produces invalid JSON.
+    // HEX-encode payload in SQL and decode it here: hex output is plain ASCII
+    // and always parseable. (tbl/kind/ordinal are identifiers and integers and
+    // need no encoding.)
     const out = this.run([
       'sql',
       '-r',
       'json',
       '-q',
-      `SELECT tbl, kind, ordinal, payload FROM campaign_snapshot ` +
+      `SELECT tbl, kind, ordinal, HEX(payload) AS payload FROM campaign_snapshot ` +
         `AS OF '${id.replace(/'/g, "''")}' ORDER BY tbl, kind, ordinal`,
     ]);
     const parsed = JSON.parse(out) as {
@@ -114,7 +131,7 @@ export class DoltRepo {
       table: r.tbl,
       kind: r.kind === 'schema' ? 'schema' : 'row',
       ordinal: Number(r.ordinal),
-      payload: r.payload,
+      payload: Buffer.from(r.payload, 'hex').toString('utf8'),
     }));
   }
 
