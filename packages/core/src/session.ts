@@ -1,5 +1,6 @@
 import type { Db } from './persistence/db.js';
 import { withTransaction } from './persistence/db.js';
+import { requireNonEmpty } from './validation.js';
 
 export type SessionStatus = 'open' | 'closed';
 
@@ -34,11 +35,15 @@ export class SessionError extends Error {
 }
 
 export function startSession(db: Db, input: StartSessionInput): SessionRecord {
-  requireFields('startSession', [
-    ['campaignId', input.campaignId],
-    ['sessionId', input.sessionId],
-    ['startedAt', input.startedAt],
-  ]);
+  requireNonEmpty(
+    SessionError,
+    [
+      ['campaignId', input.campaignId],
+      ['sessionId', input.sessionId],
+      ['startedAt', input.startedAt],
+    ],
+    (name) => `startSession ${name} is required`,
+  );
 
   return withTransaction(db, (txnDb) => {
     const existingOpen = getOpenSession(txnDb, input);
@@ -71,11 +76,15 @@ export function startSession(db: Db, input: StartSessionInput): SessionRecord {
 }
 
 export function closeSession(db: Db, input: CloseSessionInput): SessionRecord {
-  requireFields('closeSession', [
-    ['campaignId', input.campaignId],
-    ['sessionId', input.sessionId],
-    ['closedAt', input.closedAt],
-  ]);
+  requireNonEmpty(
+    SessionError,
+    [
+      ['campaignId', input.campaignId],
+      ['sessionId', input.sessionId],
+      ['closedAt', input.closedAt],
+    ],
+    (name) => `closeSession ${name} is required`,
+  );
 
   return withTransaction(db, (txnDb) => {
     const session = getSession(txnDb, input);
@@ -141,17 +150,6 @@ export function listSessions(
     )
     .all(selector.campaignId) as SessionRow[];
   return rows.map(sessionFromRow);
-}
-
-function requireFields(
-  context: string,
-  fields: ReadonlyArray<readonly [string, string]>,
-): void {
-  for (const [name, value] of fields) {
-    if (value.length === 0) {
-      throw new SessionError(`${context} ${name} is required`);
-    }
-  }
 }
 
 interface SessionRow {

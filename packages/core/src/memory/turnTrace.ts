@@ -1,6 +1,7 @@
 import type { Db } from '../persistence/db.js';
 import { withTransaction } from '../persistence/db.js';
 import { jsonColumn } from '../persistence/jsonColumn.js';
+import { requireNonEmpty } from '../validation.js';
 
 export type TurnTraceConsentScope = 'private' | 'training_allowed';
 export type TraceJsonValue =
@@ -189,20 +190,20 @@ export function getTurnTrace(
 }
 
 function validateTrace(trace: TurnTraceRecord): void {
-  for (const [field, value] of [
-    ['campaignId', trace.campaignId],
-    ['sessionId', trace.sessionId],
-    ['turnId', trace.turnId],
-    ['playerInput', trace.playerInput],
-    ['promptProfile', trace.promptProfile],
-    ['modelOutput', trace.modelOutput],
-    ['finalNarration', trace.finalNarration],
-    ['createdAt', trace.createdAt],
-  ] as const) {
-    if (value.length === 0) {
-      throw new TurnTraceError(`turn trace ${field} is required`);
-    }
-  }
+  requireNonEmpty(
+    TurnTraceError,
+    [
+      ['campaignId', trace.campaignId],
+      ['sessionId', trace.sessionId],
+      ['turnId', trace.turnId],
+      ['playerInput', trace.playerInput],
+      ['promptProfile', trace.promptProfile],
+      ['modelOutput', trace.modelOutput],
+      ['finalNarration', trace.finalNarration],
+      ['createdAt', trace.createdAt],
+    ],
+    (field) => `turn trace ${field} is required`,
+  );
 }
 
 interface TurnTraceRow {
