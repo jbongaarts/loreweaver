@@ -37,14 +37,20 @@ Loreweaver's local storage is a managed per-user model with three components.
 
 ### 1. Per-user data root
 
-The CLI resolves a single Loreweaver data root, in this precedence order:
+The CLI resolves a single per-user Loreweaver data root:
 
 1. `LOREWEAVER_HOME` when set — an explicit root chosen by the user.
-2. Otherwise the per-platform default:
-   - Windows: `%APPDATA%\Loreweaver`
-   - macOS: `~/Library/Application Support/Loreweaver`
-   - Linux/other: `$XDG_DATA_HOME/loreweaver`, falling back to
-     `~/.local/share/loreweaver`
+2. Otherwise `~/.loreweaver` — a directory inside the user's home directory,
+   the same relative path on every platform (`C:\Users\<name>\.loreweaver` on
+   Windows, `/Users/<name>/.loreweaver` or `/home/<name>/.loreweaver`
+   elsewhere).
+
+`~/.loreweaver` is chosen over the OS application-data locations
+(`%APPDATA%`, `~/Library/Application Support`, `$XDG_DATA_HOME`): those paths
+are conventionally for OS-managed application-support data and vary per
+platform. A home-directory root is unambiguously user-level, is one path to
+document and back up everywhere, and consolidates with the managed Dolt cache
+that already defaults to `~/.loreweaver/dolt`.
 
 The root contains:
 
@@ -56,8 +62,9 @@ The root contains:
   dolt/               # managed Dolt binary cache
 ```
 
-The managed Dolt cache lives at `<root>/dolt` so there is one Loreweaver
-directory per user. `LOREWEAVER_DOLT_HOME` overrides that location.
+The managed Dolt cache stays at `<root>/dolt` — i.e. `~/.loreweaver/dolt` by
+default, unchanged from current behavior. `LOREWEAVER_DOLT_HOME` overrides that
+location.
 
 The CLI creates the root and its subdirectories lazily, on the first command
 that needs to write managed data — never on a plain `loreweaver` banner run.
@@ -151,11 +158,13 @@ follow-up beads under epic `loreweaver-d4r`.
 
 ## Rejected Alternatives
 
-- **Separate XDG config and data directories on Linux** (`$XDG_CONFIG_HOME`
-  vs `$XDG_DATA_HOME`): rejected for this iteration — a single
-  `LOREWEAVER_HOME` root is simpler, consistent across all three platforms,
-  and easy to document and remove. It can be revisited if Linux packaging
-  needs strict XDG compliance.
+- **OS application-data directories** (`%APPDATA%\Loreweaver`,
+  `~/Library/Application Support/Loreweaver`, `$XDG_DATA_HOME/loreweaver`):
+  rejected — those paths are conventionally for OS-managed application-support
+  data and differ per platform. A single `~/.loreweaver` home directory is
+  unambiguously user-level, identical on every platform, and consolidates with
+  the existing Dolt cache location. It can be revisited if OS-native packaging
+  later needs strict per-platform compliance.
 - **TOML for the config file:** rejected — it would add a parser dependency to
   an intentionally lean CLI, and the registry is JSON regardless; one
   serialization keeps the storage code minimal.
