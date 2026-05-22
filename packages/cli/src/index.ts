@@ -19,10 +19,24 @@ import {
   type LoreweaverConfig,
 } from '@loreweaver/core';
 import {
+  runCampaignsCommand,
+  runNewCommand,
+  resolvePlayCampaign,
+  type CampaignDeps,
+} from './campaigns.js';
+import {
+  type CliConfigFile,
+  ConfigFileError,
+  installConfigDefaults,
+  loadConfigFile,
+} from './configFile.js';
+import { campaignsDir, ensureDataRoot, resolveDataRoot } from './dataRoot.js';
+import {
   doltCheckpointRunner,
   nodeIO,
   runDemo,
   runPlay,
+  type CliIO,
   type PlayDeps,
 } from './play.js';
 
@@ -30,15 +44,26 @@ export function buildBanner(version: string): string {
   return `Loreweaver — core v${version}`;
 }
 
-/** Format config failures with the next command a fresh CLI user can run. */
+/** Format provider-auth config failures with the next command to run. */
 export function formatConfigError(err: ConfigError): string {
   return [
     `config error: ${err.message}`,
-    'Set LOREWEAVER_DB_PATH to the campaign SQLite file to open or create.',
     'For the Claude Agent SDK adapter, set ANTHROPIC_API_KEY (a Console API',
     'key) or CLAUDE_CODE_OAUTH_TOKEN (a Claude Pro/Max subscription token).',
     'Then run: loreweaver play',
   ].join('\n');
+}
+
+/** ISO-8601 timestamp source shared by the play and campaign deps. */
+function nowIso(): string {
+  return new Date().toISOString();
+}
+
+/** Unique, order-stable id source: a timestamp plus randomness. */
+function makeId(prefix: string): string {
+  return `${prefix}-${Date.now().toString(36)}-${Math.random()
+    .toString(36)
+    .slice(2, 8)}`;
 }
 
 /**
@@ -62,9 +87,7 @@ export async function ttyConfirm(prompt: DoltInstallPrompt): Promise<boolean> {
   }
   const rl = createInterface({ input: process.stdin, output: process.stdout });
   try {
-    const ans = (
-      await rl.question('Install managed dolt now? [y/N] ')
-    )
+    const ans = (await rl.question('Install managed dolt now? [y/N] '))
       .trim()
       .toLowerCase();
     return ans === 'y' || ans === 'yes';
@@ -98,33 +121,71 @@ export async function runDoltInstall(
 
 /**
  * Build the real, terminal-and-model-backed dependencies for `loreweaver play`.
- * Ids embed a timestamp plus randomness so they are unique and order-stable.
  */
 function buildPlayDeps(cfg: LoreweaverConfig, io: PlayDeps['io']): PlayDeps {
   return {
     io,
     openDb: (path) => openDatabase(path),
-    // Inject the resolved provider credential (API key or Pro/Max OAuth
-    // token) through the explicit auth seam rather than letting the Agent SDK
-    // read ambient process.env. cfg.auth.env carries exactly the one
-    // credential in use, so an API key never shadows a subscription token.
+    // Inject the resolved provider credential through the explicit auth seam
+    // rather than letting the Agent SDK read ambient process.env.
     model: new AgentSdkModelClient(cfg.model, { env: cfg.auth.env }),
     registry: createDefaultToolRegistry(),
     runTurn,
     pack: EMBERFALL_HOLLOW,
-    now: () => new Date().toISOString(),
-    nextId: (prefix) =>
-      `${prefix}-${Date.now().toString(36)}-${Math.random()
-        .toString(36)
-        .slice(2, 8)}`,
+    now: nowIso,
+    nextId: makeId,
     seed: () => (Math.random() * 0x7fffffff) | 0,
     makeCheckpointRunner: doltCheckpointRunner,
   };
 }
 
+/** Build the dependencies for the campaign-management commands and picker. */
+function buildCampaignDeps(dataRoot: string, io: CliIO): CampaignDeps {
+  return {
+    root: dataRoot,
+    io,
+    log: (message: string) => console.log(message),
+    now: nowIso,
+    nextId: makeId,
+    pack: EMBERFALL_HOLLOW,
+    openDb: (path) => openDatabase(path),
+  };
+}
+
+/** A non-interactive {@link CliIO} for subcommands that never prompt. */
+const SILENT_IO: CliIO = {
+  write: () => {},
+  prompt: async () => undefined,
+};
+
+interface CliEnv {
+  dataRoot: string;
+  configFile: CliConfigFile;
+}
+
 /**
- * Load config, or report a {@link ConfigError} to stderr and yield an exit
- * code. Shared by the `play` and `demo` subcommands.
+ * Resolve the data root and load `config.json`, applying its non-secret
+ * defaults to the environment so core resolvers honor them. Returns
+ * `undefined` (after reporting to stderr) when the config file is malformed.
+ */
+function resolveCliEnv(): CliEnv | undefined {
+  const dataRoot = resolveDataRoot();
+  try {
+    const configFile = loadConfigFile(dataRoot);
+    installConfigDefaults(configFile);
+    return { dataRoot, configFile };
+  } catch (err) {
+    if (err instanceof ConfigFileError) {
+      console.error(`config error: ${err.message}`);
+      return undefined;
+    }
+    throw err;
+  }
+}
+
+/**
+ * Load provider/model config, or report a {@link ConfigError} to stderr and
+ * yield an exit code. Shared by the `play` and `demo` subcommands.
  */
 function loadCliConfig():
   | { ok: true; cfg: LoreweaverConfig }
@@ -140,29 +201,63 @@ function loadCliConfig():
   }
 }
 
-/** `loreweaver play` — the interactive campaign front-end. */
-export async function runPlaySubcommand(): Promise<number> {
+/** `loreweaver play [campaign-id]` — the interactive campaign front-end. */
+export async function runPlaySubcommand(
+  campaignArg?: string,
+): Promise<number> {
+  const cli = resolveCliEnv();
+  if (cli === undefined) {
+    return 1;
+  }
   const config = loadCliConfig();
   if (!config.ok) {
     return config.code;
   }
   const io = nodeIO();
   try {
-    return await runPlay(buildPlayDeps(config.cfg, io), {
-      dbPath: config.cfg.campaignDbPath,
-    });
+    let dbPath: string;
+    if (config.cfg.campaignDbPath !== undefined) {
+      // LOREWEAVER_DB_PATH set: an explicit, unmanaged campaign database
+      // (ADR 0003). The registry and picker are bypassed entirely.
+      dbPath = config.cfg.campaignDbPath;
+    } else {
+      const target = await resolvePlayCampaign(
+        buildCampaignDeps(cli.dataRoot, io),
+        {
+          campaignArg,
+          defaultCampaignId: cli.configFile.defaultCampaignId,
+        },
+      );
+      if (!target.ok) {
+        console.error(target.message);
+        return 1;
+      }
+      io.write(
+        `Playing campaign '${target.entry.name}' (id: ${target.entry.id}).`,
+      );
+      dbPath = target.entry.dbPath;
+    }
+    return await runPlay(buildPlayDeps(config.cfg, io), { dbPath });
   } finally {
     io.close();
   }
 }
 
-/** Demo campaign DB path: a sibling of the configured campaign DB. */
-function demoDbPath(campaignDbPath: string): string {
-  return join(dirname(campaignDbPath), 'loreweaver-demo.db');
+/** Resolve the demo campaign database path. */
+function demoDbPath(cli: CliEnv, cfg: LoreweaverConfig): string {
+  if (cfg.campaignDbPath !== undefined) {
+    return join(dirname(cfg.campaignDbPath), 'loreweaver-demo.db');
+  }
+  ensureDataRoot(cli.dataRoot);
+  return join(campaignsDir(cli.dataRoot), 'loreweaver-demo.db');
 }
 
 /** `loreweaver demo` — the bounded public demo campaign. */
 export async function runDemoSubcommand(): Promise<number> {
+  const cli = resolveCliEnv();
+  if (cli === undefined) {
+    return 1;
+  }
   const config = loadCliConfig();
   if (!config.ok) {
     return config.code;
@@ -170,11 +265,59 @@ export async function runDemoSubcommand(): Promise<number> {
   const io = nodeIO();
   try {
     return await runDemo(buildPlayDeps(config.cfg, io), {
-      dbPath: demoDbPath(config.cfg.campaignDbPath),
+      dbPath: demoDbPath(cli, config.cfg),
       turnCap: DEMO_TURN_CAP,
     });
   } finally {
     io.close();
+  }
+}
+
+/** `loreweaver new [name]` — create and register a managed campaign. */
+export function runNewSubcommand(argv: string[]): number {
+  const cli = resolveCliEnv();
+  if (cli === undefined) {
+    return 1;
+  }
+  return runNewCommand(
+    argv.slice(3),
+    buildCampaignDeps(cli.dataRoot, SILENT_IO),
+  );
+}
+
+/** `loreweaver campaigns <list|add|remove|rename>` — manage the registry. */
+export function runCampaignsSubcommand(argv: string[]): number {
+  const cli = resolveCliEnv();
+  if (cli === undefined) {
+    return 1;
+  }
+  return runCampaignsCommand(
+    argv.slice(3),
+    buildCampaignDeps(cli.dataRoot, SILENT_IO),
+  );
+}
+
+/** Print the bare-invocation banner and resolved configuration summary. */
+function runBanner(): void {
+  console.log(buildBanner(CORE_VERSION));
+  const cli = resolveCliEnv();
+  if (cli === undefined) {
+    process.exitCode = 1;
+    return;
+  }
+  try {
+    const cfg = loadConfig();
+    console.log(`data-root=${cli.dataRoot} model=${cfg.model}`);
+    if (cfg.campaignDbPath !== undefined) {
+      console.log(`db=${cfg.campaignDbPath}`);
+    }
+  } catch (err) {
+    if (err instanceof ConfigError) {
+      console.error(formatConfigError(err));
+      process.exitCode = 1;
+      return;
+    }
+    throw err;
   }
 }
 
@@ -187,7 +330,7 @@ export function main(argv: string[] = process.argv): void {
   }
 
   if (argv[2] === 'play') {
-    void runPlaySubcommand().then((code) => {
+    void runPlaySubcommand(argv[3]).then((code) => {
       process.exitCode = code;
     });
     return;
@@ -200,18 +343,17 @@ export function main(argv: string[] = process.argv): void {
     return;
   }
 
-  console.log(buildBanner(CORE_VERSION));
-  try {
-    const cfg = loadConfig();
-    console.log(`db=${cfg.campaignDbPath} model=${cfg.model}`);
-  } catch (err) {
-    if (err instanceof ConfigError) {
-      console.error(formatConfigError(err));
-      process.exitCode = 1;
-      return;
-    }
-    throw err;
+  if (argv[2] === 'new') {
+    process.exitCode = runNewSubcommand(argv);
+    return;
   }
+
+  if (argv[2] === 'campaigns') {
+    process.exitCode = runCampaignsSubcommand(argv);
+    return;
+  }
+
+  runBanner();
 }
 
 if (
