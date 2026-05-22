@@ -1,24 +1,64 @@
 # Local Storage
 
-Loreweaver's first local CLI release uses explicit file paths, as recorded in
-[ADR 0003](adr/0003-local-cli-first-release-storage.md). It does not choose a
-default per-user app-data directory, and it does not load `.env` files by
-itself.
+Loreweaver keeps one managed directory per user — the **data root** — holding
+the config file, the campaign registry, managed campaign databases, installed
+rules packs, and the managed Dolt binary cache. The model is recorded in
+[ADR 0004](adr/0004-config-file-and-campaign-registry.md). The CLI does not load
+`.env` files by itself.
 
-## Active Campaign Database
+## Per-User Data Root
 
-`LOREWEAVER_DB_PATH` is required. It names the SQLite database file for the
-active local campaign:
+Loreweaver resolves one data root per user:
 
-```powershell
-$env:LOREWEAVER_DB_PATH = ".\campaigns\dev.db"
-node packages\cli\dist\index.js play
+1. `LOREWEAVER_HOME`, when set.
+2. Otherwise the platform default: `%LOCALAPPDATA%\Loreweaver` on Windows,
+   `~/.loreweaver` on macOS and Linux.
+
+The root contains:
+
+```text
+<root>/
+  config.json     non-secret CLI preferences
+  registry.json   the campaign registry
+  campaigns/      managed campaign databases and their sidecars
+  rules-packs/    installed (non-bundled) RPG rules packs
+  dolt/           the managed Dolt binary cache
 ```
 
-`play` opens or creates that database, initializes the schema, forks the
-bundled starting module into it when the database has no campaign, and then
-stores live campaign state there. The same file is reused when the campaign is
-resumed.
+The root and its subdirectories are created lazily — only on a command that
+writes managed data, never on a bare `loreweaver` banner run.
+
+### Config File
+
+`config.json` holds non-secret preferences only: `defaultCampaignId`,
+`doltHome`, `doltBin`, and per-profile `profiles` overrides. Settings
+precedence, highest first: explicit CLI flag, environment variable,
+`config.json`, built-in default. The CLI rejects a `config.json` that contains
+a provider-key-shaped value or a secret-named key — credentials belong in the
+environment, never in the config file (see [Provider Secrets](#provider-secrets)).
+
+## Campaigns
+
+Each campaign is a single SQLite database. The CLI manages campaigns through a
+registry (`registry.json`) of pointer metadata — id, display name, database
+path, timestamps, and the module identity — and never campaign content:
+
+- `loreweaver new <name>` creates `campaigns/<slug>.db` under the data root,
+  forks the bundled starting module into it, and registers it.
+- `loreweaver play` opens a campaign: it plays the only registered campaign
+  directly, shows a picker when several exist, or offers to create the first
+  one when the registry is empty. `loreweaver play <id>` opens one by id.
+- `loreweaver campaigns list | rename | remove | add` manage the registry.
+  `remove` unregisters a campaign without deleting its database file; `add`
+  registers a database that lives outside `campaigns/`.
+
+`play` opens or creates the database, initializes the schema, forks the bundled
+starting module when the database has no campaign, and stores live campaign
+state there. The same file is reused when the campaign is resumed.
+
+`LOREWEAVER_DB_PATH` overrides all of this: when it is set the CLI opens exactly
+that database as an explicit, unmanaged campaign and does not consult the
+registry. It suits scripted, CI, and synced-folder workflows.
 
 SQLite may create transient sidecar files beside the database while it is open,
 such as `dev.db-wal`, `dev.db-shm`, or `dev.db-journal`. Treat those as part of
@@ -37,6 +77,12 @@ immutable `module_*` tables in the campaign SQLite database. Later play writes
 live changes and overlays into live campaign tables; it does not mutate the
 pack source.
 
+Non-bundled rules packs (other RPG systems, publisher-licensed packs) install
+under `<root>/rules-packs/`; that directory is reserved by ADR 0004 and stays
+empty until the multiple-rules-pack work ships. Unlike module content, rules
+data is not copied into campaign databases — lookups resolve against the active
+pack at runtime.
+
 Bundled or public content must be open-licensed, public domain, original, or
 publisher-licensed. Fair use is not the storage or distribution policy.
 
@@ -46,14 +92,8 @@ Dolt checkpoints are optional. If no usable `dolt` binary is available, the CLI
 still closes and recaps the session without a checkpoint.
 
 When Dolt is available, graceful session close writes a Dolt repo beside the
-campaign database:
-
-```text
-<LOREWEAVER_DB_PATH>.checkpoints
-```
-
-For example, `.\campaigns\dev.db` checkpoints into
-`.\campaigns\dev.db.checkpoints`.
+campaign database, at `<dbPath>.checkpoints`. For example, a campaign database
+`dev.db` checkpoints into `dev.db.checkpoints`.
 
 Checkpoint restore and fork operations materialize a checkpoint into a new
 SQLite database path chosen by the command or caller. Restore refuses to
@@ -68,19 +108,15 @@ campaign history must not use the beads-reserved `refs/dolt/data` sync ref.
 
 Loreweaver resolves the Dolt binary in this order:
 
-1. An explicit path from `LOREWEAVER_DOLT_BIN`.
+1. An explicit path from `LOREWEAVER_DOLT_BIN` (or `doltBin` in `config.json`).
 2. The managed Dolt cache directory.
 3. A `dolt` executable on `PATH`.
 
-The managed cache defaults to:
-
-```text
-~/.loreweaver/dolt
-```
-
-Set `LOREWEAVER_DOLT_HOME` to use a different managed cache directory. The CLI
-only downloads a managed Dolt binary through `loreweaver dolt install`, and that
-command requires interactive consent. Non-interactive shells decline the
+The managed cache defaults to `<root>/dolt` — `~/.loreweaver/dolt` on macOS and
+Linux, `%LOCALAPPDATA%\Loreweaver\dolt` on Windows. Set `LOREWEAVER_DOLT_HOME`
+(or `doltHome` in `config.json`) to use a different managed cache directory. The
+CLI only downloads a managed Dolt binary through `loreweaver dolt install`, and
+that command requires interactive consent. Non-interactive shells decline the
 download automatically.
 
 ## Provider Secrets
@@ -90,7 +126,8 @@ download automatically.
 `CLAUDE_CODE_OAUTH_TOKEN` (a Claude Pro/Max subscription token) and resolves a
 `ProviderAuth` describing which one is in use. See
 [docs/agent-sdk-auth.md](agent-sdk-auth.md). Model profile overrides use
-`LOREWEAVER_PROFILE_*_PROVIDER` and `LOREWEAVER_PROFILE_*_MODEL`.
+`LOREWEAVER_PROFILE_*_PROVIDER` and `LOREWEAVER_PROFILE_*_MODEL`. Secrets are
+never read from or written to `config.json`.
 
 **Auth-injection seam.** The Agent SDK adapter (`AgentSdkModelClient`) does not
 rely on the SDK silently reading ambient `process.env`. It exposes an explicit
@@ -109,6 +146,7 @@ covers per-request secrets.
 Provider secrets must not be written to:
 
 - campaign SQLite databases
+- the config file or campaign registry
 - Dolt checkpoints or checkpoint history
 - `turn_trace`
 - exports
@@ -117,22 +155,3 @@ Provider secrets must not be written to:
 Hosted BYOK secret handling is a separate design in
 [ADR 0002](adr/0002-hosted-web-pwa-byok-deployment-path.md). Hosted keys must
 live in a dedicated secret store, not campaign storage.
-
-## First-Release App-Data Decision
-
-The first CLI release intentionally keeps `LOREWEAVER_DB_PATH` required instead
-of choosing an implicit OS app-data root such as `%APPDATA%\Loreweaver`,
-`~/Library/Application Support/Loreweaver`, or
-`~/.local/share/loreweaver`.
-
-That means campaign databases, checkpoint restore destinations, and fork
-destinations are explicit user-chosen paths. The managed Dolt binary cache is
-the only current per-user default and remains `~/.loreweaver/dolt` unless
-`LOREWEAVER_DOLT_HOME` is set. Bundled release content stays in the npm package
-build output and is copied into campaign tables when a campaign is created.
-
-The follow-up design for a per-user data root, a config file, and a campaign
-registry/picker is recorded in
-[ADR 0004](adr/0004-config-file-and-campaign-registry.md). That design keeps
-`LOREWEAVER_DB_PATH` working as the explicit, unmanaged path, so the behavior
-described above is unchanged when the variable is set.
