@@ -1,5 +1,6 @@
 import type { Db } from '../persistence/db.js';
 import { withTransaction } from '../persistence/db.js';
+import { jsonColumn } from '../persistence/jsonColumn.js';
 
 export type TurnTraceConsentScope = 'private' | 'training_allowed';
 export type TraceJsonValue =
@@ -42,6 +43,22 @@ export class TurnTraceError extends Error {
     this.name = 'TurnTraceError';
   }
 }
+
+/** JSON codecs for the `turn_trace` table's JSON-backed columns. */
+const traceColumns = {
+  retrievedContext: jsonColumn<TraceJsonValue[]>('turn_trace.retrieved_context'),
+  toolCalls: jsonColumn<TraceJsonValue[]>('turn_trace.tool_calls'),
+  rulesResolution: jsonColumn<TraceJsonValue>('turn_trace.rules_resolution'),
+  acceptedStateDelta: jsonColumn<TraceJsonValue[]>(
+    'turn_trace.accepted_state_delta',
+  ),
+  rejectedCandidates: jsonColumn<TraceJsonValue[]>(
+    'turn_trace.rejected_candidates',
+  ),
+  memoryUpdates: jsonColumn<TraceJsonValue[]>('turn_trace.memory_updates'),
+  humanCorrections: jsonColumn<string[]>('turn_trace.human_corrections'),
+  qualityFlags: jsonColumn<string[]>('turn_trace.quality_flags'),
+};
 
 export function recordTurnTrace(db: Db, trace: TurnTraceRecord): void {
   validateTrace(trace);
@@ -90,17 +107,17 @@ export function recordTurnTrace(db: Db, trace: TurnTraceRecord): void {
         trace.turnId,
         trace.consentScope,
         trace.playerInput,
-        stringifyTraceJson(trace.retrievedContext),
+        traceColumns.retrievedContext.encode(trace.retrievedContext),
         trace.promptProfile,
         trace.modelOutput,
-        stringifyTraceJson(trace.toolCalls),
-        stringifyTraceJson(trace.rulesResolution),
-        stringifyTraceJson(trace.acceptedStateDelta),
-        stringifyTraceJson(trace.rejectedCandidates),
+        traceColumns.toolCalls.encode(trace.toolCalls),
+        traceColumns.rulesResolution.encode(trace.rulesResolution),
+        traceColumns.acceptedStateDelta.encode(trace.acceptedStateDelta),
+        traceColumns.rejectedCandidates.encode(trace.rejectedCandidates),
         trace.finalNarration,
-        stringifyTraceJson(trace.memoryUpdates),
-        stringifyTraceJson(trace.humanCorrections),
-        stringifyTraceJson(trace.qualityFlags),
+        traceColumns.memoryUpdates.encode(trace.memoryUpdates),
+        traceColumns.humanCorrections.encode(trace.humanCorrections),
+        traceColumns.qualityFlags.encode(trace.qualityFlags),
         trace.createdAt,
       );
   });
@@ -146,21 +163,27 @@ export function getTurnTrace(
     turnId: row.turn_id,
     consentScope: row.consent_scope as TurnTraceConsentScope,
     playerInput: row.player_input,
-    retrievedContext: parseTraceJson(row.retrieved_context_json) as TraceJsonValue[],
+    retrievedContext: traceColumns.retrievedContext.decode(
+      row.retrieved_context_json,
+    ),
     promptProfile: row.prompt_profile,
     modelOutput: row.model_output,
-    toolCalls: parseTraceJson(row.tool_calls_json) as TraceJsonValue[],
-    rulesResolution: parseTraceJson(row.rules_resolution_json),
-    acceptedStateDelta: parseTraceJson(
+    toolCalls: traceColumns.toolCalls.decode(row.tool_calls_json),
+    rulesResolution: traceColumns.rulesResolution.decode(
+      row.rules_resolution_json,
+    ),
+    acceptedStateDelta: traceColumns.acceptedStateDelta.decode(
       row.accepted_state_delta_json,
-    ) as TraceJsonValue[],
-    rejectedCandidates: parseTraceJson(
+    ),
+    rejectedCandidates: traceColumns.rejectedCandidates.decode(
       row.rejected_candidates_json,
-    ) as TraceJsonValue[],
+    ),
     finalNarration: row.final_narration,
-    memoryUpdates: parseTraceJson(row.memory_updates_json) as TraceJsonValue[],
-    humanCorrections: parseTraceJson(row.human_corrections_json) as string[],
-    qualityFlags: parseTraceJson(row.quality_flags_json) as string[],
+    memoryUpdates: traceColumns.memoryUpdates.decode(row.memory_updates_json),
+    humanCorrections: traceColumns.humanCorrections.decode(
+      row.human_corrections_json,
+    ),
+    qualityFlags: traceColumns.qualityFlags.decode(row.quality_flags_json),
     createdAt: row.created_at,
   };
 }
@@ -180,14 +203,6 @@ function validateTrace(trace: TurnTraceRecord): void {
       throw new TurnTraceError(`turn trace ${field} is required`);
     }
   }
-}
-
-function stringifyTraceJson(value: TraceJsonValue | TraceJsonValue[]): string {
-  return JSON.stringify(value);
-}
-
-function parseTraceJson(value: string): TraceJsonValue {
-  return JSON.parse(value) as TraceJsonValue;
 }
 
 interface TurnTraceRow {
