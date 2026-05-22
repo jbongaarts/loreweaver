@@ -178,6 +178,7 @@ export type {
 export type { ModelClient, ModelMessage, ModelCompleteInput } from './model/client.js';
 export { ModelClientError } from './model/client.js';
 export { AgentSdkModelClient } from './model/agentSdkClient.js';
+export type { AgentSdkAuth, AgentSdkAuthSource } from './model/agentSdkClient.js';
 export {
   MODEL_PROFILES,
   PROVIDER_IDS,

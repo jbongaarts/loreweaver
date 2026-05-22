@@ -104,4 +104,95 @@ describe('AgentSdkModelClient', () => {
       }),
     ).rejects.toThrowError(ModelClientError);
   });
+
+  describe('provider-auth injection seam (loreweaver-lus)', () => {
+    it('omits options.env entirely when no auth source is given (ambient auth)', async () => {
+      queryMock.mockReturnValue(sdkStream(ok('ok')));
+
+      await new AgentSdkModelClient('m').complete({
+        messages: [{ role: 'user', content: 'hi' }],
+      });
+
+      const arg = queryMock.mock.calls[0][0] as { options: Record<string, unknown> };
+      expect('env' in arg.options).toBe(false);
+    });
+
+    it('injects the auth env into the SDK process, merged over process.env', async () => {
+      queryMock.mockReturnValue(sdkStream(ok('ok')));
+      process.env.LW_TEST_AMBIENT = 'ambient-value';
+      try {
+        await new AgentSdkModelClient('m', {
+          env: { ANTHROPIC_API_KEY: 'sk-injected' },
+        }).complete({ messages: [{ role: 'user', content: 'hi' }] });
+      } finally {
+        delete process.env.LW_TEST_AMBIENT;
+      }
+
+      const arg = queryMock.mock.calls[0][0] as {
+        options: { env: Record<string, string | undefined> };
+      };
+      // The explicit secret is present, and inherited env is preserved so the
+      // SDK subprocess keeps PATH and friends.
+      expect(arg.options.env.ANTHROPIC_API_KEY).toBe('sk-injected');
+      expect(arg.options.env.LW_TEST_AMBIENT).toBe('ambient-value');
+    });
+
+    it('confines the secret to options.env — never the prompt, model, or system', async () => {
+      queryMock.mockReturnValue(sdkStream(ok('narration')));
+      const secret = 'sk-ant-secret-DO-NOT-LEAK';
+
+      await new AgentSdkModelClient('claude-test', {
+        env: { ANTHROPIC_API_KEY: secret },
+      }).complete({
+        system: 'be a DM',
+        messages: [{ role: 'user', content: 'i open the door' }],
+      });
+
+      const arg = queryMock.mock.calls[0][0] as {
+        prompt: string;
+        options: Record<string, unknown>;
+      };
+      // Strip the one field the secret is *meant* to be in; the secret must
+      // appear nowhere else in the call — not the prompt, model, or systemPrompt.
+      const { env: _env, ...optionsWithoutEnv } = arg.options;
+      const exposed = JSON.stringify({
+        prompt: arg.prompt,
+        options: optionsWithoutEnv,
+      });
+      expect(exposed).not.toContain(secret);
+    });
+
+    it('resolves a function auth source on every call (per-request secrets)', async () => {
+      queryMock.mockReturnValue(sdkStream(ok('ok')));
+      const keys = ['sk-rotation-1', 'sk-rotation-2'];
+      let call = 0;
+      const client = new AgentSdkModelClient('m', () => ({
+        env: { ANTHROPIC_API_KEY: keys[call++] },
+      }));
+
+      await client.complete({ messages: [{ role: 'user', content: 'a' }] });
+      queryMock.mockReturnValue(sdkStream(ok('ok')));
+      await client.complete({ messages: [{ role: 'user', content: 'b' }] });
+
+      const first = queryMock.mock.calls[0][0] as {
+        options: { env: Record<string, string> };
+      };
+      const second = queryMock.mock.calls[1][0] as {
+        options: { env: Record<string, string> };
+      };
+      expect(first.options.env.ANTHROPIC_API_KEY).toBe('sk-rotation-1');
+      expect(second.options.env.ANTHROPIC_API_KEY).toBe('sk-rotation-2');
+    });
+
+    it('does not expose the auth source via enumeration or JSON serialization', () => {
+      const secret = 'sk-ant-secret-DO-NOT-LEAK';
+      const client = new AgentSdkModelClient('m', {
+        env: { ANTHROPIC_API_KEY: secret },
+      });
+      // ECMAScript-private fields are invisible to Object.keys / JSON.stringify,
+      // so a client accidentally captured into a trace or log cannot leak it.
+      expect(Object.keys(client)).toEqual([]);
+      expect(JSON.stringify(client)).not.toContain(secret);
+    });
+  });
 });

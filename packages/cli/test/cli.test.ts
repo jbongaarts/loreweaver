@@ -98,13 +98,13 @@ describe('main', () => {
  * The `import.meta.url === pathToFileURL(process.argv[1]).href` guard only
  * fires when the module is the process entrypoint, so it cannot be exercised by
  * an in-process import. Spawn the built CLI as a real subprocess instead.
- * Skipped when `dist/` is absent (e.g. a test-only run with no prior build);
- * CI always builds before testing, so it runs there.
+ * `npm test` runs the root `pretest` (`tsc --build`), and CI builds too, so
+ * this runs in normal verification. The `skipIf` is only a backstop for a bare
+ * `vitest run` invoked directly with no prior build.
  */
 describe('entrypoint guard', () => {
-  const cliDist = fileURLToPath(new URL('../dist/index.js', import.meta.url));
-
-  it.skipIf(!existsSync(cliDist))('runs main() when invoked as the entrypoint', () => {
+  it('runs main() when invoked as the entrypoint', () => {
+    const cliDist = requireCliDist();
     const stdout = execFileSync(process.execPath, [cliDist], {
       encoding: 'utf8',
       env: {
@@ -122,14 +122,14 @@ describe('entrypoint guard', () => {
  * The `bin` target is `./dist/index.js`. Without a shebang an installed
  * `loreweaver` fails on POSIX shells, which exec the bin file directly. tsc
  * preserves a leading shebang from the source file into the emitted output.
- * Skipped when `dist/` is absent; CI builds before testing.
+ * `npm test` (root `pretest`) and CI both build first; the `skipIf` only backs
+ * out a bare `vitest run` with no prior build.
  */
 describe('cli bin shebang', () => {
-  const cliDist = fileURLToPath(new URL('../dist/index.js', import.meta.url));
-
-  it.skipIf(!existsSync(cliDist))(
+  it(
     'built dist/index.js starts with a node shebang',
     () => {
+      const cliDist = requireCliDist();
       const firstLine = readFileSync(cliDist, 'utf8').split('\n', 1)[0];
       expect(firstLine).toBe('#!/usr/bin/env node');
     },
@@ -138,11 +138,11 @@ describe('cli bin shebang', () => {
 
 describe('package smoke', () => {
   const repoRoot = fileURLToPath(new URL('../../../', import.meta.url));
-  const cliDist = fileURLToPath(new URL('../dist/index.js', import.meta.url));
 
-  it.skipIf(!existsSync(cliDist))(
+  it(
     'packs publishable tarballs with dist output and no source/test files',
     () => {
+      requireCliDist();
       const dir = mkdtempSync(join(tmpdir(), 'lw-pack-'));
       try {
         const cliFiles = packWorkspace(repoRoot, '@loreweaver/cli', dir);
@@ -169,15 +169,14 @@ describe('package smoke', () => {
  * just on `/quit` — the `nodeIO` prompt contract promises a closed stdin is
  * treated as a graceful quit. Spawn the built CLI with an empty (immediately
  * EOF) stdin: no turns run, so no model call is made, and on graceful close
- * the session must end up `closed`. Skipped when `dist/` is absent; CI builds
- * before testing.
+ * the session must end up `closed`. `npm test` (root `pretest`) and CI both
+ * build first; the `skipIf` only backs out a bare `vitest run` with no build.
  */
 describe('play graceful close on stdin EOF', () => {
-  const cliDist = fileURLToPath(new URL('../dist/index.js', import.meta.url));
-
-  it.skipIf(!existsSync(cliDist))(
+  it(
     'runs the close pipeline when stdin reaches EOF before any turn',
     () => {
+      const cliDist = requireCliDist();
       const dir = mkdtempSync(join(tmpdir(), 'lw-eof-'));
       const dbPath = join(dir, 'campaign.db');
       try {
@@ -218,6 +217,27 @@ describe('play graceful close on stdin EOF', () => {
     },
   );
 });
+
+/**
+ * Resolve the built CLI entrypoint (`dist/index.js`), failing loudly with an
+ * actionable message when it is absent. These tests cover release-critical
+ * installability (entrypoint guard, bin shebang, npm-pack contents, EOF close);
+ * a missing build must fail verification, never silently skip. `npm test` runs
+ * the root `pretest` (`tsc --build`), so this is built in normal verification;
+ * a bare `vitest run` must build first.
+ */
+function requireCliDist(): string {
+  const cliDist = fileURLToPath(new URL('../dist/index.js', import.meta.url));
+  if (!existsSync(cliDist)) {
+    throw new Error(
+      `CLI dist entrypoint missing: ${cliDist}\n` +
+        '`npm test` builds it via the root `pretest` script. For a bare ' +
+        '`vitest run`, build first: `npm run build` (or `npm run clean && ' +
+        'npm run build` if a stale tsbuildinfo suppresses emit).',
+    );
+  }
+  return cliDist;
+}
 
 function packWorkspace(
   repoRoot: string,

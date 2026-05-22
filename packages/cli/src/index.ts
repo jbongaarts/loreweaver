@@ -102,7 +102,12 @@ function buildPlayDeps(cfg: LoreweaverConfig, io: PlayDeps['io']): PlayDeps {
   return {
     io,
     openDb: (path) => openDatabase(path),
-    model: new AgentSdkModelClient(cfg.model),
+    // Inject the resolved API key through the explicit auth seam rather than
+    // letting the Agent SDK read ambient process.env — the same key for the
+    // local-dev path, but the seam is what a hosted BYOK deployment overrides.
+    model: new AgentSdkModelClient(cfg.model, {
+      env: { ANTHROPIC_API_KEY: cfg.anthropicApiKey },
+    }),
     registry: createDefaultToolRegistry(),
     runTurn,
     pack: EMBERFALL_HOLLOW,
