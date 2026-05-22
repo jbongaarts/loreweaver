@@ -1,5 +1,6 @@
 import type { Db } from '../persistence/db.js';
 import { withTransaction } from '../persistence/db.js';
+import { jsonColumn } from '../persistence/jsonColumn.js';
 import { listSceneLog } from '../orchestrator/scene.js';
 import type { MutateStateTarget } from '../state/mutateState.js';
 import type { TraceJsonValue } from './turnTrace.js';
@@ -136,6 +137,23 @@ export class MemorySummaryError extends Error {
   }
 }
 
+/** JSON codecs for the memory-summary tables' JSON-backed columns. */
+const summaryColumns = {
+  sceneSalientRefs: jsonColumn<MemoryRef[]>('scene_summary.salient_refs'),
+  sceneSourceTurnIds: jsonColumn<string[]>('scene_summary.source_turn_ids'),
+  recapSourceSceneIds: jsonColumn<string[]>('session_recap.source_scene_ids'),
+  recapStateDelta: jsonColumn<TraceJsonValue[]>('session_recap.state_delta'),
+  arcSourceSessionIds: jsonColumn<string[]>('arc_summary.source_session_ids'),
+  bibleWorldFacts: jsonColumn<CampaignBibleEntry[]>(
+    'campaign_bible.world_facts',
+  ),
+  bibleMajorNpcs: jsonColumn<CampaignBibleEntry[]>('campaign_bible.major_npcs'),
+  bibleFactions: jsonColumn<CampaignBibleEntry[]>('campaign_bible.factions'),
+  bibleOpenThreads: jsonColumn<CampaignBibleEntry[]>(
+    'campaign_bible.open_threads',
+  ),
+};
+
 export function recordSceneSummary(db: Db, summary: SceneSummaryRecord): void {
   validateSceneSummary(summary);
   withTransaction(db, (txnDb) => {
@@ -163,8 +181,8 @@ export function recordSceneSummary(db: Db, summary: SceneSummaryRecord): void {
         summary.sessionId,
         summary.sceneId,
         summary.summary,
-        JSON.stringify(summary.salientRefs),
-        JSON.stringify(summary.sourceTurnIds),
+        summaryColumns.sceneSalientRefs.encode(summary.salientRefs),
+        summaryColumns.sceneSourceTurnIds.encode(summary.sourceTurnIds),
         summary.createdAt,
         summary.updatedAt,
       );
@@ -266,8 +284,10 @@ function sceneSummaryFromRow(row: SceneSummaryRow): SceneSummaryRecord {
     sessionId: row.session_id,
     sceneId: row.scene_id,
     summary: row.summary,
-    salientRefs: JSON.parse(row.salient_refs_json) as MemoryRef[],
-    sourceTurnIds: JSON.parse(row.source_turn_ids_json) as string[],
+    salientRefs: summaryColumns.sceneSalientRefs.decode(row.salient_refs_json),
+    sourceTurnIds: summaryColumns.sceneSourceTurnIds.decode(
+      row.source_turn_ids_json,
+    ),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -302,8 +322,8 @@ export function rollupSessionRecap(db: Db, input: SessionRecapInput): void {
         input.campaignId,
         input.sessionId,
         input.recap,
-        JSON.stringify(sourceSceneIds),
-        JSON.stringify(input.stateDelta),
+        summaryColumns.recapSourceSceneIds.encode(sourceSceneIds),
+        summaryColumns.recapStateDelta.encode(input.stateDelta),
         input.createdAt,
         input.createdAt,
       );
@@ -342,8 +362,10 @@ function sessionRecapFromRow(row: SessionRecapRow): SessionRecapRecord {
     campaignId: row.campaign_id,
     sessionId: row.session_id,
     recap: row.recap,
-    sourceSceneIds: JSON.parse(row.source_scene_ids_json) as string[],
-    stateDelta: JSON.parse(row.state_delta_json) as TraceJsonValue[],
+    sourceSceneIds: summaryColumns.recapSourceSceneIds.decode(
+      row.source_scene_ids_json,
+    ),
+    stateDelta: summaryColumns.recapStateDelta.decode(row.state_delta_json),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -372,7 +394,7 @@ export function rollupArcSummary(db: Db, input: ArcSummaryInput): void {
         input.campaignId,
         input.arcId,
         input.summary,
-        JSON.stringify(input.sourceSessionIds),
+        summaryColumns.arcSourceSessionIds.encode(input.sourceSessionIds),
         input.createdAt,
         input.createdAt,
       );
@@ -422,10 +444,10 @@ export function rollupArcSummary(db: Db, input: ArcSummaryInput): void {
       )
       .run(
         reconciled.campaignId,
-        JSON.stringify(reconciled.worldFacts),
-        JSON.stringify(reconciled.majorNpcs),
-        JSON.stringify(reconciled.factions),
-        JSON.stringify(reconciled.openThreads),
+        summaryColumns.bibleWorldFacts.encode(reconciled.worldFacts),
+        summaryColumns.bibleMajorNpcs.encode(reconciled.majorNpcs),
+        summaryColumns.bibleFactions.encode(reconciled.factions),
+        summaryColumns.bibleOpenThreads.encode(reconciled.openThreads),
         reconciled.updatedAt,
       );
   });
@@ -456,7 +478,9 @@ export function getArcSummary(
     campaignId: row.campaign_id,
     arcId: row.arc_id,
     summary: row.summary,
-    sourceSessionIds: JSON.parse(row.source_session_ids_json) as string[],
+    sourceSessionIds: summaryColumns.arcSourceSessionIds.decode(
+      row.source_session_ids_json,
+    ),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -485,10 +509,10 @@ export function getCampaignBible(
   }
   return {
     campaignId: row.campaign_id,
-    worldFacts: JSON.parse(row.world_facts_json) as CampaignBibleEntry[],
-    majorNpcs: JSON.parse(row.major_npcs_json) as CampaignBibleEntry[],
-    factions: JSON.parse(row.factions_json) as CampaignBibleEntry[],
-    openThreads: JSON.parse(row.open_threads_json) as CampaignBibleEntry[],
+    worldFacts: summaryColumns.bibleWorldFacts.decode(row.world_facts_json),
+    majorNpcs: summaryColumns.bibleMajorNpcs.decode(row.major_npcs_json),
+    factions: summaryColumns.bibleFactions.decode(row.factions_json),
+    openThreads: summaryColumns.bibleOpenThreads.decode(row.open_threads_json),
     updatedAt: row.updated_at,
   };
 }
