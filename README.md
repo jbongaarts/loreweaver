@@ -24,10 +24,10 @@ living world, not a video game missing its graphics.
 > provider-neutral core, SQLite persistence, module/world loading, SRD-backed
 > rules lookup, deterministic tools, model orchestration, session launch/resume,
 > graceful session close, and optional Dolt checkpoints. The CLI can create or
-> resume a local campaign and run interactive model-backed turns. The project is
-> still pre-distribution: packaging and release workflow are being planned after
-> the MVP epic, and first-release storage remains explicit via
-> `LOREWEAVER_DB_PATH`.
+> resume a local campaign and run interactive model-backed turns, and manages
+> campaigns through a per-user data root and registry (`LOREWEAVER_DB_PATH`
+> still works as an explicit-path override). The project is still
+> pre-distribution: packaging and release workflow are being planned.
 
 ## Why It's Built This Way
 
