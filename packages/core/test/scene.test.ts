@@ -6,37 +6,17 @@ import {
   closeSession,
   getOpenScene,
   getScene,
-  initSchema,
   listSceneLog,
-  openDatabase,
   openScene,
-  startSession,
 } from '../src/index.js';
+import { bareDb, freshDbWithSession } from './support/db.js';
 
 const CAMPAIGN = 'campaign-1';
 const SESSION = 'session-1';
 
-/** Schema only — no campaign_session row exists yet. */
-function bareDb() {
-  const db = openDatabase(':memory:');
-  initSchema(db);
-  return db;
-}
-
-/** Schema plus an open session, the valid setup for scene writes. */
-function freshDb() {
-  const db = bareDb();
-  startSession(db, {
-    campaignId: CAMPAIGN,
-    sessionId: SESSION,
-    startedAt: '2026-05-20T09:00:00.000Z',
-  });
-  return db;
-}
-
 describe('scene persistence', () => {
   it('opens a scene as the current open scene', () => {
-    const db = freshDb();
+    const db = freshDbWithSession();
     const record = openScene(db, {
       campaignId: CAMPAIGN,
       sessionId: SESSION,
@@ -59,7 +39,7 @@ describe('scene persistence', () => {
   });
 
   it('refuses to open a second scene while one is still open', () => {
-    const db = freshDb();
+    const db = freshDbWithSession();
     openScene(db, {
       campaignId: CAMPAIGN,
       sessionId: SESSION,
@@ -81,7 +61,7 @@ describe('scene persistence', () => {
   });
 
   it('closes a scene and frees the session for the next scene', () => {
-    const db = freshDb();
+    const db = freshDbWithSession();
     openScene(db, {
       campaignId: CAMPAIGN,
       sessionId: SESSION,
@@ -114,7 +94,7 @@ describe('scene persistence', () => {
   });
 
   it('rejects closing an unknown or already-closed scene', () => {
-    const db = freshDb();
+    const db = freshDbWithSession();
     expect(() =>
       closeScene(db, {
         campaignId: CAMPAIGN,
@@ -149,7 +129,7 @@ describe('scene persistence', () => {
   });
 
   it('appends scene-log entries with monotonic per-scene sequence', () => {
-    const db = freshDb();
+    const db = freshDbWithSession();
     openScene(db, {
       campaignId: CAMPAIGN,
       sessionId: SESSION,
@@ -192,7 +172,7 @@ describe('scene persistence', () => {
   });
 
   it('keeps scene-log sequence independent per scene', () => {
-    const db = freshDb();
+    const db = freshDbWithSession();
     for (const sceneId of ['scene-1', 'scene-2']) {
       openScene(db, {
         campaignId: CAMPAIGN,
@@ -228,7 +208,7 @@ describe('scene persistence', () => {
   });
 
   it('rejects appending to an unknown scene', () => {
-    const db = freshDb();
+    const db = freshDbWithSession();
     expect(() =>
       appendSceneLog(db, {
         campaignId: CAMPAIGN,
@@ -244,7 +224,7 @@ describe('scene persistence', () => {
   });
 
   it('reads a scene by key and reports unknown scenes as undefined', () => {
-    const db = freshDb();
+    const db = freshDbWithSession();
     openScene(db, {
       campaignId: CAMPAIGN,
       sessionId: SESSION,
@@ -284,7 +264,7 @@ describe('scene persistence', () => {
   });
 
   it('rejects opening a scene for a closed session', () => {
-    const db = freshDb();
+    const db = freshDbWithSession();
     closeSession(db, {
       campaignId: CAMPAIGN,
       sessionId: SESSION,
@@ -303,7 +283,7 @@ describe('scene persistence', () => {
   });
 
   it('rejects appending a scene log once its session is closed', () => {
-    const db = freshDb();
+    const db = freshDbWithSession();
     openScene(db, {
       campaignId: CAMPAIGN,
       sessionId: SESSION,
@@ -331,7 +311,7 @@ describe('scene persistence', () => {
   });
 
   it('rejects missing required fields', () => {
-    const db = freshDb();
+    const db = freshDbWithSession();
     expect(() =>
       openScene(db, {
         campaignId: '',

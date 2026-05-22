@@ -2,15 +2,13 @@ import { describe, expect, it } from 'vitest';
 import {
   createDefaultToolRegistry,
   getTurnTrace,
-  initSchema,
   listSceneLog,
   mutateState,
-  openDatabase,
   openScene,
   runTurn,
-  startSession,
 } from '../src/index.js';
 import type { Db, ModelClient, ModelCompleteInput } from '../src/index.js';
+import { freshDbWithSession } from './support/db.js';
 
 const CAMPAIGN = 'campaign-1';
 const SESSION = 'session-1';
@@ -33,17 +31,6 @@ class FailingModel implements ModelClient {
   complete(): Promise<string> {
     return Promise.reject(new Error('model unavailable'));
   }
-}
-
-function freshDb(): Db {
-  const db = openDatabase(':memory:');
-  initSchema(db);
-  startSession(db, {
-    campaignId: CAMPAIGN,
-    sessionId: SESSION,
-    startedAt: '2026-05-20T09:00:00.000Z',
-  });
-  return db;
 }
 
 function withOpenScene(db: Db): void {
@@ -73,7 +60,7 @@ function baseInput(overrides: Record<string, unknown> = {}) {
 
 describe('orchestrator turn loop', () => {
   it('runs a full turn: model called, tool executed, narration + scene_log', async () => {
-    const db = freshDb();
+    const db = freshDbWithSession();
     withOpenScene(db);
     const model = new ScriptedModel([
       toolCall('roll', { dice: '1d20+2', reason: 'perception' }),
@@ -108,7 +95,7 @@ describe('orchestrator turn loop', () => {
   });
 
   it('does not mutate canon when the model changes state in prose only', async () => {
-    const db = freshDb();
+    const db = freshDbWithSession();
     withOpenScene(db);
     const model = new ScriptedModel([
       'A gleaming +1 longsword appears in your pack. You now have 500 gold.',
@@ -129,7 +116,7 @@ describe('orchestrator turn loop', () => {
   });
 
   it('mutates canon when the model uses the mutate_state tool', async () => {
-    const db = freshDb();
+    const db = freshDbWithSession();
     withOpenScene(db);
     const model = new ScriptedModel([
       toolCall('mutate_state', {
@@ -155,7 +142,7 @@ describe('orchestrator turn loop', () => {
   });
 
   it('feeds a structured tool error back to the model and still completes', async () => {
-    const db = freshDb();
+    const db = freshDbWithSession();
     withOpenScene(db);
     const model = new ScriptedModel([
       toolCall('mutate_state', {
@@ -181,7 +168,7 @@ describe('orchestrator turn loop', () => {
   });
 
   it('leaves pre-turn state intact when the model fails', async () => {
-    const db = freshDb();
+    const db = freshDbWithSession();
     withOpenScene(db);
     mutateState(db, {
       target: 'character',
@@ -214,7 +201,7 @@ describe('orchestrator turn loop', () => {
   });
 
   it('rolls back tool mutations applied before a later-round model failure', async () => {
-    const db = freshDb();
+    const db = freshDbWithSession();
     withOpenScene(db);
 
     // Round 1 applies a mutation, round 2 throws.
@@ -250,7 +237,7 @@ describe('orchestrator turn loop', () => {
   });
 
   it('records a scene_summary when the model closes a scene', async () => {
-    const db = freshDb();
+    const db = freshDbWithSession();
     withOpenScene(db);
     // Give the closing scene some prior narration to summarize.
     const setup = new ScriptedModel(['The fire crackles as you settle in.']);
@@ -291,7 +278,7 @@ describe('orchestrator turn loop', () => {
   });
 
   it('records structured trace fields for a turn with roll and mutate_state', async () => {
-    const db = freshDb();
+    const db = freshDbWithSession();
     withOpenScene(db);
     const model = new ScriptedModel([
       toolCall('roll', { dice: '1d20+2', reason: 'perception' }),
@@ -334,7 +321,7 @@ describe('orchestrator turn loop', () => {
   });
 
   it('records rejected candidates and a quality flag when a tool call fails', async () => {
-    const db = freshDb();
+    const db = freshDbWithSession();
     withOpenScene(db);
     const model = new ScriptedModel([
       toolCall('mutate_state', {
@@ -366,7 +353,7 @@ describe('orchestrator turn loop', () => {
   });
 
   it('persists the turn into a fallback scene when the model never marks one', async () => {
-    const db = freshDb();
+    const db = freshDbWithSession();
     // No withOpenScene, and the model narrates without calling mark_scene.
     const model = new ScriptedModel(['You step into the misty clearing.']);
 
@@ -389,7 +376,7 @@ describe('orchestrator turn loop', () => {
   });
 
   it('fails the turn when tool rounds are exhausted without narration', async () => {
-    const db = freshDb();
+    const db = freshDbWithSession();
     withOpenScene(db);
     // Always returns a tool call — never final narration.
     const model: ModelClient = {
@@ -408,7 +395,7 @@ describe('orchestrator turn loop', () => {
 
   it('is deterministic under a fixed seed', async () => {
     const run = async (): Promise<unknown> => {
-      const db = freshDb();
+      const db = freshDbWithSession();
       withOpenScene(db);
       const model = new ScriptedModel([
         toolCall('roll', { dice: '4d8+3', reason: 'damage' }),

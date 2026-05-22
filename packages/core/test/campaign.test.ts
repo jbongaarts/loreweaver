@@ -4,25 +4,18 @@ import {
   EMBERFALL_HOLLOW,
   createCampaign,
   getCampaign,
-  initSchema,
-  openDatabase,
 } from '../src/index.js';
-
-function freshDb() {
-  const db = openDatabase(':memory:');
-  initSchema(db);
-  return db;
-}
+import { bareDb } from './support/db.js';
 
 describe('campaign create / select', () => {
   it('reports no campaign on a freshly initialized database', () => {
-    const db = freshDb();
+    const db = bareDb();
     expect(getCampaign(db)).toBeUndefined();
     db.close();
   });
 
   it('creates a campaign from a module template and reads it back', () => {
-    const db = freshDb();
+    const db = bareDb();
 
     const created = createCampaign(db, {
       campaignId: 'campaign-1',
@@ -41,7 +34,7 @@ describe('campaign create / select', () => {
   });
 
   it('refuses to create a second campaign in the same database', () => {
-    const db = freshDb();
+    const db = bareDb();
     createCampaign(db, { campaignId: 'campaign-1', pack: EMBERFALL_HOLLOW });
 
     expect(() =>
@@ -51,7 +44,7 @@ describe('campaign create / select', () => {
   });
 
   it('rejects a blank campaign id', () => {
-    const db = freshDb();
+    const db = bareDb();
     expect(() =>
       createCampaign(db, { campaignId: '   ', pack: EMBERFALL_HOLLOW }),
     ).toThrow(CampaignError);

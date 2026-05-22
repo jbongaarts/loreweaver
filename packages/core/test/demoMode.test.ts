@@ -12,21 +12,14 @@ import {
   evaluateDemoContent,
   getDemoTurnBudget,
   getSessionRecap,
-  initSchema,
-  openDatabase,
   openScene,
   resolveDemoModel,
 } from '../src/index.js';
 import type { ModulePack } from '../src/index.js';
+import { bareDb } from './support/db.js';
 
 const CAMPAIGN = 'demo-campaign';
 const SESSION = 'demo-session-1';
-
-function freshDb() {
-  const db = openDatabase(':memory:');
-  initSchema(db);
-  return db;
-}
 
 /** A copy of the bundled demo pack with a license class that is not shippable. */
 function userPrivatePack(): ModulePack {
@@ -49,7 +42,7 @@ function userPrivatePack(): ModulePack {
 
 describe('demo campaign mode', () => {
   it('creates a premium-by-default bounded demo from an allowed pack', () => {
-    const db = freshDb();
+    const db = bareDb();
 
     const demo = createDemoCampaign(db, {
       campaignId: CAMPAIGN,
@@ -74,7 +67,7 @@ describe('demo campaign mode', () => {
   });
 
   it('rejects content that is not legal to host in a public demo', () => {
-    const db = freshDb();
+    const db = bareDb();
     const pack = userPrivatePack();
 
     const policy = evaluateDemoContent(pack);
@@ -104,7 +97,7 @@ describe('demo campaign mode', () => {
     expect(economy.disclaimer).toMatch(/experimental/i);
     expect(economy.disclaimer).not.toBeUndefined();
 
-    const db = freshDb();
+    const db = bareDb();
     const demo = createDemoCampaign(db, {
       campaignId: CAMPAIGN,
       sessionId: SESSION,
@@ -137,7 +130,7 @@ describe('demo campaign mode', () => {
   });
 
   it('counts real player turns against the cap from live scene state', () => {
-    const db = freshDb();
+    const db = bareDb();
     const demo = createDemoCampaign(db, {
       campaignId: CAMPAIGN,
       sessionId: SESSION,
@@ -182,7 +175,7 @@ describe('demo campaign mode', () => {
   });
 
   it('demonstrates continuity and checkpoints through the graceful close pipeline', () => {
-    const db = freshDb();
+    const db = bareDb();
     const demo = createDemoCampaign(db, {
       campaignId: CAMPAIGN,
       sessionId: SESSION,

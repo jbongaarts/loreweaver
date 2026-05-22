@@ -3,32 +3,19 @@ import {
   appendSceneLog,
   assembleContext,
   closeScene,
-  initSchema,
   memoryDrilldown,
   mutateState,
-  openDatabase,
   openScene,
   recordSceneSummary,
   renderContextMessage,
   rollupArcSummary,
   rollupSessionRecap,
-  startSession,
 } from '../src/index.js';
 import type { Db } from '../src/index.js';
+import { freshDbWithSession } from './support/db.js';
 
 const CAMPAIGN = 'campaign-1';
 const SESSION = 'session-2';
-
-function freshDb(): Db {
-  const db = openDatabase(':memory:');
-  initSchema(db);
-  startSession(db, {
-    campaignId: CAMPAIGN,
-    sessionId: SESSION,
-    startedAt: '2026-05-20T09:00:00.000Z',
-  });
-  return db;
-}
 
 function logTurn(
   db: Db,
@@ -59,7 +46,7 @@ function logTurn(
 
 describe('Context Assembler', () => {
   it('assembles only the bounded set and excludes older closed scenes', () => {
-    const db = freshDb();
+    const db = freshDbWithSession({ sessionId: SESSION });
 
     // An older, closed scene — its transcript must NOT appear in context.
     openScene(db, {
@@ -106,7 +93,7 @@ describe('Context Assembler', () => {
   });
 
   it('bounds long current-scene transcripts and leaves omitted entries drillable', () => {
-    const db = freshDb();
+    const db = freshDbWithSession({ sessionId: SESSION });
     openScene(db, {
       campaignId: CAMPAIGN,
       sessionId: SESSION,
@@ -164,7 +151,7 @@ describe('Context Assembler', () => {
   });
 
   it('snapshots full structured state', () => {
-    const db = freshDb();
+    const db = freshDbWithSession({ sessionId: SESSION });
     mutateState(db, {
       target: 'character',
       field: 'name',
@@ -218,7 +205,7 @@ describe('Context Assembler', () => {
   });
 
   it('includes campaign bible, last session recap, and current arc', () => {
-    const db = freshDb();
+    const db = freshDbWithSession({ sessionId: SESSION });
     rollupSessionRecap(db, {
       campaignId: CAMPAIGN,
       sessionId: 'session-1',
@@ -259,7 +246,7 @@ describe('Context Assembler', () => {
   });
 
   it('reports drilldown availability when older sessions are omitted', () => {
-    const db = freshDb();
+    const db = freshDbWithSession({ sessionId: SESSION });
     for (const n of [1, 2, 3]) {
       rollupSessionRecap(db, {
         campaignId: CAMPAIGN,
@@ -283,7 +270,7 @@ describe('Context Assembler', () => {
   });
 
   it('works against an empty campaign', () => {
-    const db = freshDb();
+    const db = freshDbWithSession({ sessionId: SESSION });
     const ctx = assembleContext({
       db,
       campaignId: CAMPAIGN,
@@ -298,7 +285,7 @@ describe('Context Assembler', () => {
   });
 
   it('renders a prompt message containing the bounded slices', () => {
-    const db = freshDb();
+    const db = freshDbWithSession({ sessionId: SESSION });
     recordSceneSummary(db, {
       campaignId: CAMPAIGN,
       sessionId: SESSION,
