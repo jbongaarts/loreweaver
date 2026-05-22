@@ -130,3 +130,9 @@ destinations are explicit user-chosen paths. The managed Dolt binary cache is
 the only current per-user default and remains `~/.loreweaver/dolt` unless
 `LOREWEAVER_DOLT_HOME` is set. Bundled release content stays in the npm package
 build output and is copied into campaign tables when a campaign is created.
+
+The follow-up design for a per-user data root, a config file, and a campaign
+registry/picker is recorded in
+[ADR 0004](adr/0004-config-file-and-campaign-registry.md). That design keeps
+`LOREWEAVER_DB_PATH` working as the explicit, unmanaged path, so the behavior
+described above is unchanged when the variable is set.
