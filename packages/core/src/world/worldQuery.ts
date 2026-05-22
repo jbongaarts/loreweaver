@@ -1,4 +1,5 @@
 import type { Db } from '../persistence/db.js';
+import { jsonColumn } from '../persistence/jsonColumn.js';
 import type {
   WorldOverlay,
   WorldQueryResult,
@@ -6,6 +7,12 @@ import type {
   WorldTargetType,
 } from './types.js';
 import { WorldModuleError } from './validate.js';
+
+/** JSON codecs for the JSON-backed columns worldQuery reads. */
+const templateDataColumn = jsonColumn<Record<string, unknown>>(
+  'module_*.data_json',
+);
+const overlayValueColumn = jsonColumn<unknown>('overlay_facts.value_json');
 
 /**
  * Build the `overlay_facts` key that records a live divergence of a module
@@ -97,7 +104,7 @@ export function worldQuery(
     };
   }
 
-  const template = JSON.parse(templateRow.data_json) as Record<string, unknown>;
+  const template = templateDataColumn.decode(templateRow.data_json);
 
   const prefix = worldOverlayKey(target.type, id ?? '', '');
   const overlayRows = db
@@ -116,7 +123,7 @@ export function worldQuery(
     if (field.length === 0) {
       continue;
     }
-    const value = JSON.parse(row.value_json) as unknown;
+    const value = overlayValueColumn.decode(row.value_json);
     resolved[field] = value;
     overlays.push({
       field,
