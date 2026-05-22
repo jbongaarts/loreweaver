@@ -184,8 +184,8 @@ export function initSchema(db: Db): void {
       PRIMARY KEY (campaign_id, session_id, scene_id)
     );
 
-    -- E5: live per-scene transcript. The Context Assembler feeds the current
-    -- scene's log verbatim; older scenes roll up into scene_summary.
+    -- E5: live per-scene transcript. The Context Assembler feeds a bounded
+    -- current-scene tail; closed scenes roll up into scene_summary.
     CREATE TABLE IF NOT EXISTS scene_log (
       campaign_id TEXT NOT NULL,
       session_id TEXT NOT NULL,

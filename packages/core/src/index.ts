@@ -69,6 +69,8 @@ export {
   getOpenScene,
   appendSceneLog,
   listSceneLog,
+  countSceneLog,
+  listSceneLogWindow,
 } from './orchestrator/scene.js';
 export type {
   SceneStatus,
@@ -80,6 +82,7 @@ export type {
   SceneRecord,
   SceneLogInput,
   SceneLogRecord,
+  SceneLogWindowInput,
 } from './orchestrator/scene.js';
 export { createSeededRng } from './orchestrator/rng.js';
 export type { Rng } from './orchestrator/rng.js';

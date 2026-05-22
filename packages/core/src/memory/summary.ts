@@ -1,7 +1,8 @@
 import type { Db } from '../persistence/db.js';
 import { withTransaction } from '../persistence/db.js';
 import { jsonColumn } from '../persistence/jsonColumn.js';
-import { listSceneLog } from '../orchestrator/scene.js';
+import { listSceneLog, listSceneLogWindow } from '../orchestrator/scene.js';
+import type { SceneLogRecord } from '../orchestrator/scene.js';
 import type { MutateStateTarget } from '../state/mutateState.js';
 import type { TraceJsonValue } from './turnTrace.js';
 
@@ -102,6 +103,14 @@ export type MemoryDrilldownSelector =
       sceneId: string;
     }
   | {
+      target: 'scene_log';
+      campaignId: string;
+      sessionId: string;
+      sceneId: string;
+      beforeSeq?: number;
+      limit?: number;
+    }
+  | {
       target: 'session';
       campaignId: string;
       sessionId: string;
@@ -114,6 +123,7 @@ export type MemoryDrilldownSelector =
 
 export type MemoryDrilldownResult =
   | { target: 'scene'; record: SceneSummaryRecord }
+  | { target: 'scene_log'; records: SceneLogRecord[] }
   | { target: 'session'; record: SessionRecapRecord }
   | { target: 'arc'; record: ArcSummaryRecord };
 
@@ -525,6 +535,18 @@ export function memoryDrilldown(
     case 'scene': {
       const record = getSceneSummary(db, selector);
       return record === undefined ? undefined : { target: 'scene', record };
+    }
+    case 'scene_log': {
+      return {
+        target: 'scene_log',
+        records: listSceneLogWindow(db, {
+          campaignId: selector.campaignId,
+          sessionId: selector.sessionId,
+          sceneId: selector.sceneId,
+          beforeSeq: selector.beforeSeq,
+          limit: selector.limit ?? 12,
+        }),
+      };
     }
     case 'session': {
       const record = getSessionRecap(db, selector);

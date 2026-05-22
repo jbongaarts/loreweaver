@@ -9,7 +9,11 @@ import type {
   CampaignBibleRecord,
   SessionRecapRecord,
 } from '../memory/summary.js';
-import { getOpenScene, listSceneLog } from './scene.js';
+import {
+  countSceneLog,
+  getOpenScene,
+  listSceneLogWindow,
+} from './scene.js';
 import type { SceneLogRecord } from './scene.js';
 
 /**
@@ -17,15 +21,17 @@ import type { SceneLogRecord } from './scene.js';
  *
  * Builds the per-turn prompt from a deliberately bounded slice — campaign
  * bible, current arc summary, recent session recap(s), the full structured
- * state snapshot, and the current scene's live transcript. Older turn history
- * is excluded by construction: closed scenes live in scene_summary and are
- * reached only via the `memory_drilldown` tool. Slices stay compact so the
- * stable head of the prompt is friendly to provider prompt caching.
+ * state snapshot, and the current scene's bounded live transcript tail. Older
+ * turn history is excluded by construction: closed scenes live in
+ * scene_summary, and omitted current-scene entries can be retrieved via the
+ * `memory_drilldown` tool. Slices stay compact so the stable head of the
+ * prompt is friendly to provider prompt caching.
  *
  * Fills the ContextAssembler seam.
  */
 
 const DEFAULT_RECENT_SESSION_LIMIT = 1;
+const DEFAULT_SCENE_TRANSCRIPT_LIMIT = 12;
 
 /** JSON codecs for the JSON-backed state columns the assembler reads. */
 const plotFlagValueColumn = jsonColumn<unknown>('plot_flags.value_json');
@@ -46,6 +52,8 @@ export interface ContextAssemblyInput {
   playerInput: string;
   /** How many recent session recaps to inline. Default 1. */
   recentSessionLimit?: number;
+  /** How many current-scene transcript entries to inline. Default 12. */
+  sceneTranscriptLimit?: number;
 }
 
 export interface CharacterSnapshot {
@@ -95,6 +103,7 @@ export interface AssembledContext {
   state: StateSnapshot;
   scene: AssembledSceneRef | undefined;
   sceneTranscript: SceneLogRecord[];
+  sceneTranscriptOmittedCount: number;
   playerInput: string;
 }
 
@@ -189,6 +198,11 @@ export function assembleContext(
 ): AssembledContext {
   const recentSessionLimit =
     input.recentSessionLimit ?? DEFAULT_RECENT_SESSION_LIMIT;
+  const sceneTranscriptLimit =
+    input.sceneTranscriptLimit ?? DEFAULT_SCENE_TRANSCRIPT_LIMIT;
+  if (sceneTranscriptLimit < 0) {
+    throw new Error('sceneTranscriptLimit must be non-negative');
+  }
 
   const alwaysOn = selectAlwaysOnMemory(input.db, {
     campaignId: input.campaignId,
@@ -208,14 +222,25 @@ export function assembleContext(
     sessionId: input.sessionId,
   });
 
-  const sceneTranscript =
+  const sceneKey =
     openScene === undefined
-      ? []
-      : listSceneLog(input.db, {
+      ? undefined
+      : {
           campaignId: input.campaignId,
           sessionId: input.sessionId,
           sceneId: openScene.sceneId,
+        };
+  const sceneTranscript =
+    sceneKey === undefined
+      ? []
+      : listSceneLogWindow(input.db, {
+          ...sceneKey,
+          limit: sceneTranscriptLimit,
         });
+  const sceneTranscriptOmittedCount =
+    sceneKey === undefined
+      ? 0
+      : Math.max(0, countSceneLog(input.db, sceneKey) - sceneTranscript.length);
 
   return {
     campaignId: input.campaignId,
@@ -226,13 +251,15 @@ export function assembleContext(
       (r): r is SessionRecapRecord => r !== undefined,
     ),
     omittedSessionCount: alwaysOn.omittedSessionCount,
-    drilldownAvailable: alwaysOn.drilldownAvailable,
+    drilldownAvailable:
+      alwaysOn.drilldownAvailable || sceneTranscriptOmittedCount > 0,
     state: readStateSnapshot(input.db),
     scene:
       openScene === undefined
         ? undefined
         : { sceneId: openScene.sceneId, title: openScene.title },
     sceneTranscript,
+    sceneTranscriptOmittedCount,
     playerInput: input.playerInput,
   };
 }
@@ -314,7 +341,18 @@ export function renderContextMessage(ctx: AssembledContext): string {
             .map((e) => `${e.role === 'player' ? 'Player' : 'DM'}: ${e.content}`)
             .join('\n')
         : '(no turns yet)';
-    sections.push(`## Current Scene: ${ctx.scene.title}\n${transcript}`);
+    const firstSeq = ctx.sceneTranscript[0]?.seq ?? 'null';
+    const omitted =
+      ctx.sceneTranscriptOmittedCount > 0
+        ? [
+            `\n(${ctx.sceneTranscriptOmittedCount} earlier current-scene entries omitted;`,
+            'use memory_drilldown with target "scene_log",',
+            `sceneId "${ctx.scene.sceneId}", and beforeSeq ${firstSeq} to retrieve them.)`,
+          ].join(' ')
+        : '';
+    sections.push(
+      `## Current Scene: ${ctx.scene.title}\n${transcript}${omitted}`,
+    );
   } else {
     sections.push('## Current Scene\n(no scene open)');
   }

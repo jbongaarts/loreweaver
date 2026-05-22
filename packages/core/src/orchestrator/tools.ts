@@ -227,8 +227,8 @@ const worldQueryTool: Tool = {
 const memoryDrilldownTool: Tool = {
   name: 'memory_drilldown',
   description:
-    'Drill into an older scene/session/arc summary excluded from the bounded ' +
-    'prompt. args: a MemoryDrilldownSelector.',
+    'Drill into an omitted scene_log window or older scene/session/arc ' +
+    'summary excluded from the bounded prompt. args: a MemoryDrilldownSelector.',
   run(args, ctx) {
     const a = asRecord(args);
     if (a === undefined || typeof a.target !== 'string') {
