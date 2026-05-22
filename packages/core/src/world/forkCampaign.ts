@@ -1,6 +1,7 @@
 import type { Db } from '../persistence/db.js';
 import { withTransaction } from '../persistence/db.js';
 import { jsonColumn } from '../persistence/jsonColumn.js';
+import { quoteIdent } from '../persistence/sql.js';
 import type { ModulePack, PackLicense } from './types.js';
 
 /** JSON codecs for the module_* tables' JSON-backed columns. */
@@ -21,6 +22,8 @@ const moduleDataColumn = jsonColumn<unknown>('module_*.data_json');
  */
 export function forkModuleIntoCampaign(db: Db, pack: ModulePack): void {
   withTransaction(db, (txn) => {
+    // Trusted internal schema table names; quote through one helper so all
+    // dynamic identifier SQL uses the same escaping behavior.
     for (const table of [
       'module_meta',
       'module_location',
@@ -29,7 +32,7 @@ export function forkModuleIntoCampaign(db: Db, pack: ModulePack): void {
       'module_trigger',
       'module_lore',
     ]) {
-      txn.prepare(`DELETE FROM ${table}`).run();
+      txn.prepare(`DELETE FROM ${quoteIdent(table)}`).run();
     }
 
     txn
