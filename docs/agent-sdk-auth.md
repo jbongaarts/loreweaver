@@ -1,17 +1,16 @@
 # Running Loreweaver on a Claude Pro/Max Plan
 
-This note records research (loreweaver-qyj) into whether Loreweaver can drive
-the Claude Agent SDK using a **Claude Pro/Max subscription login** instead of an
-`ANTHROPIC_API_KEY`. Short version:
+Loreweaver can drive the Claude Agent SDK with **either** an Anthropic Console
+API key **or** a **Claude Pro/Max subscription** OAuth token. Short version:
 
 - **The Agent SDK supports subscription auth.** It wraps the Claude Code CLI,
   which natively authenticates with either an API key or a subscription OAuth
   token.
-- **The Loreweaver CLI does not expose that path yet.** `loadConfig`
-  (`packages/core/src/config.ts`) hard-requires `ANTHROPIC_API_KEY`, and the CLI
-  injects that key into the SDK process. So today the **API key is the only
-  supported path for the shipped CLI**; subscription auth needs a small config
-  change (tracked separately — see "Status in Loreweaver" below).
+- **The Loreweaver CLI supports both.** `loadConfig`
+  (`packages/core/src/config.ts`) accepts `ANTHROPIC_API_KEY` **or**
+  `CLAUDE_CODE_OAUTH_TOKEN`, and the CLI injects whichever one is in use through
+  the `AgentSdkModelClient` auth seam — never both, so an API key cannot shadow
+  a subscription token.
 
 ## How the Agent SDK authenticates
 
@@ -30,13 +29,15 @@ first):
 
 The critical consequence: **`ANTHROPIC_API_KEY` outranks the subscription
 token.** If an API key is exported anywhere in the environment, it silently
-wins — you bill API credits while believing you are on your subscription. To use
-the subscription, `ANTHROPIC_API_KEY` must be **unset**.
+wins — you bill API credits while believing you are on your subscription.
+Loreweaver mirrors this precedence: when both `ANTHROPIC_API_KEY` and
+`CLAUDE_CODE_OAUTH_TOKEN` are set, `loadConfig` selects the API key. To run on
+the subscription, leave `ANTHROPIC_API_KEY` **unset**.
 
-## Subscription setup (for a future subscription-enabled build)
+## Subscription setup
 
-A non-interactive app like Loreweaver should use a long-lived OAuth token rather
-than relying on cached interactive-login credentials:
+Generate a long-lived OAuth token rather than relying on cached interactive
+`/login` credentials:
 
 ```bash
 # 1. Generate a one-year OAuth token (requires an active Pro/Max/Team/Enterprise
@@ -50,18 +51,22 @@ export CLAUDE_CODE_OAUTH_TOKEN=sk-ant-oat01-...
 # 3. Make sure no API key shadows it (see precedence above).
 unset ANTHROPIC_API_KEY
 #    PowerShell: Remove-Item Env:ANTHROPIC_API_KEY
+
+# 4. Run Loreweaver as usual.
+loreweaver play
 ```
 
-Interactive `claude` `/login` also works for a developer at a terminal: it
-stores subscription credentials in `~/.claude/.credentials.json`
-(`%USERPROFILE%\.claude\.credentials.json` on Windows), which the SDK process
-inherits. `claude setup-token` is preferred for unattended/automated runs.
+Loreweaver reads `CLAUDE_CODE_OAUTH_TOKEN` when `ANTHROPIC_API_KEY` is absent,
+resolves `auth.mode = 'oauth-token'`, and injects only the OAuth token into the
+SDK process.
+
+Interactive `claude` `/login` is *not* sufficient on its own: `loadConfig`
+requires an explicit `ANTHROPIC_API_KEY` or `CLAUDE_CODE_OAUTH_TOKEN` in the
+environment, and does not read the cached `~/.claude/.credentials.json` that
+`/login` writes. Use `claude setup-token` to mint a token Loreweaver can see.
 
 ## Limitations and policy constraints
 
-- **Loreweaver does not read `CLAUDE_CODE_OAUTH_TOKEN` today.** `loadConfig`
-  requires `ANTHROPIC_API_KEY` and throws `ConfigError` without it, so the steps
-  above are not yet sufficient to start `loreweaver play`. See below.
 - **Monthly Agent SDK credit.** Starting **June 15, 2026**, subscription plans
   receive a monthly credit that covers Agent SDK usage and `claude -p`,
   separate from interactive limits (Pro $20, Max 5x $100, Max 20x $200, Team
@@ -79,24 +84,17 @@ inherits. `claude setup-token` is preferred for unattended/automated runs.
 
 ## Status in Loreweaver
 
-| Path | Supported by Agent SDK | Supported by Loreweaver CLI today |
+| Path | Supported by Agent SDK | Supported by Loreweaver CLI |
 | --- | --- | --- |
 | `ANTHROPIC_API_KEY` | yes | **yes** |
-| `CLAUDE_CODE_OAUTH_TOKEN` (Pro/Max) | yes | no — `loadConfig` requires the API key |
-| Interactive `/login` subscription creds | yes | no — same reason |
+| `CLAUDE_CODE_OAUTH_TOKEN` (Pro/Max) | yes | **yes** |
+| Interactive `/login` subscription creds | yes | no — `loadConfig` needs an explicit env var |
 | Cloud providers (Bedrock/Vertex/Foundry) | yes | no — no adapter wired |
 
-**Fallback today:** use an `ANTHROPIC_API_KEY` from the
-[Claude Console](https://platform.claude.com). This is the only path the shipped
-CLI supports.
-
-**To enable the subscription path**, `loadConfig` would need to accept
-`CLAUDE_CODE_OAUTH_TOKEN` as an alternative to `ANTHROPIC_API_KEY`, and the CLI
-must inject *that* variable (and not `ANTHROPIC_API_KEY`) through the
-`AgentSdkModelClient` auth seam — injecting an API key would otherwise override
-the subscription token per the precedence rules above. The auth-injection seam
-needed for this already exists (see "Provider Secrets" in
-[docs/storage.md](storage.md)); only the config layer is missing.
+`loadConfig` resolves a `ProviderAuth` (`mode: 'api-key' | 'oauth-token'`) and
+the CLI injects exactly that credential through the `AgentSdkModelClient` auth
+seam, so an API key in the environment never shadows a chosen subscription
+token.
 
 ## Sources
 

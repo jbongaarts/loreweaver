@@ -35,7 +35,8 @@ export function formatConfigError(err: ConfigError): string {
   return [
     `config error: ${err.message}`,
     'Set LOREWEAVER_DB_PATH to the campaign SQLite file to open or create.',
-    'Set ANTHROPIC_API_KEY for the Claude Agent SDK adapter.',
+    'For the Claude Agent SDK adapter, set ANTHROPIC_API_KEY (a Console API',
+    'key) or CLAUDE_CODE_OAUTH_TOKEN (a Claude Pro/Max subscription token).',
     'Then run: loreweaver play',
   ].join('\n');
 }
@@ -103,12 +104,11 @@ function buildPlayDeps(cfg: LoreweaverConfig, io: PlayDeps['io']): PlayDeps {
   return {
     io,
     openDb: (path) => openDatabase(path),
-    // Inject the resolved API key through the explicit auth seam rather than
-    // letting the Agent SDK read ambient process.env — the same key for the
-    // local-dev path, but the seam is what a hosted BYOK deployment overrides.
-    model: new AgentSdkModelClient(cfg.model, {
-      env: { ANTHROPIC_API_KEY: cfg.anthropicApiKey },
-    }),
+    // Inject the resolved provider credential (API key or Pro/Max OAuth
+    // token) through the explicit auth seam rather than letting the Agent SDK
+    // read ambient process.env. cfg.auth.env carries exactly the one
+    // credential in use, so an API key never shadows a subscription token.
+    model: new AgentSdkModelClient(cfg.model, { env: cfg.auth.env }),
     registry: createDefaultToolRegistry(),
     runTurn,
     pack: EMBERFALL_HOLLOW,
