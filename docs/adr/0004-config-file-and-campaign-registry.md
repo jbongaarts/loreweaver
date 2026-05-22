@@ -1,6 +1,6 @@
 # ADR 0004: Config File and Campaign Registry
 
-Status: proposed
+Status: accepted
 
 Date: 2026-05-22
 
