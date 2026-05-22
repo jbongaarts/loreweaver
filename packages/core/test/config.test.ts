@@ -13,7 +13,7 @@ describe('loadConfig', () => {
       campaignDbPath: './campaigns/x.db',
       model: 'claude-opus-4-7',
       dmProfile: DEFAULT_PROFILE_REGISTRY.premium_dm,
-      anthropicApiKey: 'sk-test',
+      auth: { mode: 'api-key', env: { ANTHROPIC_API_KEY: 'sk-test' } },
     });
   });
 
@@ -72,7 +72,56 @@ describe('loadConfig', () => {
     expect(() => loadConfig({ ANTHROPIC_API_KEY: 'sk-test' })).toThrow(ConfigError);
   });
 
-  it('throws ConfigError when ANTHROPIC_API_KEY is missing', () => {
-    expect(() => loadConfig({ LOREWEAVER_DB_PATH: './x.db' })).toThrow(ConfigError);
+  describe('provider auth', () => {
+    it('resolves api-key auth from ANTHROPIC_API_KEY', () => {
+      const cfg = loadConfig({
+        LOREWEAVER_DB_PATH: './x.db',
+        ANTHROPIC_API_KEY: 'sk-test',
+      });
+      expect(cfg.auth).toEqual({
+        mode: 'api-key',
+        env: { ANTHROPIC_API_KEY: 'sk-test' },
+      });
+    });
+
+    it('resolves oauth-token auth from CLAUDE_CODE_OAUTH_TOKEN (Pro/Max plan)', () => {
+      const cfg = loadConfig({
+        LOREWEAVER_DB_PATH: './x.db',
+        CLAUDE_CODE_OAUTH_TOKEN: 'sk-ant-oat01-test',
+      });
+      expect(cfg.auth).toEqual({
+        mode: 'oauth-token',
+        env: { CLAUDE_CODE_OAUTH_TOKEN: 'sk-ant-oat01-test' },
+      });
+    });
+
+    it('prefers ANTHROPIC_API_KEY when both credentials are set', () => {
+      // Mirrors Claude Code precedence: an API key outranks the OAuth token,
+      // so loadConfig picks api-key auth and injects only that one credential.
+      const cfg = loadConfig({
+        LOREWEAVER_DB_PATH: './x.db',
+        ANTHROPIC_API_KEY: 'sk-test',
+        CLAUDE_CODE_OAUTH_TOKEN: 'sk-ant-oat01-test',
+      });
+      expect(cfg.auth).toEqual({
+        mode: 'api-key',
+        env: { ANTHROPIC_API_KEY: 'sk-test' },
+      });
+    });
+
+    it('throws ConfigError when neither credential is set', () => {
+      expect(() => loadConfig({ LOREWEAVER_DB_PATH: './x.db' })).toThrow(
+        ConfigError,
+      );
+    });
+
+    it('treats a blank ANTHROPIC_API_KEY as unset and falls back to the OAuth token', () => {
+      const cfg = loadConfig({
+        LOREWEAVER_DB_PATH: './x.db',
+        ANTHROPIC_API_KEY: '   ',
+        CLAUDE_CODE_OAUTH_TOKEN: 'sk-ant-oat01-test',
+      });
+      expect(cfg.auth.mode).toBe('oauth-token');
+    });
   });
 });

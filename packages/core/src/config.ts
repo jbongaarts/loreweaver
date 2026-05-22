@@ -5,6 +5,28 @@ import {
   type ProfileRegistry,
 } from './model/profiles.js';
 
+/**
+ * Which provider credential the Agent SDK adapter authenticates with:
+ * - `api-key`     — an Anthropic Console `ANTHROPIC_API_KEY`.
+ * - `oauth-token` — a Claude Pro/Max subscription token in
+ *                   `CLAUDE_CODE_OAUTH_TOKEN` (from `claude setup-token`).
+ */
+export type ProviderAuthMode = 'api-key' | 'oauth-token';
+
+/** Resolved provider authentication for the Agent SDK adapter. */
+export interface ProviderAuth {
+  mode: ProviderAuthMode;
+  /**
+   * Environment variables to inject into the Agent SDK process — exactly the
+   * one credential variable in use (`ANTHROPIC_API_KEY` for `api-key`,
+   * `CLAUDE_CODE_OAUTH_TOKEN` for `oauth-token`), never both. Injecting only
+   * one matters: in Claude Code's credential precedence `ANTHROPIC_API_KEY`
+   * outranks `CLAUDE_CODE_OAUTH_TOKEN`, so a stray API key would otherwise
+   * silently shadow a subscription token.
+   */
+  env: Record<string, string>;
+}
+
 export interface LoreweaverConfig {
   campaignDbPath: string;
   /**
@@ -18,7 +40,11 @@ export interface LoreweaverConfig {
    * profile registry, including any `LOREWEAVER_PROFILE_PREMIUM_DM_*` overrides.
    */
   dmProfile: ProfileEntry;
-  anthropicApiKey: string;
+  /**
+   * Resolved provider authentication — an Anthropic Console API key or a
+   * Claude Pro/Max subscription OAuth token.
+   */
+  auth: ProviderAuth;
 }
 
 export class ConfigError extends Error {
@@ -28,18 +54,42 @@ export class ConfigError extends Error {
   }
 }
 
+/**
+ * Resolve provider auth from the environment. Accepts either an Anthropic
+ * Console API key or a Claude Pro/Max subscription OAuth token. When both are
+ * set the API key is authoritative, mirroring Claude Code's own credential
+ * precedence (`ANTHROPIC_API_KEY` outranks `CLAUDE_CODE_OAUTH_TOKEN`).
+ */
+function resolveProviderAuth(
+  env: Record<string, string | undefined>,
+): ProviderAuth {
+  const apiKey = env.ANTHROPIC_API_KEY?.trim();
+  if (apiKey) {
+    return { mode: 'api-key', env: { ANTHROPIC_API_KEY: apiKey } };
+  }
+  const oauthToken = env.CLAUDE_CODE_OAUTH_TOKEN?.trim();
+  if (oauthToken) {
+    return {
+      mode: 'oauth-token',
+      env: { CLAUDE_CODE_OAUTH_TOKEN: oauthToken },
+    };
+  }
+  throw new ConfigError(
+    'provider auth is required: set ANTHROPIC_API_KEY (an Anthropic Console ' +
+      'API key) or CLAUDE_CODE_OAUTH_TOKEN (a Claude Pro/Max subscription ' +
+      'token from `claude setup-token`)',
+  );
+}
+
 export function loadConfig(
   env: Record<string, string | undefined> = process.env,
 ): LoreweaverConfig {
   const campaignDbPath = env.LOREWEAVER_DB_PATH?.trim();
-  const anthropicApiKey = env.ANTHROPIC_API_KEY?.trim();
 
   if (!campaignDbPath) {
     throw new ConfigError('LOREWEAVER_DB_PATH is required');
   }
-  if (!anthropicApiKey) {
-    throw new ConfigError('ANTHROPIC_API_KEY is required');
-  }
+  const auth = resolveProviderAuth(env);
 
   // The primary-DM model is resolved from the provider-neutral profile
   // registry. resolveProfileRegistry reports malformed profile overrides via
@@ -72,5 +122,5 @@ export function loadConfig(
     );
   }
 
-  return { campaignDbPath, model, dmProfile, anthropicApiKey };
+  return { campaignDbPath, model, dmProfile, auth };
 }

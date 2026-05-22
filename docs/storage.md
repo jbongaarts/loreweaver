@@ -86,8 +86,11 @@ download automatically.
 ## Provider Secrets
 
 **Local dev.** Provider credentials come from the local process environment:
-`loadConfig` reads and validates `ANTHROPIC_API_KEY`. Model profile overrides
-use `LOREWEAVER_PROFILE_*_PROVIDER` and `LOREWEAVER_PROFILE_*_MODEL`.
+`loadConfig` accepts either `ANTHROPIC_API_KEY` (a Console API key) or
+`CLAUDE_CODE_OAUTH_TOKEN` (a Claude Pro/Max subscription token) and resolves a
+`ProviderAuth` describing which one is in use. See
+[docs/agent-sdk-auth.md](agent-sdk-auth.md). Model profile overrides use
+`LOREWEAVER_PROFILE_*_PROVIDER` and `LOREWEAVER_PROFILE_*_MODEL`.
 
 **Auth-injection seam.** The Agent SDK adapter (`AgentSdkModelClient`) does not
 rely on the SDK silently reading ambient `process.env`. It exposes an explicit
