@@ -1,6 +1,7 @@
 import type { Db } from '../persistence/db.js';
 import { withTransaction } from '../persistence/db.js';
 import { JsonColumnError, jsonColumn } from '../persistence/jsonColumn.js';
+import { requireNonEmpty } from '../validation.js';
 
 /**
  * Codec for the JSON-valued columns mutate_state writes — plot_flags /
@@ -155,9 +156,11 @@ export function getStateProvenance(
       requireAllowedField('clock', query.field, CLOCK_SET_FIELDS);
       return readSingletonProvenance(db, query, 'clock');
     case 'inventory':
-      if (query.id === undefined || query.id.length === 0) {
-        throw new MutateStateError('inventory provenance query id is required');
-      }
+      requireNonEmpty(
+        MutateStateError,
+        [['id', query.id ?? '']],
+        () => 'inventory provenance query id is required',
+      );
       requireAllowedField('inventory', query.field, INVENTORY_SET_FIELDS);
       return readInventoryProvenance(db, query);
     case 'plot_flags':
@@ -172,15 +175,15 @@ export function getStateProvenance(
 }
 
 function validateCommonInput(input: MutateStateInput): void {
-  if (input.provenance.length === 0) {
-    throw new MutateStateError('mutate_state provenance is required');
-  }
-  if (input.sessionId.length === 0) {
-    throw new MutateStateError('mutate_state sessionId is required');
-  }
-  if (input.at.length === 0) {
-    throw new MutateStateError('mutate_state timestamp is required');
-  }
+  requireNonEmpty(
+    MutateStateError,
+    [
+      ['provenance', input.provenance],
+      ['sessionId', input.sessionId],
+      ['timestamp', input.at],
+    ],
+    (field) => `mutate_state ${field} is required`,
+  );
 }
 
 function setCharacterField(db: Db, input: MutateStateInput): void {
@@ -197,9 +200,11 @@ function setCharacterField(db: Db, input: MutateStateInput): void {
 }
 
 function setInventoryField(db: Db, input: MutateStateInput): void {
-  if (input.id === undefined || input.id.length === 0) {
-    throw new MutateStateError('inventory mutate_state id is required');
-  }
+  requireNonEmpty(
+    MutateStateError,
+    [['id', input.id ?? '']],
+    () => 'inventory mutate_state id is required',
+  );
   requireAllowedField('inventory', input.field, INVENTORY_SET_FIELDS);
   const value = validatedInventoryValue(input.field, input.value);
 

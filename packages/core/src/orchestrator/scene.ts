@@ -1,6 +1,7 @@
 import type { Db } from '../persistence/db.js';
 import { withTransaction } from '../persistence/db.js';
 import { getSession } from '../session.js';
+import { requireNonEmpty } from '../validation.js';
 
 /**
  * Live per-scene transcript and scene-boundary records (E5).
@@ -86,17 +87,6 @@ export class SceneError extends Error {
   }
 }
 
-function requireFields(
-  context: string,
-  fields: ReadonlyArray<readonly [string, string]>,
-): void {
-  for (const [name, value] of fields) {
-    if (value.length === 0) {
-      throw new SceneError(`${context} ${name} is required`);
-    }
-  }
-}
-
 /**
  * Scenes and scene logs are live state owned by an open `campaign_session`.
  * Writing them for a missing or closed session strands records that session
@@ -121,13 +111,17 @@ function requireOpenSession(
 }
 
 export function openScene(db: Db, input: OpenSceneInput): SceneRecord {
-  requireFields('openScene', [
-    ['campaignId', input.campaignId],
-    ['sessionId', input.sessionId],
-    ['sceneId', input.sceneId],
-    ['title', input.title],
-    ['at', input.at],
-  ]);
+  requireNonEmpty(
+    SceneError,
+    [
+      ['campaignId', input.campaignId],
+      ['sessionId', input.sessionId],
+      ['sceneId', input.sceneId],
+      ['title', input.title],
+      ['at', input.at],
+    ],
+    (name) => `openScene ${name} is required`,
+  );
 
   return withTransaction(db, (txnDb) => {
     requireOpenSession(txnDb, 'openScene', input);
@@ -169,12 +163,16 @@ export function openScene(db: Db, input: OpenSceneInput): SceneRecord {
 }
 
 export function closeScene(db: Db, input: CloseSceneInput): SceneRecord {
-  requireFields('closeScene', [
-    ['campaignId', input.campaignId],
-    ['sessionId', input.sessionId],
-    ['sceneId', input.sceneId],
-    ['at', input.at],
-  ]);
+  requireNonEmpty(
+    SceneError,
+    [
+      ['campaignId', input.campaignId],
+      ['sessionId', input.sessionId],
+      ['sceneId', input.sceneId],
+      ['at', input.at],
+    ],
+    (name) => `closeScene ${name} is required`,
+  );
 
   return withTransaction(db, (txnDb) => {
     const scene = getScene(txnDb, input);
@@ -228,14 +226,18 @@ export function appendSceneLog(
   db: Db,
   input: SceneLogInput,
 ): SceneLogRecord {
-  requireFields('appendSceneLog', [
-    ['campaignId', input.campaignId],
-    ['sessionId', input.sessionId],
-    ['sceneId', input.sceneId],
-    ['turnId', input.turnId],
-    ['content', input.content],
-    ['at', input.at],
-  ]);
+  requireNonEmpty(
+    SceneError,
+    [
+      ['campaignId', input.campaignId],
+      ['sessionId', input.sessionId],
+      ['sceneId', input.sceneId],
+      ['turnId', input.turnId],
+      ['content', input.content],
+      ['at', input.at],
+    ],
+    (name) => `appendSceneLog ${name} is required`,
+  );
   if (input.role !== 'player' && input.role !== 'dm') {
     throw new SceneError(`unsupported scene-log role: ${String(input.role)}`);
   }

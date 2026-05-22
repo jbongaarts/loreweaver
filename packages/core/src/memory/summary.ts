@@ -4,6 +4,7 @@ import { jsonColumn } from '../persistence/jsonColumn.js';
 import { listSceneLog, listSceneLogWindow } from '../orchestrator/scene.js';
 import type { SceneLogRecord } from '../orchestrator/scene.js';
 import type { MutateStateTarget } from '../state/mutateState.js';
+import { requireNonEmpty } from '../validation.js';
 import type { TraceJsonValue } from './turnTrace.js';
 
 export interface MemoryRef {
@@ -593,44 +594,44 @@ export function selectAlwaysOnMemory(
 }
 
 function validateSceneSummary(summary: SceneSummaryRecord): void {
-  for (const [field, value] of [
-    ['campaignId', summary.campaignId],
-    ['sessionId', summary.sessionId],
-    ['sceneId', summary.sceneId],
-    ['summary', summary.summary],
-    ['createdAt', summary.createdAt],
-    ['updatedAt', summary.updatedAt],
-  ] as const) {
-    if (value.length === 0) {
-      throw new MemorySummaryError(`scene summary ${field} is required`);
-    }
-  }
+  requireNonEmpty(
+    MemorySummaryError,
+    [
+      ['campaignId', summary.campaignId],
+      ['sessionId', summary.sessionId],
+      ['sceneId', summary.sceneId],
+      ['summary', summary.summary],
+      ['createdAt', summary.createdAt],
+      ['updatedAt', summary.updatedAt],
+    ],
+    (field) => `scene summary ${field} is required`,
+  );
 }
 
 function validateSessionRecap(input: SessionRecapInput): void {
-  for (const [field, value] of [
-    ['campaignId', input.campaignId],
-    ['sessionId', input.sessionId],
-    ['recap', input.recap],
-    ['createdAt', input.createdAt],
-  ] as const) {
-    if (value.length === 0) {
-      throw new MemorySummaryError(`session recap ${field} is required`);
-    }
-  }
+  requireNonEmpty(
+    MemorySummaryError,
+    [
+      ['campaignId', input.campaignId],
+      ['sessionId', input.sessionId],
+      ['recap', input.recap],
+      ['createdAt', input.createdAt],
+    ],
+    (field) => `session recap ${field} is required`,
+  );
 }
 
 function validateArcSummary(input: ArcSummaryInput): void {
-  for (const [field, value] of [
-    ['campaignId', input.campaignId],
-    ['arcId', input.arcId],
-    ['summary', input.summary],
-    ['createdAt', input.createdAt],
-  ] as const) {
-    if (value.length === 0) {
-      throw new MemorySummaryError(`arc summary ${field} is required`);
-    }
-  }
+  requireNonEmpty(
+    MemorySummaryError,
+    [
+      ['campaignId', input.campaignId],
+      ['arcId', input.arcId],
+      ['summary', input.summary],
+      ['createdAt', input.createdAt],
+    ],
+    (field) => `arc summary ${field} is required`,
+  );
 }
 
 function emptyCampaignBible(input: ArcSummaryInput): CampaignBibleRecord {
