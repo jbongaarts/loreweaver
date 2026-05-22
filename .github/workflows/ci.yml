@@ -72,3 +72,6 @@ jobs:
 
       - name: Test
         run: npm run test
+
+      - name: CLI install smoke
+        run: npm run smoke:cli-install
