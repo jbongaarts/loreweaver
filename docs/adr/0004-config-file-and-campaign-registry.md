@@ -62,6 +62,7 @@ The root contains:
   config.json         # non-secret CLI preferences
   registry.json       # known-campaign index
   campaigns/          # managed campaign SQLite databases (and sidecars)
+  rules-packs/        # installed (non-bundled) RPG rules packs
   dolt/               # managed Dolt binary cache
 ```
 
@@ -127,6 +128,34 @@ CLI behavior, the default path:
   `remove` unregisters and does not delete the database file unless asked;
   `add` registers a database that lives outside `<root>/campaigns/`.
 
+### Rules-pack data
+
+RPG rules/mechanics data is a distinct layer from module content and live
+campaign state, and is stored distinctly:
+
+- **Bundled packs** ship inside the `@loreweaver/core` npm package build
+  output. Today that is the D&D SRD 5.1 catalog and its CC-BY license metadata
+  (`packages/core/src/srd/data.ts` — a compiled-in `SRD_CATALOG` constant).
+  Bundled packs are read-only, in-process, and identical for every user and
+  campaign; they are never written to the per-user data root.
+- **Installed packs** — rules packs that are not bundled, such as other RPG
+  systems or publisher-licensed packs — live under `<root>/rules-packs/`, one
+  pack per subdirectory. This ADR only *reserves* that directory; it stays
+  empty until the multiple-rules-pack work ships.
+
+Rules data is deliberately **not** copied into campaign SQLite databases. Unlike
+module content — forked into immutable `module_*` tables when a campaign is
+created — rules lookups resolve against the active pack at runtime. A campaign
+records *which* rules pack(s) it is bound to (the registry entry already keeps
+the pack identity used to create it), so a pack remains a single shared source
+instead of being duplicated into every campaign database.
+
+The rules-pack schema, system/version/license/allowed-use metadata, load order,
+licensing enforcement, and lookup routing are designed by epic
+`loreweaver-x3w` (Support multiple RPG rules packs). ADR 0004 fixes only the
+storage boundary: bundled packs in the npm package, installed packs in
+`<root>/rules-packs/`, never mixed into `campaigns/` or campaign databases.
+
 ### Explicit-path campaigns
 
 `LOREWEAVER_DB_PATH` is kept as a deliberate explicit-path option for scripted,
@@ -151,8 +180,12 @@ follow-up beads under epic `loreweaver-d4r`.
   picker UX. None of it touches `@loreweaver/core` orchestration.
 - Secrets stay out of managed storage: `config.json` is non-secret and is
   validated to reject key-shaped values; ADR 0002's secret boundary is intact.
-- One Loreweaver directory per user (config, registry, managed campaigns, Dolt
-  cache) makes the storage model easy to document, back up, and delete.
+- One Loreweaver directory per user (config, registry, managed campaigns,
+  installed rules packs, Dolt cache) makes the storage model easy to document,
+  back up, and delete.
+- `<root>/rules-packs/` is reserved now so epic `loreweaver-x3w` has a fixed
+  storage boundary to design against; the bundled D&D SRD continues to ship in
+  the `@loreweaver/core` package and is unaffected.
 - When accepted and implemented this ADR supersedes ADR 0003: the explicit-only
   first-release model is replaced outright, with no migration step because no
   installations exist. ADR 0003 should be marked superseded at that point, and
