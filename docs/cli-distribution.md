@@ -3,6 +3,9 @@
 This is the initial post-MVP distribution plan for the local Loreweaver CLI.
 It covers the pre-1.0 CLI release path; hosted web/PWA distribution remains
 governed by ADR 0002.
+First-release local storage remains explicit via `LOREWEAVER_DB_PATH`; see
+[ADR 0003](adr/0003-local-cli-first-release-storage.md) and
+[Local Storage](storage.md).
 
 ## Decision
 
@@ -187,7 +190,5 @@ The plan is intentionally compatible with the current workspace shape, but the
 first publish should not happen until these are resolved or explicitly waived:
 
 - final license, repository, and provenance metadata are added
-- default user data directory decision is made or the required
-  `LOREWEAVER_DB_PATH` MVP behavior is explicitly kept for the first release
 - release automation installs the packed tarballs and invokes the global
   `loreweaver` command in a clean prefix before publish

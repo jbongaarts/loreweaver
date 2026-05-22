@@ -1,6 +1,7 @@
 # Local Storage
 
-Loreweaver's local CLI MVP uses explicit file paths. It does not yet choose a
+Loreweaver's first local CLI release uses explicit file paths, as recorded in
+[ADR 0003](adr/0003-local-cli-first-release-storage.md). It does not choose a
 default per-user app-data directory, and it does not load `.env` files by
 itself.
 
@@ -100,9 +101,15 @@ Hosted BYOK secret handling is a separate design in
 [ADR 0002](adr/0002-hosted-web-pwa-byok-deployment-path.md). Hosted keys must
 live in a dedicated secret store, not campaign storage.
 
-## Current Distribution Gap
+## First-Release App-Data Decision
 
-The current CLI requires `LOREWEAVER_DB_PATH`; there is no resolved default such
-as `%APPDATA%\Loreweaver`, `~/Library/Application Support/Loreweaver`, or
-`~/.local/share/loreweaver`. The default app-data directory and release-package
-storage convention are tracked as post-MVP distribution work.
+The first CLI release intentionally keeps `LOREWEAVER_DB_PATH` required instead
+of choosing an implicit OS app-data root such as `%APPDATA%\Loreweaver`,
+`~/Library/Application Support/Loreweaver`, or
+`~/.local/share/loreweaver`.
+
+That means campaign databases, checkpoint restore destinations, and fork
+destinations are explicit user-chosen paths. The managed Dolt binary cache is
+the only current per-user default and remains `~/.loreweaver/dolt` unless
+`LOREWEAVER_DOLT_HOME` is set. Bundled release content stays in the npm package
+build output and is copied into campaign tables when a campaign is created.
