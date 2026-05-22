@@ -85,9 +85,23 @@ download automatically.
 
 ## Provider Secrets
 
-In the CLI MVP, provider credentials come from the local process environment.
-The concrete adapter today uses `ANTHROPIC_API_KEY`; model profile overrides use
-`LOREWEAVER_PROFILE_*_PROVIDER` and `LOREWEAVER_PROFILE_*_MODEL`.
+**Local dev.** Provider credentials come from the local process environment:
+`loadConfig` reads and validates `ANTHROPIC_API_KEY`. Model profile overrides
+use `LOREWEAVER_PROFILE_*_PROVIDER` and `LOREWEAVER_PROFILE_*_MODEL`.
+
+**Auth-injection seam.** The Agent SDK adapter (`AgentSdkModelClient`) does not
+rely on the SDK silently reading ambient `process.env`. It exposes an explicit
+auth seam — an `AgentSdkAuthSource`, a fixed `{ env }` value or a function
+resolved per `complete()` call. The CLI passes the key validated by
+`loadConfig` through this seam; the secret is forwarded only into the SDK
+process environment and is held in an ECMAScript-private field, so a client
+object captured into a trace or log cannot leak it.
+
+**Hosted BYOK.** A hosted deployment supplies each request its own provider
+secret through the same seam — sourced from a dedicated secret store, never
+ambient process state — so per-tenant keys and short-lived/rotating credentials
+need no code change in the adapter. The function form of `AgentSdkAuthSource`
+covers per-request secrets.
 
 Provider secrets must not be written to:
 

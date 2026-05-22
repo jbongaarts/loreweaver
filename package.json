@@ -3,15 +3,17 @@
   "private": true,
   "type": "module",
   "workspaces": ["packages/core", "packages/cli"],
+  "engines": { "node": ">=22 <23" },
   "scripts": {
     "build": "tsc --build",
     "clean": "tsc --build --clean",
     "typecheck": "tsc --build --force",
+    "pretest": "tsc --build",
     "test": "vitest run",
     "smoke:cli-install": "node scripts/smoke-cli-install.mjs"
   },
   "devDependencies": {
-    "@types/node": "^24.0.0",
+    "@types/node": "^22.0.0",
     "typescript": "^5.6.0",
     "vitest": "^2.1.0"
   }

@@ -19,8 +19,12 @@ npm run typecheck  # tsc --build --force (deterministic full build; used by CI)
 npm run test       # vitest run
 ```
 
-Expected: **20 passed / 1 skipped** (skipped = `model.integration.test.ts`, a
-live-API test gated off by default).
+Expected: **all non-skipped tests pass.** The suite skips by default the
+live-API integration test (`model.integration.test.ts`, gated off unless a real
+provider key is supplied) and any Dolt-gated checkpoint tests when the `dolt`
+binary is absent. Treat exact pass/skip counts as approximate — they grow with
+the suite; the gate is that nothing outside those documented skips fails. (As a
+rough current baseline the suite is ~239 tests across 37 files.)
 
 **Deterministic builds / core-alone boundary proof:** `tsc --build` is
 incremental and keys off `packages/*/tsconfig.tsbuildinfo`. Deleting only

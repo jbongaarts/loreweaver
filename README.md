@@ -120,13 +120,21 @@ template, but the CLI does not currently load `.env` files by itself.
 Required:
 
 - `LOREWEAVER_DB_PATH` - SQLite database file for the active local campaign.
-- `ANTHROPIC_API_KEY` - API key used by the Claude Agent SDK adapter.
+- `ANTHROPIC_API_KEY` - API key used by the Claude Agent SDK adapter. This is
+  the only authentication path the shipped CLI supports today; running on a
+  Claude Pro/Max subscription instead is not yet wired in. See
+  [docs/agent-sdk-auth.md](docs/agent-sdk-auth.md).
 
 Optional:
 
-- `LOREWEAVER_MODEL` - Claude model id for the current flat config path.
+- `LOREWEAVER_MODEL` - legacy flat override for the primary-DM model id. When
+  set it still takes precedence over the profile registry.
 - `LOREWEAVER_PROFILE_*_PROVIDER` / `LOREWEAVER_PROFILE_*_MODEL` - per-profile
-  provider/model overrides for the provider-neutral profile registry.
+  provider/model overrides for the provider-neutral profile registry. The CLI
+  runtime resolves its primary-DM model from the `premium_dm` profile entry, so
+  `LOREWEAVER_PROFILE_PREMIUM_DM_MODEL` selects the DM model when
+  `LOREWEAVER_MODEL` is unset. The resolved `premium_dm` provider must be
+  `anthropic` — the only adapter the CLI ships today.
 - `LOREWEAVER_DOLT_BIN` - explicit path to a Dolt binary for checkpoints.
 - `LOREWEAVER_DOLT_HOME` - managed Dolt cache directory used by
   `loreweaver dolt install`; defaults to `~/.loreweaver/dolt`.
