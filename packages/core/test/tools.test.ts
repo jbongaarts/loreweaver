@@ -14,7 +14,21 @@ import {
   rollDice,
   startSession,
 } from '../src/index.js';
-import type { ToolContext } from '../src/index.js';
+import type { MarkSceneToolData, ToolContext } from '../src/index.js';
+
+const closedMarkSceneDataTypecheck = {
+  boundary: 'close',
+  scene: {
+    campaignId: 'campaign-1',
+    sessionId: 'session-1',
+    sceneId: 'scene-1',
+    title: 'The Tavern',
+    status: 'closed',
+    openedAt: '2026-05-20T09:00:00.000Z',
+    closedAt: '2026-05-20T10:00:00.000Z',
+  },
+} satisfies MarkSceneToolData;
+void closedMarkSceneDataTypecheck;
 
 function ctx(overrides: Partial<ToolContext> = {}): ToolContext {
   const db = openDatabase(':memory:');

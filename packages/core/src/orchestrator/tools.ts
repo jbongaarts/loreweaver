@@ -7,6 +7,7 @@ import {
   getOpenScene,
   openScene,
 } from './scene.js';
+import type { SceneRecord } from './scene.js';
 import { lookupSrdRecord } from '../srd/store.js';
 import type { SrdLookupInput } from '../srd/types.js';
 import { MutateStateError, mutateState } from '../state/mutateState.js';
@@ -47,6 +48,11 @@ export interface Tool {
   run(args: unknown, ctx: ToolContext): ToolResult;
 }
 
+export interface MarkSceneToolData {
+  boundary: 'open' | 'close';
+  scene: SceneRecord;
+}
+
 function ok(data: unknown): ToolResult {
   return { ok: true, data };
 }
@@ -59,6 +65,18 @@ function asRecord(args: unknown): Record<string, unknown> | undefined {
   return typeof args === 'object' && args !== null && !Array.isArray(args)
     ? (args as Record<string, unknown>)
     : undefined;
+}
+
+export function isMarkSceneToolData(data: unknown): data is MarkSceneToolData {
+  const record = asRecord(data);
+  if (
+    record === undefined ||
+    (record.boundary !== 'open' && record.boundary !== 'close')
+  ) {
+    return false;
+  }
+  const scene = asRecord(record.scene);
+  return typeof scene?.sceneId === 'string';
 }
 
 const rollTool: Tool = {
@@ -117,7 +135,7 @@ const markSceneTool: Tool = {
           title: a.title,
           at: ctx.at,
         });
-        return ok({ boundary: 'open', scene });
+        return ok({ boundary: 'open', scene } satisfies MarkSceneToolData);
       }
       const open = getOpenScene(ctx.db, ctx);
       if (open === undefined) {
@@ -129,7 +147,7 @@ const markSceneTool: Tool = {
         sceneId: open.sceneId,
         at: ctx.at,
       });
-      return ok({ boundary: 'close', scene });
+      return ok({ boundary: 'close', scene } satisfies MarkSceneToolData);
     } catch (e) {
       if (e instanceof SceneError) {
         return err('scene_error', e.message);
