@@ -8,25 +8,18 @@ import {
   getOpenSession,
   getSession,
   getSessionRecap,
-  initSchema,
   listSceneSummaries,
-  openDatabase,
   openScene,
   startSession,
 } from '../src/index.js';
+import { bareDb } from './support/db.js';
 
 const CAMPAIGN = 'campaign-1';
 const SESSION = 'session-1';
 
-function freshDb() {
-  const db = openDatabase(':memory:');
-  initSchema(db);
-  return db;
-}
-
 describe('graceful session close pipeline', () => {
   it('closes the open scene, writes rollups, checkpoints, and marks the session closed', () => {
-    const db = freshDb();
+    const db = bareDb();
     const checkpoints: string[] = [];
     startSession(db, {
       campaignId: CAMPAIGN,
@@ -116,7 +109,7 @@ describe('graceful session close pipeline', () => {
   });
 
   it('can be rerun without duplicating rollups or repeating an already completed checkpoint', () => {
-    const db = freshDb();
+    const db = bareDb();
     let checkpointCount = 0;
     startSession(db, {
       campaignId: CAMPAIGN,
@@ -161,7 +154,7 @@ describe('graceful session close pipeline', () => {
   });
 
   it('retries the checkpoint after a close-time checkpoint failure', () => {
-    const db = freshDb();
+    const db = bareDb();
     startSession(db, {
       campaignId: CAMPAIGN,
       sessionId: SESSION,
@@ -223,7 +216,7 @@ describe('graceful session close pipeline', () => {
   });
 
   it('rejects an unknown session before writing rollups', () => {
-    const db = freshDb();
+    const db = bareDb();
 
     expect(() =>
       closeSessionGracefully(db, {
@@ -245,7 +238,7 @@ describe('graceful session close pipeline', () => {
   });
 
   it('rolls back scene close, summaries, recap, and session close when a rollup fails', () => {
-    const db = freshDb();
+    const db = bareDb();
     startSession(db, {
       campaignId: CAMPAIGN,
       sessionId: SESSION,

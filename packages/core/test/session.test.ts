@@ -4,23 +4,16 @@ import {
   closeSession,
   getOpenSession,
   getSession,
-  initSchema,
   listSessions,
-  openDatabase,
   startSession,
 } from '../src/index.js';
+import { bareDb } from './support/db.js';
 
 const CAMPAIGN = 'campaign-1';
 
-function freshDb() {
-  const db = openDatabase(':memory:');
-  initSchema(db);
-  return db;
-}
-
 describe('session lifecycle persistence', () => {
   it('starts a session and exposes it as the resumable open session', () => {
-    const db = freshDb();
+    const db = bareDb();
 
     const session = startSession(db, {
       campaignId: CAMPAIGN,
@@ -44,7 +37,7 @@ describe('session lifecycle persistence', () => {
   });
 
   it('enforces at most one open session per campaign', () => {
-    const db = freshDb();
+    const db = bareDb();
     startSession(db, {
       campaignId: CAMPAIGN,
       sessionId: 'session-1',
@@ -62,7 +55,7 @@ describe('session lifecycle persistence', () => {
   });
 
   it('closes a session idempotently and allows the next session to start', () => {
-    const db = freshDb();
+    const db = bareDb();
     startSession(db, {
       campaignId: CAMPAIGN,
       sessionId: 'session-1',
@@ -95,7 +88,7 @@ describe('session lifecycle persistence', () => {
   });
 
   it('lists sessions in start order and rejects invalid lifecycle inputs', () => {
-    const db = freshDb();
+    const db = bareDb();
     startSession(db, {
       campaignId: CAMPAIGN,
       sessionId: 'session-1',

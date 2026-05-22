@@ -3,23 +3,16 @@ import {
   appendSceneLog,
   closeSession,
   getSessionLaunchState,
-  initSchema,
-  openDatabase,
   openScene,
   startSession,
 } from '../src/index.js';
+import { bareDb } from './support/db.js';
 
 const CAMPAIGN = 'campaign-1';
 
-function freshDb() {
-  const db = openDatabase(':memory:');
-  initSchema(db);
-  return db;
-}
-
 describe('session launch state', () => {
   it('reports start-new when no session is open', () => {
-    const db = freshDb();
+    const db = bareDb();
 
     expect(getSessionLaunchState(db, { campaignId: CAMPAIGN })).toEqual({
       kind: 'start_new',
@@ -30,7 +23,7 @@ describe('session launch state', () => {
   });
 
   it('reports resume with the current scene tail when a session was left open', () => {
-    const db = freshDb();
+    const db = bareDb();
     startSession(db, {
       campaignId: CAMPAIGN,
       sessionId: 'session-1',
@@ -77,7 +70,7 @@ describe('session launch state', () => {
   });
 
   it('returns start-new after the previously open session is closed', () => {
-    const db = freshDb();
+    const db = bareDb();
     startSession(db, {
       campaignId: CAMPAIGN,
       sessionId: 'session-1',

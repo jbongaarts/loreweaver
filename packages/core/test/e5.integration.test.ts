@@ -3,13 +3,10 @@ import {
   closeScene,
   createDefaultToolRegistry,
   getTurnTrace,
-  initSchema,
   listSceneLog,
-  openDatabase,
   openScene,
   rollupSessionRecap,
   runTurn,
-  startSession,
 } from '../src/index.js';
 import type {
   Db,
@@ -17,6 +14,7 @@ import type {
   ModelClient,
   ModelCompleteInput,
 } from '../src/index.js';
+import { freshDbWithSession } from './support/db.js';
 
 /**
  * E5 epic verification (loreweaver-ws9.7): one integration test exercising
@@ -40,17 +38,6 @@ class ScriptedModel implements ModelClient {
 
 const toolCall = (tool: string, args: unknown): string =>
   ['```tool_call', JSON.stringify({ tool, args }), '```'].join('\n');
-
-function freshDb(): Db {
-  const db = openDatabase(':memory:');
-  initSchema(db);
-  startSession(db, {
-    campaignId: CAMPAIGN,
-    sessionId: SESSION,
-    startedAt: '2026-05-20T09:00:00.000Z',
-  });
-  return db;
-}
 
 function openCurrentScene(db: Db): void {
   openScene(db, {
@@ -79,7 +66,10 @@ const indexOfTool = (calls: ExecutedToolCall[], tool: string): number =>
 
 describe('E5 epic verification', () => {
   it('AC1: a full player turn runs end to end', async () => {
-    const db = freshDb();
+    const db = freshDbWithSession({
+      campaignId: CAMPAIGN,
+      sessionId: SESSION,
+    });
     openCurrentScene(db);
     const model = new ScriptedModel([
       toolCall('roll', { dice: '1d20+3', reason: 'initiative' }),
@@ -110,7 +100,10 @@ describe('E5 epic verification', () => {
   });
 
   it('AC2: the assembled prompt contains only the bounded set', async () => {
-    const db = freshDb();
+    const db = freshDbWithSession({
+      campaignId: CAMPAIGN,
+      sessionId: SESSION,
+    });
 
     // Older closed scene — its transcript must be excluded.
     openScene(db, {
@@ -158,7 +151,10 @@ describe('E5 epic verification', () => {
 
   it('AC3: roll RNG is code-owned and reproducible under a seed', async () => {
     const runOnce = async (): Promise<unknown> => {
-      const db = freshDb();
+      const db = freshDbWithSession({
+        campaignId: CAMPAIGN,
+        sessionId: SESSION,
+      });
       openCurrentScene(db);
       const model = new ScriptedModel([
         toolCall('roll', { dice: '2d20+5', reason: 'attack' }),
@@ -178,7 +174,10 @@ describe('E5 epic verification', () => {
   });
 
   it('AC4: prose-only state change does not mutate canon', async () => {
-    const db = freshDb();
+    const db = freshDbWithSession({
+      campaignId: CAMPAIGN,
+      sessionId: SESSION,
+    });
     openCurrentScene(db);
     const model = new ScriptedModel([
       'The goblin drops dead. You loot 200 gold and a magic ring, ' +
@@ -204,7 +203,10 @@ describe('E5 epic verification', () => {
   });
 
   it('AC5: lookup_srd is invoked before the creature is run in combat', async () => {
-    const db = freshDb();
+    const db = freshDbWithSession({
+      campaignId: CAMPAIGN,
+      sessionId: SESSION,
+    });
     openCurrentScene(db);
     // The DM looks up the Goblin's real stats, THEN resolves its attack.
     const model = new ScriptedModel([
