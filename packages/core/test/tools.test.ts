@@ -148,6 +148,18 @@ describe('roll tool', () => {
     const result = createDefaultToolRegistry().invoke('roll', {}, ctx());
     expect(result.ok).toBe(false);
   });
+
+  it('rejects an empty reason', () => {
+    const result = createDefaultToolRegistry().invoke(
+      'roll',
+      { dice: '1d20', reason: '' },
+      ctx(),
+    );
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.code).toBe('invalid_args');
+    }
+  });
 });
 
 describe('mark_scene tool', () => {
