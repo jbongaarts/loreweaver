@@ -71,9 +71,8 @@ interface OverlayRow {
 /**
  * Resolve a world target to template-plus-overlay truth so the model never
  * narrates a stale template. Reads the immutable forked template, then applies
- * latest-wins overlay facts (an overlay key is unique, so the latest accepted
- * write for a field is the one stored). Returns the resolved view, the raw
- * template, and the overlay fields that diverged it.
+ * the unique overlay fact stored for each diverged field. Returns the resolved
+ * view, the raw template, and the overlay fields that diverged it.
  */
 export function worldQuery(
   db: Db,
@@ -111,8 +110,7 @@ export function worldQuery(
     .prepare(
       `SELECT key, value_json, provenance, session_id, updated_at
        FROM overlay_facts
-       WHERE key LIKE ? ESCAPE '\\'
-       ORDER BY updated_at ASC`,
+       WHERE key LIKE ? ESCAPE '\\'`,
     )
     .all(`${escapeLikePrefix(prefix)}%`) as OverlayRow[];
 
