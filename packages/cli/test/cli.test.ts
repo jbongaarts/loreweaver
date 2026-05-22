@@ -1,5 +1,11 @@
-import { execFileSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { execFileSync, spawnSync } from 'node:child_process';
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -116,6 +122,33 @@ describe('entrypoint guard', () => {
     expect(stdout).toContain('Loreweaver — core v');
     expect(stdout).toContain('db=/tmp/lw-entrypoint.db');
   });
+
+  it.skipIf(process.platform === 'win32')(
+    'runs main() when invoked through an npm-style bin symlink',
+    () => {
+      const cliDist = requireCliDist();
+      const dir = mkdtempSync(join(tmpdir(), 'lw-bin-symlink-'));
+      try {
+        const bin = join(dir, 'loreweaver');
+        symlinkSync(cliDist, bin);
+        const result = spawnSync(process.execPath, [bin], {
+          encoding: 'utf8',
+          env: {
+            ...process.env,
+            LOREWEAVER_DB_PATH: '',
+            ANTHROPIC_API_KEY: '',
+          },
+        });
+
+        expect(result.status).toBe(1);
+        expect(result.stderr).toContain('LOREWEAVER_DB_PATH');
+        expect(result.stderr).toContain('ANTHROPIC_API_KEY');
+        expect(result.stderr).toContain('loreweaver play');
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    },
+  );
 });
 
 /**

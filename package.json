@@ -9,7 +9,8 @@
     "clean": "tsc --build --clean",
     "typecheck": "tsc --build --force",
     "pretest": "tsc --build",
-    "test": "vitest run"
+    "test": "vitest run",
+    "smoke:cli-install": "node scripts/smoke-cli-install.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

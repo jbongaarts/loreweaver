@@ -25,8 +25,9 @@ living world, not a video game missing its graphics.
 > rules lookup, deterministic tools, model orchestration, session launch/resume,
 > graceful session close, and optional Dolt checkpoints. The CLI can create or
 > resume a local campaign and run interactive model-backed turns. The project is
-> still pre-distribution: packaging, release workflow, and default user data
-> locations are being planned after the MVP epic.
+> still pre-distribution: packaging and release workflow are being planned after
+> the MVP epic, and first-release storage remains explicit via
+> `LOREWEAVER_DB_PATH`.
 
 ## Why It's Built This Way
 
@@ -58,7 +59,9 @@ strategy,
 [docs/adr/0001-product-model-deployment-content-strategy.md](docs/adr/0001-product-model-deployment-content-strategy.md)
 for the product/model/content decision record, and
 [docs/adr/0002-hosted-web-pwa-byok-deployment-path.md](docs/adr/0002-hosted-web-pwa-byok-deployment-path.md)
-for the CLI-to-hosted deployment path. The local CLI release plan is in
+for the CLI-to-hosted deployment path, and
+[docs/adr/0003-local-cli-first-release-storage.md](docs/adr/0003-local-cli-first-release-storage.md)
+for the first-release storage decision. The local CLI release plan is in
 [docs/cli-distribution.md](docs/cli-distribution.md).
 
 ## Repository Layout
@@ -182,8 +185,10 @@ run `npm run build` and invoke the built entrypoint with
 
 ## Storage Model
 
-Current local CLI storage is explicit and file-based. See
-[docs/storage.md](docs/storage.md) for the full user-facing storage boundary.
+First-release local CLI storage is explicit and file-based. See
+[docs/storage.md](docs/storage.md) and
+[ADR 0003](docs/adr/0003-local-cli-first-release-storage.md) for the full
+user-facing storage boundary.
 
 - **Static bundled content** lives in the package source/build output, including
   `EMBERFALL_HOLLOW` sample module data and SRD catalog data.
@@ -195,13 +200,15 @@ Current local CLI storage is explicit and file-based. See
   SQLite database path chosen by the caller.
 - **Beads tracker data** is separate from campaign checkpoints. Checkpoint code
   guards against reusing the beads Dolt ref/remote.
-- **Provider secrets** come from the local environment in the CLI MVP. They
+- **Provider secrets** come from the local environment in the CLI release. They
   must not be written to campaign SQLite databases, Dolt checkpoints,
   `turn_trace`, exports, or logs. Hosted BYOK secret handling is governed by
   ADR 0002.
 
-Default app-data directories and release-package storage conventions are not
-settled yet; they are part of the post-MVP distribution planning work.
+No implicit per-platform campaign directory is used for the first release:
+`LOREWEAVER_DB_PATH` remains required. The managed Dolt binary cache defaults to
+`~/.loreweaver/dolt`, and bundled static content lives in the npm package build
+output.
 
 ## Contributing
 
