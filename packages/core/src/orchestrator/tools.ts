@@ -7,7 +7,7 @@ import {
   getOpenScene,
   openScene,
 } from './scene.js';
-import { lookupSrd } from '../srd/lookup.js';
+import { lookupSrdRecord } from '../srd/store.js';
 import type { SrdLookupInput } from '../srd/types.js';
 import { MutateStateError, mutateState } from '../state/mutateState.js';
 import type {
@@ -156,7 +156,7 @@ const lookupSrdTool: Tool = {
         'lookup_srd requires { kind, name } or { kind, ref }',
       );
     }
-    const result = lookupSrd(a as unknown as SrdLookupInput);
+    const result = lookupSrdRecord(a as unknown as SrdLookupInput);
     if (result.ok) {
       return ok({ record: result.record, license: result.license });
     }

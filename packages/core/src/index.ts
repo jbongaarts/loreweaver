@@ -297,7 +297,6 @@ export type {
   WorldOverlay,
 } from './world/types.js';
 export { SRD_CATALOG, SRD_LICENSE } from './srd/data.js';
-export { lookupSrd } from './srd/lookup.js';
 export { buildSrdIndex, lookupSrdRecord } from './srd/store.js';
 export type {
   SrdBaseRecord,

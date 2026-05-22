@@ -14,12 +14,6 @@ interface SrdKindIndex {
 
 type SrdIndex = Readonly<Record<SrdKind, SrdKindIndex>>;
 
-const CATALOG_KEYS = {
-  monster: 'monsters',
-  spell: 'spells',
-  class: 'classes',
-} as const satisfies Readonly<Record<SrdKind, keyof SrdCatalog>>;
-
 let defaultIndex: SrdIndex | undefined;
 
 export function buildSrdIndex(catalog: SrdCatalog): SrdIndex {
@@ -80,9 +74,3 @@ function describeLookupInput(input: SrdLookupInput): string {
   return `name ${input.name}`;
 }
 
-export function catalogRecordsForKind(
-  catalog: SrdCatalog,
-  kind: SrdKind,
-): readonly SrdRecord[] {
-  return catalog[CATALOG_KEYS[kind]];
-}

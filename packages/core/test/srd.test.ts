@@ -1,11 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import {
-  lookupSrd as lookupSrdFromIndex,
-  SRD_CATALOG as SRD_CATALOG_FROM_INDEX,
-  SRD_LICENSE as SRD_LICENSE_FROM_INDEX,
-} from '../src/index.js';
+import * as core from '../src/index.js';
 import { SRD_CATALOG, SRD_LICENSE } from '../src/srd/data.js';
-import { lookupSrd } from '../src/srd/lookup.js';
+import { lookupSrdRecord } from '../src/srd/store.js';
 
 describe('SRD catalog', () => {
   it('records SRD 5.1 CC-BY-4.0 license metadata', () => {
@@ -22,40 +18,47 @@ describe('SRD catalog', () => {
   });
 
   it('looks up known SRD records by ref or exact name within a kind', () => {
-    expect(lookupSrd({ kind: 'monster', ref: 'monster:goblin' })).toMatchObject({
+    expect(
+      lookupSrdRecord({ kind: 'monster', ref: 'monster:goblin' }),
+    ).toMatchObject({
       ok: true,
       record: { kind: 'monster', name: 'Goblin' },
     });
-    expect(lookupSrd({ kind: 'spell', name: 'Fire Bolt' })).toMatchObject({
+    expect(
+      lookupSrdRecord({ kind: 'spell', name: 'Fire Bolt' }),
+    ).toMatchObject({
       ok: true,
       record: { kind: 'spell', ref: 'spell:fire-bolt' },
     });
-    expect(lookupSrd({ kind: 'class', name: 'Fighter' })).toMatchObject({
+    expect(
+      lookupSrdRecord({ kind: 'class', name: 'Fighter' }),
+    ).toMatchObject({
       ok: true,
       record: { kind: 'class', ref: 'class:fighter' },
     });
   });
 
   it('rejects partial, unknown, and wrong-kind lookup inputs without fuzzy matching', () => {
-    expect(lookupSrd({ kind: 'monster', name: 'Gob' })).toMatchObject({
+    expect(lookupSrdRecord({ kind: 'monster', name: 'Gob' })).toMatchObject({
       ok: false,
       code: 'not_found',
     });
-    expect(lookupSrd({ kind: 'monster', name: 'Fire Bolt' })).toMatchObject({
+    expect(lookupSrdRecord({ kind: 'monster', name: 'Fire Bolt' })).toMatchObject({
       ok: false,
       code: 'not_found',
     });
-    expect(lookupSrd({ kind: 'spell', ref: 'spell:unknown' })).toMatchObject({
+    expect(lookupSrdRecord({ kind: 'spell', ref: 'spell:unknown' })).toMatchObject({
       ok: false,
       code: 'not_found',
     });
   });
 
-  it('exports the SRD catalog, license, and lookup facade from the package barrel', () => {
-    const result = lookupSrdFromIndex({ kind: 'monster', name: 'Goblin' });
+  it('exports the SRD catalog, license, and lookup implementation from the package barrel', () => {
+    const result = core.lookupSrdRecord({ kind: 'monster', name: 'Goblin' });
 
-    expect(SRD_CATALOG_FROM_INDEX.monsters).toBe(SRD_CATALOG.monsters);
-    expect(SRD_LICENSE_FROM_INDEX).toBe(SRD_LICENSE);
+    expect(core.SRD_CATALOG.monsters).toBe(SRD_CATALOG.monsters);
+    expect(core.SRD_LICENSE).toBe(SRD_LICENSE);
+    expect(Object.hasOwn(core, 'lookupSrd')).toBe(false);
     expect(result).toMatchObject({
       ok: true,
       license: SRD_LICENSE,
