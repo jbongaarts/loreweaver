@@ -212,6 +212,43 @@ function runRename(args: string[], deps: CampaignDeps): number {
   return 0;
 }
 
+/**
+ * Resolve a campaign database path non-interactively, for commands that act on
+ * an existing campaign (checkpoints). `LOREWEAVER_DB_PATH` wins; then a named
+ * registry campaign; then the sole registered campaign.
+ */
+export function resolveCampaignDbPath(
+  root: string,
+  opts: { explicitDbPath?: string; campaignId?: string },
+): { ok: true; dbPath: string } | { ok: false; message: string } {
+  if (opts.explicitDbPath) {
+    return { ok: true, dbPath: opts.explicitDbPath };
+  }
+  const registry = loadRegistry(root);
+  if (opts.campaignId) {
+    const entry = findCampaign(registry, opts.campaignId);
+    return entry
+      ? { ok: true, dbPath: entry.dbPath }
+      : {
+          ok: false,
+          message: `no campaign with id '${opts.campaignId}'. Run 'loreweaver campaigns list'.`,
+        };
+  }
+  if (registry.campaigns.length === 1) {
+    return { ok: true, dbPath: registry.campaigns[0].dbPath };
+  }
+  if (registry.campaigns.length === 0) {
+    return {
+      ok: false,
+      message: "no campaigns registered. Create one with 'loreweaver new <name>'.",
+    };
+  }
+  return {
+    ok: false,
+    message: 'several campaigns are registered — pass a campaign id.',
+  };
+}
+
 /** `loreweaver campaigns <subcommand>` dispatcher. */
 export function runCampaignsCommand(args: string[], deps: CampaignDeps): number {
   const [subcommand, ...rest] = args;

@@ -30,6 +30,7 @@ import {
   installConfigDefaults,
   loadConfigFile,
 } from './configFile.js';
+import { runCheckpointCommand } from './checkpoints.js';
 import { campaignsDir, ensureDataRoot, resolveDataRoot } from './dataRoot.js';
 import {
   doltCheckpointRunner,
@@ -297,6 +298,19 @@ export function runCampaignsSubcommand(argv: string[]): number {
   );
 }
 
+/** `loreweaver checkpoint <list|restore|fork>` — campaign checkpoint workflow. */
+export function runCheckpointSubcommand(argv: string[]): number {
+  const cli = resolveCliEnv();
+  if (cli === undefined) {
+    return 1;
+  }
+  return runCheckpointCommand(argv.slice(3), {
+    root: cli.dataRoot,
+    env: process.env,
+    log: (message: string) => console.log(message),
+  });
+}
+
 /** Print the bare-invocation banner and resolved configuration summary. */
 function runBanner(): void {
   console.log(buildBanner(CORE_VERSION));
@@ -350,6 +364,11 @@ export function main(argv: string[] = process.argv): void {
 
   if (argv[2] === 'campaigns') {
     process.exitCode = runCampaignsSubcommand(argv);
+    return;
+  }
+
+  if (argv[2] === 'checkpoint') {
+    process.exitCode = runCheckpointSubcommand(argv);
     return;
   }
 
