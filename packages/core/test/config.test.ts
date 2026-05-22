@@ -68,8 +68,19 @@ describe('loadConfig', () => {
     ).toThrow(ConfigError);
   });
 
-  it('throws ConfigError when LOREWEAVER_DB_PATH is missing', () => {
-    expect(() => loadConfig({ ANTHROPIC_API_KEY: 'sk-test' })).toThrow(ConfigError);
+  it('leaves campaignDbPath undefined when LOREWEAVER_DB_PATH is missing', () => {
+    // LOREWEAVER_DB_PATH is optional (ADR 0004): the CLI resolves the campaign
+    // from its registry when it is unset. Provider auth is still mandatory.
+    const cfg = loadConfig({ ANTHROPIC_API_KEY: 'sk-test' });
+    expect(cfg.campaignDbPath).toBeUndefined();
+  });
+
+  it('leaves campaignDbPath undefined when LOREWEAVER_DB_PATH is blank', () => {
+    const cfg = loadConfig({
+      LOREWEAVER_DB_PATH: '   ',
+      ANTHROPIC_API_KEY: 'sk-test',
+    });
+    expect(cfg.campaignDbPath).toBeUndefined();
   });
 
   describe('provider auth', () => {
