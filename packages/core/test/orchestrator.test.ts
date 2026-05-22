@@ -276,6 +276,92 @@ describe('orchestrator turn loop', () => {
       )
       .get(CAMPAIGN, SESSION, 'scene-0') as { summary: string } | undefined;
     expect(summary).toBeDefined();
+
+    // The scene rollup is recorded as a memory update on the turn trace.
+    const trace = getTurnTrace(db, {
+      campaignId: CAMPAIGN,
+      sessionId: SESSION,
+      turnId: 'turn-1',
+    });
+    expect(trace?.memoryUpdates).toContainEqual({
+      kind: 'scene_summary',
+      sceneId: 'scene-0',
+    });
+    db.close();
+  });
+
+  it('records structured trace fields for a turn with roll and mutate_state', async () => {
+    const db = freshDb();
+    withOpenScene(db);
+    const model = new ScriptedModel([
+      toolCall('roll', { dice: '1d20+2', reason: 'perception' }),
+      toolCall('mutate_state', {
+        target: 'character',
+        field: 'hp_current',
+        op: 'set',
+        value: 9,
+      }),
+      'You steady yourself and take in the room.',
+    ]);
+
+    await runTurn(
+      { db, model, registry: createDefaultToolRegistry() },
+      baseInput(),
+    );
+
+    const trace = getTurnTrace(db, {
+      campaignId: CAMPAIGN,
+      sessionId: SESSION,
+      turnId: 'turn-1',
+    });
+    // The accepted mutation is recorded, not left as a placeholder.
+    expect(trace?.acceptedStateDelta).toHaveLength(1);
+    expect(trace?.acceptedStateDelta[0]).toMatchObject({
+      target: 'character',
+      field: 'hp_current',
+      value: 9,
+    });
+    // The dice roll is recorded as a rules resolution.
+    const rules = trace?.rulesResolution as {
+      rolls: unknown[];
+      srdLookups: unknown[];
+    };
+    expect(rules.rolls).toHaveLength(1);
+    // A clean turn rejects nothing and raises no quality flags.
+    expect(trace?.rejectedCandidates).toEqual([]);
+    expect(trace?.qualityFlags).toEqual([]);
+    db.close();
+  });
+
+  it('records rejected candidates and a quality flag when a tool call fails', async () => {
+    const db = freshDb();
+    withOpenScene(db);
+    const model = new ScriptedModel([
+      toolCall('mutate_state', {
+        target: 'character',
+        field: 'not_a_real_field',
+        op: 'set',
+        value: 1,
+      }),
+      'The attempt comes to nothing.',
+    ]);
+
+    await runTurn(
+      { db, model, registry: createDefaultToolRegistry() },
+      baseInput(),
+    );
+
+    const trace = getTurnTrace(db, {
+      campaignId: CAMPAIGN,
+      sessionId: SESSION,
+      turnId: 'turn-1',
+    });
+    expect(trace?.acceptedStateDelta).toEqual([]);
+    expect(trace?.rejectedCandidates).toHaveLength(1);
+    expect(trace?.rejectedCandidates[0]).toMatchObject({
+      tool: 'mutate_state',
+    });
+    expect(trace?.qualityFlags).toContain('tool_error');
     db.close();
   });
 
