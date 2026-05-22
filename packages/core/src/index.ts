@@ -100,8 +100,14 @@ export {
   ToolRegistry,
   DEFAULT_TOOLS,
   createDefaultToolRegistry,
+  isMarkSceneToolData,
 } from './orchestrator/tools.js';
-export type { Tool, ToolContext, ToolResult } from './orchestrator/tools.js';
+export type {
+  MarkSceneToolData,
+  Tool,
+  ToolContext,
+  ToolResult,
+} from './orchestrator/tools.js';
 export {
   assembleContext,
   renderContextMessage,

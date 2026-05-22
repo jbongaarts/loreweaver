@@ -4,7 +4,7 @@ import type { TraceJsonValue, TurnTraceConsentScope } from '../memory/turnTrace.
 import { recordTurnTrace } from '../memory/turnTrace.js';
 import { summarizeSceneFromLog } from '../memory/summary.js';
 import { createSeededRng } from './rng.js';
-import { ToolRegistry } from './tools.js';
+import { ToolRegistry, isMarkSceneToolData } from './tools.js';
 import type { ToolContext, ToolResult } from './tools.js';
 import { assembleContext, renderContextMessage } from './contextAssembler.js';
 import {
@@ -85,14 +85,12 @@ function isClosedSceneResult(call: ExecutedToolCall): string | undefined {
   if (call.tool !== 'mark_scene' || !call.result.ok) {
     return undefined;
   }
-  const data = call.result.data as
-    | { boundary?: unknown; scene?: { sceneId?: unknown } }
-    | undefined;
-  if (data?.boundary !== 'close') {
+  if (!isMarkSceneToolData(call.result.data)) {
     return undefined;
   }
-  const sceneId = data.scene?.sceneId;
-  return typeof sceneId === 'string' ? sceneId : undefined;
+  return call.result.data.boundary === 'close'
+    ? call.result.data.scene.sceneId
+    : undefined;
 }
 
 interface DerivedTraceFields {
