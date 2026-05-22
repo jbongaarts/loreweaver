@@ -1,6 +1,11 @@
 import type { Db } from '../persistence/db.js';
 import { withTransaction } from '../persistence/db.js';
-import type { ModulePack } from './types.js';
+import { jsonColumn } from '../persistence/jsonColumn.js';
+import type { ModulePack, PackLicense } from './types.js';
+
+/** JSON codecs for the module_* tables' JSON-backed columns. */
+const moduleLicenseColumn = jsonColumn<PackLicense>('module_meta.license_json');
+const moduleDataColumn = jsonColumn<unknown>('module_*.data_json');
 
 /**
  * Fork an authored module pack into a campaign DB as the immutable template.
@@ -40,8 +45,8 @@ export function forkModuleIntoCampaign(db: Db, pack: ModulePack): void {
         pack.meta.packType,
         pack.meta.description,
         pack.meta.startingLocationId,
-        JSON.stringify(pack.meta.license),
-        JSON.stringify(pack.meta),
+        moduleLicenseColumn.encode(pack.meta.license),
+        moduleDataColumn.encode(pack.meta),
       );
 
     const insLocation = txn.prepare(
@@ -49,7 +54,7 @@ export function forkModuleIntoCampaign(db: Db, pack: ModulePack): void {
        VALUES (?, ?, ?, ?)`,
     );
     for (const l of pack.locations) {
-      insLocation.run(l.id, l.name, l.summary, JSON.stringify(l));
+      insLocation.run(l.id, l.name, l.summary, moduleDataColumn.encode(l));
     }
 
     const insEncounter = txn.prepare(
@@ -57,7 +62,7 @@ export function forkModuleIntoCampaign(db: Db, pack: ModulePack): void {
        VALUES (?, ?, ?, ?)`,
     );
     for (const e of pack.encounters) {
-      insEncounter.run(e.id, e.name, e.locationId, JSON.stringify(e));
+      insEncounter.run(e.id, e.name, e.locationId, moduleDataColumn.encode(e));
     }
 
     const insNpc = txn.prepare(
@@ -65,14 +70,14 @@ export function forkModuleIntoCampaign(db: Db, pack: ModulePack): void {
        VALUES (?, ?, ?, ?)`,
     );
     for (const n of pack.npcs) {
-      insNpc.run(n.id, n.name, n.locationId, JSON.stringify(n));
+      insNpc.run(n.id, n.name, n.locationId, moduleDataColumn.encode(n));
     }
 
     const insTrigger = txn.prepare(
       `INSERT INTO module_trigger(id, data_json) VALUES (?, ?)`,
     );
     for (const t of pack.triggers) {
-      insTrigger.run(t.id, JSON.stringify(t));
+      insTrigger.run(t.id, moduleDataColumn.encode(t));
     }
 
     const insLore = txn.prepare(
@@ -80,7 +85,7 @@ export function forkModuleIntoCampaign(db: Db, pack: ModulePack): void {
        VALUES (?, ?, ?, ?)`,
     );
     for (const lore of pack.lore) {
-      insLore.run(lore.id, lore.title, lore.scope, JSON.stringify(lore));
+      insLore.run(lore.id, lore.title, lore.scope, moduleDataColumn.encode(lore));
     }
   });
 }

@@ -1,5 +1,14 @@
 import type { Db } from '../persistence/db.js';
 import { withTransaction } from '../persistence/db.js';
+import { JsonColumnError, jsonColumn } from '../persistence/jsonColumn.js';
+
+/**
+ * Codec for the JSON-valued columns mutate_state writes — plot_flags /
+ * overlay_facts `value_json` and the character / inventory `*_json` fields.
+ * {@link serializeJsonValue} / {@link parseOrUseJsonValue} wrap it so a codec
+ * failure surfaces as the domain {@link MutateStateError}.
+ */
+const jsonValueColumn = jsonColumn<unknown>('mutate_state JSON value');
 
 export type MutateStateTarget =
   | 'character'
@@ -472,16 +481,22 @@ function parseOrUseJsonValue(
     return value;
   }
   try {
-    return JSON.parse(value) as unknown;
-  } catch {
-    throw new MutateStateError(`${target}.${field} must be valid JSON`);
+    return jsonValueColumn.decode(value);
+  } catch (error) {
+    if (error instanceof JsonColumnError) {
+      throw new MutateStateError(`${target}.${field} must be valid JSON`);
+    }
+    throw error;
   }
 }
 
 function serializeJsonValue(value: unknown, label: string): string {
-  const serialized = JSON.stringify(value);
-  if (serialized === undefined) {
-    throw new MutateStateError(`${label} must be JSON-serializable`);
+  try {
+    return jsonValueColumn.encode(value);
+  } catch (error) {
+    if (error instanceof JsonColumnError) {
+      throw new MutateStateError(`${label} must be JSON-serializable`);
+    }
+    throw error;
   }
-  return serialized;
 }

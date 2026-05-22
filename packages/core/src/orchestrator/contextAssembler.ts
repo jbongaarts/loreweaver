@@ -1,4 +1,5 @@
 import type { Db } from '../persistence/db.js';
+import { jsonColumn } from '../persistence/jsonColumn.js';
 import {
   getArcSummary,
   selectAlwaysOnMemory,
@@ -25,6 +26,16 @@ import type { SceneLogRecord } from './scene.js';
  */
 
 const DEFAULT_RECENT_SESSION_LIMIT = 1;
+
+/** JSON codecs for the JSON-backed state columns the assembler reads. */
+const plotFlagValueColumn = jsonColumn<unknown>('plot_flags.value_json');
+const abilityScoresColumn = jsonColumn<Record<string, unknown>>(
+  'character.ability_scores_json',
+);
+const conditionsColumn = jsonColumn<unknown[]>('character.conditions_json');
+const inventoryPropertiesColumn = jsonColumn<Record<string, unknown>>(
+  'inventory.properties_json',
+);
 
 export interface ContextAssemblyInput {
   db: Db;
@@ -144,7 +155,7 @@ export function readStateSnapshot(db: Db): StateSnapshot {
 
   const plotFlags: Record<string, unknown> = {};
   for (const row of plotFlagRows) {
-    plotFlags[row.key] = JSON.parse(row.value_json) as unknown;
+    plotFlags[row.key] = plotFlagValueColumn.decode(row.value_json);
   }
 
   return {
@@ -155,18 +166,15 @@ export function readStateSnapshot(db: Db): StateSnapshot {
       level: character.level,
       hpCurrent: character.hp_current,
       hpMax: character.hp_max,
-      abilityScores: JSON.parse(character.ability_scores_json) as Record<
-        string,
-        unknown
-      >,
-      conditions: JSON.parse(character.conditions_json) as unknown[],
+      abilityScores: abilityScoresColumn.decode(character.ability_scores_json),
+      conditions: conditionsColumn.decode(character.conditions_json),
     },
     inventory: inventoryRows.map((row) => ({
       id: row.id,
       name: row.name,
       quantity: row.quantity,
       location: row.location ?? undefined,
-      properties: JSON.parse(row.properties_json) as Record<string, unknown>,
+      properties: inventoryPropertiesColumn.decode(row.properties_json),
     })),
     plotFlags,
     clock: {
