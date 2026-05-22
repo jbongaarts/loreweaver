@@ -1,6 +1,7 @@
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   EMBERFALL_HOLLOW,
@@ -19,6 +20,13 @@ import {
 import type { ModulePack, PackLicense } from '../src/index.js';
 
 const tmpDirs: string[] = [];
+const worldQuerySource = readFileSync(
+  join(
+    dirname(fileURLToPath(import.meta.url)),
+    '../src/world/worldQuery.ts',
+  ),
+  'utf8',
+);
 
 afterEach(() => {
   while (tmpDirs.length > 0) {
@@ -280,6 +288,11 @@ describe('campaign fork + worldQuery', () => {
       expect(percent.overlays).toEqual([]);
     }
     db.close();
+  });
+
+  it('does not imply multi-row latest-wins overlay ordering', () => {
+    expect(worldQuerySource).not.toContain('ORDER BY updated_at');
+    expect(worldQuerySource).not.toContain('latest-wins');
   });
 
   it('returns not_found for unknown targets and missing ids', () => {
