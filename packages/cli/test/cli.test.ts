@@ -86,9 +86,11 @@ describe('main', () => {
     main(['node', 'cli']);
 
     expect(process.exitCode).toBe(1);
-    expect(err.mock.calls.map((c) => String(c[0])).join('\n')).toContain(
-      'config error:',
-    );
+    const printed = err.mock.calls.map((c) => String(c[0])).join('\n');
+    expect(printed).toContain('config error:');
+    expect(printed).toContain('LOREWEAVER_DB_PATH');
+    expect(printed).toContain('ANTHROPIC_API_KEY');
+    expect(printed).toContain('loreweaver play');
   });
 });
 
@@ -130,6 +132,34 @@ describe('cli bin shebang', () => {
     () => {
       const firstLine = readFileSync(cliDist, 'utf8').split('\n', 1)[0];
       expect(firstLine).toBe('#!/usr/bin/env node');
+    },
+  );
+});
+
+describe('package smoke', () => {
+  const repoRoot = fileURLToPath(new URL('../../../', import.meta.url));
+  const cliDist = fileURLToPath(new URL('../dist/index.js', import.meta.url));
+
+  it.skipIf(!existsSync(cliDist))(
+    'packs publishable tarballs with dist output and no source/test files',
+    () => {
+      const dir = mkdtempSync(join(tmpdir(), 'lw-pack-'));
+      try {
+        const cliFiles = packWorkspace(repoRoot, '@loreweaver/cli', dir);
+        expect(cliFiles).toContain('dist/index.js');
+        expect(cliFiles).toContain('dist/play.js');
+        expect(cliFiles).toContain('package.json');
+        expect(cliFiles).not.toContain('src/index.ts');
+        expect(cliFiles).not.toContain('test/cli.test.ts');
+
+        const coreFiles = packWorkspace(repoRoot, '@loreweaver/core', dir);
+        expect(coreFiles).toContain('dist/index.js');
+        expect(coreFiles).toContain('package.json');
+        expect(coreFiles).not.toContain('src/index.ts');
+        expect(coreFiles).not.toContain('test/smoke.test.ts');
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
     },
   );
 });
@@ -188,3 +218,61 @@ describe('play graceful close on stdin EOF', () => {
     },
   );
 });
+
+function packWorkspace(
+  repoRoot: string,
+  workspace: string,
+  scratchDir: string,
+): string[] {
+  const npmArgs = ['pack', '--workspace', workspace, '--dry-run', '--json'];
+  const command = process.platform === 'win32' ? 'cmd.exe' : 'npm';
+  const args =
+    process.platform === 'win32'
+      ? ['/d', '/s', '/c', ['npm', ...npmArgs].join(' ')]
+      : npmArgs;
+  let stdout: string;
+  try {
+    stdout = execFileSync(command, args, {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      env: npmPackEnv(scratchDir),
+    });
+  } catch (err) {
+    const e = err as Error & {
+      status?: number;
+      stdout?: Buffer | string;
+      stderr?: Buffer | string;
+    };
+    throw new Error(
+      [
+        e.message,
+        `status=${e.status ?? 'unknown'}`,
+        `stdout=${String(e.stdout ?? '')}`,
+        `stderr=${String(e.stderr ?? '')}`,
+      ].join('\n'),
+    );
+  }
+  const [pack] = JSON.parse(stdout) as Array<{
+    files: Array<{ path: string }>;
+  }>;
+  return pack.files.map((file) => file.path);
+}
+
+function npmPackEnv(scratchDir: string): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = {};
+  for (const [key, value] of Object.entries(process.env)) {
+    const normalized = key.toLowerCase();
+    if (
+      normalized.startsWith('npm_config_') ||
+      normalized.startsWith('npm_lifecycle_') ||
+      normalized === 'npm_command' ||
+      normalized === 'npm_execpath'
+    ) {
+      continue;
+    }
+    env[key] = value;
+  }
+  env.npm_config_cache = join(scratchDir, 'npm-cache');
+  env.npm_config_loglevel = 'silent';
+  return env;
+}

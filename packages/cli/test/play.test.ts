@@ -352,15 +352,16 @@ describe('runDemo', () => {
 
   it('reuses an existing demo campaign on a later run', async () => {
     const { db, dispose } = makeDb();
+    const firstDeps = baseDeps(db, scriptedIO(['first turn']).io);
     // First run creates the demo campaign and plays one turn.
-    await runDemo(baseDeps(db, scriptedIO(['first turn']).io), {
+    await runDemo(firstDeps, {
       dbPath: 'demo.db',
       turnCap: 5,
     });
 
     // A second run on the same db reuses the campaign rather than recreating.
     const { io, lines } = scriptedIO(['/quit']);
-    const code = await runDemo(baseDeps(db, io), {
+    const code = await runDemo({ ...firstDeps, io }, {
       dbPath: 'demo.db',
       turnCap: 5,
     });
