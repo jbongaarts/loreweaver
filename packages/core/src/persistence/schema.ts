@@ -1,10 +1,20 @@
 import type { Db } from './db.js';
+import { withTransaction } from './db.js';
 
 export const SCHEMA_VERSION = 6;
 
+export class SchemaCompatibilityError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'SchemaCompatibilityError';
+  }
+}
+
 export function initSchema(db: Db): void {
-  db.exec(
-    `
+  assertSchemaCompatible(db);
+  withTransaction(db, (txnDb) => {
+    txnDb.exec(
+      `
     CREATE TABLE IF NOT EXISTS meta (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
@@ -213,18 +223,70 @@ export function initSchema(db: Db): void {
       ON campaign_session(campaign_id)
       WHERE status = 'open';
     `,
-  );
-  const now = new Date(0).toISOString();
-  db.prepare(
-    `INSERT OR IGNORE INTO character(id, provenance, session_id, updated_at)
+    );
+    const now = new Date(0).toISOString();
+    txnDb.prepare(
+      `INSERT OR IGNORE INTO character(id, provenance, session_id, updated_at)
      VALUES (1, ?, ?, ?)`,
-  ).run('system:init_schema', 'bootstrap', now);
-  db.prepare(
-    `INSERT OR IGNORE INTO clock(id, provenance, session_id, updated_at)
+    ).run('system:init_schema', 'bootstrap', now);
+    txnDb.prepare(
+      `INSERT OR IGNORE INTO clock(id, provenance, session_id, updated_at)
      VALUES (1, ?, ?, ?)`,
-  ).run('system:init_schema', 'bootstrap', now);
-  db.prepare('INSERT OR REPLACE INTO meta(key, value) VALUES (?, ?)').run(
-    'schema_version',
-    String(SCHEMA_VERSION),
-  );
+    ).run('system:init_schema', 'bootstrap', now);
+    txnDb.prepare('INSERT OR REPLACE INTO meta(key, value) VALUES (?, ?)').run(
+      'schema_version',
+      String(SCHEMA_VERSION),
+    );
+  });
+}
+
+function assertSchemaCompatible(db: Db): void {
+  const tableCount = (
+    db
+      .prepare(
+        "SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table'",
+      )
+      .get() as { count: number }
+  ).count;
+  if (tableCount === 0) {
+    return;
+  }
+
+  const hasMeta =
+    db
+      .prepare(
+        "SELECT 1 AS present FROM sqlite_master WHERE type = 'table' AND name = 'meta'",
+      )
+      .get() !== undefined;
+  if (!hasMeta) {
+    throw new SchemaCompatibilityError(
+      'database has existing tables but no schema_version; automatic migration is not available',
+    );
+  }
+
+  const row = db
+    .prepare('SELECT value FROM meta WHERE key = ?')
+    .get('schema_version') as { value: string } | undefined;
+  if (row === undefined) {
+    throw new SchemaCompatibilityError(
+      'database is missing schema_version; automatic migration is not available',
+    );
+  }
+
+  const version = Number.parseInt(row.value, 10);
+  if (!Number.isInteger(version) || String(version) !== row.value) {
+    throw new SchemaCompatibilityError(
+      `database schema_version is not a valid integer: ${row.value}`,
+    );
+  }
+  if (version > SCHEMA_VERSION) {
+    throw new SchemaCompatibilityError(
+      `database schema_version ${version} is newer than supported version ${SCHEMA_VERSION}`,
+    );
+  }
+  if (version < SCHEMA_VERSION) {
+    throw new SchemaCompatibilityError(
+      `database schema_version ${version} is older than supported version ${SCHEMA_VERSION}; automatic migration is not available`,
+    );
+  }
 }

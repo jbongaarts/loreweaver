@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { openDatabase, withTransaction } from '../src/persistence/db.js';
-import { initSchema, SCHEMA_VERSION } from '../src/persistence/schema.js';
+import {
+  initSchema,
+  SchemaCompatibilityError,
+  SCHEMA_VERSION,
+} from '../src/persistence/schema.js';
 
 describe('persistence', () => {
   it('initSchema records the schema version', () => {
@@ -10,6 +14,89 @@ describe('persistence', () => {
       .prepare('SELECT value FROM meta WHERE key = ?')
       .get('schema_version') as { value: string } | undefined;
     expect(row?.value).toBe(String(SCHEMA_VERSION));
+    db.close();
+  });
+
+  it('accepts a current schema without changing the version', () => {
+    const db = openDatabase(':memory:');
+    initSchema(db);
+
+    initSchema(db);
+
+    const row = db
+      .prepare('SELECT value FROM meta WHERE key = ?')
+      .get('schema_version') as { value: string } | undefined;
+    expect(row?.value).toBe(String(SCHEMA_VERSION));
+    db.close();
+  });
+
+  it('refuses newer schema versions before mutating the database', () => {
+    const db = openDatabase(':memory:');
+    db.exec(`
+      CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+      INSERT INTO meta(key, value) VALUES ('schema_version', '${SCHEMA_VERSION + 1}');
+    `);
+
+    expect(() => initSchema(db)).toThrow(SchemaCompatibilityError);
+
+    const tables = db
+      .prepare(
+        "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name",
+      )
+      .all() as Array<{ name: string }>;
+    expect(tables.map((row) => row.name)).toEqual(['meta']);
+    const row = db
+      .prepare('SELECT value FROM meta WHERE key = ?')
+      .get('schema_version') as { value: string } | undefined;
+    expect(row?.value).toBe(String(SCHEMA_VERSION + 1));
+    db.close();
+  });
+
+  it('fails clearly for older versioned databases without partial mutation', () => {
+    const db = openDatabase(':memory:');
+    db.exec(`
+      CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+      INSERT INTO meta(key, value) VALUES ('schema_version', '${SCHEMA_VERSION - 1}');
+    `);
+
+    expect(() => initSchema(db)).toThrow(SchemaCompatibilityError);
+
+    const tables = db
+      .prepare(
+        "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name",
+      )
+      .all() as Array<{ name: string }>;
+    expect(tables.map((row) => row.name)).toEqual(['meta']);
+    const row = db
+      .prepare('SELECT value FROM meta WHERE key = ?')
+      .get('schema_version') as { value: string } | undefined;
+    expect(row?.value).toBe(String(SCHEMA_VERSION - 1));
+    db.close();
+  });
+
+  it('fails clearly for legacy unversioned databases without partial mutation', () => {
+    const db = openDatabase(':memory:');
+    db.exec(`
+      CREATE TABLE character (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        name TEXT
+      );
+    `);
+
+    expect(() => initSchema(db)).toThrow(SchemaCompatibilityError);
+
+    const tables = db
+      .prepare(
+        "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name",
+      )
+      .all() as Array<{ name: string }>;
+    expect(tables.map((row) => row.name)).toEqual(['character']);
+    const characterColumns = db.prepare('PRAGMA table_info(character)').all() as
+      Array<{ name: string }>;
+    expect(characterColumns.map((column) => column.name)).toEqual([
+      'id',
+      'name',
+    ]);
     db.close();
   });
 
