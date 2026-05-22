@@ -40,17 +40,20 @@ Loreweaver's local storage is a managed per-user model with three components.
 The CLI resolves a single per-user Loreweaver data root:
 
 1. `LOREWEAVER_HOME` when set — an explicit root chosen by the user.
-2. Otherwise `~/.loreweaver` — a directory inside the user's home directory,
-   the same relative path on every platform (`C:\Users\<name>\.loreweaver` on
-   Windows, `/Users/<name>/.loreweaver` or `/home/<name>/.loreweaver`
-   elsewhere).
+2. Otherwise the per-user default for the platform:
+   - Windows: `%LOCALAPPDATA%\Loreweaver`
+     (e.g. `C:\Users\<name>\AppData\Local\Loreweaver`)
+   - macOS and Linux: `~/.loreweaver`
 
-`~/.loreweaver` is chosen over the OS application-data locations
-(`%APPDATA%`, `~/Library/Application Support`, `$XDG_DATA_HOME`): those paths
-are conventionally for OS-managed application-support data and vary per
-platform. A home-directory root is unambiguously user-level, is one path to
-document and back up everywhere, and consolidates with the managed Dolt cache
-that already defaults to `~/.loreweaver/dolt`.
+Both defaults are per-user, not machine-wide. On Windows, `%LOCALAPPDATA%`
+(`AppData\Local`) is the canonical per-user, non-roaming application-data
+location; it is preferred over `%APPDATA%` (`AppData\Roaming`) because campaign
+SQLite databases and the cached Dolt binary are large and machine-specific and
+must not be synced by roaming profiles. A home-directory dotfolder is the
+matching idiomatic per-user location on macOS and Linux, and it is already
+where the managed Dolt cache lives (`~/.loreweaver/dolt`); a bare dotfolder in
+`%USERPROFILE%` is a Unix idiom rather than the Windows convention, so Windows
+uses its native `%LOCALAPPDATA%` location instead.
 
 The root contains:
 
@@ -62,9 +65,9 @@ The root contains:
   dolt/               # managed Dolt binary cache
 ```
 
-The managed Dolt cache stays at `<root>/dolt` — i.e. `~/.loreweaver/dolt` by
-default, unchanged from current behavior. `LOREWEAVER_DOLT_HOME` overrides that
-location.
+The managed Dolt cache is `<root>/dolt` — `~/.loreweaver/dolt` on macOS and
+Linux (unchanged from current behavior) and `%LOCALAPPDATA%\Loreweaver\dolt` on
+Windows. `LOREWEAVER_DOLT_HOME` overrides that location.
 
 The CLI creates the root and its subdirectories lazily, on the first command
 that needs to write managed data — never on a plain `loreweaver` banner run.
@@ -158,13 +161,15 @@ follow-up beads under epic `loreweaver-d4r`.
 
 ## Rejected Alternatives
 
-- **OS application-data directories** (`%APPDATA%\Loreweaver`,
-  `~/Library/Application Support/Loreweaver`, `$XDG_DATA_HOME/loreweaver`):
-  rejected — those paths are conventionally for OS-managed application-support
-  data and differ per platform. A single `~/.loreweaver` home directory is
-  unambiguously user-level, identical on every platform, and consolidates with
-  the existing Dolt cache location. It can be revisited if OS-native packaging
-  later needs strict per-platform compliance.
+- **`%APPDATA%` (Roaming) on Windows:** rejected in favor of `%LOCALAPPDATA%`
+  (Local) — campaign databases and the cached Dolt binary are large and
+  machine-specific, and roaming profiles should not sync them.
+- **`~/Library/Application Support` / `$XDG_DATA_HOME` on macOS and Linux:**
+  rejected in favor of `~/.loreweaver` — a single home-directory dotfolder is
+  unambiguously user-level, easy to find and back up, and matches the existing
+  Dolt cache path. Windows still uses its canonical `%LOCALAPPDATA%` location
+  because a bare dotfolder in `%USERPROFILE%` is a Unix idiom, not the Windows
+  convention.
 - **TOML for the config file:** rejected — it would add a parser dependency to
   an intentionally lean CLI, and the registry is JSON regardless; one
   serialization keeps the storage code minimal.
