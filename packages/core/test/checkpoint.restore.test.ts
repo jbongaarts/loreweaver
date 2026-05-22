@@ -73,6 +73,36 @@ describe.skipIf(!doltOk)('CheckpointStore.restoreToNewWorkingCopy', () => {
     expect(child?.parent_id).toBe(1);
   });
 
+  it('round-trips text payloads with newlines, backslashes, and quotes', () => {
+    const root = mkdtempSync(join(tmpdir(), 'lw-rs-'));
+    const src = join(root, 'live.db');
+    const db = openDatabase(src);
+    // A multi-line CREATE statement plus a value carrying the characters a
+    // naive SQL-literal escape corrupts — backslash, newline, tab, and both
+    // quote kinds. Regression cover: dolt string literals process backslash
+    // escapes, so an unescaped `\n` in a payload silently became a real
+    // newline and broke restore.
+    db.exec(
+      'CREATE TABLE lore (\n  id TEXT PRIMARY KEY,\n  body TEXT NOT NULL\n);',
+    );
+    const tricky = 'line one\nline two\ttab \\backslash\\ \'quote\' "dquote"';
+    db.prepare('INSERT INTO lore(id, body) VALUES (?, ?)').run('l1', tricky);
+    db.close();
+
+    const store = new CheckpointStore(join(root, 'dolt'), join(root, '.beads'));
+    const id = store.checkpoint(src, 'cp1');
+
+    const dest = join(root, 'restored.db');
+    store.restoreToNewWorkingCopy(id, dest);
+
+    const rdb = openDatabase(dest);
+    const row = rdb.prepare('SELECT body FROM lore WHERE id = ?').get('l1') as
+      | { body: string }
+      | undefined;
+    rdb.close();
+    expect(row?.body).toBe(tricky);
+  });
+
   it('refuses to restore onto an existing destination', () => {
     const root = mkdtempSync(join(tmpdir(), 'lw-rs-'));
     const src = join(root, 'live.db');
