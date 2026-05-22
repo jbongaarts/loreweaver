@@ -7,7 +7,11 @@ export type {
 } from './config.js';
 export { openDatabase, withTransaction } from './persistence/db.js';
 export type { Db } from './persistence/db.js';
-export { initSchema, SCHEMA_VERSION } from './persistence/schema.js';
+export {
+  initSchema,
+  SchemaCompatibilityError,
+  SCHEMA_VERSION,
+} from './persistence/schema.js';
 export {
   TurnTraceError,
   getTurnTrace,
