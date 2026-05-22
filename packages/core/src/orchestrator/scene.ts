@@ -6,9 +6,9 @@ import { getSession } from '../session.js';
  * Live per-scene transcript and scene-boundary records (E5).
  *
  * A scene is the orchestrator's unit of bounded live context: the Context
- * Assembler feeds the current scene's `scene_log` verbatim and rolls older
- * scenes up into `scene_summary`. Exactly one scene is open per session at a
- * time; the `mark_scene` tool closes one before opening the next. This is a
+ * Assembler feeds the current scene's `scene_log` tail and rolls closed scenes
+ * up into `scene_summary`. Exactly one scene is open per session at a time;
+ * the `mark_scene` tool closes one before opening the next. This is a
  * live SQLite-only store — never written to Dolt off the per-turn path.
  */
 
@@ -70,6 +70,13 @@ export interface SceneLogRecord {
 export interface SessionSelector {
   campaignId: string;
   sessionId: string;
+}
+
+export interface SceneLogWindowInput extends SceneKey {
+  /** Return entries before this sequence number; omitted means the scene tail. */
+  beforeSeq?: number;
+  /** Maximum number of entries to return. */
+  limit: number;
 }
 
 export class SceneError extends Error {
@@ -289,6 +296,58 @@ export function listSceneLog(db: Db, key: SceneKey): SceneLogRecord[] {
     )
     .all(key.campaignId, key.sessionId, key.sceneId) as SceneLogRow[];
   return rows.map(sceneLogFromRow);
+}
+
+export function countSceneLog(db: Db, key: SceneKey): number {
+  const row = db
+    .prepare(
+      `SELECT COUNT(*) AS count
+       FROM scene_log
+       WHERE campaign_id = ? AND session_id = ? AND scene_id = ?`,
+    )
+    .get(key.campaignId, key.sessionId, key.sceneId) as { count: number };
+  return row.count;
+}
+
+export function listSceneLogWindow(
+  db: Db,
+  input: SceneLogWindowInput,
+): SceneLogRecord[] {
+  if (!Number.isInteger(input.limit) || input.limit < 0) {
+    throw new SceneError('scene log window limit must be a non-negative integer');
+  }
+  if (input.limit === 0) {
+    return [];
+  }
+  if (
+    input.beforeSeq !== undefined &&
+    (!Number.isInteger(input.beforeSeq) || input.beforeSeq < 1)
+  ) {
+    throw new SceneError('scene log window beforeSeq must be a positive integer');
+  }
+
+  const seqPredicate = input.beforeSeq === undefined ? '' : 'AND seq < ?';
+  const params =
+    input.beforeSeq === undefined
+      ? [input.campaignId, input.sessionId, input.sceneId, input.limit]
+      : [
+          input.campaignId,
+          input.sessionId,
+          input.sceneId,
+          input.beforeSeq,
+          input.limit,
+        ];
+  const rows = db
+    .prepare(
+      `SELECT campaign_id, session_id, scene_id, seq, turn_id, role, content, created_at
+       FROM scene_log
+       WHERE campaign_id = ? AND session_id = ? AND scene_id = ?
+       ${seqPredicate}
+       ORDER BY seq DESC
+       LIMIT ?`,
+    )
+    .all(...params) as SceneLogRow[];
+  return rows.reverse().map(sceneLogFromRow);
 }
 
 interface SceneRow {

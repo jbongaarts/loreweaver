@@ -4,6 +4,7 @@ import {
   assembleContext,
   closeScene,
   initSchema,
+  memoryDrilldown,
   mutateState,
   openDatabase,
   openScene,
@@ -101,6 +102,64 @@ describe('Context Assembler', () => {
     const joined = ctx.sceneTranscript.map((e) => e.content).join('\n');
     expect(joined).not.toContain('old player line');
     expect(ctx.playerInput).toBe('I ask about the missing caravan.');
+    db.close();
+  });
+
+  it('bounds long current-scene transcripts and leaves omitted entries drillable', () => {
+    const db = freshDb();
+    openScene(db, {
+      campaignId: CAMPAIGN,
+      sessionId: SESSION,
+      sceneId: 'scene-now',
+      title: 'The Tavern',
+      at: '2026-05-20T10:00:00.000Z',
+    });
+    for (const n of [1, 2, 3, 4, 5]) {
+      logTurn(
+        db,
+        'scene-now',
+        `turn-${n}`,
+        `player line ${n}`,
+        `dm line ${n}`,
+      );
+    }
+
+    const ctx = assembleContext({
+      db,
+      campaignId: CAMPAIGN,
+      sessionId: SESSION,
+      playerInput: 'continue',
+      sceneTranscriptLimit: 4,
+    });
+
+    expect(ctx.sceneTranscript.map((e) => e.content)).toEqual([
+      'player line 4',
+      'dm line 4',
+      'player line 5',
+      'dm line 5',
+    ]);
+    expect(ctx.sceneTranscriptOmittedCount).toBe(6);
+    expect(ctx.drilldownAvailable).toBe(true);
+
+    const message = renderContextMessage(ctx);
+    expect(message).not.toContain('player line 1');
+    expect(message).toContain('6 earlier current-scene entr');
+    expect(message).toContain('memory_drilldown');
+
+    const drilldown = memoryDrilldown(db, {
+      target: 'scene_log',
+      campaignId: CAMPAIGN,
+      sessionId: SESSION,
+      sceneId: 'scene-now',
+      beforeSeq: ctx.sceneTranscript[0].seq,
+      limit: 2,
+    });
+    expect(drilldown?.target).toBe('scene_log');
+    expect(
+      drilldown?.target === 'scene_log'
+        ? drilldown.records.map((e) => e.content)
+        : [],
+    ).toEqual(['player line 3', 'dm line 3']);
     db.close();
   });
 

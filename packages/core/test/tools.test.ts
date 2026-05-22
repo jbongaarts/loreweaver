@@ -7,6 +7,7 @@ import {
   createSeededRng,
   getOpenScene,
   initSchema,
+  openScene,
   openDatabase,
   parseDice,
   recordSceneSummary,
@@ -293,6 +294,50 @@ describe('memory_drilldown tool', () => {
       ctx(),
     );
     expect(result.ok).toBe(false);
+  });
+
+  it('retrieves an omitted current-scene transcript window', () => {
+    const c = ctx();
+    openScene(c.db, {
+      campaignId: c.campaignId,
+      sessionId: c.sessionId,
+      sceneId: 'scene-1',
+      title: 'The Tavern',
+      at: c.at,
+    });
+    for (const n of [1, 2, 3]) {
+      appendSceneLog(c.db, {
+        campaignId: c.campaignId,
+        sessionId: c.sessionId,
+        sceneId: 'scene-1',
+        turnId: `turn-${n}`,
+        role: 'player',
+        content: `line ${n}`,
+        at: c.at,
+      });
+    }
+
+    const result = createDefaultToolRegistry().invoke(
+      'memory_drilldown',
+      {
+        target: 'scene_log',
+        campaignId: c.campaignId,
+        sessionId: c.sessionId,
+        sceneId: 'scene-1',
+        beforeSeq: 3,
+        limit: 2,
+      },
+      c,
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const data = result.data as {
+        target: 'scene_log';
+        records: Array<{ content: string }>;
+      };
+      expect(data.records.map((e) => e.content)).toEqual(['line 1', 'line 2']);
+    }
   });
 });
 
