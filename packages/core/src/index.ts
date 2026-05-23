@@ -307,6 +307,8 @@ export type {
   RulesLookupResult,
 } from './rules/lookup.js';
 export type { RulesPackUsePolicy } from './rules/license.js';
+export { DND5E_SRD_RULES_PACK } from './rules/dnd5eSrd.js';
+export { PATHFINDER2E_REMASTER_RULES_PACK } from './rules/pathfinder2eRemaster.js';
 export { RulesPackError } from './rules/types.js';
 export type {
   CompatibleBaseSystem,
