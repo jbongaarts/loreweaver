@@ -198,10 +198,11 @@ describe('package smoke', () => {
 /**
  * `loreweaver play` must run the graceful close pipeline on EOF/Ctrl-D, not
  * just on `/quit` — the `nodeIO` prompt contract promises a closed stdin is
- * treated as a graceful quit. Spawn the built CLI with an empty (immediately
- * EOF) stdin: no turns run, so no model call is made, and on graceful close
- * the session must end up `closed`. `npm test` (root `pretest`) and CI both
- * build first; the `skipIf` only backs out a bare `vitest run` with no build.
+ * treated as a graceful quit. Spawn the built CLI with explicit character
+ * creation deferral, then EOF: no turns run, so no model call is made, and on
+ * graceful close the session must end up `closed`. `npm test` (root `pretest`)
+ * and CI both build first; the `skipIf` only backs out a bare `vitest run`
+ * with no build.
  */
 describe('play graceful close on stdin EOF', () => {
   it(
@@ -213,7 +214,7 @@ describe('play graceful close on stdin EOF', () => {
       try {
         const stdout = execFileSync(process.execPath, [cliDist, 'play'], {
           encoding: 'utf8',
-          input: '', // empty stdin -> immediate EOF, no turns, no model call
+          input: '/defer\n', // defer creation, then EOF before any turn
           timeout: 30_000,
           env: {
             ...process.env,
@@ -222,6 +223,7 @@ describe('play graceful close on stdin EOF', () => {
           },
         });
 
+        expect(stdout).toContain('Character creation deferred');
         expect(stdout).toContain('Started session');
         expect(stdout).toContain('closed and recapped');
 
