@@ -194,6 +194,56 @@ describe('rules stack resolution', () => {
     ]);
   });
 
+  it('rejects duplicate normalized record names within the same kind', () => {
+    const addon = addonPack({
+      records: [
+        record('creature:cave-goblin', {
+          name: '  goblin  ',
+        }),
+      ],
+    });
+
+    expect(() =>
+      resolveRulesStack({ base: basePack(), addons: [addon] }),
+    ).toThrow(RulesPackError);
+    expect(() =>
+      resolveRulesStack({ base: basePack(), addons: [addon] }),
+    ).toThrow(/duplicate record name/i);
+  });
+
+  it('rejects explicit overrides that change record kind', () => {
+    const base = basePack();
+    const addon = addonPack({
+      records: [
+        record('creature:goblin', {
+          kind: 'spell',
+          overrides: [overrideRef(base, 'creature:goblin')],
+        }),
+      ],
+    });
+
+    expect(() => resolveRulesStack({ base, addons: [addon] })).toThrow(
+      RulesPackError,
+    );
+    expect(() => resolveRulesStack({ base, addons: [addon] })).toThrow(
+      /preserve record kind/i,
+    );
+  });
+
+  it('rejects duplicate pack ids before resolving add-on dependencies', () => {
+    const addon = addonPack({
+      packId: 'rules:dnd5e-srd',
+      dependsOn: ['rules:missing-addon'],
+    });
+
+    expect(() =>
+      resolveRulesStack({ base: basePack(), addons: [addon] }),
+    ).toThrow(RulesPackError);
+    expect(() =>
+      resolveRulesStack({ base: basePack(), addons: [addon] }),
+    ).toThrow(/duplicate rules pack id/i);
+  });
+
   it('replaces the normalized name lookup when an override renames a record', () => {
     const base = basePack({
       records: [record('creature:goblin', { name: 'Goblin' })],

@@ -33,6 +33,8 @@ export interface RulesPackMeta {
   readonly systemId: string;
   readonly version: string;
   readonly compatibleBaseSystems?: readonly CompatibleBaseSystem[];
+  readonly order?: number;
+  readonly dependsOn?: readonly string[];
   readonly license: RulesPackLicense;
 }
 

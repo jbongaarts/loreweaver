@@ -7,15 +7,6 @@ import type {
   RulesRecordKind,
 } from './types.js';
 
-interface OrderedAddonMeta extends RulesPackMeta {
-  readonly order?: number;
-  readonly dependsOn?: readonly string[];
-}
-
-interface OrderedRulesPack extends RulesPack {
-  readonly meta: OrderedAddonMeta;
-}
-
 export interface ResolveRulesStackInput {
   readonly base: RulesPack;
   readonly addons?: readonly RulesPack[];
@@ -48,6 +39,7 @@ export function resolveRulesStack(
   input: ResolveRulesStackInput,
 ): ResolvedRulesStack {
   assertBasePack(input.base);
+  assertUniquePackIds([input.base, ...(input.addons ?? [])]);
 
   const addons = orderAddons(input.addons ?? []);
   for (const addon of addons) {
@@ -89,7 +81,19 @@ function assertBasePack(pack: RulesPack): void {
   }
 }
 
-function assertAddonPack(pack: RulesPack): asserts pack is OrderedRulesPack {
+function assertUniquePackIds(packs: readonly RulesPack[]): void {
+  const seen = new Set<string>();
+
+  for (const pack of packs) {
+    const packId = pack.meta.packId;
+    if (seen.has(packId)) {
+      throw new RulesPackError(`duplicate rules pack id in stack: ${packId}`);
+    }
+    seen.add(packId);
+  }
+}
+
+function assertAddonPack(pack: RulesPack): void {
   if (pack.meta.role !== 'addon') {
     throw new RulesPackError(
       `rules stack add-on pack must have role addon: ${pack.meta.packId}`,
@@ -97,9 +101,9 @@ function assertAddonPack(pack: RulesPack): asserts pack is OrderedRulesPack {
   }
 }
 
-function orderAddons(addons: readonly RulesPack[]): readonly OrderedRulesPack[] {
+function orderAddons(addons: readonly RulesPack[]): readonly RulesPack[] {
   return addons
-    .map((pack, index) => ({ pack: pack as OrderedRulesPack, index }))
+    .map((pack, index) => ({ pack, index }))
     .sort((a, b) => {
       const orderDelta = addonOrder(a.pack) - addonOrder(b.pack);
       return orderDelta === 0 ? a.index - b.index : orderDelta;
@@ -107,12 +111,12 @@ function orderAddons(addons: readonly RulesPack[]): readonly OrderedRulesPack[] 
     .map((item) => item.pack);
 }
 
-function addonOrder(pack: OrderedRulesPack): number {
+function addonOrder(pack: RulesPack): number {
   return pack.meta.order ?? Number.MAX_SAFE_INTEGER;
 }
 
 function assertCompatibleWithBase(
-  addon: OrderedRulesPack,
+  addon: RulesPack,
   base: RulesPackMeta,
 ): void {
   const compatible = addon.meta.compatibleBaseSystems?.some((candidate) =>
@@ -135,7 +139,7 @@ function matchesBase(
   );
 }
 
-function assertDependencies(addons: readonly OrderedRulesPack[]): void {
+function assertDependencies(addons: readonly RulesPack[]): void {
   const addonIds = new Set(addons.map((addon) => addon.meta.packId));
   const resolved = new Set<string>();
 
@@ -173,6 +177,16 @@ function mergeRecord(
   if (!namesOverride(record, existing)) {
     throw new RulesPackError(
       `duplicate record key ${record.key} from ${pack.meta.packId} must explicitly override ${existing.pack.meta.packId}`,
+    );
+  }
+  if (record.kind !== existing.record.kind) {
+    throw new RulesPackError(
+      `override record ${record.key} from ${pack.meta.packId} must preserve record kind ${existing.record.kind}`,
+    );
+  }
+  if (record.systemId !== existing.record.systemId) {
+    throw new RulesPackError(
+      `override record ${record.key} from ${pack.meta.packId} must preserve system id ${existing.record.systemId}`,
     );
   }
 
@@ -232,8 +246,16 @@ function addToKindIndex(
   record: RulesRecord,
   entry: RulesStackRecordEntry,
 ): void {
+  const normalizedName = normalizeName(record.name);
+  const existingName = index.byName.get(normalizedName);
+  if (existingName !== undefined && existingName.record.key !== record.key) {
+    throw new RulesPackError(
+      `duplicate record name ${record.name} for ${record.kind} records: ${existingName.record.key} and ${record.key}`,
+    );
+  }
+
   index.byKey.set(record.key, entry);
-  index.byName.set(normalizeName(record.name), entry);
+  index.byName.set(normalizedName, entry);
 }
 
 function removeFromKindIndex(
@@ -267,13 +289,6 @@ function freezeKindIndexes(
 
 function normalizeName(name: string): string {
   return name.trim().replace(/\s+/g, ' ').toLocaleLowerCase('en-US');
-}
-
-declare module './types.js' {
-  interface RulesPackMeta {
-    readonly order?: number;
-    readonly dependsOn?: readonly string[];
-  }
 }
 
 export { normalizeName as normalizeRulesRecordName };
