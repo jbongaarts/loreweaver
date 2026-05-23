@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+﻿import { describe, expect, it } from 'vitest';
 import {
   evaluateModelProfile,
   PREMIUM_DM_EVALUATION_THRESHOLD,
@@ -41,7 +41,7 @@ describe('model evaluation harness', () => {
         'Mira still carries the moonlit key.',
         '{"memoryUpdates":["Mira has the moonlit key"]}',
         '```tool_call',
-        '{"tool":"lookup_srd","args":{"kind":"spell","name":"Mage Armor"}}',
+        '{"tool":"lookup_rules","args":{"kind":"spell","name":"Mage Armor"}}',
         '```',
       ].join('\n'),
     ]);
@@ -62,7 +62,7 @@ describe('model evaluation harness', () => {
         rulesAdjudication: ['Mage Armor'],
         structuredOutputReliability: ['memoryUpdates'],
         memoryUpdateQuality: ['moonlit key'],
-        toolUseReliability: ['lookup_srd'],
+        toolUseReliability: ['lookup_rules'],
       },
     };
 
@@ -100,3 +100,4 @@ describe('model evaluation harness', () => {
     });
   });
 });
+

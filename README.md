@@ -21,8 +21,10 @@ plus persistent campaign memory. It should feel like a real DM inhabiting a
 living world, not a video game missing its graphics.
 
 > **Project status:** local CLI MVP. The repository now contains the
-> provider-neutral core, SQLite persistence, module/world loading, SRD-backed
-> rules lookup, deterministic tools, model orchestration, session launch/resume,
+> provider-neutral core, SQLite persistence, module/world loading,
+> multi-system rules packs (bundled D&D 5e SRD and Pathfinder 2e Remaster
+> fixtures) with provider-neutral `lookup_rules`, deterministic tools, model
+> orchestration, session launch/resume,
 > graceful session close, and optional Dolt checkpoints. The CLI can create or
 > resume a local campaign and run interactive model-backed turns, and manages
 > campaigns through a per-user data root and registry (`LOREWEAVER_DB_PATH`
@@ -194,8 +196,9 @@ First-release local CLI storage is explicit and file-based. See
 [ADR 0003](docs/adr/0003-local-cli-first-release-storage.md) for the full
 user-facing storage boundary.
 
-- **Static bundled content** lives in the package source/build output, including
-  `EMBERFALL_HOLLOW` sample module data and SRD catalog data.
+- **Static bundled content** lives in the package source/build output,
+  including `EMBERFALL_HOLLOW` sample module data, SRD catalog data, and
+  bundled rules packs (`DND5E_SRD_RULES_PACK`, `PATHFINDER2E_REMASTER_RULES_PACK`).
 - **Live campaign state** lives in the SQLite file named by
   `LOREWEAVER_DB_PATH`. SQLite sidecar files such as `-wal`, `-shm`, or
   `-journal` may appear beside it while the database is open.

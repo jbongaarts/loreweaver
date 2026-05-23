@@ -13,15 +13,34 @@ DM-authored corrections, and future import output.
 ## MVP Creation Contract
 
 The agent may propose or ask the player about choices such as name, ancestry,
-class, ability score method, hit points, equipment, and spells. The deterministic
-character-creation validator is responsible for rejecting illegal combinations,
-bad point-buy totals, invalid standard-array assignments, unsupported SRD build
-options, and spell choices that do not match the selected class.
+class, ability score method, hit points, equipment, and spells. The
+deterministic character-creation validator is responsible for rejecting
+illegal combinations and surfacing errors back to the agent.
 
-When validation succeeds, the flow writes the accepted sheet into canonical state
-through `mutate_state`. If validation fails, the flow returns the validation
-errors to the agent for a player-facing correction turn rather than partially
-persisting the sheet.
+`completeCharacterCreation` is system-aware: it reads the campaign rules
+binding (defaulting to D&D 5e SRD when no binding row exists) and dispatches
+by `base.systemId`. The bundled validators cover:
+
+- **D&D 5e SRD** (`dnd5e-srd`) — full existing behavior. Validates the level-1
+  SRD character draft: class (Fighter), ancestry (Human), point-buy or
+  standard-array ability scores, level-1 hit points derived from the class hit
+  die plus Constitution modifier, and spell legality against the selected class.
+- **Pathfinder 2e Remaster** (`pathfinder2e-remaster`) — broad level-1 draft
+  backed by the bundled ORC fixture. Validates ancestry (Human), background
+  (Acolyte), class (Fighter), ability scores within level-1 bounds with a
+  generous total range, class feat and ancestry feat (trait-matched against
+  the selected class/ancestry), starting equipment, spells (rejected for
+  non-caster classes), and HP equal to ancestry + class/level + Con modifier.
+  The data structures are open to later advancement, but only level 1 is
+  currently accepted.
+
+When validation succeeds, the flow writes the accepted sheet into canonical
+state through `mutate_state`. Both validators project into the same canonical
+`character` singleton (`name`, `ancestry`, `class_name`, `level`, `hp_current`,
+`hp_max`, `ability_scores_json`) — system-specific detail (e.g. Pathfinder
+background, feats, equipment) is summarized in the completion prompt for now.
+If validation fails, the flow returns the validation errors to the agent for a
+player-facing correction turn rather than partially persisting the sheet.
 
 ## Deferred Import Contract
 

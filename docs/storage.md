@@ -71,20 +71,44 @@ Static content ships with the package source/build output:
 - `EMBERFALL_HOLLOW` is the bundled sample module currently forked into new
   campaigns by the CLI.
 - The SRD catalog and license metadata are bundled in the core package.
+- Bundled rules packs ship in `@loreweaver/core` under `src/rules/`:
+  `DND5E_SRD_RULES_PACK` (D&D 5e SRD 5.1, CC-BY-4.0, adapted from the SRD
+  catalog) and `PATHFINDER2E_REMASTER_RULES_PACK` (Pathfinder 2e Remaster
+  fixture under the Open RPG Creative License). The Pathfinder fixture uses
+  ORC-licensed mechanical content only — no Paizo trade dress, compatibility
+  logo, or reserved setting material is bundled.
 
 When a new campaign is created, module template records are copied into
 immutable `module_*` tables in the campaign SQLite database. Later play writes
 live changes and overlays into live campaign tables; it does not mutate the
 pack source.
 
-Non-bundled rules packs (other RPG systems, publisher-licensed packs) install
-under `<root>/rules-packs/`; that directory is reserved by ADR 0004 and stays
-empty until the multiple-rules-pack work ships. Unlike module content, rules
-data is not copied into campaign databases — lookups resolve against the active
-pack at runtime.
+Non-bundled rules packs (additional systems, publisher-licensed packs,
+user-private packs) install under `<root>/rules-packs/`. Unlike module
+content, rules data is not copied into campaign databases — the per-campaign
+binding identifies which packs to resolve against and lookups go through the
+active stack at runtime.
 
 Bundled or public content must be open-licensed, public domain, original, or
 publisher-licensed. Fair use is not the storage or distribution policy.
+
+## Campaign Rules Binding
+
+Every campaign DB persists an authoritative rules binding in the singleton
+`campaign_rules_binding` table: a base rules pack identity (`systemId`,
+`packId`, `version`), an ordered JSON list of compatible add-on packs, and a
+resolution timestamp. The binding is written by `createCampaign` (default:
+D&D 5e SRD) and read by `getCampaign`, `readCampaignRulesBinding`, the
+`lookup_rules` tool, and the character-creation dispatcher.
+
+Same-schema-version campaign DBs that predate the binding row read as the
+default D&D SRD binding rather than failing, so existing campaigns keep
+working at the current schema version. Cross-version migration of the
+binding itself is out of scope and is not attempted automatically.
+
+Checkpoints serialize the binding alongside the rest of the campaign DB —
+`serializeCampaign` walks every campaign table dynamically — so a checkpoint
+restore preserves the campaign's system identity.
 
 ## Checkpoints
 

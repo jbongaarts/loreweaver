@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+﻿import { describe, expect, it } from 'vitest';
 import {
   getTurnTrace,
   initSchema,
@@ -20,7 +20,7 @@ describe('structured turn traces', () => {
       retrievedContext: [{ kind: 'scene_summary', id: 'scene-1' }],
       promptProfile: 'premium_dm',
       modelOutput: 'The shrine smells of rain and old ash.',
-      toolCalls: [{ name: 'lookup_srd', args: { name: 'Perception' } }],
+      toolCalls: [{ name: 'lookup_rules', args: { name: 'Perception' } }],
       rulesResolution: { check: 'Wisdom (Perception)', dc: 13, result: 16 },
       acceptedStateDelta: [
         {
@@ -53,7 +53,7 @@ describe('structured turn traces', () => {
       retrievedContext: [{ kind: 'scene_summary', id: 'scene-1' }],
       promptProfile: 'premium_dm',
       modelOutput: 'The shrine smells of rain and old ash.',
-      toolCalls: [{ name: 'lookup_srd', args: { name: 'Perception' } }],
+      toolCalls: [{ name: 'lookup_rules', args: { name: 'Perception' } }],
       rulesResolution: { check: 'Wisdom (Perception)', dc: 13, result: 16 },
       acceptedStateDelta: [
         {
@@ -88,3 +88,4 @@ describe('structured turn traces', () => {
     db.close();
   });
 });
+
