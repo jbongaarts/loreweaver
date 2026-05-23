@@ -158,6 +158,47 @@ export function getTurnTrace(
   if (row === undefined) {
     return undefined;
   }
+  return turnTraceFromRow(row);
+}
+
+/**
+ * All recorded turn traces for a session, ordered by `created_at` then
+ * `turn_id`. Used by the session-recap composer to aggregate accepted state
+ * deltas across the session.
+ */
+export function listTurnTraces(
+  db: Db,
+  selector: { campaignId: string; sessionId: string },
+): TurnTraceRecord[] {
+  const rows = db
+    .prepare(
+      `SELECT
+         campaign_id,
+         session_id,
+         turn_id,
+         consent_scope,
+         player_input,
+         retrieved_context_json,
+         prompt_profile,
+         model_output,
+         tool_calls_json,
+         rules_resolution_json,
+         accepted_state_delta_json,
+         rejected_candidates_json,
+         final_narration,
+         memory_updates_json,
+         human_corrections_json,
+         quality_flags_json,
+         created_at
+       FROM turn_trace
+       WHERE campaign_id = ? AND session_id = ?
+       ORDER BY created_at ASC, turn_id ASC`,
+    )
+    .all(selector.campaignId, selector.sessionId) as TurnTraceRow[];
+  return rows.map(turnTraceFromRow);
+}
+
+function turnTraceFromRow(row: TurnTraceRow): TurnTraceRecord {
   return {
     campaignId: row.campaign_id,
     sessionId: row.session_id,

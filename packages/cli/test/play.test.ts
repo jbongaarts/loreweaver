@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import {
   appendSceneLog,
+  assembleContext,
   createCampaign,
   createDefaultToolRegistry,
   DoltRepo,
@@ -18,6 +19,8 @@ import {
   listSessions,
   openDatabase,
   openScene,
+  recordTurnTrace,
+  renderContextMessage,
   startSession,
   type Db,
   type ModelClient,
@@ -157,15 +160,113 @@ describe('runPlay', () => {
     expect(out).toContain('DM: you said "open the door"');
     expect(out).toContain('closed and recapped');
 
-    // Graceful exit ran the close pipeline: session closed, recap written.
+    // Graceful exit ran the close pipeline: session closed, recap written
+    // with content drawn from played scene narration (not a factual stub).
     const session = listSessions(db, { campaignId: campaignId(db) })[0];
     expect(getOpenSession(db, { campaignId: campaignId(db) })).toBeUndefined();
-    expect(
-      getSessionRecap(db, {
-        campaignId: campaignId(db),
-        sessionId: session.sessionId,
-      }),
-    ).toBeDefined();
+    const recap = getSessionRecap(db, {
+      campaignId: campaignId(db),
+      sessionId: session.sessionId,
+    });
+    expect(recap).toBeDefined();
+    expect(recap?.recap).toContain('DM: you said "look around"');
+    expect(recap?.recap).toContain('DM: you said "open the door"');
+    expect(recap?.sourceSceneIds.length).toBeGreaterThan(0);
+    dispose();
+  });
+
+  it('persists recap content the next session can read via assembleContext', async () => {
+    // The bead acceptance is that a closed session's recap is tied to played
+    // content AND that later sessions surface it through context assembly.
+    const { db, dispose } = makeDb();
+    const { io } = scriptedIO(['look around', 'open the door', '/quit']);
+    await runPlay(baseDeps(db, io), { dbPath: 'demo.db' });
+
+    const cid = campaignId(db);
+    // Stage a fresh session as if the player re-opened the campaign next time.
+    startSession(db, {
+      campaignId: cid,
+      sessionId: 'next-session',
+      startedAt: '2026-05-21T00:00:00.000Z',
+    });
+
+    const ctx = assembleContext({
+      db,
+      campaignId: cid,
+      sessionId: 'next-session',
+      playerInput: 'I think back to last time…',
+    });
+
+    // The prior session's real narration carries forward — not a stub recap.
+    expect(ctx.recentSessionRecaps.length).toBe(1);
+    expect(ctx.recentSessionRecaps[0]?.recap).toContain(
+      'DM: you said "look around"',
+    );
+    expect(ctx.recentSessionRecaps[0]?.recap).toContain(
+      'DM: you said "open the door"',
+    );
+    // The rendered context the DM model sees mentions the carried narration.
+    const rendered = renderContextMessage(ctx);
+    expect(rendered).toContain('## Recent Sessions');
+    expect(rendered).toContain('DM: you said "look around"');
+    dispose();
+  });
+
+  it('rolls accepted state deltas from turn traces into the session recap', async () => {
+    // The bead acceptance also requires accepted-mutation continuity. The
+    // orchestrator writes a turn_trace per turn; the close composer aggregates
+    // their acceptedStateDelta into the recap's stateDelta column. We bypass
+    // the live orchestrator here by recording traces inline from a fake turn.
+    const { db, dispose } = makeDb();
+    const traceTurn = async (
+      deps: { db: Db },
+      input: RunTurnInput,
+    ): Promise<RunTurnResult> => {
+      const result = await fakeRunTurn(deps, input);
+      recordTurnTrace(deps.db, {
+        campaignId: input.campaignId,
+        sessionId: input.sessionId,
+        turnId: input.turnId,
+        consentScope: 'private',
+        playerInput: input.playerInput,
+        retrievedContext: [],
+        promptProfile: 'premium_dm',
+        modelOutput: result.narration,
+        toolCalls: [],
+        rulesResolution: null,
+        acceptedStateDelta: [
+          {
+            target: 'plot_flags',
+            field: `seen-${input.turnId}`,
+            op: 'set',
+            value: true,
+          },
+        ],
+        rejectedCandidates: [],
+        finalNarration: result.narration,
+        memoryUpdates: [],
+        humanCorrections: [],
+        qualityFlags: [],
+        createdAt: input.at,
+      });
+      return result;
+    };
+
+    const { io } = scriptedIO(['poke the lever', '/quit']);
+    await runPlay(baseDeps(db, io, traceTurn), { dbPath: 'demo.db' });
+
+    const cid = campaignId(db);
+    const session = listSessions(db, { campaignId: cid })[0];
+    const recap = getSessionRecap(db, {
+      campaignId: cid,
+      sessionId: session.sessionId,
+    });
+    expect(recap?.stateDelta).toHaveLength(1);
+    expect(recap?.stateDelta[0]).toMatchObject({
+      target: 'plot_flags',
+      op: 'set',
+      value: true,
+    });
     dispose();
   });
 

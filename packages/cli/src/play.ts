@@ -5,6 +5,7 @@ import {
   DEMO_TURN_CAP,
   DoltRepo,
   closeSessionGracefully,
+  composeSessionRecap,
   createCampaign,
   createDemoCampaign,
   getCampaign,
@@ -323,7 +324,7 @@ function gracefulClose(
   campaignId: string,
   sessionId: string,
 ): void {
-  const input = closeInput(deps, campaignId, sessionId);
+  const input = closeInput(deps, db, campaignId, sessionId);
   const checkpoint = deps.makeCheckpointRunner(dbPath);
   if (checkpoint === undefined) {
     const closed = closeSessionGracefully(db, input);
@@ -362,11 +363,11 @@ const CAMPAIGN_ARC_ID = 'arc-1';
  * Roll the campaign's closed sessions up into its arc summary, so the arc tier
  * of the memory pyramid stays current and `assembleContext` can surface it.
  *
- * The arc summary is composed mechanically by joining the session recaps; a
- * model-authored arc summary is future work and tracked with the session-recap
- * rollup (loreweaver-32m). The campaign bible is reconciled with no new entries
- * — populating world facts / NPCs / factions / threads needs an extraction
- * source and is deferred — but the row is created so the tier is live.
+ * The arc summary is composed mechanically by joining the session recaps;
+ * those recaps are now real (drawn from scene narration and accepted state
+ * deltas via {@link composeSessionRecap}), so the joined arc text reflects
+ * actual play. A model-authored arc summary and a populated campaign bible
+ * are tracked separately as loreweaver-06b.
  */
 function rollupCampaignArc(
   deps: PlayDeps,
@@ -395,21 +396,29 @@ function rollupCampaignArc(
 }
 
 /**
- * Build the graceful-close input. The recap is a factual stub: the CLI never
- * authors narrative — a model-generated session recap is a separate concern.
+ * Build the graceful-close input. The recap and accepted-mutation list are
+ * composed deterministically from played content (scene summaries, the open
+ * scene's transcript, and turn traces) by core's {@link composeSessionRecap},
+ * so the persisted recap is tied to what actually happened in the session
+ * rather than a factual stub.
  */
 function closeInput(
   deps: PlayDeps,
+  db: Db,
   campaignId: string,
   sessionId: string,
 ): CloseSessionGracefullyInput {
   const closedAt = deps.now();
+  const { recap, stateDelta } = composeSessionRecap(db, {
+    campaignId,
+    sessionId,
+  });
   return {
     campaignId,
     sessionId,
     closedAt,
-    recap: `Session ${sessionId} ended ${closedAt}.`,
-    stateDelta: [],
+    recap,
+    stateDelta,
   };
 }
 
