@@ -1,7 +1,7 @@
 import type { Db } from './db.js';
 import { withTransaction } from './db.js';
 
-export const SCHEMA_VERSION = 6;
+export const SCHEMA_VERSION = 7;
 
 export class SchemaCompatibilityError extends Error {
   constructor(message: string) {
@@ -222,6 +222,19 @@ export function initSchema(db: Db): void {
     CREATE UNIQUE INDEX IF NOT EXISTS campaign_session_one_open
       ON campaign_session(campaign_id)
       WHERE status = 'open';
+
+    -- Authoritative campaign rules binding. Singleton row identifies the base
+    -- rules pack and an ordered JSON list of compatible add-on packs. Campaign
+    -- DBs without a row are treated as the default D&D SRD binding by the
+    -- read path so legacy campaigns keep working at the same schema version.
+    CREATE TABLE IF NOT EXISTS campaign_rules_binding (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      base_system_id TEXT NOT NULL,
+      base_pack_id TEXT NOT NULL,
+      base_version TEXT NOT NULL,
+      addons_json TEXT NOT NULL DEFAULT '[]',
+      resolved_at TEXT NOT NULL
+    );
     `,
     );
     const now = new Date(0).toISOString();

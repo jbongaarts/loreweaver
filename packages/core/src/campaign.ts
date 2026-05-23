@@ -11,6 +11,12 @@
 
 import type { Db } from './persistence/db.js';
 import { withTransaction } from './persistence/db.js';
+import {
+  DEFAULT_DND5E_SRD_BINDING,
+  readCampaignRulesBinding,
+  writeCampaignRulesBinding,
+} from './rules/binding.js';
+import type { CampaignRulesBinding } from './rules/binding.js';
 import { forkModuleIntoCampaign } from './world/forkCampaign.js';
 import type { ModulePack } from './world/types.js';
 
@@ -28,11 +34,13 @@ export interface CampaignInfo {
   packId: string;
   title: string;
   startingLocationId: string;
+  rulesBinding: CampaignRulesBinding;
 }
 
 export interface CreateCampaignInput {
   campaignId: string;
   pack: ModulePack;
+  rulesBinding?: CampaignRulesBinding;
 }
 
 /**
@@ -55,16 +63,21 @@ export function createCampaign(
     );
   }
 
+  const rulesBinding: CampaignRulesBinding =
+    input.rulesBinding ?? freshDefaultBinding();
+
   return withTransaction(db, (txnDb) => {
     forkModuleIntoCampaign(txnDb, input.pack);
     txnDb
       .prepare('INSERT OR REPLACE INTO meta(key, value) VALUES (?, ?)')
       .run(CAMPAIGN_ID_META_KEY, campaignId);
+    writeCampaignRulesBinding(txnDb, rulesBinding);
     return {
       campaignId,
       packId: input.pack.meta.packId,
       title: input.pack.meta.title,
       startingLocationId: input.pack.meta.startingLocationId,
+      rulesBinding,
     };
   });
 }
@@ -73,6 +86,10 @@ export function createCampaign(
  * Read the campaign in this database, or `undefined` if none has been created.
  * A campaign exists once {@link createCampaign} has both forked a module and
  * recorded the campaign id.
+ *
+ * Campaigns whose `campaign_rules_binding` row is missing — for example,
+ * legacy DBs forked before the binding existed at this schema version — read
+ * as the default D&D SRD binding rather than failing.
  */
 export function getCampaign(db: Db): CampaignInfo | undefined {
   const idRow = db
@@ -96,5 +113,14 @@ export function getCampaign(db: Db): CampaignInfo | undefined {
     packId: moduleRow.pack_id,
     title: moduleRow.title,
     startingLocationId: moduleRow.starting_location_id,
+    rulesBinding: readCampaignRulesBinding(db) ?? DEFAULT_DND5E_SRD_BINDING,
+  };
+}
+
+function freshDefaultBinding(): CampaignRulesBinding {
+  return {
+    base: DEFAULT_DND5E_SRD_BINDING.base,
+    addons: [],
+    resolvedAt: new Date().toISOString(),
   };
 }
