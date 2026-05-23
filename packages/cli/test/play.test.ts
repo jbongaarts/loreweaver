@@ -7,6 +7,7 @@ import {
   assembleContext,
   createCampaign,
   createDefaultToolRegistry,
+  DND5E_SRD_RULES_PACK,
   DoltRepo,
   EMBERFALL_HOLLOW,
   getArcSummary,
@@ -19,6 +20,7 @@ import {
   listSessions,
   openDatabase,
   openScene,
+  readCampaignRulesBinding,
   recordTurnTrace,
   renderContextMessage,
   startSession,
@@ -198,6 +200,14 @@ describe('runPlay', () => {
         .prepare('SELECT name, class_name, hp_max FROM character WHERE id = 1')
         .get(),
     ).toEqual({ name: 'Mira', class_name: 'Fighter', hp_max: 12 });
+
+    // The unmanaged play-time campaign created above persists the default
+    // D&D SRD rules binding — runPlay relies on the DB binding/defaulting, not
+    // any external registry metadata, for system identity.
+    const binding = readCampaignRulesBinding(db);
+    expect(binding?.base.systemId).toBe(DND5E_SRD_RULES_PACK.meta.systemId);
+    expect(binding?.base.packId).toBe(DND5E_SRD_RULES_PACK.meta.packId);
+
     dispose();
   });
 
