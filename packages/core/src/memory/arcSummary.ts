@@ -1,0 +1,63 @@
+import type {
+  ModelClient,
+  ModelCompleteInput,
+  ModelMessage,
+} from '../model/client.js';
+import type { SessionRecapRecord } from './summary.js';
+
+/**
+ * System prompt the arc-summary model call runs under. The text is shaped for
+ * the future-DM-model audience: a continuity primer it can read on the next
+ * session to keep canon and tone consistent across multi-session arcs.
+ */
+const ARC_SUMMARY_SYSTEM_PROMPT = [
+  'You write continuity primers for a fantasy tabletop campaign DM model.',
+  'Read the chronological session recaps below and produce a concise narrative',
+  'summary of the campaign arc so far, suitable to feed back into the DM model',
+  'context in future sessions. Write in second person, present tense.',
+  'Target 300-500 words. Highlight ongoing threads, named NPCs, factions, and',
+  'recent canon mutations. Write as an in-world chronicle; do not address the',
+  'player about meta concerns.',
+].join(' ');
+
+export interface ComposeArcSummaryInput {
+  campaignId: string;
+  arcId: string;
+  recaps: SessionRecapRecord[];
+}
+
+/**
+ * Author an arc summary from the campaign's ordered session recaps.
+ *
+ * Pure read-side: no DB access, no writes. Caller supplies the recap list and
+ * a ModelClient; the returned text is the model's completion verbatim. Errors
+ * from the provider propagate as ModelClientError per the ModelClient
+ * contract; the caller decides how to handle them (the CLI close pipeline
+ * skips the rollup and logs a warning).
+ */
+export async function composeArcSummary(
+  model: ModelClient,
+  input: ComposeArcSummaryInput,
+): Promise<string> {
+  const userContent = renderRecaps(input.recaps);
+  const messages: ModelMessage[] = [{ role: 'user', content: userContent }];
+  return model.complete({ system: ARC_SUMMARY_SYSTEM_PROMPT, messages });
+}
+
+function renderRecaps(recaps: SessionRecapRecord[]): string {
+  const blocks = recaps.map((recap) => {
+    const delta =
+      recap.stateDelta.length === 0
+        ? '(no canon mutations)'
+        : recap.stateDelta
+            .map((entry) => '  - ' + JSON.stringify(entry))
+            .join('\n');
+    return [
+      '## ' + recap.sessionId + ' (' + recap.createdAt + ')',
+      recap.recap,
+      'Canon mutations:',
+      delta,
+    ].join('\n');
+  });
+  return blocks.join('\n\n');
+}
