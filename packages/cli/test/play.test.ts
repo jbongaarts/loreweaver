@@ -17,6 +17,7 @@ import {
   getSessionRecap,
   initSchema,
   listSessions,
+  ModelClientError,
   openDatabase,
   openScene,
   recordTurnTrace,
@@ -147,7 +148,7 @@ function baseDeps(
   return {
     io,
     openDb: () => db,
-    model: { complete: async () => '' } satisfies ModelClient,
+    model: { complete: async () => 'FAKE_ARC_SUMMARY' } satisfies ModelClient,
     registry: createDefaultToolRegistry(),
     runTurn,
     pack: EMBERFALL_HOLLOW,
@@ -377,10 +378,46 @@ describe('runPlay', () => {
     const cid = campaignId(db);
     const arc = getArcSummary(db, { campaignId: cid, arcId: 'arc-1' });
     expect(arc).toBeDefined();
-    // The arc summary mechanically includes the closed session's recap.
     const session = listSessions(db, { campaignId: cid })[0];
     expect(arc?.sourceSessionIds).toContain(session.sessionId);
-    expect(arc?.summary.length).toBeGreaterThan(0);
+    // The CLI close pipeline now hands the recap list to composeArcSummary, so
+    // arc.summary is exactly what the (fake) model returned — not a mechanical
+    // join of recap text.
+    expect(arc?.summary).toBe('FAKE_ARC_SUMMARY');
+    dispose();
+  });
+
+  it('skips arc rollup and warns when the model errors during close', async () => {
+    const { db, dispose } = makeDb();
+    const { io, lines } = scriptedIO(['/defer', 'look around', '/quit']);
+    const deps: PlayDeps = {
+      ...baseDeps(db, io),
+      model: {
+        complete: async () => {
+          throw new ModelClientError('provider down');
+        },
+      },
+    };
+
+    const code = await runPlay(deps, { dbPath: 'demo.db' });
+
+    expect(code).toBe(0);
+    const out = lines.join('\n');
+    expect(out).toContain('closed and recapped');
+    expect(out).toContain('Arc rollup skipped (model error): provider down.');
+
+    const cid = campaignId(db);
+    // Session closed and recap written despite the model error.
+    const session = listSessions(db, { campaignId: cid })[0];
+    expect(getOpenSession(db, { campaignId: cid })).toBeUndefined();
+    const recap = getSessionRecap(db, {
+      campaignId: cid,
+      sessionId: session.sessionId,
+    });
+    expect(recap).toBeDefined();
+    // arc_summary row was NOT written because the model call failed before the
+    // rollupArcSummary write.
+    expect(getArcSummary(db, { campaignId: cid, arcId: 'arc-1' })).toBeUndefined();
     dispose();
   });
 

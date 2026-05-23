@@ -60,6 +60,8 @@ export type {
   ComposeSessionRecapInput,
   ComposeSessionRecapResult,
 } from './memory/recapBuilder.js';
+export { composeArcSummary } from './memory/arcSummary.js';
+export type { ComposeArcSummaryInput } from './memory/arcSummary.js';
 export {
   getStateProvenance,
   mutateState,

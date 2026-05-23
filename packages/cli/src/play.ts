@@ -5,6 +5,7 @@ import {
   DEMO_TURN_CAP,
   DoltRepo,
   closeSessionGracefully,
+  composeArcSummary,
   composeSessionRecap,
   completeCharacterCreation,
   createCampaign,
@@ -62,7 +63,11 @@ export interface PlayDeps {
   io: CliIO;
   /** Open (creating the file if absent) the campaign database at a path. */
   openDb: (path: string) => Db;
-  /** Model client powering the DM; passed straight to `runTurn`. */
+  /**
+   * Model client powering the DM. Passed straight to `runTurn` for turn-time
+   * narration, and used by graceful close to author the campaign arc summary
+   * via {@link composeArcSummary}.
+   */
   model: ModelClient;
   /** Tool registry passed straight to `runTurn`. */
   registry: ToolRegistry;
@@ -344,7 +349,7 @@ async function launch(
   );
   const normalized = (answer ?? 'resume').toLowerCase();
   if (normalized === 'close' || normalized === 'c') {
-    gracefulClose(deps, db, dbPath, campaign.campaignId, state.session.sessionId);
+    await gracefulClose(deps, db, dbPath, campaign.campaignId, state.session.sessionId);
     return startNewSession(deps, db, campaign.campaignId);
   }
 
@@ -432,7 +437,7 @@ async function turnLoop(
     }
   }
 
-  gracefulClose(deps, db, dbPath, campaignId, sessionId);
+  await gracefulClose(deps, db, dbPath, campaignId, sessionId);
 }
 
 /**
@@ -442,13 +447,13 @@ async function turnLoop(
  * checkpointing is optional and never blocks a clean exit. A checkpoint that
  * fails after the session is already marked closed is reported, not fatal.
  */
-function gracefulClose(
+async function gracefulClose(
   deps: PlayDeps,
   db: Db,
   dbPath: string,
   campaignId: string,
   sessionId: string,
-): void {
+): Promise<void> {
   const input = closeInput(deps, db, campaignId, sessionId);
   const checkpoint = deps.makeCheckpointRunner(dbPath);
   if (checkpoint === undefined) {
@@ -478,37 +483,52 @@ function gracefulClose(
   // written before the checkpoint, so a checkpoint failure does not skip it).
   // Roll the campaign's arc up so the arc tier of the memory pyramid reflects
   // the closed session.
-  rollupCampaignArc(deps, db, campaignId);
+  await rollupCampaignArc(deps, db, campaignId);
 }
 
 /** The campaign's single ongoing arc. Multi-arc support is future work. */
 const CAMPAIGN_ARC_ID = 'arc-1';
 
 /**
- * Roll the campaign's closed sessions up into its arc summary, so the arc tier
- * of the memory pyramid stays current and `assembleContext` can surface it.
+ * Roll the campaign's closed sessions up into a model-authored arc summary,
+ * so the arc tier of the memory pyramid stays current and assembleContext
+ * can surface it as the DM model's continuity primer.
  *
- * The arc summary is composed mechanically by joining the session recaps;
- * those recaps are now real (drawn from scene narration and accepted state
- * deltas via {@link composeSessionRecap}), so the joined arc text reflects
- * actual play. A model-authored arc summary and a populated campaign bible
- * are tracked separately as loreweaver-06b.
+ * On any model error we write a warning via deps.io and return early without
+ * touching arc_summary — the prior row stays as-is so the next successful
+ * close retries the rollup. Session close, recap, and checkpoint already
+ * committed before this function runs, so a skipped rollup never strands
+ * the session.
  */
-function rollupCampaignArc(
+async function rollupCampaignArc(
   deps: PlayDeps,
   db: Db,
   campaignId: string,
-): void {
+): Promise<void> {
   const recaps = listSessions(db, { campaignId })
-    .map((session) => getSessionRecap(db, { campaignId, sessionId: session.sessionId }))
+    .map((session) =>
+      getSessionRecap(db, { campaignId, sessionId: session.sessionId }),
+    )
     .filter((recap): recap is SessionRecapRecord => recap !== undefined);
   if (recaps.length === 0) {
+    return;
+  }
+  let summary: string;
+  try {
+    summary = await composeArcSummary(deps.model, {
+      campaignId,
+      arcId: CAMPAIGN_ARC_ID,
+      recaps,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    deps.io.write('Arc rollup skipped (model error): ' + message + '.');
     return;
   }
   rollupArcSummary(db, {
     campaignId,
     arcId: CAMPAIGN_ARC_ID,
-    summary: recaps.map((recap) => recap.recap).join(' '),
+    summary,
     sourceSessionIds: recaps.map((recap) => recap.sessionId),
     campaignBible: {
       worldFacts: [],
