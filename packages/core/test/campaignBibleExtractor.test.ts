@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   extractCampaignBible,
+  ModelClientError,
+  MemorySummaryError,
   type ModelClient,
   type ModelCompleteInput,
   type SessionRecapRecord,
@@ -77,5 +79,66 @@ describe('extractCampaignBible', () => {
     const userContent = captured?.messages[0].content ?? '';
     expect(userContent).toContain('session-1');
     expect(userContent).toContain('Mira found the chalk sigil.');
+  });
+
+  it('throws MemorySummaryError when the model response has no fenced bible_json block', async () => {
+    const model = fakeModel(() => 'Here is the bible: {"worldFacts": []}');
+    await expect(
+      extractCampaignBible(model, {
+        campaignId: 'camp-1',
+        recaps: [recap('session-1', 'r', '2026-05-20T10:00:00.000Z')],
+      }),
+    ).rejects.toBeInstanceOf(MemorySummaryError);
+  });
+
+  it('throws MemorySummaryError when the fenced content is not valid JSON', async () => {
+    const model = fakeModel(
+      () => '```bible_json\nnot json at all\n```',
+    );
+    await expect(
+      extractCampaignBible(model, {
+        campaignId: 'camp-1',
+        recaps: [recap('session-1', 'r', '2026-05-20T10:00:00.000Z')],
+      }),
+    ).rejects.toBeInstanceOf(MemorySummaryError);
+  });
+
+  it('throws MemorySummaryError when the JSON has the wrong shape', async () => {
+    const model = fakeModel(
+      () =>
+        '```bible_json\n{"worldFacts": ["ok"], "majorNpcs": ["ok"]}\n```',
+    );
+    await expect(
+      extractCampaignBible(model, {
+        campaignId: 'camp-1',
+        recaps: [recap('session-1', 'r', '2026-05-20T10:00:00.000Z')],
+      }),
+    ).rejects.toBeInstanceOf(MemorySummaryError);
+  });
+
+  it('propagates ModelClientError from the provider', async () => {
+    const model: ModelClient = {
+      complete: async () => {
+        throw new ModelClientError('boom');
+      },
+    };
+    await expect(
+      extractCampaignBible(model, {
+        campaignId: 'camp-1',
+        recaps: [recap('session-1', 'r', '2026-05-20T10:00:00.000Z')],
+      }),
+    ).rejects.toBeInstanceOf(ModelClientError);
+  });
+
+  it('throws MemorySummaryError when recaps is empty', async () => {
+    const model: ModelClient = {
+      complete: async () => 'unused',
+    };
+    await expect(
+      extractCampaignBible(model, {
+        campaignId: 'camp-1',
+        recaps: [],
+      }),
+    ).rejects.toBeInstanceOf(MemorySummaryError);
   });
 });
