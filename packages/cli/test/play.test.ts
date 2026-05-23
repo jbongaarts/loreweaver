@@ -147,7 +147,7 @@ function baseDeps(
   return {
     io,
     openDb: () => db,
-    model: { complete: async () => '' } satisfies ModelClient,
+    model: { complete: async () => 'FAKE_ARC_SUMMARY' } satisfies ModelClient,
     registry: createDefaultToolRegistry(),
     runTurn,
     pack: EMBERFALL_HOLLOW,
@@ -377,10 +377,12 @@ describe('runPlay', () => {
     const cid = campaignId(db);
     const arc = getArcSummary(db, { campaignId: cid, arcId: 'arc-1' });
     expect(arc).toBeDefined();
-    // The arc summary mechanically includes the closed session's recap.
     const session = listSessions(db, { campaignId: cid })[0];
     expect(arc?.sourceSessionIds).toContain(session.sessionId);
-    expect(arc?.summary.length).toBeGreaterThan(0);
+    // The CLI close pipeline now hands the recap list to composeArcSummary, so
+    // arc.summary is exactly what the (fake) model returned — not a mechanical
+    // join of recap text.
+    expect(arc?.summary).toBe('FAKE_ARC_SUMMARY');
     dispose();
   });
 
