@@ -459,6 +459,106 @@ describe('runPlay', () => {
     dispose();
   });
 
+  it('retries the bible call once and recovers when the second attempt succeeds', async () => {
+    const { db, dispose } = makeDb();
+    const { io, lines } = scriptedIO(['/defer', 'look around', '/quit']);
+    let bibleCallCount = 0;
+    const deps: PlayDeps = {
+      ...baseDeps(db, io),
+      model: routedFakeModel({
+        bible: () => {
+          bibleCallCount++;
+          if (bibleCallCount === 1) {
+            throw new ModelClientError('first attempt fails');
+          }
+          return ROUTED_FAKE_BIBLE_JSON;
+        },
+        summary: () => FAKE_ARC_SUMMARY,
+      }),
+    };
+
+    const code = await runPlay(deps, { dbPath: 'demo.db' });
+
+    expect(code).toBe(0);
+    expect(bibleCallCount).toBe(2);
+    const out = lines.join('\n');
+    expect(out).toContain('closed and recapped');
+    // Retry succeeded silently: no skip warning written.
+    expect(out).not.toContain('Arc rollup skipped');
+
+    const cid = campaignId(db);
+    const arc = getArcSummary(db, { campaignId: cid, arcId: 'arc-1' });
+    expect(arc?.summary).toBe(FAKE_ARC_SUMMARY);
+    const bible = getCampaignBible(db, { campaignId: cid });
+    expect(bible?.worldFacts.map((e) => e.text)).toContain(
+      'Emberfall sits on a fault line',
+    );
+    dispose();
+  });
+
+  it('skips the rollup and warns when bible extraction fails twice', async () => {
+    const { db, dispose } = makeDb();
+    const { io, lines } = scriptedIO(['/defer', 'look around', '/quit']);
+    const deps: PlayDeps = {
+      ...baseDeps(db, io),
+      model: routedFakeModel({
+        bible: () => {
+          throw new ModelClientError('bible provider down');
+        },
+        summary: () => FAKE_ARC_SUMMARY,
+      }),
+    };
+
+    const code = await runPlay(deps, { dbPath: 'demo.db' });
+
+    expect(code).toBe(0);
+    const out = lines.join('\n');
+    expect(out).toContain('closed and recapped');
+    expect(out).toContain(
+      'Arc rollup skipped (bible extraction failed): bible provider down.',
+    );
+
+    const cid = campaignId(db);
+    // Session closed and recap written despite the bible failure.
+    expect(getOpenSession(db, { campaignId: cid })).toBeUndefined();
+    const session = listSessions(db, { campaignId: cid })[0];
+    expect(getSessionRecap(db, { campaignId: cid, sessionId: session.sessionId })).toBeDefined();
+    // No arc_summary row was written because the bible call failed both attempts.
+    expect(getArcSummary(db, { campaignId: cid, arcId: 'arc-1' })).toBeUndefined();
+    dispose();
+  });
+
+  it('skips the rollup and warns when arc summary fails after bible succeeded', async () => {
+    const { db, dispose } = makeDb();
+    const { io, lines } = scriptedIO(['/defer', 'look around', '/quit']);
+    const deps: PlayDeps = {
+      ...baseDeps(db, io),
+      model: routedFakeModel({
+        bible: () => ROUTED_FAKE_BIBLE_JSON,
+        summary: () => {
+          throw new ModelClientError('summary provider down');
+        },
+      }),
+    };
+
+    const code = await runPlay(deps, { dbPath: 'demo.db' });
+
+    expect(code).toBe(0);
+    const out = lines.join('\n');
+    expect(out).toContain('closed and recapped');
+    expect(out).toContain(
+      'Arc rollup skipped (arc summary failed): summary provider down.',
+    );
+
+    const cid = campaignId(db);
+    // No arc_summary row was written despite the bible succeeding — the
+    // contract is atomic: both must succeed or neither writes.
+    expect(getArcSummary(db, { campaignId: cid, arcId: 'arc-1' })).toBeUndefined();
+    // Also no campaign_bible row, since rollupArcSummary is what writes it.
+    expect(getCampaignBible(db, { campaignId: cid })).toBeUndefined();
+    dispose();
+  });
+
   it('quits gracefully when input ends (EOF) before any turn', async () => {
     const { db, dispose } = makeDb();
     const { io, lines } = scriptedIO(['/defer']); // EOF after launch.
