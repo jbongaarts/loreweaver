@@ -73,6 +73,21 @@ function scriptedIO(answers: ReadonlyArray<string>): {
   };
 }
 
+const VALID_CHARACTER_ANSWERS = [
+  'Mira',
+  'Human',
+  'Fighter',
+  'point_buy',
+  '15',
+  '14',
+  '14',
+  '10',
+  '10',
+  '8',
+  '12',
+  '',
+] as const;
+
 /**
  * A fake `runTurn` that exercises the orchestrator's observable contract
  * without a model: it opens a scene if none is open and appends the player +
@@ -147,13 +162,19 @@ function baseDeps(
 describe('runPlay', () => {
   it('creates a campaign, plays turns, and graceful-exits through the close pipeline', async () => {
     const { db, dispose } = makeDb();
-    const { io, lines } = scriptedIO(['look around', 'open the door', '/quit']);
+    const { io, lines } = scriptedIO([
+      ...VALID_CHARACTER_ANSWERS,
+      'look around',
+      'open the door',
+      '/quit',
+    ]);
 
     const code = await runPlay(baseDeps(db, io), { dbPath: 'demo.db' });
 
     expect(code).toBe(0);
     const out = lines.join('\n');
     expect(out).toContain('Created campaign');
+    expect(out).toContain('Character creation complete');
     expect(out).toContain(EMBERFALL_HOLLOW.meta.title);
     expect(out).toContain('Started session');
     expect(out).toContain('DM: you said "look around"');
@@ -172,6 +193,11 @@ describe('runPlay', () => {
     expect(recap?.recap).toContain('DM: you said "look around"');
     expect(recap?.recap).toContain('DM: you said "open the door"');
     expect(recap?.sourceSceneIds.length).toBeGreaterThan(0);
+    expect(
+      db
+        .prepare('SELECT name, class_name, hp_max FROM character WHERE id = 1')
+        .get(),
+    ).toEqual({ name: 'Mira', class_name: 'Fighter', hp_max: 12 });
     dispose();
   });
 
@@ -179,7 +205,12 @@ describe('runPlay', () => {
     // The bead acceptance is that a closed session's recap is tied to played
     // content AND that later sessions surface it through context assembly.
     const { db, dispose } = makeDb();
-    const { io } = scriptedIO(['look around', 'open the door', '/quit']);
+    const { io } = scriptedIO([
+      '/defer',
+      'look around',
+      'open the door',
+      '/quit',
+    ]);
     await runPlay(baseDeps(db, io), { dbPath: 'demo.db' });
 
     const cid = campaignId(db);
@@ -252,8 +283,14 @@ describe('runPlay', () => {
       return result;
     };
 
-    const { io } = scriptedIO(['poke the lever', '/quit']);
-    await runPlay(baseDeps(db, io, traceTurn), { dbPath: 'demo.db' });
+    await runPlay(
+      baseDeps(
+        db,
+        scriptedIO(['/defer', 'poke the lever', '/quit']).io,
+        traceTurn,
+      ),
+      { dbPath: 'demo.db' },
+    );
 
     const cid = campaignId(db);
     const session = listSessions(db, { campaignId: cid })[0];
@@ -270,9 +307,70 @@ describe('runPlay', () => {
     dispose();
   });
 
+  it('rejects an invalid character draft and prompts again before starting turns', async () => {
+    const { db, dispose } = makeDb();
+    const { io, lines } = scriptedIO([
+      'Mira',
+      'Human',
+      'Warlock',
+      'point_buy',
+      '15',
+      '14',
+      '14',
+      '10',
+      '10',
+      '8',
+      '12',
+      '',
+      ...VALID_CHARACTER_ANSWERS,
+      'look around',
+      '/quit',
+    ]);
+
+    const code = await runPlay(baseDeps(db, io), { dbPath: 'demo.db' });
+
+    expect(code).toBe(0);
+    const out = lines.join('\n');
+    expect(out).toContain('unsupported SRD class: Warlock');
+    expect(out).toContain('Character creation complete');
+    expect(out).toContain('DM: you said "look around"');
+    expect(
+      db.prepare('SELECT name, class_name FROM character WHERE id = 1').get(),
+    ).toEqual({ name: 'Mira', class_name: 'Fighter' });
+    dispose();
+  });
+
+  it('does not start a session when input ends before character creation is accepted', async () => {
+    const { db, dispose } = makeDb();
+    const { io, lines } = scriptedIO([]);
+
+    const code = await runPlay(baseDeps(db, io), { dbPath: 'demo.db' });
+
+    expect(code).toBe(1);
+    expect(lines.join('\n')).toContain('Character creation required');
+    expect(getOpenSession(db, { campaignId: campaignId(db) })).toBeUndefined();
+    dispose();
+  });
+
+  it('allows play only through the explicit character creation deferral path', async () => {
+    const { db, dispose } = makeDb();
+    const { io, lines } = scriptedIO(['/defer', 'look around', '/quit']);
+
+    const code = await runPlay(baseDeps(db, io), { dbPath: 'demo.db' });
+
+    expect(code).toBe(0);
+    const out = lines.join('\n');
+    expect(out).toContain('Character creation deferred');
+    expect(out).toContain('DM: you said "look around"');
+    expect(
+      db.prepare('SELECT name, class_name FROM character WHERE id = 1').get(),
+    ).toEqual({ name: null, class_name: null });
+    dispose();
+  });
+
   it('rolls the campaign arc up after a session closes', async () => {
     const { db, dispose } = makeDb();
-    const { io } = scriptedIO(['look around', '/quit']);
+    const { io } = scriptedIO(['/defer', 'look around', '/quit']);
 
     await runPlay(baseDeps(db, io), { dbPath: 'demo.db' });
 
@@ -288,7 +386,7 @@ describe('runPlay', () => {
 
   it('quits gracefully when input ends (EOF) before any turn', async () => {
     const { db, dispose } = makeDb();
-    const { io, lines } = scriptedIO([]); // prompt() immediately returns EOF
+    const { io, lines } = scriptedIO(['/defer']); // EOF after launch.
 
     const code = await runPlay(baseDeps(db, io), { dbPath: 'demo.db' });
 
@@ -301,7 +399,7 @@ describe('runPlay', () => {
   it('offers Resume for an open session and replays the scene tail', async () => {
     const { db, dispose } = makeDb();
     seedOpenSession(db);
-    const { io, lines } = scriptedIO(['resume', '/quit']);
+    const { io, lines } = scriptedIO(['/defer', 'resume', '/quit']);
 
     await runPlay(baseDeps(db, io), { dbPath: 'demo.db' });
 
@@ -316,7 +414,7 @@ describe('runPlay', () => {
   it('closes and recaps an open session when the player chooses close', async () => {
     const { db, dispose } = makeDb();
     seedOpenSession(db);
-    const { io, lines } = scriptedIO(['close', '/quit']);
+    const { io, lines } = scriptedIO(['/defer', 'close', '/quit']);
 
     await runPlay(baseDeps(db, io), { dbPath: 'demo.db' });
 
@@ -336,7 +434,7 @@ describe('runPlay', () => {
 
   it('reports a failed turn and keeps playing without applying it', async () => {
     const { db, dispose } = makeDb();
-    const { io, lines } = scriptedIO(['risky move', '/quit']);
+    const { io, lines } = scriptedIO(['/defer', 'risky move', '/quit']);
     const failingRunTurn = vi.fn(
       async (_deps: unknown, input: RunTurnInput): Promise<RunTurnResult> => ({
         ok: false,
@@ -365,7 +463,7 @@ describe('runPlay', () => {
 
   it('checkpoints the campaign on graceful exit and reports the id', async () => {
     const { db, dispose } = makeDb();
-    const { io, lines } = scriptedIO(['explore', '/quit']);
+    const { io, lines } = scriptedIO(['/defer', 'explore', '/quit']);
     const run = vi.fn((_liveDbPath: string, message: string) => {
       expect(message).toContain('session');
       return 'checkpoint-abc123';
@@ -386,7 +484,7 @@ describe('runPlay', () => {
 
   it('closes gracefully without a checkpoint when Dolt is unavailable', async () => {
     const { db, dispose } = makeDb();
-    const { io, lines } = scriptedIO(['/quit']);
+    const { io, lines } = scriptedIO(['/defer', '/quit']);
 
     await runPlay(baseDeps(db, io, fakeRunTurn, () => undefined), {
       dbPath: 'campaign.db',
@@ -401,7 +499,7 @@ describe('runPlay', () => {
 
   it('still closes the session when the checkpoint itself fails', async () => {
     const { db, dispose } = makeDb();
-    const { io, lines } = scriptedIO(['/quit']);
+    const { io, lines } = scriptedIO(['/defer', '/quit']);
 
     const code = await runPlay(
       baseDeps(db, io, fakeRunTurn, (dbPath) => ({
@@ -481,7 +579,7 @@ describe.skipIf(!DoltRepo.available())('runPlay Dolt checkpoint integration', ()
     const dbPath = join(root, 'campaign.db');
     const db = openDatabase(dbPath);
     initSchema(db);
-    const { io, lines } = scriptedIO(['look around', '/quit']);
+    const { io, lines } = scriptedIO(['/defer', 'look around', '/quit']);
 
     const code = await runPlay(
       { ...baseDeps(db, io), makeCheckpointRunner: doltCheckpointRunner },
