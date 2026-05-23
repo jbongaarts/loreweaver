@@ -288,6 +288,23 @@ export {
   assertShippablePack,
 } from './world/license.js';
 export type { PackUsePolicy } from './world/license.js';
+export { validateRulesPack } from './rules/validate.js';
+export {
+  evaluateRulesPackPolicy,
+  assertShippableRulesPack,
+} from './rules/license.js';
+export type { RulesPackUsePolicy } from './rules/license.js';
+export { RulesPackError } from './rules/types.js';
+export type {
+  CompatibleBaseSystem,
+  RulesPack,
+  RulesPackLicense,
+  RulesPackLicenseClass,
+  RulesPackMeta,
+  RulesPackRole,
+  RulesRecord,
+  RulesRecordKind,
+} from './rules/types.js';
 export { EMBERFALL_HOLLOW } from './world/samples/emberfallHollow.js';
 export type {
   ModulePack,
