@@ -1,5 +1,6 @@
 import type { Db } from '../persistence/db.js';
 import { jsonColumn } from '../persistence/jsonColumn.js';
+import type { ModuleRulesRequirements } from '../world/types.js';
 import { DND5E_SRD_RULES_PACK } from './dnd5eSrd.js';
 
 export interface CampaignRulesBindingPackRef {
@@ -53,6 +54,35 @@ export function writeCampaignRulesBinding(
     addonsColumn.encode([...binding.addons]),
     binding.resolvedAt,
   );
+}
+
+/**
+ * Check that a campaign rules binding satisfies the module's declared
+ * `rulesRequirements`. Returns a human-readable reason on mismatch, or
+ * `undefined` when the binding is compatible. The caller wraps the failure
+ * into a domain-appropriate error (e.g. `CampaignError`).
+ */
+export function checkBindingAgainstModuleRequirements(
+  binding: CampaignRulesBinding,
+  requirements: ModuleRulesRequirements,
+): string | undefined {
+  if (binding.base.systemId !== requirements.baseSystemId) {
+    return `module requires base rules system '${requirements.baseSystemId}', binding provides '${binding.base.systemId}'`;
+  }
+  if (
+    requirements.baseVersions !== undefined &&
+    requirements.baseVersions.length > 0 &&
+    !requirements.baseVersions.includes(binding.base.version)
+  ) {
+    return `module requires base version in [${requirements.baseVersions.join(', ')}], binding provides '${binding.base.version}'`;
+  }
+  const addonIds = new Set(binding.addons.map((addon) => addon.packId));
+  for (const requiredId of requirements.requiredAddonPackIds ?? []) {
+    if (!addonIds.has(requiredId)) {
+      return `module requires add-on pack '${requiredId}', which is not in the campaign binding`;
+    }
+  }
+  return undefined;
 }
 
 export function readCampaignRulesBinding(

@@ -13,6 +13,7 @@ import type { Db } from './persistence/db.js';
 import { withTransaction } from './persistence/db.js';
 import {
   DEFAULT_DND5E_SRD_BINDING,
+  checkBindingAgainstModuleRequirements,
   readCampaignRulesBinding,
   writeCampaignRulesBinding,
 } from './rules/binding.js';
@@ -65,6 +66,16 @@ export function createCampaign(
 
   const rulesBinding: CampaignRulesBinding =
     input.rulesBinding ?? freshDefaultBinding();
+
+  const incompat = checkBindingAgainstModuleRequirements(
+    rulesBinding,
+    input.pack.meta.rulesRequirements,
+  );
+  if (incompat !== undefined) {
+    throw new CampaignError(
+      `cannot create campaign: ${incompat}`,
+    );
+  }
 
   return withTransaction(db, (txnDb) => {
     forkModuleIntoCampaign(txnDb, input.pack);

@@ -4,6 +4,7 @@ import type {
   Location,
   ModuleMeta,
   ModulePack,
+  ModuleRulesRequirements,
   Npc,
   PackLicense,
   Trigger,
@@ -127,8 +128,39 @@ function license(value: unknown): PackLicense {
   };
 }
 
+function rulesRequirements(value: unknown): ModuleRulesRequirements {
+  const o = obj(value, 'meta.rulesRequirements');
+  const baseVersions =
+    o.baseVersions === undefined
+      ? undefined
+      : strArray(o.baseVersions, 'meta.rulesRequirements.baseVersions');
+  const requiredAddonPackIds =
+    o.requiredAddonPackIds === undefined
+      ? undefined
+      : strArray(
+          o.requiredAddonPackIds,
+          'meta.rulesRequirements.requiredAddonPackIds',
+        );
+  const optionalAddonPackIds =
+    o.optionalAddonPackIds === undefined
+      ? undefined
+      : strArray(
+          o.optionalAddonPackIds,
+          'meta.rulesRequirements.optionalAddonPackIds',
+        );
+  return {
+    baseSystemId: str(o.baseSystemId, 'meta.rulesRequirements.baseSystemId'),
+    ...(baseVersions === undefined ? {} : { baseVersions }),
+    ...(requiredAddonPackIds === undefined ? {} : { requiredAddonPackIds }),
+    ...(optionalAddonPackIds === undefined ? {} : { optionalAddonPackIds }),
+  };
+}
+
 function meta(value: unknown): ModuleMeta {
   const o = obj(value, 'meta');
+  if (o.rulesRequirements === undefined) {
+    throw new WorldModuleError('meta.rulesRequirements is required');
+  }
   return {
     packId: str(o.packId, 'meta.packId'),
     title: str(o.title, 'meta.title'),
@@ -144,6 +176,7 @@ function meta(value: unknown): ModuleMeta {
       'meta.startingLocationId',
     ),
     license: license(o.license),
+    rulesRequirements: rulesRequirements(o.rulesRequirements),
   };
 }
 
@@ -180,7 +213,7 @@ function encounter(value: unknown, i: number): Encounter {
     creatures: arr(o.creatures, `encounters[${i}].creatures`).map((c, j) => {
       const co = obj(c, `encounters[${i}].creatures[${j}]`);
       return {
-        srdRef: str(co.srdRef, `encounters[${i}].creatures[${j}].srdRef`),
+        rulesRef: str(co.rulesRef, `encounters[${i}].creatures[${j}].rulesRef`),
         count: int(co.count, `encounters[${i}].creatures[${j}].count`, 1),
         role: str(co.role, `encounters[${i}].creatures[${j}].role`),
       };

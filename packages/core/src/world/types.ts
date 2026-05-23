@@ -37,6 +37,19 @@ export interface PackLicense {
   readonly outputRestrictions: string;
 }
 
+/**
+ * Rules-system requirements a module declares against a campaign's rules
+ * binding. `baseSystemId` must match the campaign's base rules system;
+ * `baseVersions`, if present, constrains acceptable base versions; required
+ * add-on pack ids must be present in the campaign binding's add-on stack.
+ */
+export interface ModuleRulesRequirements {
+  readonly baseSystemId: string;
+  readonly baseVersions?: readonly string[];
+  readonly requiredAddonPackIds?: readonly string[];
+  readonly optionalAddonPackIds?: readonly string[];
+}
+
 export interface ModuleMeta {
   readonly packId: string;
   readonly title: string;
@@ -45,6 +58,7 @@ export interface ModuleMeta {
   /** Location id the player starts in; must resolve to a `locations[]` entry. */
   readonly startingLocationId: string;
   readonly license: PackLicense;
+  readonly rulesRequirements: ModuleRulesRequirements;
 }
 
 export interface LocationExit {
@@ -63,9 +77,13 @@ export interface Location {
   readonly tags: readonly string[];
 }
 
-/** A creature slot in an encounter. `srdRef` links to an E1 SRD record. */
+/**
+ * A creature slot in an encounter. `rulesRef` is the provider-neutral key
+ * into the campaign's resolved rules stack (e.g. `creature:goblin`) and
+ * replaces the historical D&D-only `srdRef` field.
+ */
 export interface EncounterCreature {
-  readonly srdRef: string;
+  readonly rulesRef: string;
   readonly count: number;
   readonly role: string;
 }

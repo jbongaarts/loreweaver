@@ -49,7 +49,31 @@ describe('module schema validation', () => {
     const pack = validateModulePack(clone());
     expect(pack.meta.packId).toBe('loreweaver:emberfall-hollow');
     expect(pack.locations.map((l) => l.id)).toContain('emberfall-square');
-    expect(pack.encounters[0].creatures[0].srdRef).toBe('monster:goblin');
+    expect(pack.encounters[0].creatures[0].rulesRef).toBe('creature:goblin');
+    expect(pack.meta.rulesRequirements.baseSystemId).toBe('dnd5e-srd');
+  });
+
+  it('rejects a module pack missing meta.rulesRequirements', () => {
+    const bad = clone();
+    delete (bad.meta as { rulesRequirements?: unknown }).rulesRequirements;
+    expect(() => validateModulePack(bad)).toThrow(WorldModuleError);
+    expect(() => validateModulePack(bad)).toThrow(/rulesRequirements/);
+  });
+
+  it('rejects rulesRequirements missing baseSystemId', () => {
+    const bad = clone();
+    const reqs = bad.meta.rulesRequirements as { baseSystemId?: string };
+    delete reqs.baseSystemId;
+    expect(() => validateModulePack(bad)).toThrow(WorldModuleError);
+    expect(() => validateModulePack(bad)).toThrow(/baseSystemId/);
+  });
+
+  it('rejects an encounter creature missing rulesRef', () => {
+    const bad = clone();
+    const creature = bad.encounters[0].creatures[0] as { rulesRef?: string };
+    delete creature.rulesRef;
+    expect(() => validateModulePack(bad)).toThrow(WorldModuleError);
+    expect(() => validateModulePack(bad)).toThrow(/rulesRef/);
   });
 
   it('rejects a missing required field', () => {

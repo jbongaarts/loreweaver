@@ -4,8 +4,9 @@ import type { ModulePack } from '../types.js';
  * Original sample adventure authored for Loreweaver, licensed CC-BY-4.0. It
  * exists to exercise the module schema, campaign fork, and `worldQuery`
  * without depending on any third-party adventure (that conversion is gated on
- * a confirmed legal source — see beads loreweaver-9s6). Creatures reference E1
- * SRD records by `srdRef`.
+ * a confirmed legal source — see beads loreweaver-9s6). Creatures reference
+ * rules records by provider-neutral `rulesRef`, resolved through the
+ * campaign's rules binding (default D&D 5e SRD).
  */
 export const EMBERFALL_HOLLOW: ModulePack = {
   meta: {
@@ -15,6 +16,9 @@ export const EMBERFALL_HOLLOW: ModulePack = {
     description:
       'A short cave-delve adventure: the village of Emberfall asks a wanderer to find out why goblins crept back into the hollow under the old watchtower.',
     startingLocationId: 'emberfall-square',
+    rulesRequirements: {
+      baseSystemId: 'dnd5e-srd',
+    },
     license: {
       licenseClass: 'original',
       licenseName: 'Creative Commons Attribution 4.0 International',
@@ -80,7 +84,7 @@ export const EMBERFALL_HOLLOW: ModulePack = {
       description:
         'Two goblins watching the tower mouth loose arrows from the rubble before closing to knife range.',
       locationId: 'watchtower-mouth',
-      creatures: [{ srdRef: 'monster:goblin', count: 2, role: 'sentry' }],
+      creatures: [{ rulesRef: 'creature:goblin', count: 2, role: 'sentry' }],
       reward: 'A bent iron key that opens the grain cache below.',
     },
   ],

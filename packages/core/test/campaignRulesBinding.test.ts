@@ -46,19 +46,19 @@ describe('campaign rules binding', () => {
     const db = bareDb();
     const binding: CampaignRulesBinding = {
       base: {
-        systemId: PATHFINDER2E_REMASTER_RULES_PACK.meta.systemId,
-        packId: PATHFINDER2E_REMASTER_RULES_PACK.meta.packId,
-        version: PATHFINDER2E_REMASTER_RULES_PACK.meta.version,
+        systemId: DND5E_SRD_RULES_PACK.meta.systemId,
+        packId: DND5E_SRD_RULES_PACK.meta.packId,
+        version: DND5E_SRD_RULES_PACK.meta.version,
       },
       addons: [
         {
-          systemId: PATHFINDER2E_REMASTER_RULES_PACK.meta.systemId,
-          packId: 'rules:pathfinder2e-monsters',
+          systemId: DND5E_SRD_RULES_PACK.meta.systemId,
+          packId: 'rules:dnd5e-bestiary',
           version: '1.0',
         },
         {
-          systemId: PATHFINDER2E_REMASTER_RULES_PACK.meta.systemId,
-          packId: 'rules:pathfinder2e-house-rules',
+          systemId: DND5E_SRD_RULES_PACK.meta.systemId,
+          packId: 'rules:dnd5e-house-rules',
           version: '0.1',
         },
       ],
@@ -66,7 +66,7 @@ describe('campaign rules binding', () => {
     };
 
     const info = createCampaign(db, {
-      campaignId: 'pf2e-campaign',
+      campaignId: 'dnd-campaign-with-addons',
       pack: EMBERFALL_HOLLOW,
       rulesBinding: binding,
     });
@@ -76,8 +76,8 @@ describe('campaign rules binding', () => {
     const stored = readCampaignRulesBinding(db);
     expect(stored).toEqual(binding);
     expect(stored?.addons.map((addon) => addon.packId)).toEqual([
-      'rules:pathfinder2e-monsters',
-      'rules:pathfinder2e-house-rules',
+      'rules:dnd5e-bestiary',
+      'rules:dnd5e-house-rules',
     ]);
 
     db.close();
@@ -123,6 +123,32 @@ describe('campaign rules binding', () => {
         rulesBinding: DEFAULT_DND5E_SRD_BINDING,
       }),
     ).toThrow(CampaignError);
+    db.close();
+  });
+
+  it('rejects creating a campaign whose binding is incompatible with the module', () => {
+    const db = bareDb();
+    const pathfinderBinding: CampaignRulesBinding = {
+      base: {
+        systemId: PATHFINDER2E_REMASTER_RULES_PACK.meta.systemId,
+        packId: PATHFINDER2E_REMASTER_RULES_PACK.meta.packId,
+        version: PATHFINDER2E_REMASTER_RULES_PACK.meta.version,
+      },
+      addons: [],
+      resolvedAt: '2026-05-23T12:00:00.000Z',
+    };
+
+    expect(() =>
+      createCampaign(db, {
+        campaignId: 'incompat',
+        pack: EMBERFALL_HOLLOW,
+        rulesBinding: pathfinderBinding,
+      }),
+    ).toThrow(CampaignError);
+
+    // The module rows must not have been forked.
+    const moduleRow = db.prepare('SELECT id FROM module_meta WHERE id = 1').get();
+    expect(moduleRow).toBeUndefined();
     db.close();
   });
 
