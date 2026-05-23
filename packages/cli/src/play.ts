@@ -63,7 +63,11 @@ export interface PlayDeps {
   io: CliIO;
   /** Open (creating the file if absent) the campaign database at a path. */
   openDb: (path: string) => Db;
-  /** Model client powering the DM; passed straight to `runTurn`. */
+  /**
+   * Model client powering the DM. Passed straight to `runTurn` for turn-time
+   * narration, and used by graceful close to author the campaign arc summary
+   * via {@link composeArcSummary}.
+   */
   model: ModelClient;
   /** Tool registry passed straight to `runTurn`. */
   registry: ToolRegistry;
