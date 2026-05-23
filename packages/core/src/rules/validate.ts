@@ -56,6 +56,13 @@ function arr(value: unknown, path: string): unknown[] {
   return value;
 }
 
+function required(value: unknown, path: string): unknown {
+  if (value === undefined) {
+    throw new RulesPackError(`${path} is required`);
+  }
+  return value;
+}
+
 function strArray(value: unknown, path: string): string[] {
   return arr(value, path).map((item, i) => str(item, `${path}[${i}]`));
 }
@@ -171,7 +178,7 @@ function record(value: unknown, i: number): RulesRecord {
     kind: oneOf(o.kind, `${path}.kind`, RULES_RECORD_KINDS),
     key: str(o.key, `${path}.key`),
     name: str(o.name, `${path}.name`),
-    data: o.data,
+    data: required(o.data, `${path}.data`),
     source: str(o.source, `${path}.source`),
     license: license(o.license, `${path}.license`),
     ...(o.overrides === undefined

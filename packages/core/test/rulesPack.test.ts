@@ -95,6 +95,17 @@ describe('rules pack validation', () => {
     expect(() => validateRulesPack(pack)).toThrow(/duplicate key/);
   });
 
+  it('rejects records missing required data payloads', () => {
+    const { data: _data, ...recordWithoutData } = record('creature:goblin');
+    const pack = {
+      ...validRulesPack(),
+      records: [recordWithoutData],
+    };
+
+    expect(() => validateRulesPack(pack)).toThrow(RulesPackError);
+    expect(() => validateRulesPack(pack)).toThrow(/records\[0\]\.data/);
+  });
+
   it('preserves explicit license fields on metadata and records', () => {
     const pack = validateRulesPack(
       validRulesPack({
