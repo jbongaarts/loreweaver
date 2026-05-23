@@ -11,6 +11,7 @@ import {
   EMBERFALL_HOLLOW,
   getArcSummary,
   getCampaign,
+  getCampaignBible,
   getOpenScene,
   getOpenSession,
   getSession,
@@ -35,6 +36,27 @@ import {
   type CliIO,
   type PlayDeps,
 } from '../src/play.js';
+
+const FAKE_ARC_SUMMARY = 'FAKE_ARC_SUMMARY';
+
+const ROUTED_FAKE_BIBLE_JSON =
+  '```bible_json\n' +
+  '{"worldFacts":["Emberfall sits on a fault line"],"majorNpcs":["Mira the runesmith"],"factions":["Lantern Court"],"openThreads":["The chalk sigil is unsolved"]}\n' +
+  '```';
+
+function routedFakeModel(routes: {
+  bible: () => string | Promise<string>;
+  summary: () => string | Promise<string>;
+}): ModelClient {
+  return {
+    complete: async (input) => {
+      if (input.system?.includes('extract structured world facts')) {
+        return routes.bible();
+      }
+      return routes.summary();
+    },
+  };
+}
 
 /**
  * An in-memory database whose `close()` is a no-op, so a test can assert on
@@ -148,7 +170,10 @@ function baseDeps(
   return {
     io,
     openDb: () => db,
-    model: { complete: async () => 'FAKE_ARC_SUMMARY' } satisfies ModelClient,
+    model: routedFakeModel({
+      bible: () => ROUTED_FAKE_BIBLE_JSON,
+      summary: () => FAKE_ARC_SUMMARY,
+    }),
     registry: createDefaultToolRegistry(),
     runTurn,
     pack: EMBERFALL_HOLLOW,
@@ -383,7 +408,20 @@ describe('runPlay', () => {
     // The CLI close pipeline now hands the recap list to composeArcSummary, so
     // arc.summary is exactly what the (fake) model returned — not a mechanical
     // join of recap text.
-    expect(arc?.summary).toBe('FAKE_ARC_SUMMARY');
+    expect(arc?.summary).toBe(FAKE_ARC_SUMMARY);
+
+    // The extracted bible from the routed fake model now lands in
+    // campaign_bible. Each entry is wrapped by reconcileBibleEntries.
+    const bible = getCampaignBible(db, { campaignId: cid });
+    expect(bible).toBeDefined();
+    expect(bible?.worldFacts.map((e) => e.text)).toContain(
+      'Emberfall sits on a fault line',
+    );
+    expect(bible?.majorNpcs.map((e) => e.text)).toContain('Mira the runesmith');
+    expect(bible?.factions.map((e) => e.text)).toContain('Lantern Court');
+    expect(bible?.openThreads.map((e) => e.text)).toContain(
+      'The chalk sigil is unsolved',
+    );
     dispose();
   });
 
@@ -404,7 +442,7 @@ describe('runPlay', () => {
     expect(code).toBe(0);
     const out = lines.join('\n');
     expect(out).toContain('closed and recapped');
-    expect(out).toContain('Arc rollup skipped (model error): provider down.');
+    expect(out).toContain('Arc rollup skipped (bible extraction failed): provider down.');
 
     const cid = campaignId(db);
     // Session closed and recap written despite the model error.
