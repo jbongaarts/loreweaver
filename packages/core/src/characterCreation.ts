@@ -45,15 +45,10 @@ export interface CreatedCharacter {
   readonly spells: readonly string[];
 }
 
-export type CharacterCreationResult =
-  | {
-      readonly ok: true;
-      readonly character: CreatedCharacter;
-    }
-  | {
-      readonly ok: false;
-      readonly errors: readonly string[];
-    };
+export interface CharacterCreationResult {
+  readonly ok: true;
+  readonly character: CreatedCharacter;
+}
 
 export interface CharacterCreationMutationMetadata {
   readonly provenance: string;
@@ -148,11 +143,8 @@ export function buildCharacterCreationMutations(
   metadata: CharacterCreationMutationMetadata,
   catalog: SrdCatalog = SRD_CATALOG,
 ): MutateStateInput[] {
-  const result = validateCharacterDraft(draft, catalog);
-  if (!result.ok) {
-    throw new CharacterCreationError(result.errors);
-  }
-  return characterMutations(result.character, metadata);
+  const { character } = validateCharacterDraft(draft, catalog);
+  return characterMutations(character, metadata);
 }
 
 export function completeCharacterCreation(
@@ -161,24 +153,21 @@ export function completeCharacterCreation(
   catalog: SrdCatalog = SRD_CATALOG,
 ): CompleteCharacterCreationResult {
   try {
-    const validation = validateCharacterDraft(input.draft, catalog);
-    if (!validation.ok) {
-      return correctionResult(validation.errors);
-    }
+    const { character } = validateCharacterDraft(input.draft, catalog);
 
     const metadata = {
       provenance: input.provenance ?? 'character_creation:complete',
       sessionId: input.sessionId,
       at: input.at,
     };
-    const mutations = characterMutations(validation.character, metadata);
+    const mutations = characterMutations(character, metadata);
     mutateStateBatch(db, mutations);
 
     return {
       ok: true,
-      character: validation.character,
+      character,
       mutationsApplied: mutations.length,
-      prompt: completionPrompt(validation.character),
+      prompt: completionPrompt(character),
     };
   } catch (error) {
     if (error instanceof CharacterCreationError) {
