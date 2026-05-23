@@ -293,6 +293,19 @@ export {
   evaluateRulesPackPolicy,
   assertShippableRulesPack,
 } from './rules/license.js';
+export { resolveRulesStack, normalizeRulesRecordName } from './rules/stack.js';
+export type {
+  ResolvedRulesStack,
+  ResolveRulesStackInput,
+  RulesStackKindIndex,
+  RulesStackRecordEntry,
+  RulesStackRecordSource,
+} from './rules/stack.js';
+export { lookupRulesRecord } from './rules/lookup.js';
+export type {
+  RulesLookupInput,
+  RulesLookupResult,
+} from './rules/lookup.js';
 export type { RulesPackUsePolicy } from './rules/license.js';
 export { RulesPackError } from './rules/types.js';
 export type {
