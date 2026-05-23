@@ -15,6 +15,7 @@ export {
 export {
   TurnTraceError,
   getTurnTrace,
+  listTurnTraces,
   recordTurnTrace,
 } from './memory/turnTrace.js';
 export type {
@@ -54,6 +55,11 @@ export type {
   SessionRecapInput,
   SessionRecapRecord,
 } from './memory/summary.js';
+export { composeSessionRecap } from './memory/recapBuilder.js';
+export type {
+  ComposeSessionRecapInput,
+  ComposeSessionRecapResult,
+} from './memory/recapBuilder.js';
 export {
   getStateProvenance,
   mutateState,
