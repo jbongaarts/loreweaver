@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   composeArcSummary,
+  ModelClientError,
+  MemorySummaryError,
   type ModelClient,
   type ModelCompleteInput,
   type SessionRecapRecord,
@@ -64,5 +66,33 @@ describe('composeArcSummary', () => {
     expect(userContent).toContain('session-1');
     expect(userContent).toContain('Mira found the chalk sigil.');
     expect(userContent).toContain('found_sigil');
+  });
+
+  it('propagates ModelClientError from the provider', async () => {
+    const model: ModelClient = {
+      complete: async () => {
+        throw new ModelClientError('boom');
+      },
+    };
+    await expect(
+      composeArcSummary(model, {
+        campaignId: 'camp-1',
+        arcId: 'arc-1',
+        recaps: [recap('session-1', 'r', '2026-05-20T10:00:00.000Z')],
+      }),
+    ).rejects.toBeInstanceOf(ModelClientError);
+  });
+
+  it('throws MemorySummaryError when recaps is empty', async () => {
+    const model: ModelClient = {
+      complete: async () => 'unused',
+    };
+    await expect(
+      composeArcSummary(model, {
+        campaignId: 'camp-1',
+        arcId: 'arc-1',
+        recaps: [],
+      }),
+    ).rejects.toBeInstanceOf(MemorySummaryError);
   });
 });

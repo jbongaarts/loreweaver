@@ -3,6 +3,7 @@ import type {
   ModelCompleteInput,
   ModelMessage,
 } from '../model/client.js';
+import { MemorySummaryError } from './summary.js';
 import type { SessionRecapRecord } from './summary.js';
 
 /**
@@ -39,6 +40,11 @@ export async function composeArcSummary(
   model: ModelClient,
   input: ComposeArcSummaryInput,
 ): Promise<string> {
+  if (input.recaps.length === 0) {
+    throw new MemorySummaryError(
+      'composeArcSummary requires at least one session recap',
+    );
+  }
   const userContent = renderRecaps(input.recaps);
   const messages: ModelMessage[] = [{ role: 'user', content: userContent }];
   return model.complete({ system: ARC_SUMMARY_SYSTEM_PROMPT, messages });
