@@ -13,16 +13,19 @@ describe('DM system prompt', () => {
     expect(prompt.toLowerCase()).toContain('narrate');
     // All mechanics go through tools, not prose.
     expect(prompt).toMatch(/tool/i);
-    // lookup_srd before running any creature.
-    expect(prompt).toContain('lookup_srd');
+    // lookup_rules before running any creature or rules mechanic.
+    expect(prompt).toContain('lookup_rules');
     expect(prompt.toLowerCase()).toContain('creature');
+    // Prompt should be system-neutral.
+    expect(prompt).not.toContain('lookup_srd');
+    expect(prompt).not.toContain('SRD');
     // state changes must go through mutate_state, not narration.
     expect(prompt).toContain('mutate_state');
   });
 
   it('lists the available tools and the tool-call protocol', () => {
     const prompt = buildSystemPrompt(createDefaultToolRegistry());
-    for (const name of ['roll', 'mark_scene', 'lookup_srd']) {
+    for (const name of ['roll', 'mark_scene', 'lookup_rules']) {
       expect(prompt).toContain(name);
     }
     expect(prompt).toContain('tool_call');
@@ -53,7 +56,7 @@ describe('parseToolCalls', () => {
   it('extracts multiple tool calls in order', () => {
     const text = [
       '```tool_call',
-      '{"tool": "lookup_srd", "args": {"kind": "monster", "name": "Goblin"}}',
+      '{"tool": "lookup_rules", "args": {"kind": "creature", "name": "Goblin"}}',
       '```',
       'then',
       '```tool_call',
@@ -62,7 +65,7 @@ describe('parseToolCalls', () => {
     ].join('\n');
     const calls = parseToolCalls(text);
     expect(calls.map((c) => (c.ok ? c.tool : 'ERR'))).toEqual([
-      'lookup_srd',
+      'lookup_rules',
       'roll',
     ]);
   });

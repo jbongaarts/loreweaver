@@ -202,7 +202,7 @@ describe('E5 epic verification', () => {
     db.close();
   });
 
-  it('AC5: lookup_srd is invoked before the creature is run in combat', async () => {
+  it('AC5: lookup_rules is invoked before the creature is run in combat', async () => {
     const db = freshDbWithSession({
       campaignId: CAMPAIGN,
       sessionId: SESSION,
@@ -210,7 +210,7 @@ describe('E5 epic verification', () => {
     openCurrentScene(db);
     // The DM looks up the Goblin's real stats, THEN resolves its attack.
     const model = new ScriptedModel([
-      toolCall('lookup_srd', { kind: 'monster', name: 'Goblin' }),
+      toolCall('lookup_rules', { kind: 'creature', name: 'Goblin' }),
       toolCall('roll', { dice: '1d20+4', reason: 'goblin scimitar attack' }),
       'The goblin darts in; its scimitar scrapes across your shield.',
     ]);
@@ -221,7 +221,7 @@ describe('E5 epic verification', () => {
     );
 
     expect(result.ok).toBe(true);
-    const lookupIdx = indexOfTool(result.toolCalls, 'lookup_srd');
+    const lookupIdx = indexOfTool(result.toolCalls, 'lookup_rules');
     const rollIdx = indexOfTool(result.toolCalls, 'roll');
     expect(lookupIdx).toBeGreaterThanOrEqual(0);
     expect(rollIdx).toBeGreaterThanOrEqual(0);
