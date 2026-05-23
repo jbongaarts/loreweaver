@@ -114,6 +114,19 @@ const FEAT_REACTIVE_STRIKE: RulesRecord = record({
   },
 });
 
+const FEAT_NATURAL_AMBITION: RulesRecord = record({
+  kind: 'feat',
+  key: 'feat:natural-ambition',
+  name: 'Natural Ambition',
+  data: {
+    level: 1,
+    traits: ['Human'],
+    actionCost: null,
+    effect:
+      'You were raised with ambition. You gain a 1st-level class feat for your class. You must satisfy any prerequisites.',
+  },
+});
+
 const EQUIPMENT_LONGSWORD: RulesRecord = record({
   kind: 'equipment',
   key: 'equipment:longsword',
@@ -165,6 +178,7 @@ export const PATHFINDER2E_REMASTER_RULES_PACK: RulesPack = {
     BACKGROUND_ACOLYTE,
     CLASS_FIGHTER,
     FEAT_REACTIVE_STRIKE,
+    FEAT_NATURAL_AMBITION,
     EQUIPMENT_LONGSWORD,
     SPELL_DETECT_MAGIC,
   ],

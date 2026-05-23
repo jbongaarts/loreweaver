@@ -369,6 +369,15 @@ export {
   completeCharacterCreation,
   validateCharacterDraft,
 } from './characterCreation.js';
+export {
+  PathfinderCharacterCreationError,
+  validatePathfinderCharacterDraft,
+} from './character/pathfinder2e.js';
+export type {
+  CreatedPathfinderCharacter,
+  PathfinderCharacterCreationResult,
+  PathfinderCharacterDraft,
+} from './character/pathfinder2e.js';
 export type {
   AbilityScoreMethod,
   AbilityScoreName,

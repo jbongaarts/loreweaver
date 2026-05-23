@@ -1,3 +1,11 @@
+import {
+  PathfinderCharacterCreationError,
+  validatePathfinderCharacterDraft,
+} from './character/pathfinder2e.js';
+import type {
+  CreatedPathfinderCharacter,
+  PathfinderCharacterDraft,
+} from './character/pathfinder2e.js';
 import type { Db } from './persistence/db.js';
 import {
   DEFAULT_DND5E_SRD_BINDING,
@@ -68,7 +76,7 @@ export interface CharacterCreationMutationMetadata {
 }
 
 export interface CompleteCharacterCreationInput {
-  readonly draft: CharacterCreationDraft;
+  readonly draft: CharacterCreationDraft | PathfinderCharacterDraft;
   readonly sessionId: string;
   readonly at: string;
   readonly provenance?: string;
@@ -165,6 +173,10 @@ export function completeCharacterCreation(
 ): CompleteCharacterCreationResult {
   const system = resolveCampaignSystem(db);
 
+  if (system === 'pathfinder2e-remaster') {
+    return completePathfinderCharacterCreation(db, input);
+  }
+
   if (system !== 'dnd5e-srd') {
     return correctionResult([
       `character creation for rules system '${system}' is not yet implemented`,
@@ -172,7 +184,10 @@ export function completeCharacterCreation(
   }
 
   try {
-    const { character } = validateCharacterDraft(input.draft, catalog);
+    const { character } = validateCharacterDraft(
+      input.draft as CharacterCreationDraft,
+      catalog,
+    );
 
     const metadata = {
       provenance: input.provenance ?? 'character_creation:complete',
@@ -195,6 +210,81 @@ export function completeCharacterCreation(
 
     throw error;
   }
+}
+
+function completePathfinderCharacterCreation(
+  db: Db,
+  input: CompleteCharacterCreationInput,
+): CompleteCharacterCreationResult {
+  try {
+    const { character } = validatePathfinderCharacterDraft(
+      input.draft as PathfinderCharacterDraft,
+    );
+
+    const metadata = {
+      provenance: input.provenance ?? 'character_creation:complete',
+      sessionId: input.sessionId,
+      at: input.at,
+    };
+    const mutations = pathfinderCharacterMutations(character, metadata);
+    mutateStateBatch(db, mutations);
+
+    const projection: CreatedCharacter = {
+      name: character.name,
+      ancestry: character.ancestry,
+      className: character.className,
+      level: character.level,
+      abilityScores: character.abilityScores,
+      maxHitPoints: character.maxHitPoints,
+      spells: character.spells,
+    };
+
+    return {
+      ok: true,
+      character: projection,
+      mutationsApplied: mutations.length,
+      prompt: pathfinderCompletionPrompt(character),
+    };
+  } catch (error) {
+    if (error instanceof PathfinderCharacterCreationError) {
+      return correctionResult(error.errors);
+    }
+    throw error;
+  }
+}
+
+function pathfinderCharacterMutations(
+  character: CreatedPathfinderCharacter,
+  metadata: CharacterCreationMutationMetadata,
+): MutateStateInput[] {
+  const base = {
+    target: 'character',
+    op: 'set',
+    provenance: metadata.provenance,
+    sessionId: metadata.sessionId,
+    at: metadata.at,
+  } as const;
+
+  return [
+    { ...base, field: 'name', value: character.name },
+    { ...base, field: 'ancestry', value: character.ancestry },
+    { ...base, field: 'class_name', value: character.className },
+    { ...base, field: 'level', value: character.level },
+    { ...base, field: 'hp_current', value: character.maxHitPoints },
+    { ...base, field: 'hp_max', value: character.maxHitPoints },
+    {
+      ...base,
+      field: 'ability_scores_json',
+      value: JSON.stringify(character.abilityScores),
+    },
+    { ...base, field: 'conditions_json', value: JSON.stringify([]) },
+  ];
+}
+
+function pathfinderCompletionPrompt(
+  character: CreatedPathfinderCharacter,
+): string {
+  return `Character creation complete: ${character.name} is a level ${character.level} ${character.ancestry} ${character.className} (${character.background}; class feat ${character.classFeat}, ancestry feat ${character.ancestryFeat}).`;
 }
 
 /**

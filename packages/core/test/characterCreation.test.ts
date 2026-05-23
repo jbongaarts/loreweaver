@@ -205,13 +205,15 @@ describe('character creation', () => {
     db.close();
   });
 
-  it('refuses the D&D draft when the campaign binding is Pathfinder', () => {
+  it('refuses a D&D-shaped draft when the campaign binding is Pathfinder', () => {
     const db = openDatabase(':memory:');
     initSchema(db);
     // Hand-write a Pathfinder binding without going through createCampaign so
     // we bypass module-compatibility validation (D&D Emberfall requires the
     // D&D binding). The dispatcher in completeCharacterCreation should still
-    // route by the persisted binding's systemId.
+    // route by the persisted binding's systemId — and the Pathfinder validator
+    // should reject the D&D-shaped draft (no background / classFeat / ancestry
+    // feat / equipment fields).
     writeCampaignRulesBinding(db, {
       base: {
         systemId: PATHFINDER2E_REMASTER_RULES_PACK.meta.systemId,
@@ -230,7 +232,8 @@ describe('character creation', () => {
 
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(result.errors.join(' ')).toContain('pathfinder2e-remaster');
+      // The Pathfinder validator surfaces concrete missing-field errors.
+      expect(result.errors.length).toBeGreaterThan(0);
     }
     // No D&D character row was written.
     const row = db
