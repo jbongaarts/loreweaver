@@ -1,5 +1,9 @@
 import type { Db } from './persistence/db.js';
 import {
+  DEFAULT_DND5E_SRD_BINDING,
+  readCampaignRulesBinding,
+} from './rules/binding.js';
+import {
   mutateStateBatch,
   type MutateStateInput,
 } from './state/mutateState.js';
@@ -11,6 +15,13 @@ import type {
   SrdRecord,
   SrdSpellRecord,
 } from './srd/types.js';
+
+/**
+ * The rules system the character creator is dispatching for. The string set
+ * mirrors the `systemId` field on bundled rules packs; unsupported systems
+ * surface a correction response rather than a thrown error.
+ */
+export type CharacterCreationSystem = 'dnd5e-srd' | 'pathfinder2e-remaster';
 
 export type AbilityScoreName =
   | 'strength'
@@ -152,6 +163,14 @@ export function completeCharacterCreation(
   input: CompleteCharacterCreationInput,
   catalog: SrdCatalog = SRD_CATALOG,
 ): CompleteCharacterCreationResult {
+  const system = resolveCampaignSystem(db);
+
+  if (system !== 'dnd5e-srd') {
+    return correctionResult([
+      `character creation for rules system '${system}' is not yet implemented`,
+    ]);
+  }
+
   try {
     const { character } = validateCharacterDraft(input.draft, catalog);
 
@@ -176,6 +195,17 @@ export function completeCharacterCreation(
 
     throw error;
   }
+}
+
+/**
+ * Resolve the rules system from the campaign's persisted binding, falling
+ * back to D&D SRD when no binding row exists (legacy DBs at the current
+ * schema version). Unknown systems surface as the raw systemId string so the
+ * dispatcher can produce a clear correction message.
+ */
+function resolveCampaignSystem(db: Db): string {
+  const binding = readCampaignRulesBinding(db) ?? DEFAULT_DND5E_SRD_BINDING;
+  return binding.base.systemId;
 }
 
 function validateIdentity(

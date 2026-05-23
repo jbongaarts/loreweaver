@@ -376,6 +376,7 @@ export type {
   CharacterCreationDraft,
   CharacterCreationMutationMetadata,
   CharacterCreationResult,
+  CharacterCreationSystem,
   CompleteCharacterCreationInput,
   CompleteCharacterCreationResult,
   CreatedCharacter,
