@@ -519,6 +519,7 @@ async function rollupCampaignArc(
       campaignId,
       arcId: CAMPAIGN_ARC_ID,
       recaps,
+      bible: { worldFacts: [], majorNpcs: [], factions: [], openThreads: [] },
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
