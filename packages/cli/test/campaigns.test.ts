@@ -2,9 +2,11 @@ import { existsSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
+  DND5E_SRD_RULES_PACK,
   EMBERFALL_HOLLOW,
   getCampaign,
   openDatabase,
+  readCampaignRulesBinding,
 } from '@loreweaver/core';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
@@ -74,6 +76,15 @@ describe('runNewCommand', () => {
     const db = openDatabase(entry.dbPath);
     try {
       expect(getCampaign(db)).toBeDefined();
+      // `loreweaver new` persists the default D&D SRD rules binding so
+      // managed campaigns ship with an authoritative system identity.
+      const binding = readCampaignRulesBinding(db);
+      expect(binding).toBeDefined();
+      expect(binding?.base.systemId).toBe(
+        DND5E_SRD_RULES_PACK.meta.systemId,
+      );
+      expect(binding?.base.packId).toBe(DND5E_SRD_RULES_PACK.meta.packId);
+      expect(binding?.addons).toEqual([]);
     } finally {
       db.close();
     }

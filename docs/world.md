@@ -10,11 +10,13 @@ keeps campaign/module content separate from rules (E1), canonical live state
 A pack is a single validated `ModulePack` (`packages/core/src/world/types.ts`):
 
 - `meta` — `packId`, `title`, `packType`, `description`,
-  `startingLocationId`, and a `license` block.
+  `startingLocationId`, a `license` block, and a `rulesRequirements` block
+  naming the base rules system and any required add-on packs.
 - `locations[]` — id, prose, `exits[]` (direction → location), and
   `encounterIds` / `npcIds` / `tags`.
-- `encounters[]` — creatures referenced by `srdRef` into the E1 SRD store
-  (stat blocks are not copied into the pack).
+- `encounters[]` — creatures referenced by provider-neutral `rulesRef` into
+  the campaign's resolved rules stack (stat blocks are not copied into the
+  pack).
 - `npcs[]` — role, location, disposition, public summary, DM-only `secret`.
 - `triggers[]` — advisory plot-advancement beats (`when` / `effect` / `once`);
   they describe progression, they do not write state.

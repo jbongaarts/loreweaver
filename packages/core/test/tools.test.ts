@@ -114,7 +114,7 @@ describe('ToolRegistry', () => {
     const names = createDefaultToolRegistry().list().sort();
     expect(names).toEqual(
       [
-        'lookup_srd',
+        'lookup_rules',
         'mark_scene',
         'memory_drilldown',
         'mutate_state',
@@ -203,25 +203,53 @@ describe('mark_scene tool', () => {
   });
 });
 
-describe('lookup_srd tool', () => {
-  it('resolves a known monster by name', () => {
+describe('lookup_rules tool', () => {
+  it('resolves a known creature by name via the default D&D binding', () => {
     const result = createDefaultToolRegistry().invoke(
-      'lookup_srd',
-      { kind: 'monster', name: 'Goblin' },
+      'lookup_rules',
+      { kind: 'creature', name: 'Goblin' },
       ctx(),
     );
     expect(result.ok).toBe(true);
+    if (result.ok) {
+      const data = result.data as {
+        record: { name: string; systemId: string };
+        sourcePack: { systemId: string };
+        license: { licenseName: string };
+      };
+      expect(data.record.name).toBe('Goblin');
+      expect(data.record.systemId).toBe('dnd5e-srd');
+      expect(data.sourcePack.systemId).toBe('dnd5e-srd');
+      expect(data.license.licenseName).toContain('Creative Commons');
+    }
   });
 
   it('returns not_found for an unknown name', () => {
     const result = createDefaultToolRegistry().invoke(
-      'lookup_srd',
-      { kind: 'monster', name: 'Tarrasque' },
+      'lookup_rules',
+      { kind: 'creature', name: 'Tarrasque' },
       ctx(),
     );
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.code).toBe('not_found');
+    }
+  });
+
+  it('honors an explicit systemId override to resolve against a different bundled system', () => {
+    const result = createDefaultToolRegistry().invoke(
+      'lookup_rules',
+      { kind: 'ancestry', name: 'Human', systemId: 'pathfinder2e-remaster' },
+      ctx(),
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const data = result.data as {
+        record: { name: string; systemId: string };
+        sourcePack: { systemId: string };
+      };
+      expect(data.record.systemId).toBe('pathfinder2e-remaster');
+      expect(data.sourcePack.systemId).toBe('pathfinder2e-remaster');
     }
   });
 });

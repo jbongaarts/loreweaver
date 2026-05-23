@@ -311,7 +311,7 @@ describe('orchestrator turn loop', () => {
     // The dice roll is recorded as a rules resolution.
     const rules = trace?.rulesResolution as {
       rolls: unknown[];
-      srdLookups: unknown[];
+      rulesLookups: unknown[];
     };
     expect(rules.rolls).toHaveLength(1);
     // A clean turn rejects nothing and raises no quality flags.

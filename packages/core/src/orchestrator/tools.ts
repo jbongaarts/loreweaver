@@ -8,8 +8,17 @@ import {
   openScene,
 } from './scene.js';
 import type { SceneRecord } from './scene.js';
-import { lookupSrdRecord } from '../srd/store.js';
-import type { SrdLookupInput } from '../srd/types.js';
+import {
+  DEFAULT_DND5E_SRD_BINDING,
+  readCampaignRulesBinding,
+} from '../rules/binding.js';
+import type { CampaignRulesBinding } from '../rules/binding.js';
+import { DND5E_SRD_RULES_PACK } from '../rules/dnd5eSrd.js';
+import { lookupRulesRecord } from '../rules/lookup.js';
+import { PATHFINDER2E_REMASTER_RULES_PACK } from '../rules/pathfinder2eRemaster.js';
+import { resolveRulesStack } from '../rules/stack.js';
+import type { RulesPack, RulesRecordKind } from '../rules/types.js';
+import { RulesPackError } from '../rules/types.js';
 import { MutateStateError, mutateState } from '../state/mutateState.js';
 import type {
   MutateStateTarget,
@@ -157,12 +166,31 @@ const markSceneTool: Tool = {
   },
 };
 
-const lookupSrdTool: Tool = {
-  name: 'lookup_srd',
+const BUNDLED_RULES_PACKS: readonly RulesPack[] = [
+  DND5E_SRD_RULES_PACK,
+  PATHFINDER2E_REMASTER_RULES_PACK,
+];
+
+function findBundledPackById(packId: string): RulesPack | undefined {
+  return BUNDLED_RULES_PACKS.find((pack) => pack.meta.packId === packId);
+}
+
+function findBundledBaseBySystemId(systemId: string): RulesPack | undefined {
+  return BUNDLED_RULES_PACKS.find(
+    (pack) =>
+      pack.meta.systemId === systemId && pack.meta.role === 'base',
+  );
+}
+
+const lookupRulesTool: Tool = {
+  name: 'lookup_rules',
   description:
-    'Look up an SRD monster/spell/class by exact name or ref. ' +
-    'args: { kind: "monster"|"spell"|"class", name?: string, ref?: string }.',
-  run(args) {
+    'Look up a rules record (creature, spell, class, ancestry, feat, ' +
+    'equipment, etc.) by exact name or ref through the campaign rules ' +
+    'binding. args: { kind, name?: string, ref?: string, systemId?: string }. ' +
+    'Omit systemId to use the campaign binding; pass it to query a specific ' +
+    'bundled rules system (e.g. "dnd5e-srd", "pathfinder2e-remaster").',
+  run(args, ctx) {
     const a = asRecord(args);
     if (
       a === undefined ||
@@ -171,16 +199,57 @@ const lookupSrdTool: Tool = {
     ) {
       return err(
         'invalid_args',
-        'lookup_srd requires { kind, name } or { kind, ref }',
+        'lookup_rules requires { kind, name } or { kind, ref }',
       );
     }
-    const result = lookupSrdRecord(a as unknown as SrdLookupInput);
-    if (result.ok) {
-      return ok({ record: result.record, license: result.license });
+    if (a.systemId !== undefined && typeof a.systemId !== 'string') {
+      return err('invalid_args', 'lookup_rules systemId must be a string');
     }
-    return err(result.code, result.message);
+    const kind = a.kind as RulesRecordKind;
+
+    const basePack =
+      a.systemId !== undefined
+        ? findBundledBaseBySystemId(a.systemId)
+        : resolveBindingBasePack(ctx);
+
+    if (basePack === undefined) {
+      const detail =
+        a.systemId !== undefined
+          ? `systemId '${a.systemId}' is not a bundled rules system`
+          : 'campaign rules binding references a pack that is not bundled in core';
+      return err('unknown_pack', `lookup_rules: ${detail}`);
+    }
+
+    try {
+      const stack = resolveRulesStack({ base: basePack });
+      const result =
+        typeof a.ref === 'string'
+          ? lookupRulesRecord(stack, { kind, ref: a.ref })
+          : lookupRulesRecord(stack, { kind, name: a.name as string });
+
+      if (result.ok) {
+        return ok({
+          record: result.record,
+          sourcePack: result.pack,
+          license: result.license,
+          overrideChain: result.overrideChain,
+        });
+      }
+      return err(result.code, result.message);
+    } catch (e) {
+      if (e instanceof RulesPackError) {
+        return err('rules_pack_error', e.message);
+      }
+      throw e;
+    }
   },
 };
+
+function resolveBindingBasePack(ctx: ToolContext): RulesPack | undefined {
+  const binding: CampaignRulesBinding =
+    readCampaignRulesBinding(ctx.db) ?? DEFAULT_DND5E_SRD_BINDING;
+  return findBundledPackById(binding.base.packId);
+}
 
 const mutateStateTool: Tool = {
   name: 'mutate_state',
@@ -300,7 +369,7 @@ export class ToolRegistry {
 export const DEFAULT_TOOLS: readonly Tool[] = [
   rollTool,
   markSceneTool,
-  lookupSrdTool,
+  lookupRulesTool,
   mutateStateTool,
   worldQueryTool,
   memoryDrilldownTool,

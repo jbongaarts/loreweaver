@@ -2,10 +2,14 @@ import { describe, expect, it } from 'vitest';
 import {
   buildCharacterCreationMutations,
   CharacterCreationError,
+  EMBERFALL_HOLLOW,
+  PATHFINDER2E_REMASTER_RULES_PACK,
   completeCharacterCreation,
+  createCampaign,
   initSchema,
   openDatabase,
   validateCharacterDraft,
+  writeCampaignRulesBinding,
 } from '../src/index.js';
 
 const validDraft = {
@@ -180,6 +184,63 @@ describe('character creation', () => {
       db.prepare('SELECT name, class_name FROM character WHERE id = 1').get(),
     ).toEqual({ name: null, class_name: null });
 
+    db.close();
+  });
+
+  it('dispatches to the D&D validator when the campaign binding is D&D SRD', () => {
+    const db = openDatabase(':memory:');
+    initSchema(db);
+    createCampaign(db, { campaignId: 'dnd-camp', pack: EMBERFALL_HOLLOW });
+
+    const result = completeCharacterCreation(db, {
+      draft: validDraft,
+      sessionId: 'session-0',
+      at: '2026-05-23T13:00:00.000Z',
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.character.className).toBe('Fighter');
+    }
+    db.close();
+  });
+
+  it('refuses a D&D-shaped draft when the campaign binding is Pathfinder', () => {
+    const db = openDatabase(':memory:');
+    initSchema(db);
+    // Hand-write a Pathfinder binding without going through createCampaign so
+    // we bypass module-compatibility validation (D&D Emberfall requires the
+    // D&D binding). The dispatcher in completeCharacterCreation should still
+    // route by the persisted binding's systemId — and the Pathfinder validator
+    // should reject the D&D-shaped draft (no background / classFeat / ancestry
+    // feat / equipment fields).
+    writeCampaignRulesBinding(db, {
+      base: {
+        systemId: PATHFINDER2E_REMASTER_RULES_PACK.meta.systemId,
+        packId: PATHFINDER2E_REMASTER_RULES_PACK.meta.packId,
+        version: PATHFINDER2E_REMASTER_RULES_PACK.meta.version,
+      },
+      addons: [],
+      resolvedAt: '2026-05-23T13:00:00.000Z',
+    });
+
+    const result = completeCharacterCreation(db, {
+      draft: validDraft,
+      sessionId: 'session-0',
+      at: '2026-05-23T13:00:00.000Z',
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      // The Pathfinder validator surfaces concrete missing-field errors.
+      expect(result.errors.length).toBeGreaterThan(0);
+    }
+    // No D&D character row was written.
+    const row = db
+      .prepare('SELECT name, class_name FROM character WHERE id = 1')
+      .get() as { name: string | null; class_name: string | null };
+    expect(row.name).toBeNull();
+    expect(row.class_name).toBeNull();
     db.close();
   });
 

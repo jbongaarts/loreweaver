@@ -290,6 +290,47 @@ export {
   assertShippablePack,
 } from './world/license.js';
 export type { PackUsePolicy } from './world/license.js';
+export { validateRulesPack } from './rules/validate.js';
+export {
+  evaluateRulesPackPolicy,
+  assertShippableRulesPack,
+} from './rules/license.js';
+export { resolveRulesStack, normalizeRulesRecordName } from './rules/stack.js';
+export type {
+  ResolvedRulesStack,
+  ResolveRulesStackInput,
+  RulesStackKindIndex,
+  RulesStackRecordEntry,
+  RulesStackRecordSource,
+} from './rules/stack.js';
+export { lookupRulesRecord } from './rules/lookup.js';
+export type {
+  RulesLookupInput,
+  RulesLookupResult,
+} from './rules/lookup.js';
+export type { RulesPackUsePolicy } from './rules/license.js';
+export { DND5E_SRD_RULES_PACK } from './rules/dnd5eSrd.js';
+export { PATHFINDER2E_REMASTER_RULES_PACK } from './rules/pathfinder2eRemaster.js';
+export {
+  DEFAULT_DND5E_SRD_BINDING,
+  readCampaignRulesBinding,
+  writeCampaignRulesBinding,
+} from './rules/binding.js';
+export type {
+  CampaignRulesBinding,
+  CampaignRulesBindingPackRef,
+} from './rules/binding.js';
+export { RulesPackError } from './rules/types.js';
+export type {
+  CompatibleBaseSystem,
+  RulesPack,
+  RulesPackLicense,
+  RulesPackLicenseClass,
+  RulesPackMeta,
+  RulesPackRole,
+  RulesRecord,
+  RulesRecordKind,
+} from './rules/types.js';
 export { EMBERFALL_HOLLOW } from './world/samples/emberfallHollow.js';
 export type {
   ModulePack,
@@ -330,6 +371,15 @@ export {
   completeCharacterCreation,
   validateCharacterDraft,
 } from './characterCreation.js';
+export {
+  PathfinderCharacterCreationError,
+  validatePathfinderCharacterDraft,
+} from './character/pathfinder2e.js';
+export type {
+  CreatedPathfinderCharacter,
+  PathfinderCharacterCreationResult,
+  PathfinderCharacterDraft,
+} from './character/pathfinder2e.js';
 export type {
   AbilityScoreMethod,
   AbilityScoreName,
@@ -337,6 +387,7 @@ export type {
   CharacterCreationDraft,
   CharacterCreationMutationMetadata,
   CharacterCreationResult,
+  CharacterCreationSystem,
   CompleteCharacterCreationInput,
   CompleteCharacterCreationResult,
   CreatedCharacter,

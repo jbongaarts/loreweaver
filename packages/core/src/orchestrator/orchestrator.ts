@@ -150,7 +150,10 @@ function deriveTraceFields(
   }
 
   return {
-    rulesResolution: { rolls: okData('roll'), srdLookups: okData('lookup_srd') },
+    rulesResolution: {
+      rolls: okData('roll'),
+      rulesLookups: okData('lookup_rules'),
+    },
     acceptedStateDelta,
     rejectedCandidates,
     memoryUpdates: summarizedSceneIds.map(

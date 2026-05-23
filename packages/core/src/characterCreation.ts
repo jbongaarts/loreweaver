@@ -1,4 +1,16 @@
+import {
+  PathfinderCharacterCreationError,
+  validatePathfinderCharacterDraft,
+} from './character/pathfinder2e.js';
+import type {
+  CreatedPathfinderCharacter,
+  PathfinderCharacterDraft,
+} from './character/pathfinder2e.js';
 import type { Db } from './persistence/db.js';
+import {
+  DEFAULT_DND5E_SRD_BINDING,
+  readCampaignRulesBinding,
+} from './rules/binding.js';
 import {
   mutateStateBatch,
   type MutateStateInput,
@@ -11,6 +23,13 @@ import type {
   SrdRecord,
   SrdSpellRecord,
 } from './srd/types.js';
+
+/**
+ * The rules system the character creator is dispatching for. The string set
+ * mirrors the `systemId` field on bundled rules packs; unsupported systems
+ * surface a correction response rather than a thrown error.
+ */
+export type CharacterCreationSystem = 'dnd5e-srd' | 'pathfinder2e-remaster';
 
 export type AbilityScoreName =
   | 'strength'
@@ -57,7 +76,7 @@ export interface CharacterCreationMutationMetadata {
 }
 
 export interface CompleteCharacterCreationInput {
-  readonly draft: CharacterCreationDraft;
+  readonly draft: CharacterCreationDraft | PathfinderCharacterDraft;
   readonly sessionId: string;
   readonly at: string;
   readonly provenance?: string;
@@ -152,8 +171,23 @@ export function completeCharacterCreation(
   input: CompleteCharacterCreationInput,
   catalog: SrdCatalog = SRD_CATALOG,
 ): CompleteCharacterCreationResult {
+  const system = resolveCampaignSystem(db);
+
+  if (system === 'pathfinder2e-remaster') {
+    return completePathfinderCharacterCreation(db, input);
+  }
+
+  if (system !== 'dnd5e-srd') {
+    return correctionResult([
+      `character creation for rules system '${system}' is not yet implemented`,
+    ]);
+  }
+
   try {
-    const { character } = validateCharacterDraft(input.draft, catalog);
+    const { character } = validateCharacterDraft(
+      input.draft as CharacterCreationDraft,
+      catalog,
+    );
 
     const metadata = {
       provenance: input.provenance ?? 'character_creation:complete',
@@ -176,6 +210,92 @@ export function completeCharacterCreation(
 
     throw error;
   }
+}
+
+function completePathfinderCharacterCreation(
+  db: Db,
+  input: CompleteCharacterCreationInput,
+): CompleteCharacterCreationResult {
+  try {
+    const { character } = validatePathfinderCharacterDraft(
+      input.draft as PathfinderCharacterDraft,
+    );
+
+    const metadata = {
+      provenance: input.provenance ?? 'character_creation:complete',
+      sessionId: input.sessionId,
+      at: input.at,
+    };
+    const mutations = pathfinderCharacterMutations(character, metadata);
+    mutateStateBatch(db, mutations);
+
+    const projection: CreatedCharacter = {
+      name: character.name,
+      ancestry: character.ancestry,
+      className: character.className,
+      level: character.level,
+      abilityScores: character.abilityScores,
+      maxHitPoints: character.maxHitPoints,
+      spells: character.spells,
+    };
+
+    return {
+      ok: true,
+      character: projection,
+      mutationsApplied: mutations.length,
+      prompt: pathfinderCompletionPrompt(character),
+    };
+  } catch (error) {
+    if (error instanceof PathfinderCharacterCreationError) {
+      return correctionResult(error.errors);
+    }
+    throw error;
+  }
+}
+
+function pathfinderCharacterMutations(
+  character: CreatedPathfinderCharacter,
+  metadata: CharacterCreationMutationMetadata,
+): MutateStateInput[] {
+  const base = {
+    target: 'character',
+    op: 'set',
+    provenance: metadata.provenance,
+    sessionId: metadata.sessionId,
+    at: metadata.at,
+  } as const;
+
+  return [
+    { ...base, field: 'name', value: character.name },
+    { ...base, field: 'ancestry', value: character.ancestry },
+    { ...base, field: 'class_name', value: character.className },
+    { ...base, field: 'level', value: character.level },
+    { ...base, field: 'hp_current', value: character.maxHitPoints },
+    { ...base, field: 'hp_max', value: character.maxHitPoints },
+    {
+      ...base,
+      field: 'ability_scores_json',
+      value: JSON.stringify(character.abilityScores),
+    },
+    { ...base, field: 'conditions_json', value: JSON.stringify([]) },
+  ];
+}
+
+function pathfinderCompletionPrompt(
+  character: CreatedPathfinderCharacter,
+): string {
+  return `Character creation complete: ${character.name} is a level ${character.level} ${character.ancestry} ${character.className} (${character.background}; class feat ${character.classFeat}, ancestry feat ${character.ancestryFeat}).`;
+}
+
+/**
+ * Resolve the rules system from the campaign's persisted binding, falling
+ * back to D&D SRD when no binding row exists (legacy DBs at the current
+ * schema version). Unknown systems surface as the raw systemId string so the
+ * dispatcher can produce a clear correction message.
+ */
+function resolveCampaignSystem(db: Db): string {
+  const binding = readCampaignRulesBinding(db) ?? DEFAULT_DND5E_SRD_BINDING;
+  return binding.base.systemId;
 }
 
 function validateIdentity(
