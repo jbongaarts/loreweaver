@@ -1,8 +1,4 @@
-import type {
-  ModelClient,
-  ModelCompleteInput,
-  ModelMessage,
-} from '../model/client.js';
+import type { ModelClient, ModelMessage } from '../model/client.js';
 import type { CampaignBibleInput, SessionRecapRecord } from './summary.js';
 import { MemorySummaryError } from './summary.js';
 
@@ -32,6 +28,11 @@ export async function extractCampaignBible(
   model: ModelClient,
   input: ExtractCampaignBibleInput,
 ): Promise<CampaignBibleInput> {
+  if (input.recaps.length === 0) {
+    throw new MemorySummaryError(
+      'extractCampaignBible requires at least one session recap',
+    );
+  }
   const userContent = renderRecaps(input.recaps);
   const messages: ModelMessage[] = [{ role: 'user', content: userContent }];
   const raw = await model.complete({
