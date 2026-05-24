@@ -249,32 +249,36 @@ export function appendSceneLog(
         `cannot append to unknown scene '${input.sceneId}' in session '${input.sessionId}'`,
       );
     }
-    const next = txnDb
-      .prepare(
-        `SELECT COALESCE(MAX(seq), 0) + 1 AS seq
-         FROM scene_log
-         WHERE campaign_id = ? AND session_id = ? AND scene_id = ?`,
-      )
-      .get(input.campaignId, input.sessionId, input.sceneId) as {
-      seq: number;
-    };
-    txnDb
+    // Compute seq inside the INSERT so the MAX read happens under the same
+    // write lock as the row write. Two statements (SELECT then INSERT) can
+    // race across connections: both readers see the same MAX before either
+    // takes the write lock, and the second INSERT then collides on the PK.
+    const inserted = txnDb
       .prepare(
         `INSERT INTO scene_log(
            campaign_id, session_id, scene_id, seq, turn_id, role, content, created_at
          )
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (
+           ?, ?, ?,
+           (SELECT COALESCE(MAX(seq), 0) + 1
+              FROM scene_log
+              WHERE campaign_id = ? AND session_id = ? AND scene_id = ?),
+           ?, ?, ?, ?
+         )
+         RETURNING seq`,
       )
-      .run(
+      .get(
         input.campaignId,
         input.sessionId,
         input.sceneId,
-        next.seq,
+        input.campaignId,
+        input.sessionId,
+        input.sceneId,
         input.turnId,
         input.role,
         input.content,
         input.at,
-      );
+      ) as { seq: number };
     return {
       campaignId: input.campaignId,
       sessionId: input.sessionId,
@@ -282,7 +286,7 @@ export function appendSceneLog(
       turnId: input.turnId,
       role: input.role,
       content: input.content,
-      seq: next.seq,
+      seq: inserted.seq,
       createdAt: input.at,
     };
   });
