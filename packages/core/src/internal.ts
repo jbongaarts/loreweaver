@@ -37,6 +37,21 @@ export type {
   TurnTraceRecord,
 } from './memory/turnTrace.js';
 
+// Campaign arc lifecycle (read-side + idempotent open).
+export {
+  openArcIfMissing,
+  getOpenArc,
+  getClosedArcCount,
+  getClosedSessionsInOpenArc,
+  stampSessionWithOpenArc,
+  listClosedArcSummaries,
+} from './memory/campaignArc.js';
+export type {
+  CampaignArcRecord,
+  CampaignSessionInArc,
+  OpenArcIfMissingInput,
+} from './memory/campaignArc.js';
+
 // Memory low-level primitives (scene summaries, drilldown, always-on
 // selection, low-level rollups).
 export {
