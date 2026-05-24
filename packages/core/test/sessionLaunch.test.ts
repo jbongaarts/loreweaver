@@ -5,7 +5,7 @@ import {
   getSessionLaunchState,
   openScene,
   startSession,
-} from '../src/index.js';
+} from '../src/internal.js';
 import { bareDb } from './support/db.js';
 
 const CAMPAIGN = 'campaign-1';

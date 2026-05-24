@@ -8,7 +8,7 @@ import {
   getScene,
   listSceneLog,
   openScene,
-} from '../src/index.js';
+} from '../src/internal.js';
 import { bareDb, freshDbWithSession } from './support/db.js';
 
 const CAMPAIGN = 'campaign-1';

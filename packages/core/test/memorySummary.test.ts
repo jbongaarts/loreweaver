@@ -15,7 +15,7 @@ import {
   rollupSessionRecap,
   startSession,
   summarizeSceneFromLog,
-} from '../src/index.js';
+} from '../src/internal.js';
 
 describe('memory summaries', () => {
   it('records incremental scene summaries with salient state references', () => {

@@ -3,12 +3,12 @@ import {
   RulesPackError,
   lookupRulesRecord,
   resolveRulesStack,
-} from '../src/index.js';
+} from '../src/internal.js';
 import type {
   RulesPack,
   RulesPackLicense,
   RulesRecord,
-} from '../src/index.js';
+} from '../src/internal.js';
 
 function license(
   overrides: Partial<RulesPackLicense> = {},

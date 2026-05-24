@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import * as core from '../src/index.js';
+import * as core from '../src/internal.js';
 import { SRD_CATALOG, SRD_LICENSE } from '../src/srd/data.js';
 import { lookupSrdRecord } from '../src/srd/store.js';
 

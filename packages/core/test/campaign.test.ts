@@ -5,7 +5,7 @@ import {
   EMBERFALL_HOLLOW,
   createCampaign,
   getCampaign,
-} from '../src/index.js';
+} from '../src/internal.js';
 import { bareDb } from './support/db.js';
 
 describe('campaign create / select', () => {

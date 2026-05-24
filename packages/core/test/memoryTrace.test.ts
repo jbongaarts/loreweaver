@@ -1,10 +1,10 @@
-﻿import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   getTurnTrace,
   initSchema,
   openDatabase,
   recordTurnTrace,
-} from '../src/index.js';
+} from '../src/internal.js';
 
 describe('structured turn traces', () => {
   it('records a consent-scoped turn trace separate from public content', () => {

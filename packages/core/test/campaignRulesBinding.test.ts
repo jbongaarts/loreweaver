@@ -9,8 +9,8 @@ import {
   getCampaign,
   readCampaignRulesBinding,
   writeCampaignRulesBinding,
-} from '../src/index.js';
-import type { CampaignRulesBinding } from '../src/index.js';
+} from '../src/internal.js';
+import type { CampaignRulesBinding } from '../src/internal.js';
 import { bareDb } from './support/db.js';
 
 describe('campaign rules binding', () => {

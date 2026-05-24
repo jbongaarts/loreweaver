@@ -14,8 +14,8 @@ import {
   getSessionRecap,
   openScene,
   resolveDemoModel,
-} from '../src/index.js';
-import type { ModulePack } from '../src/index.js';
+} from '../src/internal.js';
+import type { ModulePack } from '../src/internal.js';
 import { bareDb } from './support/db.js';
 
 const CAMPAIGN = 'demo-campaign';

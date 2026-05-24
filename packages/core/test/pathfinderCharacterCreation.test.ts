@@ -7,8 +7,8 @@ import {
   openDatabase,
   validatePathfinderCharacterDraft,
   writeCampaignRulesBinding,
-} from '../src/index.js';
-import type { PathfinderCharacterDraft } from '../src/index.js';
+} from '../src/internal.js';
+import type { PathfinderCharacterDraft } from '../src/internal.js';
 
 const VALID_DRAFT: PathfinderCharacterDraft = {
   name: 'Vesna',

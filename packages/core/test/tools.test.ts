@@ -13,8 +13,8 @@ import {
   recordSceneSummary,
   rollDice,
   startSession,
-} from '../src/index.js';
-import type { MarkSceneToolData, ToolContext } from '../src/index.js';
+} from '../src/internal.js';
+import type { MarkSceneToolData, ToolContext } from '../src/internal.js';
 
 const closedMarkSceneDataTypecheck = {
   boundary: 'close',

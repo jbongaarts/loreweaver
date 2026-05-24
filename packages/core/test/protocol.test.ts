@@ -4,8 +4,8 @@ import {
   createDefaultToolRegistry,
   parseToolCalls,
   renderToolResults,
-} from '../src/index.js';
-import type { ToolResult } from '../src/index.js';
+} from '../src/internal.js';
+import type { ToolResult } from '../src/internal.js';
 
 describe('DM system prompt', () => {
   it('encodes the Hybrid rules contract', () => {
