@@ -11,7 +11,10 @@ import {
   startSession,
   closeSession,
   rollupArcSummary,
+  closeOpenArcAndOpenNext,
   type CampaignArcRecord,
+  type CloseOpenArcAndOpenNextInput,
+  type CloseOpenArcAndOpenNextResult,
 } from '../src/internal.js';
 import type { Db } from '../src/persistence/db.js';
 
@@ -316,6 +319,140 @@ describe('listClosedArcSummaries', () => {
     // The join filter on status='closed' should exclude it
     const summaries = listClosedArcSummaries(db, { campaignId: 'c1' });
     expect(summaries).toEqual([]);
+    db.close();
+  });
+});
+
+describe('closeOpenArcAndOpenNext', () => {
+  it('writes arc_summary, closes the current arc, opens the next arc atomically', () => {
+    const db = makeDb();
+    openArcIfMissing(db, { campaignId: 'c1', now: '2026-01-01T00:00:00Z' });
+
+    // Insert two closed sessions stamped with arc-1
+    db.prepare(
+      `INSERT INTO campaign_session(campaign_id, session_id, status, started_at, closed_at, arc_id)
+       VALUES (?, ?, 'closed', ?, ?, ?)`,
+    ).run('c1', 's1', '2026-01-01T00:00:00Z', '2026-01-05T00:00:00Z', 'arc-1');
+    db.prepare(
+      `INSERT INTO campaign_session(campaign_id, session_id, status, started_at, closed_at, arc_id)
+       VALUES (?, ?, 'closed', ?, ?, ?)`,
+    ).run('c1', 's2', '2026-01-06T00:00:00Z', '2026-01-10T00:00:00Z', 'arc-1');
+
+    const result = closeOpenArcAndOpenNext(db, {
+      campaignId: 'c1',
+      arcId: 'arc-1',
+      summary: 'arc summary text',
+      sourceSessionIds: ['s1', 's2'],
+      campaignBible: { worldFacts: [], majorNpcs: [], factions: [], openThreads: [] },
+      now: '2026-01-10T00:00:00Z',
+    } satisfies CloseOpenArcAndOpenNextInput);
+
+    expect(result).toEqual<CloseOpenArcAndOpenNextResult>({
+      closedArcId: 'arc-1',
+      newArcId: 'arc-2',
+    });
+
+    // arc-1 row: status='closed', closed_at set
+    const arc1Row = db
+      .prepare(
+        `SELECT status, closed_at FROM campaign_arc WHERE campaign_id = ? AND arc_id = ?`,
+      )
+      .get('c1', 'arc-1') as { status: string; closed_at: string | null };
+    expect(arc1Row.status).toBe('closed');
+    expect(arc1Row.closed_at).toBe('2026-01-10T00:00:00Z');
+
+    // arc-2 row: status='open', sequence_no=2, opened_at=now
+    const arc2Row = db
+      .prepare(
+        `SELECT status, sequence_no, opened_at FROM campaign_arc WHERE campaign_id = ? AND arc_id = ?`,
+      )
+      .get('c1', 'arc-2') as { status: string; sequence_no: number; opened_at: string } | undefined;
+    expect(arc2Row).toBeDefined();
+    expect(arc2Row!.status).toBe('open');
+    expect(arc2Row!.sequence_no).toBe(2);
+    expect(arc2Row!.opened_at).toBe('2026-01-10T00:00:00Z');
+
+    // arc_summary row exists for (c1, arc-1)
+    const summaryRow = db
+      .prepare(
+        `SELECT summary FROM arc_summary WHERE campaign_id = ? AND arc_id = ?`,
+      )
+      .get('c1', 'arc-1') as { summary: string } | undefined;
+    expect(summaryRow).toBeDefined();
+    expect(summaryRow!.summary).toBe('arc summary text');
+
+    db.close();
+  });
+
+  it('throws when the supplied arcId does not match the open arc', () => {
+    const db = makeDb();
+    openArcIfMissing(db, { campaignId: 'c1', now: '2026-01-01T00:00:00Z' });
+
+    expect(() =>
+      closeOpenArcAndOpenNext(db, {
+        campaignId: 'c1',
+        arcId: 'arc-99',
+        summary: 's',
+        sourceSessionIds: [],
+        campaignBible: { worldFacts: [], majorNpcs: [], factions: [], openThreads: [] },
+        now: '2026-01-10T00:00:00Z',
+      }),
+    ).toThrow(/arc-99/);
+
+    db.close();
+  });
+
+  it('rolls back the whole transaction when arc_summary write fails', () => {
+    const db = makeDb();
+    openArcIfMissing(db, { campaignId: 'c1', now: '2026-01-01T00:00:00Z' });
+
+    // Force a failure inside rollupArcSummary: pass a campaignBible whose
+    // worldFacts getter throws. rollupArcSummary accesses campaignBible.worldFacts
+    // inside reconcileBibleEntries, which runs inside the transaction.
+    const badBible = {
+      get worldFacts(): string[] {
+        throw new Error('forced failure inside transaction');
+      },
+      majorNpcs: [] as string[],
+      factions: [] as string[],
+      openThreads: [] as string[],
+    };
+
+    expect(() =>
+      closeOpenArcAndOpenNext(db, {
+        campaignId: 'c1',
+        arcId: 'arc-1',
+        summary: 'will be rolled back',
+        sourceSessionIds: [],
+        campaignBible: badBible,
+        now: '2026-01-10T00:00:00Z',
+      }),
+    ).toThrow('forced failure inside transaction');
+
+    // arc-1 must still be open (rollback succeeded)
+    const arc1 = db
+      .prepare(
+        `SELECT status FROM campaign_arc WHERE campaign_id = ? AND arc_id = ?`,
+      )
+      .get('c1', 'arc-1') as { status: string };
+    expect(arc1.status).toBe('open');
+
+    // No arc-2 row should exist
+    const arc2 = db
+      .prepare(
+        `SELECT arc_id FROM campaign_arc WHERE campaign_id = ? AND arc_id = ?`,
+      )
+      .get('c1', 'arc-2');
+    expect(arc2).toBeUndefined();
+
+    // No arc_summary row for arc-1
+    const arcSummary = db
+      .prepare(
+        `SELECT arc_id FROM arc_summary WHERE campaign_id = ? AND arc_id = ?`,
+      )
+      .get('c1', 'arc-1');
+    expect(arcSummary).toBeUndefined();
+
     db.close();
   });
 });

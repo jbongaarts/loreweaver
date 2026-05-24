@@ -1,6 +1,7 @@
 import type { Db } from '../persistence/db.js';
 import { withTransaction } from '../persistence/db.js';
-import type { ArcSummaryRecord } from './summary.js';
+import type { ArcSummaryRecord, CampaignBibleInput } from './summary.js';
+import { rollupArcSummary } from './summary.js';
 import { jsonColumn } from '../persistence/jsonColumn.js';
 
 export interface CampaignArcRecord {
@@ -227,4 +228,84 @@ export function listClosedArcSummaries(
     )
     .all(key.campaignId) as ArcSummaryRow[];
   return rows.map(arcSummaryFromRow);
+}
+
+export interface CloseOpenArcAndOpenNextInput {
+  campaignId: string;
+  /** Expected open-arc id; throws if the actual open arc does not match. */
+  arcId: string;
+  /** Arc-summary text. */
+  summary: string;
+  /** Sessions rolled into the summary. */
+  sourceSessionIds: string[];
+  /** Updated campaign bible written via rollupArcSummary. */
+  campaignBible: CampaignBibleInput;
+  now: string;
+}
+
+export interface CloseOpenArcAndOpenNextResult {
+  closedArcId: string;
+  newArcId: string;
+}
+
+/**
+ * Atomically closes the current open arc and opens the next one.
+ *
+ * In a single transaction:
+ *   1. Verifies the open arc matches `input.arcId` (throws on mismatch).
+ *   2. Calls `rollupArcSummary` to write the `arc_summary` row and reconcile
+ *      the campaign bible.
+ *   3. Updates `campaign_arc` setting `status='closed'`, `closed_at=now`.
+ *   4. Inserts the new open arc (`arc-{sequenceNo+1}`).
+ *
+ * The partial unique index on `campaign_arc(campaign_id) WHERE status='open'`
+ * guarantees that no two open arcs can exist simultaneously; if step 4 fails
+ * the whole transaction rolls back.
+ */
+export function closeOpenArcAndOpenNext(
+  db: Db,
+  input: CloseOpenArcAndOpenNextInput,
+): CloseOpenArcAndOpenNextResult {
+  return withTransaction(db, (txnDb) => {
+    // Step 1: verify the open arc matches the caller's expectation.
+    const openArc = getOpenArc(txnDb, { campaignId: input.campaignId });
+    if (openArc === undefined || openArc.arcId !== input.arcId) {
+      const actual =
+        openArc === undefined ? '(none)' : `'${openArc.arcId}'`;
+      throw new Error(
+        `closeOpenArcAndOpenNext: expected open arc '${input.arcId}' for campaign '${input.campaignId}' but found ${actual}`,
+      );
+    }
+
+    // Step 2: write the arc_summary row and reconcile the campaign bible.
+    rollupArcSummary(txnDb, {
+      campaignId: input.campaignId,
+      arcId: input.arcId,
+      summary: input.summary,
+      sourceSessionIds: input.sourceSessionIds,
+      campaignBible: input.campaignBible,
+      createdAt: input.now,
+    });
+
+    // Step 3: mark the current arc as closed.
+    txnDb
+      .prepare(
+        `UPDATE campaign_arc
+         SET status = 'closed', closed_at = ?
+         WHERE campaign_id = ? AND arc_id = ?`,
+      )
+      .run(input.now, input.campaignId, input.arcId);
+
+    // Step 4: insert the new open arc.
+    const nextSequenceNo = openArc.sequenceNo + 1;
+    const newArcId = `arc-${nextSequenceNo}`;
+    txnDb
+      .prepare(
+        `INSERT INTO campaign_arc(campaign_id, arc_id, sequence_no, status, opened_at, closed_at)
+         VALUES (?, ?, ?, 'open', ?, NULL)`,
+      )
+      .run(input.campaignId, newArcId, nextSequenceNo, input.now);
+
+    return { closedArcId: input.arcId, newArcId };
+  });
 }
