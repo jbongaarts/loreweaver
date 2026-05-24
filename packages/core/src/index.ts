@@ -70,7 +70,6 @@ export { closeSessionGracefully } from './sessionClose.js';
 export type {
   CloseSessionGracefullyInput,
   CloseSessionGracefullyResult,
-  GracefulSessionArcRollup,
   SessionCheckpointRunner,
 } from './sessionClose.js';
 

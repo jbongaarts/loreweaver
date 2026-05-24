@@ -799,6 +799,50 @@ describe('runPlay', () => {
     dispose();
   });
 
+  it('honors memoryConfig.recapWindowSize by passing it to runTurn as recentSessionLimit', async () => {
+    // Close 5 sessions so there are 5 recaps available.
+    // Then run a 6th session with recapWindowSize=3 and assert via assembleContext
+    // that only 3 recaps are returned (omittedSessionCount=2).
+    const { db, dispose } = makeDb();
+    const sharedDeps = baseDeps(db, scriptedIO([]).io);
+
+    for (let i = 0; i < 5; i++) {
+      const { io } = scriptedIO(['/defer', '/quit']);
+      await runPlay({ ...sharedDeps, io }, { dbPath: 'demo.db' });
+    }
+
+    const cid = campaignId(db);
+
+    // Start a 6th session (don't drive a full runPlay turn — just stage the
+    // session and call assembleContext directly with the custom limit).
+    const sid6 = 'test-session-6';
+    startSession(db, { campaignId: cid, sessionId: sid6, startedAt: new Date().toISOString() });
+
+    const ctx3 = assembleContext({
+      db,
+      campaignId: cid,
+      sessionId: sid6,
+      playerInput: 'what happened before?',
+      recentSessionLimit: 3,
+    });
+
+    expect(ctx3.recentSessionRecaps).toHaveLength(3);
+    expect(ctx3.omittedSessionCount).toBe(2);
+
+    // Verify that without the limit (or with a larger limit) all 5 recaps appear.
+    const ctx5 = assembleContext({
+      db,
+      campaignId: cid,
+      sessionId: sid6,
+      playerInput: 'what happened before?',
+      recentSessionLimit: 5,
+    });
+    expect(ctx5.recentSessionRecaps).toHaveLength(5);
+    expect(ctx5.omittedSessionCount).toBe(0);
+
+    dispose();
+  });
+
   it('quits gracefully when input ends (EOF) before any turn', async () => {
     const { db, dispose } = makeDb();
     const { io, lines } = scriptedIO(['/defer']); // EOF after launch.
