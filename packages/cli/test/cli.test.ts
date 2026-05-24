@@ -205,6 +205,12 @@ describe('package smoke', () => {
  * with no build.
  */
 describe('play graceful close on stdin EOF', () => {
+  // Test wall time is 4–7s on healthy CI runners and ~6.3s locally on Windows
+  // because it spawns the built CLI and runs the full graceful close pipeline
+  // (Dolt `.checkpoints` write included). Vitest's 5000ms default times this
+  // out on slow runners (observed under loreweaver-jqk PR CI). The vitest
+  // timeout is set to match the inner `execFileSync` timeout, so a hang in the
+  // spawned process surfaces from execFileSync rather than as a vitest abort.
   it(
     'runs the close pipeline when stdin reaches EOF before any turn',
     () => {
@@ -248,6 +254,7 @@ describe('play graceful close on stdin EOF', () => {
         }
       }
     },
+    30_000,
   );
 });
 
