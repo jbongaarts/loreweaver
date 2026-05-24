@@ -32,10 +32,18 @@ front-end and the key-handling surface do.
 ### Stage 1 — CLI / local (MVP, current)
 
 The CLI is a thin presentation layer over the core: campaign select/create,
-prompt I/O, streaming, and the resume prompt, with no game-rule logic (E6
-acceptance #5). Campaign state is a local SQLite database; Dolt checkpoints are
-local. This is the development surface and the power-user/local surface, and it
-remains supported after later stages ship — it is not replaced.
+prompt I/O, and the resume prompt, with no game-rule logic (E6 acceptance #5).
+DM narration is written to the player when each turn completes — turn-granular
+output, not token-level streaming. The `ModelClient.complete` contract returns
+a whole completion (`Promise<string>`), and the CLI prints `result.narration`
+once `runTurn` resolves. Token-level streaming through the model/client/CLI
+path is deliberately out of Stage 1 scope; it would require a streaming variant
+of `ModelClient` and a partial-output channel through `runTurn`, neither of
+which an MVP CLI needs. If a future stage wants live token output, it lands as
+an additive `ModelClient` capability behind its own decision record. Campaign
+state is a local SQLite database; Dolt checkpoints are local. This is the
+development surface and the power-user/local surface, and it remains supported
+after later stages ship — it is not replaced.
 
 **Local BYOK.** The provider key is read from the local environment or a local
 config file owned by the user (e.g. `LOREWEAVER_PROFILE_*` / provider env
