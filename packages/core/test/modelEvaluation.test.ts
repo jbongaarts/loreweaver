@@ -1,14 +1,14 @@
-﻿import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   evaluateModelProfile,
   PREMIUM_DM_EVALUATION_THRESHOLD,
-} from '../src/index.js';
+} from '../src/internal.js';
 import type {
   EvaluationDimension,
   EvaluationScenario,
   ModelClient,
   ModelCompleteInput,
-} from '../src/index.js';
+} from '../src/internal.js';
 
 class ScriptedModel implements ModelClient {
   private index = 0;

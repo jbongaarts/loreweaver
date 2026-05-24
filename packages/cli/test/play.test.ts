@@ -3,8 +3,6 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import {
-  appendSceneLog,
-  assembleContext,
   createCampaign,
   createDefaultToolRegistry,
   DND5E_SRD_RULES_PACK,
@@ -13,7 +11,6 @@ import {
   getArcSummary,
   getCampaign,
   getCampaignBible,
-  getOpenScene,
   getOpenSession,
   getSession,
   getSessionRecap,
@@ -21,16 +18,21 @@ import {
   listSessions,
   ModelClientError,
   openDatabase,
-  openScene,
   readCampaignRulesBinding,
-  recordTurnTrace,
-  renderContextMessage,
   startSession,
   type Db,
   type ModelClient,
   type RunTurnInput,
   type RunTurnResult,
 } from '@loreweaver/core';
+import {
+  appendSceneLog,
+  assembleContext,
+  getOpenScene,
+  openScene,
+  recordTurnTrace,
+  renderContextMessage,
+} from '@loreweaver/core/internal';
 import {
   doltCheckpointRunner,
   runDemo,

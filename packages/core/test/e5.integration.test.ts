@@ -7,13 +7,13 @@ import {
   openScene,
   rollupSessionRecap,
   runTurn,
-} from '../src/index.js';
+} from '../src/internal.js';
 import type {
   Db,
   ExecutedToolCall,
   ModelClient,
   ModelCompleteInput,
-} from '../src/index.js';
+} from '../src/internal.js';
 import { freshDbWithSession } from './support/db.js';
 
 /**

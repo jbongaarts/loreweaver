@@ -16,8 +16,8 @@ import {
   validateModulePack,
   worldOverlayKey,
   worldQuery,
-} from '../src/index.js';
-import type { ModulePack, PackLicense } from '../src/index.js';
+} from '../src/internal.js';
+import type { ModulePack, PackLicense } from '../src/internal.js';
 
 const tmpDirs: string[] = [];
 const worldQuerySource = readFileSync(

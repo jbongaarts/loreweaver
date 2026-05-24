@@ -1,160 +1,53 @@
+/**
+ * `@loreweaver/core` — stable public surface.
+ *
+ * This file is the **stable** entry point: every symbol exported below is
+ * intended for use by external consumers (the CLI today; a future hosted/PWA
+ * runtime tomorrow), and we will treat breaking changes here as breaking
+ * changes to the whole project.
+ *
+ * Implementation details, scaffolding, low-level primitives, raw datasets,
+ * evaluation/benchmark helpers, and anything that is expected to move as the
+ * architecture evolves are intentionally **not** re-exported here. They live
+ * behind the explicit `@loreweaver/core/internal` subpath. Consumers should
+ * never import that subpath from production code — it carries no compatibility
+ * promise. Co-developed callers inside this repository (e.g. the CLI tests)
+ * may import from `/internal` when they genuinely need to assert against
+ * implementation details.
+ *
+ * Roughly, the stable surface here covers: configuration, opening/initialising
+ * the campaign database, the campaign + session + turn lifecycle, the
+ * high-level memory composition/read APIs, character creation, the built-in
+ * sample content and rules packs, the rules-binding read/write API, the
+ * model-client contract + Agent SDK adapter, demo-mode entrypoints, and the
+ * Dolt-backed checkpoint store plus managed-binary install seam.
+ */
+
+// Core version (used by the CLI banner).
 export const CORE_VERSION = '0.0.0';
-export { loadConfig, ConfigError } from './config.js';
+
+// Configuration.
+export { ConfigError, loadConfig } from './config.js';
 export type {
   LoreweaverConfig,
   ProviderAuth,
   ProviderAuthMode,
 } from './config.js';
-export { openDatabase, withTransaction } from './persistence/db.js';
+
+// Live campaign database.
+export { openDatabase } from './persistence/db.js';
 export type { Db } from './persistence/db.js';
 export {
-  initSchema,
-  SchemaCompatibilityError,
   SCHEMA_VERSION,
+  SchemaCompatibilityError,
+  initSchema,
 } from './persistence/schema.js';
-export {
-  TurnTraceError,
-  getTurnTrace,
-  listTurnTraces,
-  recordTurnTrace,
-} from './memory/turnTrace.js';
-export type {
-  TraceJsonValue,
-  TurnTraceConsentScope,
-  TurnTraceKey,
-  TurnTraceRecord,
-} from './memory/turnTrace.js';
-export {
-  MemorySummaryError,
-  getArcSummary,
-  getCampaignBible,
-  getSessionRecap,
-  listSceneSummaries,
-  memoryDrilldown,
-  recordSceneSummary,
-  selectAlwaysOnMemory,
-  rollupArcSummary,
-  rollupSessionRecap,
-  summarizeSceneFromLog,
-} from './memory/summary.js';
-export type {
-  ArcSummaryInput,
-  ArcSummaryKey,
-  ArcSummaryRecord,
-  AlwaysOnMemoryContext,
-  AlwaysOnMemorySelector,
-  CampaignBibleEntry,
-  CampaignBibleInput,
-  CampaignBibleKey,
-  CampaignBibleRecord,
-  MemoryRef,
-  MemoryDrilldownResult,
-  MemoryDrilldownSelector,
-  SceneSummaryRecord,
-  SceneSummarySelector,
-  SessionRecapInput,
-  SessionRecapRecord,
-} from './memory/summary.js';
-export { composeSessionRecap } from './memory/recapBuilder.js';
-export type {
-  ComposeSessionRecapInput,
-  ComposeSessionRecapResult,
-} from './memory/recapBuilder.js';
-export { composeArcSummary } from './memory/arcSummary.js';
-export type { ComposeArcSummaryInput } from './memory/arcSummary.js';
-export { extractCampaignBible } from './memory/campaignBibleExtractor.js';
-export type { ExtractCampaignBibleInput } from './memory/campaignBibleExtractor.js';
-export {
-  getStateProvenance,
-  mutateState,
-  mutateStateBatch,
-  MutateStateError,
-} from './state/mutateState.js';
-export type {
-  MutateStateBatchOptions,
-  MutateStateInput,
-  MutateStateOp,
-  MutateStateTarget,
-  MutateStateValue,
-  StateProvenanceQuery,
-  StateProvenanceRecord,
-} from './state/mutateState.js';
-export {
-  SceneError,
-  openScene,
-  closeScene,
-  getScene,
-  getOpenScene,
-  appendSceneLog,
-  listSceneLog,
-  countSceneLog,
-  listSceneLogWindow,
-} from './orchestrator/scene.js';
-export type {
-  SceneStatus,
-  SceneLogRole,
-  SceneKey,
-  SessionSelector,
-  OpenSceneInput,
-  CloseSceneInput,
-  SceneRecord,
-  SceneLogInput,
-  SceneLogRecord,
-  SceneLogWindowInput,
-} from './orchestrator/scene.js';
-export { createSeededRng } from './orchestrator/rng.js';
-export type { Rng } from './orchestrator/rng.js';
-export { DiceError, parseDice, rollDice } from './orchestrator/dice.js';
-export type { DiceNotation, DiceRoll } from './orchestrator/dice.js';
-export {
-  ToolRegistry,
-  DEFAULT_TOOLS,
-  createDefaultToolRegistry,
-  isMarkSceneToolData,
-} from './orchestrator/tools.js';
-export type {
-  MarkSceneToolData,
-  Tool,
-  ToolContext,
-  ToolResult,
-} from './orchestrator/tools.js';
-export {
-  assembleContext,
-  renderContextMessage,
-  readStateSnapshot,
-} from './orchestrator/contextAssembler.js';
-export type {
-  ContextAssemblyInput,
-  AssembledContext,
-  AssembledSceneRef,
-  StateSnapshot,
-  CharacterSnapshot,
-  InventoryItem,
-  ClockSnapshot,
-} from './orchestrator/contextAssembler.js';
-export {
-  buildSystemPrompt,
-  parseToolCalls,
-  renderToolResults,
-} from './orchestrator/protocol.js';
-export type { ParsedToolCall } from './orchestrator/protocol.js';
-export { OrchestratorError, runTurn } from './orchestrator/orchestrator.js';
-export type {
-  RunTurnDeps,
-  RunTurnInput,
-  RunTurnResult,
-  ExecutedToolCall,
-} from './orchestrator/orchestrator.js';
-export { SEAMS } from './seams.js';
-export type {
-  SeamName,
-  Persistence,
-  WorldSubsystem,
-  MemorySubsystem,
-  ToolLayer,
-  ContextAssembler,
-  Orchestrator,
-} from './seams.js';
+
+// Campaign lifecycle.
+export { CampaignError, createCampaign, getCampaign } from './campaign.js';
+export type { CampaignInfo, CreateCampaignInput } from './campaign.js';
+
+// Session lifecycle.
 export {
   SessionError,
   closeSession,
@@ -171,6 +64,8 @@ export type {
   SessionStatus,
   StartSessionInput,
 } from './session.js';
+
+// Graceful session close (commits a recap + checkpoint hand-off).
 export { closeSessionGracefully } from './sessionClose.js';
 export type {
   CloseSessionGracefullyInput,
@@ -178,21 +73,93 @@ export type {
   GracefulSessionArcRollup,
   SessionCheckpointRunner,
 } from './sessionClose.js';
+
+// Session launch (resume-or-new view used by the play UI).
 export { getSessionLaunchState } from './sessionLaunch.js';
 export type { SessionLaunchState } from './sessionLaunch.js';
-export { CampaignError, createCampaign, getCampaign } from './campaign.js';
-export type { CampaignInfo, CreateCampaignInput } from './campaign.js';
+
+// Turn orchestrator.
+export { OrchestratorError, runTurn } from './orchestrator/orchestrator.js';
+export type {
+  ExecutedToolCall,
+  RunTurnDeps,
+  RunTurnInput,
+  RunTurnResult,
+} from './orchestrator/orchestrator.js';
+
+// Tool registry contract — the supported plug-in seam for custom tools.
 export {
-  DEMO_TURN_CAP,
+  DEFAULT_TOOLS,
+  ToolRegistry,
+  createDefaultToolRegistry,
+} from './orchestrator/tools.js';
+export type { Tool, ToolContext, ToolResult } from './orchestrator/tools.js';
+
+// Model client contract + Agent SDK adapter.
+export { ModelClientError } from './model/client.js';
+export type {
+  ModelClient,
+  ModelCompleteInput,
+  ModelMessage,
+} from './model/client.js';
+export { AgentSdkModelClient } from './model/agentSdkClient.js';
+export type {
+  AgentSdkAuth,
+  AgentSdkAuthSource,
+} from './model/agentSdkClient.js';
+
+// Memory: high-level composition and read APIs.
+export { composeSessionRecap } from './memory/recapBuilder.js';
+export type {
+  ComposeSessionRecapInput,
+  ComposeSessionRecapResult,
+} from './memory/recapBuilder.js';
+export { composeArcSummary } from './memory/arcSummary.js';
+export type { ComposeArcSummaryInput } from './memory/arcSummary.js';
+export { extractCampaignBible } from './memory/campaignBibleExtractor.js';
+export type { ExtractCampaignBibleInput } from './memory/campaignBibleExtractor.js';
+export {
+  getArcSummary,
+  getCampaignBible,
+  getSessionRecap,
+  rollupArcSummary,
+} from './memory/summary.js';
+export type {
+  ArcSummaryInput,
+  ArcSummaryKey,
+  ArcSummaryRecord,
+  CampaignBibleEntry,
+  CampaignBibleInput,
+  CampaignBibleKey,
+  CampaignBibleRecord,
+  SessionRecapInput,
+  SessionRecapRecord,
+} from './memory/summary.js';
+
+// Character creation (high-level, system-dispatching).
+export {
+  CharacterCreationError,
+  completeCharacterCreation,
+} from './characterCreation.js';
+export type {
+  AbilityScoreMethod,
+  AbilityScoreName,
+  AbilityScores,
+  CharacterCreationDraft,
+  CharacterCreationResult,
+  CharacterCreationSystem,
+  CompleteCharacterCreationInput,
+  CompleteCharacterCreationResult,
+  CreatedCharacter,
+} from './characterCreation.js';
+
+// Demo mode (entrypoints — the policy/budget helpers live in /internal).
+export {
   DEFAULT_DEMO_PACK,
+  DEMO_TURN_CAP,
   DemoModeError,
-  assertDemoContentAllowed,
-  assertDemoTurnAllowed,
   createDemoCampaign,
-  demoTurnBudget,
-  evaluateDemoContent,
   getDemoTurnBudget,
-  resolveDemoModel,
 } from './demoMode.js';
 export type {
   CreateDemoCampaignOptions,
@@ -202,115 +169,18 @@ export type {
   DemoQualityLabel,
   DemoTurnBudget,
 } from './demoMode.js';
-export type { ModelClient, ModelMessage, ModelCompleteInput } from './model/client.js';
-export { ModelClientError } from './model/client.js';
-export { AgentSdkModelClient } from './model/agentSdkClient.js';
-export type { AgentSdkAuth, AgentSdkAuthSource } from './model/agentSdkClient.js';
-export {
-  MODEL_PROFILES,
-  PROVIDER_IDS,
-  DEFAULT_PROFILE_REGISTRY,
-  PREMIUM_DM_CAPABILITY_FLOOR,
-  ProfileConfigError,
-  isProviderId,
-  getProfile,
-  resolveProfileRegistry,
-} from './model/profiles.js';
+
+// Built-in sample world module and module-pack shape.
+export { EMBERFALL_HOLLOW } from './world/samples/emberfallHollow.js';
 export type {
-  ModelProfileName,
-  ProviderId,
-  ProfileTier,
-  ProfileEntry,
-  ProfileRegistry,
-} from './model/profiles.js';
-export {
-  EVALUATION_DIMENSIONS,
-  PREMIUM_DM_EVALUATION_THRESHOLD,
-  evaluateModelProfile,
-} from './model/evaluation.js';
-export type {
-  EvaluationCostInput,
-  EvaluationCostReport,
-  EvaluationDimension,
-  EvaluationLatencyReport,
-  EvaluationReport,
-  EvaluationScenario,
-  EvaluationScenarioReport,
-  EvaluationScores,
-  EvaluationTurn,
-  EvaluationTurnRecord,
-  EvaluateModelProfileInput,
-  PremiumDmEvaluationThreshold,
-} from './model/evaluation.js';
-export {
-  SeparationError,
-  assertSeparateFromBeads,
-  normalizeRemoteUrl,
-  readDoltRemotes,
-  BEADS_RESERVED_REF,
-} from './persistence/checkpoint/separation.js';
-export type { DoltRemote } from './persistence/checkpoint/separation.js';
-export { serializeCampaign, canonicalize } from './persistence/checkpoint/serialize.js';
-export type { SnapshotRecord } from './persistence/checkpoint/serialize.js';
-export { DoltRepo } from './persistence/checkpoint/doltRepo.js';
-export type { Checkpoint } from './persistence/checkpoint/doltRepo.js';
-export {
-  resolveDoltBinary,
-  managedDoltDir,
-  DoltUnavailableError,
-} from './persistence/checkpoint/doltBinary.js';
-export type { ResolveDoltOptions } from './persistence/checkpoint/doltBinary.js';
-export {
-  DOLT_PINNED_VERSION,
-  DoltUnverifiedError,
-  doltAssetFor,
-  sha256File,
-  verifyArchive,
-  provisionDolt,
-  ensureDoltAvailable,
-  extractInvocation,
-} from './persistence/checkpoint/doltProvision.js';
-export type {
-  DoltAsset,
-  ProvisionOptions,
-  DoltInstallReason,
-  DoltInstallPrompt,
-  DoltConfirmFn,
-  EnsureDoltOptions,
-} from './persistence/checkpoint/doltProvision.js';
-export { CheckpointStore, CheckpointError } from './persistence/checkpoint/store.js';
-export { validateModulePack, WorldModuleError } from './world/validate.js';
-export {
-  parseModulePack,
-  loadModuleFromDir,
-  MODULE_FILE,
-} from './world/loadModule.js';
-export { forkModuleIntoCampaign } from './world/forkCampaign.js';
-export { worldQuery, worldOverlayKey } from './world/worldQuery.js';
-export {
-  evaluatePackPolicy,
-  assertShippablePack,
-} from './world/license.js';
-export type { PackUsePolicy } from './world/license.js';
-export { validateRulesPack } from './rules/validate.js';
-export {
-  evaluateRulesPackPolicy,
-  assertShippableRulesPack,
-} from './rules/license.js';
-export { resolveRulesStack, normalizeRulesRecordName } from './rules/stack.js';
-export type {
-  ResolvedRulesStack,
-  ResolveRulesStackInput,
-  RulesStackKindIndex,
-  RulesStackRecordEntry,
-  RulesStackRecordSource,
-} from './rules/stack.js';
-export { lookupRulesRecord } from './rules/lookup.js';
-export type {
-  RulesLookupInput,
-  RulesLookupResult,
-} from './rules/lookup.js';
-export type { RulesPackUsePolicy } from './rules/license.js';
+  ModuleMeta,
+  ModulePack,
+  PackLicense,
+  PackLicenseClass,
+  PackType,
+} from './world/types.js';
+
+// Built-in rules packs + the campaign rules-binding read/write API.
 export { DND5E_SRD_RULES_PACK } from './rules/dnd5eSrd.js';
 export { PATHFINDER2E_REMASTER_RULES_PACK } from './rules/pathfinder2eRemaster.js';
 export {
@@ -330,67 +200,19 @@ export type {
   RulesPackLicenseClass,
   RulesPackMeta,
   RulesPackRole,
-  RulesRecord,
-  RulesRecordKind,
 } from './rules/types.js';
-export { EMBERFALL_HOLLOW } from './world/samples/emberfallHollow.js';
-export type {
-  ModulePack,
-  ModuleMeta,
-  PackLicense,
-  PackLicenseClass,
-  PackType,
-  Location,
-  LocationExit,
-  Encounter,
-  EncounterCreature,
-  Npc,
-  Trigger,
-  Lore,
-  LoreScope,
-  WorldTargetType,
-  WorldQueryTarget,
-  WorldQueryResult,
-  WorldOverlay,
-} from './world/types.js';
-export { SRD_CATALOG, SRD_LICENSE } from './srd/data.js';
-export { buildSrdIndex, lookupSrdRecord } from './srd/store.js';
-export type {
-  SrdBaseRecord,
-  SrdCatalog,
-  SrdClassRecord,
-  SrdKind,
-  SrdLicenseMetadata,
-  SrdLookupInput,
-  SrdLookupResult,
-  SrdMonsterRecord,
-  SrdRecord,
-  SrdSpellRecord,
-} from './srd/types.js';
+
+// Dolt-backed checkpoint store + managed-binary install seam.
 export {
-  buildCharacterCreationMutations,
-  CharacterCreationError,
-  completeCharacterCreation,
-  validateCharacterDraft,
-} from './characterCreation.js';
-export {
-  PathfinderCharacterCreationError,
-  validatePathfinderCharacterDraft,
-} from './character/pathfinder2e.js';
+  CheckpointError,
+  CheckpointStore,
+} from './persistence/checkpoint/store.js';
+export { DoltRepo } from './persistence/checkpoint/doltRepo.js';
+export type { Checkpoint } from './persistence/checkpoint/doltRepo.js';
+export { DoltUnavailableError } from './persistence/checkpoint/doltBinary.js';
+export { ensureDoltAvailable } from './persistence/checkpoint/doltProvision.js';
 export type {
-  CreatedPathfinderCharacter,
-  PathfinderCharacterCreationResult,
-  PathfinderCharacterDraft,
-} from './character/pathfinder2e.js';
-export type {
-  AbilityScoreMethod,
-  AbilityScoreName,
-  AbilityScores,
-  CharacterCreationDraft,
-  CharacterCreationMutationMetadata,
-  CharacterCreationResult,
-  CharacterCreationSystem,
-  CompleteCharacterCreationInput,
-  CompleteCharacterCreationResult,
-  CreatedCharacter,
-} from './characterCreation.js';
+  DoltInstallPrompt,
+  DoltInstallReason,
+  EnsureDoltOptions,
+} from './persistence/checkpoint/doltProvision.js';

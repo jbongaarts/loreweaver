@@ -6,7 +6,7 @@ import {
   type ModelClient,
   type ModelCompleteInput,
   type SessionRecapRecord,
-} from '../src/index.js';
+} from '../src/internal.js';
 
 function fakeModel(
   handler: (input: ModelCompleteInput) => Promise<string> | string,

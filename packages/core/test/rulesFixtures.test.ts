@@ -8,8 +8,8 @@ import {
   lookupRulesRecord,
   resolveRulesStack,
   validateRulesPack,
-} from '../src/index.js';
-import type { RulesRecord, RulesRecordKind } from '../src/index.js';
+} from '../src/internal.js';
+import type { RulesRecord, RulesRecordKind } from '../src/internal.js';
 
 describe('rules pack fixtures', () => {
   it('validates the D&D 5e SRD rules pack as a base pack', () => {

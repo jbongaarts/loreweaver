@@ -6,7 +6,7 @@ import {
   mutateStateBatch,
   mutateState,
   openDatabase,
-} from '../src/index.js';
+} from '../src/internal.js';
 
 describe('game state', () => {
   it('mutateState sets a character field with queryable provenance', () => {

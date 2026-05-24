@@ -6,8 +6,8 @@ import {
   mutateState,
   openScene,
   runTurn,
-} from '../src/index.js';
-import type { Db, ModelClient, ModelCompleteInput } from '../src/index.js';
+} from '../src/internal.js';
+import type { Db, ModelClient, ModelCompleteInput } from '../src/internal.js';
 import { freshDbWithSession } from './support/db.js';
 
 const CAMPAIGN = 'campaign-1';

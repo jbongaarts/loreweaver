@@ -9,7 +9,7 @@ import {
   recordTurnTrace,
   startSession,
   type TurnTraceRecord,
-} from '../src/index.js';
+} from '../src/internal.js';
 import {
   DEFAULT_TEST_CAMPAIGN_ID,
   DEFAULT_TEST_SESSION_ID,

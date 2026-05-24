@@ -68,6 +68,15 @@ Load-bearing principles:
   publisher-licensed; fair use is not the permission model.
 - Native VTT, native mobile, hosted billing, and custom/local primary-DM
   replacement are out of early scope absent a new decision record.
+- `@loreweaver/core` has two import paths and they are **not** interchangeable:
+  the root export (`packages/core/src/index.ts`) is the stable public surface
+  for external consumers; `@loreweaver/core/internal`
+  (`packages/core/src/internal.ts`) re-exports movable internals with **no**
+  compatibility promise. Production callers (the CLI today, hosted/PWA
+  consumers tomorrow) should depend only on the root. The `/internal` subpath
+  is for co-developed callers inside this repo (e.g. tests that assert against
+  implementation details). New core symbols default to internal — promote to
+  the root export only when a real consumer needs the API.
 
 ## Non-Interactive Shell
 

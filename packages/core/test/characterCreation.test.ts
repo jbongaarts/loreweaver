@@ -10,7 +10,7 @@ import {
   openDatabase,
   validateCharacterDraft,
   writeCampaignRulesBinding,
-} from '../src/index.js';
+} from '../src/internal.js';
 
 const validDraft = {
   name: 'Mira',
