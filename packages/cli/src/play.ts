@@ -10,6 +10,7 @@ import {
   completeCharacterCreation,
   createCampaign,
   createDemoCampaign,
+  extractCampaignBible,
   getCampaign,
   getDemoTurnBudget,
   getSessionLaunchState,
@@ -18,6 +19,7 @@ import {
   listSessions,
   rollupArcSummary,
   startSession,
+  type CampaignBibleInput,
   type CampaignInfo,
   type CharacterCreationDraft,
   type CloseSessionGracefullyInput,
@@ -490,15 +492,30 @@ async function gracefulClose(
 const CAMPAIGN_ARC_ID = 'arc-1';
 
 /**
- * Roll the campaign's closed sessions up into a model-authored arc summary,
- * so the arc tier of the memory pyramid stays current and assembleContext
- * can surface it as the DM model's continuity primer.
- *
- * On any model error we write a warning via deps.io and return early without
- * touching arc_summary — the prior row stays as-is so the next successful
- * close retries the rollup. Session close, recap, and checkpoint already
- * committed before this function runs, so a skipped rollup never strands
- * the session.
+ * Extract a campaign bible with one retry on failure. Retry policy lives in
+ * the CLI rather than core because it is an application-level decision; the
+ * core extractCampaignBible function attempts a single call and throws on
+ * any failure. If the second attempt also throws, the error propagates to
+ * the caller, which translates it into a skipped rollup.
+ */
+async function extractBibleWithRetry(
+  model: ModelClient,
+  input: { campaignId: string; recaps: SessionRecapRecord[] },
+): Promise<CampaignBibleInput> {
+  try {
+    return await extractCampaignBible(model, input);
+  } catch {
+    return await extractCampaignBible(model, input);
+  }
+}
+
+/**
+ * Roll the campaign's closed sessions up into a model-authored arc summary
+ * and a model-extracted campaign bible. The bible is extracted first (with
+ * one retry on failure) so the arc summary can reference NPCs/factions
+ * canonically. Either model call failing leads to an atomic skip — a
+ * warning is written and arc_summary stays at whatever it was; the next
+ * successful close retries the full pipeline.
  */
 async function rollupCampaignArc(
   deps: PlayDeps,
@@ -513,16 +530,29 @@ async function rollupCampaignArc(
   if (recaps.length === 0) {
     return;
   }
+  let bible: CampaignBibleInput;
+  try {
+    bible = await extractBibleWithRetry(deps.model, { campaignId, recaps });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    deps.io.write(
+      'Arc rollup skipped (bible extraction failed): ' + message + '.',
+    );
+    return;
+  }
   let summary: string;
   try {
     summary = await composeArcSummary(deps.model, {
       campaignId,
       arcId: CAMPAIGN_ARC_ID,
       recaps,
+      bible,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    deps.io.write('Arc rollup skipped (model error): ' + message + '.');
+    deps.io.write(
+      'Arc rollup skipped (arc summary failed): ' + message + '.',
+    );
     return;
   }
   rollupArcSummary(db, {
@@ -530,12 +560,7 @@ async function rollupCampaignArc(
     arcId: CAMPAIGN_ARC_ID,
     summary,
     sourceSessionIds: recaps.map((recap) => recap.sessionId),
-    campaignBible: {
-      worldFacts: [],
-      majorNpcs: [],
-      factions: [],
-      openThreads: [],
-    },
+    campaignBible: bible,
     createdAt: deps.now(),
   });
 }

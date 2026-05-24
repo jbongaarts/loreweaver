@@ -62,6 +62,8 @@ export type {
 } from './memory/recapBuilder.js';
 export { composeArcSummary } from './memory/arcSummary.js';
 export type { ComposeArcSummaryInput } from './memory/arcSummary.js';
+export { extractCampaignBible } from './memory/campaignBibleExtractor.js';
+export type { ExtractCampaignBibleInput } from './memory/campaignBibleExtractor.js';
 export {
   getStateProvenance,
   mutateState,

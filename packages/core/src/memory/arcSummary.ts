@@ -3,8 +3,8 @@ import type {
   ModelCompleteInput,
   ModelMessage,
 } from '../model/client.js';
+import type { CampaignBibleInput, SessionRecapRecord } from './summary.js';
 import { MemorySummaryError } from './summary.js';
-import type { SessionRecapRecord } from './summary.js';
 
 /**
  * System prompt the arc-summary model call runs under. The text is shaped for
@@ -17,7 +17,9 @@ const ARC_SUMMARY_SYSTEM_PROMPT = [
   'summary of the campaign arc so far, suitable to feed back into the DM model',
   'context in future sessions. Write in second person, present tense.',
   'Target 300-500 words. Highlight ongoing threads, named NPCs, factions, and',
-  'recent canon mutations. Write as an in-world chronicle; do not address the',
+  'recent canon mutations.',
+  'A campaign bible of established world facts, NPCs, factions, and open threads is provided before the recaps; reference its entries canonically.',
+  'Write as an in-world chronicle; do not address the',
   'player about meta concerns.',
 ].join(' ');
 
@@ -25,6 +27,7 @@ export interface ComposeArcSummaryInput {
   campaignId: string;
   arcId: string;
   recaps: SessionRecapRecord[];
+  bible: CampaignBibleInput;
 }
 
 /**
@@ -45,9 +48,31 @@ export async function composeArcSummary(
       'composeArcSummary requires at least one session recap',
     );
   }
-  const userContent = renderRecaps(input.recaps);
+  const userContent = renderBibleAndRecaps(input.bible, input.recaps);
   const messages: ModelMessage[] = [{ role: 'user', content: userContent }];
   return model.complete({ system: ARC_SUMMARY_SYSTEM_PROMPT, messages });
+}
+
+function renderBibleAndRecaps(
+  bible: CampaignBibleInput,
+  recaps: SessionRecapRecord[],
+): string {
+  return [renderBible(bible), renderRecaps(recaps)].join('\n\n');
+}
+
+function renderBible(bible: CampaignBibleInput): string {
+  const sections: Array<readonly [string, readonly string[]]> = [
+    ['worldFacts', bible.worldFacts],
+    ['majorNpcs', bible.majorNpcs],
+    ['factions', bible.factions],
+    ['openThreads', bible.openThreads],
+  ];
+  const blocks = sections.map(([name, items]) => {
+    const body =
+      items.length === 0 ? '(none)' : items.map((s) => '- ' + s).join('\n');
+    return '### ' + name + '\n' + body;
+  });
+  return ['## campaign bible', ...blocks].join('\n');
 }
 
 function renderRecaps(recaps: SessionRecapRecord[]): string {
