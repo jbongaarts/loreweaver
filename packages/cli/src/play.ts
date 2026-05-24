@@ -34,6 +34,10 @@ import {
   type SessionRecapRecord,
   type ToolRegistry,
 } from '@loreweaver/core';
+import {
+  DEFAULT_MEMORY_CONFIG,
+  type MemoryConfig,
+} from '@loreweaver/core/internal';
 
 /**
  * Thin interactive front-end for the E6 session lifecycle.
@@ -93,6 +97,8 @@ export interface PlayDeps {
    * {@link doltCheckpointRunner}.
    */
   makeCheckpointRunner: (dbPath: string) => SessionCheckpointRunner | undefined;
+  /** Memory configuration: arc rollover threshold (N) and recap window (K). */
+  memoryConfig: MemoryConfig;
 }
 
 export interface PlayOptions {

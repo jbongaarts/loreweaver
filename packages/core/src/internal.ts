@@ -37,6 +37,12 @@ export type {
   TurnTraceRecord,
 } from './memory/turnTrace.js';
 
+// Memory configuration (N and K knobs for arc rollover and recap window).
+export {
+  DEFAULT_MEMORY_CONFIG,
+  type MemoryConfig,
+} from './memory/config.js';
+
 // Campaign arc lifecycle (read-side + idempotent open + atomic rollover).
 export {
   openArcIfMissing,

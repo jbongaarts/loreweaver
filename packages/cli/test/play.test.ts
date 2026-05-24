@@ -28,6 +28,7 @@ import {
 import {
   appendSceneLog,
   assembleContext,
+  DEFAULT_MEMORY_CONFIG,
   getOpenScene,
   openScene,
   recordTurnTrace,
@@ -186,6 +187,7 @@ function baseDeps(
     nextId: (prefix) => `${prefix}-${++ids}`,
     seed: () => 1,
     makeCheckpointRunner,
+    memoryConfig: { ...DEFAULT_MEMORY_CONFIG },
   };
 }
 
