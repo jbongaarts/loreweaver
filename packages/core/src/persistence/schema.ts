@@ -1,7 +1,7 @@
 import type { Db } from './db.js';
 import { withTransaction } from './db.js';
 
-export const SCHEMA_VERSION = 7;
+export const SCHEMA_VERSION = 8;
 
 export class SchemaCompatibilityError extends Error {
   constructor(message: string) {
@@ -216,12 +216,28 @@ export function initSchema(db: Db): void {
       status TEXT NOT NULL CHECK (status IN ('open', 'closed')),
       started_at TEXT NOT NULL,
       closed_at TEXT,
+      arc_id TEXT,
       PRIMARY KEY (campaign_id, session_id)
     );
 
     CREATE UNIQUE INDEX IF NOT EXISTS campaign_session_one_open
       ON campaign_session(campaign_id)
       WHERE status = 'open';
+
+    -- Multi-session arc lifecycle. Exactly one arc is 'open' per campaign at a
+    -- time; the partial unique index enforces that invariant at the DB level.
+    CREATE TABLE IF NOT EXISTS campaign_arc (
+      campaign_id  TEXT NOT NULL,
+      arc_id       TEXT NOT NULL,
+      sequence_no  INTEGER NOT NULL,
+      status       TEXT NOT NULL CHECK (status IN ('open', 'closed')),
+      opened_at    TEXT NOT NULL,
+      closed_at    TEXT,
+      PRIMARY KEY (campaign_id, arc_id)
+    );
+
+    CREATE UNIQUE INDEX IF NOT EXISTS campaign_arc_one_open
+      ON campaign_arc(campaign_id) WHERE status = 'open';
 
     -- Authoritative campaign rules binding. Singleton row identifies the base
     -- rules pack and an ordered JSON list of compatible add-on packs. Campaign
