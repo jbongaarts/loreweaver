@@ -428,8 +428,9 @@ async function turnLoop(
       },
     );
     if (result.ok) {
-      // Stream the DM's narration to the player. The core `complete` contract
-      // returns a whole completion, so this is turn-granular streaming.
+      // Turn-granular output: `ModelClient.complete` returns a whole completion
+      // and `runTurn` resolves once the turn is finished, so narration is
+      // written in one shot rather than streamed token-by-token (see ADR 0002).
       deps.io.write(result.narration);
     } else {
       deps.io.write(
