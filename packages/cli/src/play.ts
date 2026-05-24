@@ -16,8 +16,6 @@ import {
   getSessionLaunchState,
   getSessionRecap,
   initSchema,
-  listSessions,
-  rollupArcSummary,
   startSession,
   type CampaignBibleInput,
   type CampaignInfo,
@@ -35,7 +33,11 @@ import {
   type ToolRegistry,
 } from '@loreweaver/core';
 import {
+  closeOpenArcAndOpenNext,
   DEFAULT_MEMORY_CONFIG,
+  getClosedSessionsInOpenArc,
+  openArcIfMissing,
+  stampSessionWithOpenArc,
   type MemoryConfig,
 } from '@loreweaver/core/internal';
 
@@ -492,11 +494,8 @@ async function gracefulClose(
   // written before the checkpoint, so a checkpoint failure does not skip it).
   // Roll the campaign's arc up so the arc tier of the memory pyramid reflects
   // the closed session.
-  await rollupCampaignArc(deps, db, campaignId);
+  await rollupCampaignArcIfReady(deps, db, campaignId, sessionId);
 }
-
-/** The campaign's single ongoing arc. Multi-arc support is future work. */
-const CAMPAIGN_ARC_ID = 'arc-1';
 
 /**
  * Extract a campaign bible with one retry on failure. Retry policy lives in
@@ -517,59 +516,65 @@ async function extractBibleWithRetry(
 }
 
 /**
- * Roll the campaign's closed sessions up into a model-authored arc summary
- * and a model-extracted campaign bible. The bible is extracted first (with
- * one retry on failure) so the arc summary can reference NPCs/factions
- * canonically. Either model call failing leads to an atomic skip — a
- * warning is written and arc_summary stays at whatever it was; the next
- * successful close retries the full pipeline.
+ * Open (or reuse) the campaign's current arc, stamp the just-closed session
+ * onto it, and — once the arc has accumulated {@link PlayDeps.memoryConfig
+ * arcRolloverThreshold} closed sessions — roll it up into a model-authored
+ * arc summary and campaign bible, then open the next arc. If the threshold
+ * has not yet been reached the function returns silently. Either model call
+ * failing leads to an atomic skip: a warning is written and the arc stays
+ * open; the next session will re-attempt once enough sessions have closed.
  */
-async function rollupCampaignArc(
+async function rollupCampaignArcIfReady(
   deps: PlayDeps,
   db: Db,
   campaignId: string,
+  sessionId: string,
 ): Promise<void> {
-  const recaps = listSessions(db, { campaignId })
-    .map((session) =>
-      getSessionRecap(db, { campaignId, sessionId: session.sessionId }),
-    )
-    .filter((recap): recap is SessionRecapRecord => recap !== undefined);
-  if (recaps.length === 0) {
-    return;
+  const now = deps.now();
+  const openArc = openArcIfMissing(db, { campaignId, now });
+  stampSessionWithOpenArc(db, { campaignId, sessionId });
+
+  const closedSessions = getClosedSessionsInOpenArc(db, { campaignId });
+  if (closedSessions.length < deps.memoryConfig.arcRolloverThreshold) {
+    return; // not yet at N; silent
   }
+
+  const recaps = closedSessions
+    .map((s) => getSessionRecap(db, { campaignId, sessionId: s.sessionId }))
+    .filter((r): r is SessionRecapRecord => r !== undefined);
+
   let bible: CampaignBibleInput;
   try {
     bible = await extractBibleWithRetry(deps.model, { campaignId, recaps });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    deps.io.write(
-      'Arc rollup skipped (bible extraction failed): ' + message + '.',
-    );
+    deps.io.write(`Arc rollup skipped (bible extraction failed): ${message}.`);
     return;
   }
+
   let summary: string;
   try {
     summary = await composeArcSummary(deps.model, {
       campaignId,
-      arcId: CAMPAIGN_ARC_ID,
+      arcId: openArc.arcId,
       recaps,
       bible,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    deps.io.write(
-      'Arc rollup skipped (arc summary failed): ' + message + '.',
-    );
+    deps.io.write(`Arc rollup skipped (arc summary failed): ${message}.`);
     return;
   }
-  rollupArcSummary(db, {
+
+  const result = closeOpenArcAndOpenNext(db, {
     campaignId,
-    arcId: CAMPAIGN_ARC_ID,
+    arcId: openArc.arcId,
     summary,
-    sourceSessionIds: recaps.map((recap) => recap.sessionId),
+    sourceSessionIds: recaps.map((r) => r.sessionId),
     campaignBible: bible,
-    createdAt: deps.now(),
+    now,
   });
+  deps.io.write(`Arc ${result.closedArcId} closed; opened ${result.newArcId}.`);
 }
 
 /**
