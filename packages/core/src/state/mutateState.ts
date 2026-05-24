@@ -65,25 +65,43 @@ export interface StateProvenanceRecord {
   updatedAt: string;
 }
 
-const CHARACTER_SET_FIELDS = new Set([
-  'name',
-  'ancestry',
-  'class_name',
-  'level',
-  'hp_current',
-  'hp_max',
-  'ability_scores_json',
-  'conditions_json',
-]);
+/**
+ * Per-table descriptor for every column mutate_state is allowed to write.
+ *
+ * Single source of truth for two coupled concerns: which fields are writable
+ * (SQL safety — the field name is interpolated into UPDATE/INSERT statements
+ * so it must be allowlisted) and how the incoming value must be typed before
+ * being bound. Adding or renaming a writable column means editing one entry
+ * here instead of two parallel Sets. The descriptors still have to be kept in
+ * sync with `persistence/schema.ts` by hand.
+ */
+type FieldDescriptor =
+  | { kind: 'text'; nullable: boolean }
+  | { kind: 'integer'; min: number }
+  | { kind: 'json'; root: 'array' | 'object' };
 
-const INVENTORY_SET_FIELDS = new Set([
-  'name',
-  'quantity',
-  'location',
-  'properties_json',
-]);
+const CHARACTER_FIELDS: Record<string, FieldDescriptor> = {
+  name: { kind: 'text', nullable: true },
+  ancestry: { kind: 'text', nullable: true },
+  class_name: { kind: 'text', nullable: true },
+  level: { kind: 'integer', min: 1 },
+  hp_current: { kind: 'integer', min: 0 },
+  hp_max: { kind: 'integer', min: 0 },
+  ability_scores_json: { kind: 'json', root: 'object' },
+  conditions_json: { kind: 'json', root: 'array' },
+};
 
-const CLOCK_SET_FIELDS = new Set(['in_game_time', 'current_location_id']);
+const INVENTORY_FIELDS: Record<string, FieldDescriptor> = {
+  name: { kind: 'text', nullable: false },
+  quantity: { kind: 'integer', min: 0 },
+  location: { kind: 'text', nullable: true },
+  properties_json: { kind: 'json', root: 'object' },
+};
+
+const CLOCK_FIELDS: Record<string, FieldDescriptor> = {
+  in_game_time: { kind: 'text', nullable: false },
+  current_location_id: { kind: 'text', nullable: true },
+};
 
 export class MutateStateError extends Error {
   constructor(message: string) {
@@ -150,10 +168,10 @@ export function getStateProvenance(
 ): StateProvenanceRecord | undefined {
   switch (query.target) {
     case 'character':
-      requireAllowedField('character', query.field, CHARACTER_SET_FIELDS);
+      requireAllowedField('character', query.field, CHARACTER_FIELDS);
       return readSingletonProvenance(db, query, 'character');
     case 'clock':
-      requireAllowedField('clock', query.field, CLOCK_SET_FIELDS);
+      requireAllowedField('clock', query.field, CLOCK_FIELDS);
       return readSingletonProvenance(db, query, 'clock');
     case 'inventory':
       requireNonEmpty(
@@ -161,7 +179,7 @@ export function getStateProvenance(
         [['id', query.id ?? '']],
         () => 'inventory provenance query id is required',
       );
-      requireAllowedField('inventory', query.field, INVENTORY_SET_FIELDS);
+      requireAllowedField('inventory', query.field, INVENTORY_FIELDS);
       return readInventoryProvenance(db, query);
     case 'plot_flags':
       return readKeyedFactProvenance(db, query, 'plot_flags');
@@ -187,8 +205,7 @@ function validateCommonInput(input: MutateStateInput): void {
 }
 
 function setCharacterField(db: Db, input: MutateStateInput): void {
-  requireAllowedField('character', input.field, CHARACTER_SET_FIELDS);
-  const value = validatedCharacterValue(input.field, input.value);
+  const value = validatedFieldValue('character', input.field, input.value, CHARACTER_FIELDS);
   db.prepare(
     `UPDATE character
      SET ${input.field} = ?,
@@ -205,8 +222,7 @@ function setInventoryField(db: Db, input: MutateStateInput): void {
     [['id', input.id ?? '']],
     () => 'inventory mutate_state id is required',
   );
-  requireAllowedField('inventory', input.field, INVENTORY_SET_FIELDS);
-  const value = validatedInventoryValue(input.field, input.value);
+  const value = validatedFieldValue('inventory', input.field, input.value, INVENTORY_FIELDS);
 
   db.prepare(
     `INSERT INTO inventory(
@@ -236,8 +252,7 @@ function setInventoryField(db: Db, input: MutateStateInput): void {
 }
 
 function setClockField(db: Db, input: MutateStateInput): void {
-  requireAllowedField('clock', input.field, CLOCK_SET_FIELDS);
-  const value = validatedClockValue(input.field, input.value);
+  const value = validatedFieldValue('clock', input.field, input.value, CLOCK_FIELDS);
   db.prepare(
     `UPDATE clock
      SET ${input.field} = ?,
@@ -251,9 +266,9 @@ function setClockField(db: Db, input: MutateStateInput): void {
 function requireAllowedField(
   target: string,
   field: string,
-  allowedFields: Set<string>,
+  fields: Record<string, FieldDescriptor>,
 ): void {
-  if (!allowedFields.has(field)) {
+  if (!Object.prototype.hasOwnProperty.call(fields, field)) {
     throw new MutateStateError(
       `Unsupported ${target} mutate_state field: ${field}`,
     );
@@ -358,63 +373,32 @@ function setKeyedJsonFact(
 
 type SqlValue = string | number | null;
 
-const CHARACTER_TEXT_FIELDS = new Set(['name', 'ancestry', 'class_name']);
-const CHARACTER_INTEGER_FIELDS = new Set(['level', 'hp_current', 'hp_max']);
-const CHARACTER_JSON_FIELDS = new Set([
-  'ability_scores_json',
-  'conditions_json',
-]);
-const INVENTORY_TEXT_FIELDS = new Set(['name', 'location']);
-const INVENTORY_JSON_FIELDS = new Set(['properties_json']);
-const CLOCK_TEXT_FIELDS = new Set(['in_game_time', 'current_location_id']);
-
-function validatedCharacterValue(
+function validatedFieldValue(
+  target: string,
   field: string,
   value: MutateStateValue,
+  fields: Record<string, FieldDescriptor>,
 ): SqlValue {
-  if (CHARACTER_TEXT_FIELDS.has(field)) {
-    return nullableStringValue('character', field, value);
+  const descriptor = fields[field];
+  if (descriptor === undefined) {
+    throw new MutateStateError(
+      `Unsupported ${target} mutate_state field: ${field}`,
+    );
   }
-  if (CHARACTER_INTEGER_FIELDS.has(field)) {
-    return nonNegativeIntegerValue('character', field, value, {
-      min: field === 'level' ? 1 : 0,
-    });
+  switch (descriptor.kind) {
+    case 'text':
+      return descriptor.nullable
+        ? nullableStringValue(target, field, value)
+        : requiredStringValue(target, field, value);
+    case 'integer':
+      return nonNegativeIntegerValue(target, field, value, {
+        min: descriptor.min,
+      });
+    case 'json':
+      return jsonColumnValue(target, field, value, {
+        expectedRoot: descriptor.root,
+      });
   }
-  if (CHARACTER_JSON_FIELDS.has(field)) {
-    return jsonColumnValue('character', field, value, {
-      expectedRoot: field === 'conditions_json' ? 'array' : 'object',
-    });
-  }
-  throw new MutateStateError(`Unsupported character mutate_state field: ${field}`);
-}
-
-function validatedInventoryValue(
-  field: string,
-  value: MutateStateValue,
-): SqlValue {
-  if (INVENTORY_TEXT_FIELDS.has(field)) {
-    return field === 'name'
-      ? requiredStringValue('inventory', field, value)
-      : nullableStringValue('inventory', field, value);
-  }
-  if (field === 'quantity') {
-    return nonNegativeIntegerValue('inventory', field, value, { min: 0 });
-  }
-  if (INVENTORY_JSON_FIELDS.has(field)) {
-    return jsonColumnValue('inventory', field, value, {
-      expectedRoot: 'object',
-    });
-  }
-  throw new MutateStateError(`Unsupported inventory mutate_state field: ${field}`);
-}
-
-function validatedClockValue(field: string, value: MutateStateValue): SqlValue {
-  if (CLOCK_TEXT_FIELDS.has(field)) {
-    return field === 'in_game_time'
-      ? requiredStringValue('clock', field, value)
-      : nullableStringValue('clock', field, value);
-  }
-  throw new MutateStateError(`Unsupported clock mutate_state field: ${field}`);
 }
 
 function requiredStringValue(
