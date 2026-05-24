@@ -51,8 +51,6 @@ export interface RunTurnInput {
   campaignId: string;
   sessionId: string;
   turnId: string;
-  /** Current arc, if the campaign has one. */
-  arcId?: string;
   playerInput: string;
   /** Seed for this turn's code-owned RNG — makes the turn reproducible. */
   seed: number;
@@ -187,7 +185,6 @@ export async function runTurn(
       db,
       campaignId: input.campaignId,
       sessionId: input.sessionId,
-      arcId: input.arcId,
       playerInput: input.playerInput,
       recentSessionLimit: input.recentSessionLimit,
     });

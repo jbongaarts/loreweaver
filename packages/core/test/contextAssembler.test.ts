@@ -2,14 +2,17 @@ import { describe, expect, it } from 'vitest';
 import {
   appendSceneLog,
   assembleContext,
+  closeOpenArcAndOpenNext,
   closeScene,
   memoryDrilldown,
   mutateState,
+  openArcIfMissing,
   openScene,
   recordSceneSummary,
   renderContextMessage,
   rollupArcSummary,
   rollupSessionRecap,
+  stampSessionWithOpenArc,
 } from '../src/internal.js';
 import type { Db } from '../src/internal.js';
 import { freshDbWithSession } from './support/db.js';
@@ -204,7 +207,7 @@ describe('Context Assembler', () => {
     db.close();
   });
 
-  it('includes campaign bible, last session recap, and current arc', () => {
+  it('includes campaign bible and last session recap', () => {
     const db = freshDbWithSession({ sessionId: SESSION });
     rollupSessionRecap(db, {
       campaignId: CAMPAIGN,
@@ -213,35 +216,143 @@ describe('Context Assembler', () => {
       stateDelta: [],
       createdAt: '2026-05-19T20:00:00.000Z',
     });
-    rollupArcSummary(db, {
+
+    const ctx = assembleContext({
+      db,
+      campaignId: CAMPAIGN,
+      sessionId: SESSION,
+      playerInput: 'continue',
+    });
+
+    expect(ctx.campaignBible).toBeUndefined();
+    expect(ctx.recentSessionRecaps.map((r) => r.recap)).toContain(
+      'The party left the city gates.',
+    );
+    db.close();
+  });
+
+  it('returns arcSummaries[] in sequence_no order for closed arcs', () => {
+    const db = freshDbWithSession({ sessionId: SESSION });
+
+    // Open arc-1 and immediately close it to get arc-2 open.
+    openArcIfMissing(db, { campaignId: CAMPAIGN, now: '2026-05-19T18:00:00.000Z' });
+    closeOpenArcAndOpenNext(db, {
       campaignId: CAMPAIGN,
       arcId: 'arc-1',
-      summary: 'The hunt for the lost caravan.',
+      summary: 'Arc one summary.',
       sourceSessionIds: ['session-1'],
-      campaignBible: {
-        worldFacts: ['The roads are dangerous.'],
-        majorNpcs: ['Barkeep Tom'],
-        factions: [],
-        openThreads: ['Find the caravan'],
-      },
-      createdAt: '2026-05-19T21:00:00.000Z',
+      campaignBible: { worldFacts: [], majorNpcs: [], factions: [], openThreads: [] },
+      now: '2026-05-19T19:00:00.000Z',
+    });
+    // arc-2 is now open; close it to get arc-3 open.
+    closeOpenArcAndOpenNext(db, {
+      campaignId: CAMPAIGN,
+      arcId: 'arc-2',
+      summary: 'Arc two summary.',
+      sourceSessionIds: ['session-2'],
+      campaignBible: { worldFacts: [], majorNpcs: [], factions: [], openThreads: [] },
+      now: '2026-05-19T20:00:00.000Z',
     });
 
     const ctx = assembleContext({
       db,
       campaignId: CAMPAIGN,
       sessionId: SESSION,
-      arcId: 'arc-1',
       playerInput: 'continue',
     });
 
-    expect(ctx.campaignBible?.worldFacts[0].text).toBe(
-      'The roads are dangerous.',
-    );
-    expect(ctx.arcSummary?.summary).toBe('The hunt for the lost caravan.');
-    expect(ctx.recentSessionRecaps.map((r) => r.recap)).toContain(
-      'The party left the city gates.',
-    );
+    expect(ctx.arcSummaries.map((a) => a.arcId)).toEqual(['arc-1', 'arc-2']);
+    db.close();
+  });
+
+  it('uses recapWindowSize=5 by default', () => {
+    const db = freshDbWithSession({ sessionId: SESSION });
+    for (let n = 1; n <= 6; n++) {
+      rollupSessionRecap(db, {
+        campaignId: CAMPAIGN,
+        sessionId: `session-${n}`,
+        recap: `Session ${n} happened.`,
+        stateDelta: [],
+        createdAt: `2026-05-1${n}T20:00:00.000Z`,
+      });
+    }
+
+    const ctx = assembleContext({
+      db,
+      campaignId: CAMPAIGN,
+      sessionId: 'session-7',
+      playerInput: 'continue',
+    });
+
+    expect(ctx.recentSessionRecaps).toHaveLength(5);
+    expect(ctx.omittedSessionCount).toBe(1);
+    db.close();
+  });
+
+  it('K-recap window spans an arc boundary', () => {
+    // Setup: arc-1 closed with 5 stamped sessions (s1..s5) and one arc_summary.
+    // arc-2 is open with no sessions yet.
+    // session_recap rows exist for s1..s5.
+    const db = freshDbWithSession({ sessionId: 's1' });
+
+    // Open arc-1.
+    openArcIfMissing(db, { campaignId: CAMPAIGN, now: '2026-05-19T08:00:00.000Z' });
+
+    // Create and stamp 5 sessions to arc-1.
+    for (let n = 1; n <= 5; n++) {
+      const sid = `s${n}`;
+      if (n > 1) {
+        // freshDbWithSession only creates s1; create the rest manually.
+        db.prepare(
+          `INSERT INTO campaign_session(campaign_id, session_id, status, started_at)
+           VALUES (?, ?, 'closed', ?)`,
+        ).run(CAMPAIGN, sid, `2026-05-${10 + n}T08:00:00.000Z`);
+        db.prepare(
+          `UPDATE campaign_session SET status='closed', closed_at=?
+           WHERE campaign_id=? AND session_id=?`,
+        ).run(`2026-05-${10 + n}T18:00:00.000Z`, CAMPAIGN, sid);
+      } else {
+        // Close s1 (already created by freshDbWithSession).
+        db.prepare(
+          `UPDATE campaign_session SET status='closed', closed_at=?
+           WHERE campaign_id=? AND session_id=?`,
+        ).run('2026-05-11T18:00:00.000Z', CAMPAIGN, sid);
+      }
+      stampSessionWithOpenArc(db, { campaignId: CAMPAIGN, sessionId: sid });
+      rollupSessionRecap(db, {
+        campaignId: CAMPAIGN,
+        sessionId: sid,
+        recap: `Recap for ${sid}.`,
+        stateDelta: [],
+        createdAt: `2026-05-${10 + n}T20:00:00.000Z`,
+      });
+    }
+
+    // Close arc-1 and open arc-2.
+    closeOpenArcAndOpenNext(db, {
+      campaignId: CAMPAIGN,
+      arcId: 'arc-1',
+      summary: 'Arc one is done.',
+      sourceSessionIds: ['s1', 's2', 's3', 's4', 's5'],
+      campaignBible: { worldFacts: [], majorNpcs: [], factions: [], openThreads: [] },
+      now: '2026-05-20T00:00:00.000Z',
+    });
+
+    // arc-2 is now open with no sessions. We're now in the first turn of arc-2's
+    // first session. Use s5 as the current sessionId to stay in the arc-1 context.
+    const ctx = assembleContext({
+      db,
+      campaignId: CAMPAIGN,
+      sessionId: 's5',
+      playerInput: 'continue',
+    });
+
+    // The no-forget guarantee: all 5 arc-1 sessions appear in the K=5 window.
+    expect(ctx.arcSummaries).toHaveLength(1);
+    expect(ctx.arcSummaries[0]?.arcId).toBe('arc-1');
+    expect(ctx.recentSessionRecaps.map((r) => r.sessionId)).toEqual([
+      's1', 's2', 's3', 's4', 's5',
+    ]);
     db.close();
   });
 
