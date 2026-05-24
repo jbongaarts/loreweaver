@@ -487,6 +487,11 @@ describe('runPlay', () => {
       .prepare(`SELECT status FROM campaign_arc WHERE campaign_id = ? AND arc_id = ?`)
       .get(cid, 'arc-1') as { status: string } | undefined;
     expect(arcRow?.status).toBe('open');
+    // Session closed and recap written despite the arc rollup failure.
+    expect(getOpenSession(db, { campaignId: cid })).toBeUndefined();
+    const sessions = listSessions(db, { campaignId: cid });
+    const lastSession = sessions[sessions.length - 1]!;
+    expect(getSessionRecap(db, { campaignId: cid, sessionId: lastSession.sessionId })).toBeDefined();
 
     dispose();
   });
@@ -787,6 +792,9 @@ describe('runPlay', () => {
     // Skip warning present; rollover announcement absent.
     expect(out).toContain('Arc rollup skipped (bible extraction failed): provider down.');
     expect(out).not.toContain('Arc arc-1 closed; opened arc-2.');
+    // Session closed and recap written despite the rollover failure.
+    expect(getOpenSession(db, { campaignId: cid })).toBeUndefined();
+    expect(getSessionRecap(db, { campaignId: cid, sessionId: lastSession.sessionId })).toBeDefined();
 
     dispose();
   });
