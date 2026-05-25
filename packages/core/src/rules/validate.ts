@@ -142,9 +142,7 @@ function source(value: unknown): RulesPackSource {
   const sourceUrl = optStr(o.sourceUrl, `${path}.sourceUrl`);
   const sourceIdentity = optStr(o.sourceIdentity, `${path}.sourceIdentity`);
   if (sourceUrl === undefined && sourceIdentity === undefined) {
-    throw new RulesPackError(
-      `${path} must set sourceUrl or sourceIdentity`,
-    );
+    throw new RulesPackError(`${path} must set sourceUrl or sourceIdentity`);
   }
   return {
     sourceTitle: str(o.sourceTitle, `${path}.sourceTitle`),
@@ -175,10 +173,7 @@ function provenance(value: unknown, path: string): RecordProvenance {
   };
 }
 
-function compatibleBaseSystem(
-  value: unknown,
-  i: number,
-): CompatibleBaseSystem {
+function compatibleBaseSystem(value: unknown, i: number): CompatibleBaseSystem {
   const path = `meta.compatibleBaseSystems[${i}]`;
   const o = obj(value, path);
   const versions = strArray(o.versions, `${path}.versions`);

@@ -2,13 +2,13 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { configFilePath } from '../src/dataRoot.js';
 import {
   ConfigFileError,
   applyConfigToEnv,
   installConfigDefaults,
   loadConfigFile,
 } from '../src/configFile.js';
+import { configFilePath } from '../src/dataRoot.js';
 
 describe('loadConfigFile', () => {
   const roots: string[] = [];
@@ -97,7 +97,9 @@ describe('applyConfigToEnv', () => {
   it('maps profile overrides onto LOREWEAVER_PROFILE_<NAME>_* variables', () => {
     const merged = applyConfigToEnv(
       {},
-      { profiles: { premium_dm: { provider: 'anthropic', model: 'claude-x' } } },
+      {
+        profiles: { premium_dm: { provider: 'anthropic', model: 'claude-x' } },
+      },
     );
     expect(merged.LOREWEAVER_PROFILE_PREMIUM_DM_PROVIDER).toBe('anthropic');
     expect(merged.LOREWEAVER_PROFILE_PREMIUM_DM_MODEL).toBe('claude-x');

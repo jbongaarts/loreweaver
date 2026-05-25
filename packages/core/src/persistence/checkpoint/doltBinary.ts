@@ -66,8 +66,7 @@ export function resolveDoltBinary(opts: ResolveDoltOptions = {}): string {
   const cached = join(managedDoltDir(env), BIN);
   if (isFile(cached)) return cached;
 
-  const pathDirs =
-    opts.pathDirs ?? (env.PATH ? env.PATH.split(delimiter) : []);
+  const pathDirs = opts.pathDirs ?? (env.PATH ? env.PATH.split(delimiter) : []);
   for (const dir of pathDirs) {
     if (!dir) continue;
     const candidate = join(dir, BIN);

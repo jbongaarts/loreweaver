@@ -72,9 +72,7 @@ export function createCampaign(
     input.pack.meta.rulesRequirements,
   );
   if (incompat !== undefined) {
-    throw new CampaignError(
-      `cannot create campaign: ${incompat}`,
-    );
+    throw new CampaignError(`cannot create campaign: ${incompat}`);
   }
 
   return withTransaction(db, (txnDb) => {

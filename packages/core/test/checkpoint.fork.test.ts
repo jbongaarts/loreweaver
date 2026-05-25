@@ -2,13 +2,13 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { openDatabase } from '../src/persistence/db.js';
 import { DoltRepo } from '../src/persistence/checkpoint/doltRepo.js';
-import { CheckpointStore } from '../src/persistence/checkpoint/store.js';
 import {
-  serializeCampaign,
   canonicalize,
+  serializeCampaign,
 } from '../src/persistence/checkpoint/serialize.js';
+import { CheckpointStore } from '../src/persistence/checkpoint/store.js';
+import { openDatabase } from '../src/persistence/db.js';
 
 const doltOk = DoltRepo.available();
 

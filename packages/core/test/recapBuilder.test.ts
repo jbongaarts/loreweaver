@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  type TurnTraceRecord,
   appendSceneLog,
   closeScene,
   closeSession,
@@ -8,7 +9,6 @@ import {
   recordSceneSummary,
   recordTurnTrace,
   startSession,
-  type TurnTraceRecord,
 } from '../src/internal.js';
 import {
   DEFAULT_TEST_CAMPAIGN_ID,
@@ -106,7 +106,13 @@ describe('composeSessionRecap', () => {
     recordTurnTrace(db, {
       ...baseTrace('turn-2'),
       acceptedStateDelta: [
-        { target: 'inventory', id: 'lantern', field: 'quantity', op: 'set', value: 1 },
+        {
+          target: 'inventory',
+          id: 'lantern',
+          field: 'quantity',
+          op: 'set',
+          value: 1,
+        },
       ],
       createdAt: '2026-05-20T10:05:00.000Z',
     });
@@ -118,7 +124,13 @@ describe('composeSessionRecap', () => {
 
     expect(stateDelta).toEqual([
       { target: 'plot_flags', field: 'found_sigil', op: 'set', value: true },
-      { target: 'inventory', id: 'lantern', field: 'quantity', op: 'set', value: 1 },
+      {
+        target: 'inventory',
+        id: 'lantern',
+        field: 'quantity',
+        op: 'set',
+        value: 1,
+      },
     ]);
     db.close();
   });

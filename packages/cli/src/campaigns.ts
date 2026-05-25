@@ -153,7 +153,8 @@ function runAdd(args: string[], deps: CampaignDeps): number {
     deps.log(`no file at ${dbPath}`);
     return 1;
   }
-  const name = args.slice(1).join(' ').trim() || basename(dbPath, extname(dbPath));
+  const name =
+    args.slice(1).join(' ').trim() || basename(dbPath, extname(dbPath));
   ensureDataRoot(deps.root);
   const registry = loadRegistry(deps.root);
   if (registry.campaigns.some((c) => resolve(c.dbPath) === dbPath)) {
@@ -240,7 +241,8 @@ export function resolveCampaignDbPath(
   if (registry.campaigns.length === 0) {
     return {
       ok: false,
-      message: "no campaigns registered. Create one with 'loreweaver new <name>'.",
+      message:
+        "no campaigns registered. Create one with 'loreweaver new <name>'.",
     };
   }
   return {
@@ -250,7 +252,10 @@ export function resolveCampaignDbPath(
 }
 
 /** `loreweaver campaigns <subcommand>` dispatcher. */
-export function runCampaignsCommand(args: string[], deps: CampaignDeps): number {
+export function runCampaignsCommand(
+  args: string[],
+  deps: CampaignDeps,
+): number {
   const [subcommand, ...rest] = args;
   switch (subcommand) {
     case 'list':
@@ -262,9 +267,7 @@ export function runCampaignsCommand(args: string[], deps: CampaignDeps): number 
     case 'rename':
       return runRename(rest, deps);
     default:
-      deps.log(
-        'usage: loreweaver campaigns <list|add|remove|rename> ...',
-      );
+      deps.log('usage: loreweaver campaigns <list|add|remove|rename> ...');
       return subcommand === undefined ? 1 : 1;
   }
 }
@@ -283,7 +286,9 @@ async function pickCampaign(
     deps.io.write(`  ${i + 1}) ${describeEntry(entry)}${marker}`);
   });
   const hint =
-    defaultIndex >= 0 ? `1-${entries.length}, default ${defaultIndex + 1}` : `1-${entries.length}`;
+    defaultIndex >= 0
+      ? `1-${entries.length}, default ${defaultIndex + 1}`
+      : `1-${entries.length}`;
   const answer = await deps.io.prompt(`Campaign [${hint}]: `);
   if (answer === undefined) {
     return undefined;

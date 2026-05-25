@@ -88,7 +88,12 @@ export function forkModuleIntoCampaign(db: Db, pack: ModulePack): void {
        VALUES (?, ?, ?, ?)`,
     );
     for (const lore of pack.lore) {
-      insLore.run(lore.id, lore.title, lore.scope, moduleDataColumn.encode(lore));
+      insLore.run(
+        lore.id,
+        lore.title,
+        lore.scope,
+        moduleDataColumn.encode(lore),
+      );
     }
   });
 }

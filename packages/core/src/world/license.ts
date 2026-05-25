@@ -51,10 +51,8 @@ export function evaluatePackPolicy(license: PackLicense): PackUsePolicy {
 
   return {
     shippable: reasons.length === 0,
-    hostedAllowed:
-      reasons.length === 0 && license.hostedUseAllowed,
-    publicSharingAllowed:
-      reasons.length === 0 && license.publicSharingAllowed,
+    hostedAllowed: reasons.length === 0 && license.hostedUseAllowed,
+    publicSharingAllowed: reasons.length === 0 && license.publicSharingAllowed,
     reasons,
   };
 }

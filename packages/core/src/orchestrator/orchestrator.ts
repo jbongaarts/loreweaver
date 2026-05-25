@@ -1,18 +1,21 @@
-import type { Db } from '../persistence/db.js';
-import type { ModelClient, ModelMessage } from '../model/client.js';
-import type { TraceJsonValue, TurnTraceConsentScope } from '../memory/turnTrace.js';
-import { recordTurnTrace } from '../memory/turnTrace.js';
 import { summarizeSceneFromLog } from '../memory/summary.js';
-import { createSeededRng } from './rng.js';
-import { ToolRegistry, isMarkSceneToolData } from './tools.js';
-import type { ToolContext, ToolResult } from './tools.js';
+import type {
+  TraceJsonValue,
+  TurnTraceConsentScope,
+} from '../memory/turnTrace.js';
+import { recordTurnTrace } from '../memory/turnTrace.js';
+import type { ModelClient, ModelMessage } from '../model/client.js';
+import type { Db } from '../persistence/db.js';
 import { assembleContext, renderContextMessage } from './contextAssembler.js';
 import {
   buildSystemPrompt,
   parseToolCalls,
   renderToolResults,
 } from './protocol.js';
+import { createSeededRng } from './rng.js';
 import { appendSceneLog, getOpenScene, openScene } from './scene.js';
+import { type ToolRegistry, isMarkSceneToolData } from './tools.js';
+import type { ToolContext, ToolResult } from './tools.js';
 
 /**
  * Orchestrator turn loop (E5) — the integrating loop.

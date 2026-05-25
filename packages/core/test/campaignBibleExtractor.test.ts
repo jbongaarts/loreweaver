@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
-  extractCampaignBible,
-  ModelClientError,
-  MemorySummaryError,
   type ArcSummaryRecord,
   type CampaignBibleInput,
+  MemorySummaryError,
   type ModelClient,
+  ModelClientError,
   type ModelCompleteInput,
   type SessionRecapRecord,
+  extractCampaignBible,
 } from '../src/internal.js';
 
 function fakeModel(
@@ -49,7 +49,11 @@ describe('extractCampaignBible', () => {
     const bible = await extractCampaignBible(model, {
       campaignId: 'camp-1',
       recaps: [
-        recap('session-1', 'Mira found the chalk sigil.', '2026-05-20T10:00:00.000Z'),
+        recap(
+          'session-1',
+          'Mira found the chalk sigil.',
+          '2026-05-20T10:00:00.000Z',
+        ),
       ],
     });
     expect(bible.worldFacts).toEqual([
@@ -73,7 +77,11 @@ describe('extractCampaignBible', () => {
     await extractCampaignBible(model, {
       campaignId: 'camp-1',
       recaps: [
-        recap('session-1', 'Mira found the chalk sigil.', '2026-05-20T10:00:00.000Z'),
+        recap(
+          'session-1',
+          'Mira found the chalk sigil.',
+          '2026-05-20T10:00:00.000Z',
+        ),
       ],
     });
     expect(captured?.system).toMatch(/world facts/i);
@@ -94,9 +102,7 @@ describe('extractCampaignBible', () => {
   });
 
   it('throws MemorySummaryError when the fenced content is not valid JSON', async () => {
-    const model = fakeModel(
-      () => '```bible_json\nnot json at all\n```',
-    );
+    const model = fakeModel(() => '```bible_json\nnot json at all\n```');
     await expect(
       extractCampaignBible(model, {
         campaignId: 'camp-1',
@@ -107,8 +113,7 @@ describe('extractCampaignBible', () => {
 
   it('throws MemorySummaryError when the JSON has the wrong shape', async () => {
     const model = fakeModel(
-      () =>
-        '```bible_json\n{"worldFacts": ["ok"], "majorNpcs": ["ok"]}\n```',
+      () => '```bible_json\n{"worldFacts": ["ok"], "majorNpcs": ["ok"]}\n```',
     );
     await expect(
       extractCampaignBible(model, {
@@ -239,14 +244,26 @@ describe('extractCampaignBible', () => {
       campaignId: 'camp-1',
       recaps: [recap('session-9', 'r', '2026-05-22T10:00:00.000Z')],
       closedArcSummaries: [
-        arcSummary('arc-1', 'The party rescued the runesmith.', '2026-05-01T10:00:00.000Z'),
-        arcSummary('arc-2', 'They cracked the Lantern Court.', '2026-05-15T10:00:00.000Z'),
+        arcSummary(
+          'arc-1',
+          'The party rescued the runesmith.',
+          '2026-05-01T10:00:00.000Z',
+        ),
+        arcSummary(
+          'arc-2',
+          'They cracked the Lantern Court.',
+          '2026-05-15T10:00:00.000Z',
+        ),
       ],
     });
     const userContent = captured?.messages[0].content ?? '';
     expect(userContent).toContain('## closed arc summaries');
-    const arc1Idx = userContent.indexOf('- arc-1: The party rescued the runesmith.');
-    const arc2Idx = userContent.indexOf('- arc-2: They cracked the Lantern Court.');
+    const arc1Idx = userContent.indexOf(
+      '- arc-1: The party rescued the runesmith.',
+    );
+    const arc2Idx = userContent.indexOf(
+      '- arc-2: They cracked the Lantern Court.',
+    );
     const sessionIdx = userContent.indexOf('## session-9');
     expect(arc1Idx).toBeGreaterThanOrEqual(0);
     expect(arc2Idx).toBeGreaterThan(arc1Idx);

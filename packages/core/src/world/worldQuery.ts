@@ -9,9 +9,8 @@ import type {
 import { WorldModuleError } from './validate.js';
 
 /** JSON codecs for the JSON-backed columns worldQuery reads. */
-const templateDataColumn = jsonColumn<Record<string, unknown>>(
-  'module_*.data_json',
-);
+const templateDataColumn =
+  jsonColumn<Record<string, unknown>>('module_*.data_json');
 const overlayValueColumn = jsonColumn<unknown>('overlay_facts.value_json');
 
 /**
@@ -74,10 +73,7 @@ interface OverlayRow {
  * the unique overlay fact stored for each diverged field. Returns the resolved
  * view, the raw template, and the overlay fields that diverged it.
  */
-export function worldQuery(
-  db: Db,
-  target: WorldQueryTarget,
-): WorldQueryResult {
+export function worldQuery(db: Db, target: WorldQueryTarget): WorldQueryResult {
   const table = TABLE_BY_TYPE[target.type];
   const id = target.type === 'meta' ? '' : target.id;
 

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { openDatabase } from '../src/persistence/db.js';
 import {
-  serializeCampaign,
   canonicalize,
+  serializeCampaign,
 } from '../src/persistence/checkpoint/serialize.js';
+import { openDatabase } from '../src/persistence/db.js';
 
 function seed(rowsReversed: boolean) {
   const db = openDatabase(':memory:');

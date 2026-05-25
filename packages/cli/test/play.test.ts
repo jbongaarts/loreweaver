@@ -1,13 +1,17 @@
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { describe, expect, it, vi } from 'vitest';
 import {
-  createCampaign,
-  createDefaultToolRegistry,
   DND5E_SRD_RULES_PACK,
+  type Db,
   DoltRepo,
   EMBERFALL_HOLLOW,
+  type ModelClient,
+  ModelClientError,
+  type RunTurnInput,
+  type RunTurnResult,
+  createCampaign,
+  createDefaultToolRegistry,
   getArcSummary,
   getCampaign,
   getCampaignBible,
@@ -16,19 +20,14 @@ import {
   getSessionRecap,
   initSchema,
   listSessions,
-  ModelClientError,
   openDatabase,
   readCampaignRulesBinding,
   startSession,
-  type Db,
-  type ModelClient,
-  type RunTurnInput,
-  type RunTurnResult,
 } from '@loreweaver/core';
 import {
+  DEFAULT_MEMORY_CONFIG,
   appendSceneLog,
   assembleContext,
-  DEFAULT_MEMORY_CONFIG,
   getClosedSessionsInOpenArc,
   getOpenArc,
   getOpenScene,
@@ -37,12 +36,13 @@ import {
   recordTurnTrace,
   renderContextMessage,
 } from '@loreweaver/core/internal';
+import { describe, expect, it, vi } from 'vitest';
 import {
+  type CliIO,
+  type PlayDeps,
   doltCheckpointRunner,
   runDemo,
   runPlay,
-  type CliIO,
-  type PlayDeps,
 } from '../src/play.js';
 
 const FAKE_ARC_SUMMARY = 'FAKE_ARC_SUMMARY';
@@ -98,8 +98,7 @@ function scriptedIO(answers: ReadonlyArray<string>): {
     lines,
     io: {
       write: (line) => lines.push(line),
-      prompt: async () =>
-        next < answers.length ? answers[next++] : undefined,
+      prompt: async () => (next < answers.length ? answers[next++] : undefined),
     },
   };
 }
@@ -185,8 +184,7 @@ function baseDeps(
     registry: createDefaultToolRegistry(),
     runTurn,
     pack: EMBERFALL_HOLLOW,
-    now: () =>
-      new Date(Date.UTC(2026, 4, 20, 0, 0, clock++)).toISOString(),
+    now: () => new Date(Date.UTC(2026, 4, 20, 0, 0, clock++)).toISOString(),
     nextId: (prefix) => `${prefix}-${++ids}`,
     seed: () => 1,
     makeCheckpointRunner,
@@ -464,34 +462,48 @@ describe('runPlay', () => {
 
     // 5th session: model always throws.
     const { io: badIo, lines } = scriptedIO(['/defer', 'look around', '/quit']);
-    const code = await runPlay({
-      ...sharedDeps,
-      io: badIo,
-      model: {
-        complete: async () => {
-          throw new ModelClientError('provider down');
+    const code = await runPlay(
+      {
+        ...sharedDeps,
+        io: badIo,
+        model: {
+          complete: async () => {
+            throw new ModelClientError('provider down');
+          },
         },
       },
-    }, { dbPath: 'demo.db' });
+      { dbPath: 'demo.db' },
+    );
 
     expect(code).toBe(0);
     const out = lines.join('\n');
     expect(out).toContain('closed and recapped');
-    expect(out).toContain('Arc rollup skipped (bible extraction failed): provider down.');
+    expect(out).toContain(
+      'Arc rollup skipped (bible extraction failed): provider down.',
+    );
 
     const cid = campaignId(db);
     // arc_summary row was NOT written.
-    expect(getArcSummary(db, { campaignId: cid, arcId: 'arc-1' })).toBeUndefined();
+    expect(
+      getArcSummary(db, { campaignId: cid, arcId: 'arc-1' }),
+    ).toBeUndefined();
     // arc-1 stays open.
     const arcRow = db
-      .prepare(`SELECT status FROM campaign_arc WHERE campaign_id = ? AND arc_id = ?`)
+      .prepare(
+        `SELECT status FROM campaign_arc WHERE campaign_id = ? AND arc_id = ?`,
+      )
       .get(cid, 'arc-1') as { status: string } | undefined;
     expect(arcRow?.status).toBe('open');
     // Session closed and recap written despite the arc rollup failure.
     expect(getOpenSession(db, { campaignId: cid })).toBeUndefined();
     const sessions = listSessions(db, { campaignId: cid });
     const lastSession = sessions[sessions.length - 1]!;
-    expect(getSessionRecap(db, { campaignId: cid, sessionId: lastSession.sessionId })).toBeDefined();
+    expect(
+      getSessionRecap(db, {
+        campaignId: cid,
+        sessionId: lastSession.sessionId,
+      }),
+    ).toBeDefined();
 
     dispose();
   });
@@ -509,21 +521,28 @@ describe('runPlay', () => {
     }
 
     let bibleCallCount = 0;
-    const { io: retryIo, lines } = scriptedIO(['/defer', 'look around', '/quit']);
-    const code = await runPlay({
-      ...sharedDeps,
-      io: retryIo,
-      model: routedFakeModel({
-        bible: () => {
-          bibleCallCount++;
-          if (bibleCallCount === 1) {
-            throw new ModelClientError('first attempt fails');
-          }
-          return ROUTED_FAKE_BIBLE_JSON;
-        },
-        summary: () => FAKE_ARC_SUMMARY,
-      }),
-    }, { dbPath: 'demo.db' });
+    const { io: retryIo, lines } = scriptedIO([
+      '/defer',
+      'look around',
+      '/quit',
+    ]);
+    const code = await runPlay(
+      {
+        ...sharedDeps,
+        io: retryIo,
+        model: routedFakeModel({
+          bible: () => {
+            bibleCallCount++;
+            if (bibleCallCount === 1) {
+              throw new ModelClientError('first attempt fails');
+            }
+            return ROUTED_FAKE_BIBLE_JSON;
+          },
+          summary: () => FAKE_ARC_SUMMARY,
+        }),
+      },
+      { dbPath: 'demo.db' },
+    );
 
     expect(code).toBe(0);
     expect(bibleCallCount).toBe(2);
@@ -555,16 +574,19 @@ describe('runPlay', () => {
     }
 
     const { io: badIo, lines } = scriptedIO(['/defer', 'look around', '/quit']);
-    const code = await runPlay({
-      ...sharedDeps,
-      io: badIo,
-      model: routedFakeModel({
-        bible: () => {
-          throw new ModelClientError('bible provider down');
-        },
-        summary: () => FAKE_ARC_SUMMARY,
-      }),
-    }, { dbPath: 'demo.db' });
+    const code = await runPlay(
+      {
+        ...sharedDeps,
+        io: badIo,
+        model: routedFakeModel({
+          bible: () => {
+            throw new ModelClientError('bible provider down');
+          },
+          summary: () => FAKE_ARC_SUMMARY,
+        }),
+      },
+      { dbPath: 'demo.db' },
+    );
 
     expect(code).toBe(0);
     const out = lines.join('\n');
@@ -578,9 +600,16 @@ describe('runPlay', () => {
     expect(getOpenSession(db, { campaignId: cid })).toBeUndefined();
     const sessions = listSessions(db, { campaignId: cid });
     const lastSession = sessions[sessions.length - 1]!;
-    expect(getSessionRecap(db, { campaignId: cid, sessionId: lastSession.sessionId })).toBeDefined();
+    expect(
+      getSessionRecap(db, {
+        campaignId: cid,
+        sessionId: lastSession.sessionId,
+      }),
+    ).toBeDefined();
     // No arc_summary row was written because the bible call failed both attempts.
-    expect(getArcSummary(db, { campaignId: cid, arcId: 'arc-1' })).toBeUndefined();
+    expect(
+      getArcSummary(db, { campaignId: cid, arcId: 'arc-1' }),
+    ).toBeUndefined();
     dispose();
   });
 
@@ -597,16 +626,19 @@ describe('runPlay', () => {
     }
 
     const { io: badIo, lines } = scriptedIO(['/defer', 'look around', '/quit']);
-    const code = await runPlay({
-      ...sharedDeps,
-      io: badIo,
-      model: routedFakeModel({
-        bible: () => ROUTED_FAKE_BIBLE_JSON,
-        summary: () => {
-          throw new ModelClientError('summary provider down');
-        },
-      }),
-    }, { dbPath: 'demo.db' });
+    const code = await runPlay(
+      {
+        ...sharedDeps,
+        io: badIo,
+        model: routedFakeModel({
+          bible: () => ROUTED_FAKE_BIBLE_JSON,
+          summary: () => {
+            throw new ModelClientError('summary provider down');
+          },
+        }),
+      },
+      { dbPath: 'demo.db' },
+    );
 
     expect(code).toBe(0);
     const out = lines.join('\n');
@@ -618,7 +650,9 @@ describe('runPlay', () => {
     const cid = campaignId(db);
     // No arc_summary row was written despite the bible succeeding — the
     // contract is atomic: both must succeed or neither writes.
-    expect(getArcSummary(db, { campaignId: cid, arcId: 'arc-1' })).toBeUndefined();
+    expect(
+      getArcSummary(db, { campaignId: cid, arcId: 'arc-1' }),
+    ).toBeUndefined();
     // Also no campaign_bible row, since rollupArcSummary is what writes it.
     expect(getCampaignBible(db, { campaignId: cid })).toBeUndefined();
     dispose();
@@ -643,8 +677,12 @@ describe('runPlay', () => {
 
     // arc-1 is closed with a summary covering 5 sessions.
     const arc1Row = db
-      .prepare(`SELECT arc_id, status, sequence_no FROM campaign_arc WHERE campaign_id = ? AND arc_id = ?`)
-      .get(cid, 'arc-1') as { arc_id: string; status: string; sequence_no: number } | undefined;
+      .prepare(
+        `SELECT arc_id, status, sequence_no FROM campaign_arc WHERE campaign_id = ? AND arc_id = ?`,
+      )
+      .get(cid, 'arc-1') as
+      | { arc_id: string; status: string; sequence_no: number }
+      | undefined;
     expect(arc1Row?.status).toBe('closed');
 
     const arc1Summary = getArcSummary(db, { campaignId: cid, arcId: 'arc-1' });
@@ -653,7 +691,9 @@ describe('runPlay', () => {
 
     // arc-2 is now open.
     const arc2Row = db
-      .prepare(`SELECT arc_id, status FROM campaign_arc WHERE campaign_id = ? AND arc_id = ?`)
+      .prepare(
+        `SELECT arc_id, status FROM campaign_arc WHERE campaign_id = ? AND arc_id = ?`,
+      )
       .get(cid, 'arc-2') as { arc_id: string; status: string } | undefined;
     expect(arc2Row?.status).toBe('open');
 
@@ -677,11 +717,15 @@ describe('runPlay', () => {
     const cid = campaignId(db);
 
     // No arc_summary row exists yet.
-    expect(getArcSummary(db, { campaignId: cid, arcId: 'arc-1' })).toBeUndefined();
+    expect(
+      getArcSummary(db, { campaignId: cid, arcId: 'arc-1' }),
+    ).toBeUndefined();
 
     // arc-1 is still open.
     const arc1Row = db
-      .prepare(`SELECT status FROM campaign_arc WHERE campaign_id = ? AND arc_id = ?`)
+      .prepare(
+        `SELECT status FROM campaign_arc WHERE campaign_id = ? AND arc_id = ?`,
+      )
       .get(cid, 'arc-1') as { status: string } | undefined;
     expect(arc1Row?.status).toBe('open');
 
@@ -690,7 +734,9 @@ describe('runPlay', () => {
     expect(sessions).toHaveLength(4);
     for (const s of sessions) {
       const row = db
-        .prepare(`SELECT arc_id FROM campaign_session WHERE campaign_id = ? AND session_id = ?`)
+        .prepare(
+          `SELECT arc_id FROM campaign_session WHERE campaign_id = ? AND session_id = ?`,
+        )
         .get(cid, s.sessionId) as { arc_id: string } | undefined;
       expect(row?.arc_id).toBe('arc-1');
     }
@@ -709,7 +755,11 @@ describe('runPlay', () => {
     for (let i = 0; i < 2 * N; i++) {
       const { io } = scriptedIO(['/defer', '/quit']);
       await runPlay(
-        { ...sharedDeps, io, memoryConfig: { arcRolloverThreshold: N, recapWindowSize: 5 } },
+        {
+          ...sharedDeps,
+          io,
+          memoryConfig: { arcRolloverThreshold: N, recapWindowSize: 5 },
+        },
         { dbPath: 'demo.db' },
       );
     }
@@ -727,7 +777,9 @@ describe('runPlay', () => {
     // arc-1 and arc-2 are closed.
     for (const arcId of ['arc-1', 'arc-2']) {
       const row = db
-        .prepare(`SELECT status FROM campaign_arc WHERE campaign_id = ? AND arc_id = ?`)
+        .prepare(
+          `SELECT status FROM campaign_arc WHERE campaign_id = ? AND arc_id = ?`,
+        )
         .get(cid, arcId) as { status: string } | undefined;
       expect(row?.status).toBe('closed');
     }
@@ -810,15 +862,18 @@ describe('runPlay', () => {
 
     // 5th (Nth) session: bible call throws.
     const { io: failIo, lines } = scriptedIO(['/defer', '/quit']);
-    const code = await runPlay({
-      ...sharedDeps,
-      io: failIo,
-      model: {
-        complete: async () => {
-          throw new ModelClientError('provider down');
+    const code = await runPlay(
+      {
+        ...sharedDeps,
+        io: failIo,
+        model: {
+          complete: async () => {
+            throw new ModelClientError('provider down');
+          },
         },
       },
-    }, { dbPath: 'demo.db' });
+      { dbPath: 'demo.db' },
+    );
 
     expect(code).toBe(0);
     const out = lines.join('\n');
@@ -828,11 +883,15 @@ describe('runPlay', () => {
 
     // No arc_summary row for arc-1.
     const cid = campaignId(db);
-    expect(getArcSummary(db, { campaignId: cid, arcId: 'arc-1' })).toBeUndefined();
+    expect(
+      getArcSummary(db, { campaignId: cid, arcId: 'arc-1' }),
+    ).toBeUndefined();
 
     // arc-1 is still open.
     const arc1Row = db
-      .prepare(`SELECT status FROM campaign_arc WHERE campaign_id = ? AND arc_id = ?`)
+      .prepare(
+        `SELECT status FROM campaign_arc WHERE campaign_id = ? AND arc_id = ?`,
+      )
       .get(cid, 'arc-1') as { status: string } | undefined;
     expect(arc1Row?.status).toBe('open');
 
@@ -840,16 +899,25 @@ describe('runPlay', () => {
     const sessions = listSessions(db, { campaignId: cid });
     const lastSession = sessions[sessions.length - 1]!;
     const sessionRow = db
-      .prepare(`SELECT arc_id FROM campaign_session WHERE campaign_id = ? AND session_id = ?`)
+      .prepare(
+        `SELECT arc_id FROM campaign_session WHERE campaign_id = ? AND session_id = ?`,
+      )
       .get(cid, lastSession.sessionId) as { arc_id: string } | undefined;
     expect(sessionRow?.arc_id).toBe('arc-1');
 
     // Skip warning present; rollover announcement absent.
-    expect(out).toContain('Arc rollup skipped (bible extraction failed): provider down.');
+    expect(out).toContain(
+      'Arc rollup skipped (bible extraction failed): provider down.',
+    );
     expect(out).not.toContain('Arc arc-1 closed; opened arc-2.');
     // Session closed and recap written despite the rollover failure.
     expect(getOpenSession(db, { campaignId: cid })).toBeUndefined();
-    expect(getSessionRecap(db, { campaignId: cid, sessionId: lastSession.sessionId })).toBeDefined();
+    expect(
+      getSessionRecap(db, {
+        campaignId: cid,
+        sessionId: lastSession.sessionId,
+      }),
+    ).toBeDefined();
 
     dispose();
   });
@@ -870,15 +938,18 @@ describe('runPlay', () => {
 
     // 5th (Nth) session: model fails during the rollover step.
     const { io: failIo, lines: failLines } = scriptedIO(['/defer', '/quit']);
-    await runPlay({
-      ...sharedDeps,
-      io: failIo,
-      model: {
-        complete: async () => {
-          throw new ModelClientError('provider down');
+    await runPlay(
+      {
+        ...sharedDeps,
+        io: failIo,
+        model: {
+          complete: async () => {
+            throw new ModelClientError('provider down');
+          },
         },
       },
-    }, { dbPath: 'demo.db' });
+      { dbPath: 'demo.db' },
+    );
 
     const cid = campaignId(db);
 
@@ -886,22 +957,27 @@ describe('runPlay', () => {
     expect(failLines.join('\n')).toContain(
       'Arc rollup skipped (bible extraction failed): provider down.',
     );
-    expect(getArcSummary(db, { campaignId: cid, arcId: 'arc-1' })).toBeUndefined();
     expect(
-      getClosedSessionsInOpenArc(db, { campaignId: cid }),
-    ).toHaveLength(5);
+      getArcSummary(db, { campaignId: cid, arcId: 'arc-1' }),
+    ).toBeUndefined();
+    expect(getClosedSessionsInOpenArc(db, { campaignId: cid })).toHaveLength(5);
 
     // 6th (N+1) session: model recovers. The threshold check kicks in again
     // with 6 closed sessions stamped to arc-1.
     const { io: okIo, lines: okLines } = scriptedIO(['/defer', '/quit']);
-    const code = await runPlay({ ...sharedDeps, io: okIo }, { dbPath: 'demo.db' });
+    const code = await runPlay(
+      { ...sharedDeps, io: okIo },
+      { dbPath: 'demo.db' },
+    );
 
     expect(code).toBe(0);
     expect(okLines.join('\n')).toContain('Arc arc-1 closed; opened arc-2.');
 
     // arc-1 is now closed with N+1 = 6 source sessions in the summary.
     const arc1Row = db
-      .prepare(`SELECT status FROM campaign_arc WHERE campaign_id = ? AND arc_id = ?`)
+      .prepare(
+        `SELECT status FROM campaign_arc WHERE campaign_id = ? AND arc_id = ?`,
+      )
       .get(cid, 'arc-1') as { status: string } | undefined;
     expect(arc1Row?.status).toBe('closed');
 
@@ -912,9 +988,7 @@ describe('runPlay', () => {
     // arc-2 is now open with no closed sessions stamped to it yet.
     const openArc = getOpenArc(db, { campaignId: cid });
     expect(openArc?.arcId).toBe('arc-2');
-    expect(
-      getClosedSessionsInOpenArc(db, { campaignId: cid }),
-    ).toHaveLength(0);
+    expect(getClosedSessionsInOpenArc(db, { campaignId: cid })).toHaveLength(0);
 
     dispose();
   });
@@ -927,7 +1001,10 @@ describe('runPlay', () => {
     const { io } = scriptedIO([]);
     await expect(
       runPlay(
-        { ...baseDeps(db, io), memoryConfig: { arcRolloverThreshold: 0, recapWindowSize: 5 } },
+        {
+          ...baseDeps(db, io),
+          memoryConfig: { arcRolloverThreshold: 0, recapWindowSize: 5 },
+        },
         { dbPath: 'demo.db' },
       ),
     ).rejects.toThrow(/arcRolloverThreshold/);
@@ -951,7 +1028,11 @@ describe('runPlay', () => {
     // Start a 6th session (don't drive a full runPlay turn — just stage the
     // session and call assembleContext directly with the custom limit).
     const sid6 = 'test-session-6';
-    startSession(db, { campaignId: cid, sessionId: sid6, startedAt: new Date().toISOString() });
+    startSession(db, {
+      campaignId: cid,
+      sessionId: sid6,
+      startedAt: new Date().toISOString(),
+    });
 
     const ctx3 = assembleContext({
       db,
@@ -1080,9 +1161,12 @@ describe('runPlay', () => {
     const { db, dispose } = makeDb();
     const { io, lines } = scriptedIO(['/defer', '/quit']);
 
-    await runPlay(baseDeps(db, io, fakeRunTurn, () => undefined), {
-      dbPath: 'campaign.db',
-    });
+    await runPlay(
+      baseDeps(db, io, fakeRunTurn, () => undefined),
+      {
+        dbPath: 'campaign.db',
+      },
+    );
 
     const out = lines.join('\n');
     expect(out).toContain('closed and recapped');
@@ -1154,10 +1238,13 @@ describe('runDemo', () => {
 
     // A second run on the same db reuses the campaign rather than recreating.
     const { io, lines } = scriptedIO(['/quit']);
-    const code = await runDemo({ ...firstDeps, io }, {
-      dbPath: 'demo.db',
-      turnCap: 5,
-    });
+    const code = await runDemo(
+      { ...firstDeps, io },
+      {
+        dbPath: 'demo.db',
+        turnCap: 5,
+      },
+    );
 
     expect(code).toBe(0);
     const out = lines.join('\n');
@@ -1167,24 +1254,27 @@ describe('runDemo', () => {
   });
 });
 
-describe.skipIf(!DoltRepo.available())('runPlay Dolt checkpoint integration', () => {
-  it('writes a real Dolt checkpoint of the campaign on graceful exit', async () => {
-    const root = mkdtempSync(join(tmpdir(), 'lw-play-cp-'));
-    const dbPath = join(root, 'campaign.db');
-    const db = openDatabase(dbPath);
-    initSchema(db);
-    const { io, lines } = scriptedIO(['/defer', 'look around', '/quit']);
+describe.skipIf(!DoltRepo.available())(
+  'runPlay Dolt checkpoint integration',
+  () => {
+    it('writes a real Dolt checkpoint of the campaign on graceful exit', async () => {
+      const root = mkdtempSync(join(tmpdir(), 'lw-play-cp-'));
+      const dbPath = join(root, 'campaign.db');
+      const db = openDatabase(dbPath);
+      initSchema(db);
+      const { io, lines } = scriptedIO(['/defer', 'look around', '/quit']);
 
-    const code = await runPlay(
-      { ...baseDeps(db, io), makeCheckpointRunner: doltCheckpointRunner },
-      { dbPath },
-    );
+      const code = await runPlay(
+        { ...baseDeps(db, io), makeCheckpointRunner: doltCheckpointRunner },
+        { dbPath },
+      );
 
-    expect(code).toBe(0);
-    // A real Dolt commit hash was produced and reported.
-    expect(lines.join('\n')).toMatch(/\(checkpoint [0-9a-z]+\)/);
-  });
-});
+      expect(code).toBe(0);
+      // A real Dolt commit hash was produced and reported.
+      expect(lines.join('\n')).toMatch(/\(checkpoint [0-9a-z]+\)/);
+    });
+  },
+);
 
 function campaignId(db: Db): string {
   const campaign = getCampaign(db);

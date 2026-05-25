@@ -70,8 +70,9 @@ describe('graceful session close pipeline', () => {
     expect(result.closedSceneIds).toEqual(['scene-1']);
     expect(result.checkpointId).toBe('checkpoint-1');
     expect(getOpenSession(db, { campaignId: CAMPAIGN })).toBeUndefined();
-    expect(getOpenScene(db, { campaignId: CAMPAIGN, sessionId: SESSION }))
-      .toBeUndefined();
+    expect(
+      getOpenScene(db, { campaignId: CAMPAIGN, sessionId: SESSION }),
+    ).toBeUndefined();
     expect(
       listSceneSummaries(db, { campaignId: CAMPAIGN, sessionId: SESSION }),
     ).toEqual([
@@ -130,8 +131,9 @@ describe('graceful session close pipeline', () => {
     expect(first.checkpointId).toBe('checkpoint-1');
     expect(second.checkpointId).toBeUndefined();
     expect(checkpointCount).toBe(1);
-    expect(listSceneSummaries(db, { campaignId: CAMPAIGN, sessionId: SESSION }))
-      .toHaveLength(1);
+    expect(
+      listSceneSummaries(db, { campaignId: CAMPAIGN, sessionId: SESSION }),
+    ).toHaveLength(1);
     expect(
       db.prepare('SELECT COUNT(*) AS count FROM session_recap').get(),
     ).toEqual({ count: 1 });
@@ -266,13 +268,15 @@ describe('graceful session close pipeline', () => {
     }
     expect(threw).toBe(true);
 
-    expect(getSession(db, { campaignId: CAMPAIGN, sessionId: SESSION })?.status)
-      .toBe('open');
+    expect(
+      getSession(db, { campaignId: CAMPAIGN, sessionId: SESSION })?.status,
+    ).toBe('open');
     expect(getOpenSession(db, { campaignId: CAMPAIGN })?.sessionId).toBe(
       SESSION,
     );
-    expect(getOpenScene(db, { campaignId: CAMPAIGN, sessionId: SESSION })
-      ?.sceneId).toBe('scene-1');
+    expect(
+      getOpenScene(db, { campaignId: CAMPAIGN, sessionId: SESSION })?.sceneId,
+    ).toBe('scene-1');
     expect(
       listSceneSummaries(db, { campaignId: CAMPAIGN, sessionId: SESSION }),
     ).toEqual([]);

@@ -9,11 +9,7 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import {
-  getCampaign,
-  getOpenSession,
-  openDatabase,
-} from '@loreweaver/core';
+import { getCampaign, getOpenSession, openDatabase } from '@loreweaver/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { buildBanner, main, runDoltInstall } from '../src/index.js';
 
@@ -157,42 +153,36 @@ describe('entrypoint guard', () => {
  * out a bare `vitest run` with no prior build.
  */
 describe('cli bin shebang', () => {
-  it(
-    'built dist/index.js starts with a node shebang',
-    () => {
-      const cliDist = requireCliDist();
-      const firstLine = readFileSync(cliDist, 'utf8').split('\n', 1)[0];
-      expect(firstLine).toBe('#!/usr/bin/env node');
-    },
-  );
+  it('built dist/index.js starts with a node shebang', () => {
+    const cliDist = requireCliDist();
+    const firstLine = readFileSync(cliDist, 'utf8').split('\n', 1)[0];
+    expect(firstLine).toBe('#!/usr/bin/env node');
+  });
 });
 
 describe('package smoke', () => {
   const repoRoot = fileURLToPath(new URL('../../../', import.meta.url));
 
-  it(
-    'packs publishable tarballs with dist output and no source/test files',
-    () => {
-      requireCliDist();
-      const dir = mkdtempSync(join(tmpdir(), 'lw-pack-'));
-      try {
-        const cliFiles = packWorkspace(repoRoot, '@loreweaver/cli', dir);
-        expect(cliFiles).toContain('dist/index.js');
-        expect(cliFiles).toContain('dist/play.js');
-        expect(cliFiles).toContain('package.json');
-        expect(cliFiles).not.toContain('src/index.ts');
-        expect(cliFiles).not.toContain('test/cli.test.ts');
+  it('packs publishable tarballs with dist output and no source/test files', () => {
+    requireCliDist();
+    const dir = mkdtempSync(join(tmpdir(), 'lw-pack-'));
+    try {
+      const cliFiles = packWorkspace(repoRoot, '@loreweaver/cli', dir);
+      expect(cliFiles).toContain('dist/index.js');
+      expect(cliFiles).toContain('dist/play.js');
+      expect(cliFiles).toContain('package.json');
+      expect(cliFiles).not.toContain('src/index.ts');
+      expect(cliFiles).not.toContain('test/cli.test.ts');
 
-        const coreFiles = packWorkspace(repoRoot, '@loreweaver/core', dir);
-        expect(coreFiles).toContain('dist/index.js');
-        expect(coreFiles).toContain('package.json');
-        expect(coreFiles).not.toContain('src/index.ts');
-        expect(coreFiles).not.toContain('test/smoke.test.ts');
-      } finally {
-        rmSync(dir, { recursive: true, force: true });
-      }
-    },
-  );
+      const coreFiles = packWorkspace(repoRoot, '@loreweaver/core', dir);
+      expect(coreFiles).toContain('dist/index.js');
+      expect(coreFiles).toContain('package.json');
+      expect(coreFiles).not.toContain('src/index.ts');
+      expect(coreFiles).not.toContain('test/smoke.test.ts');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });
 
 /**
@@ -211,51 +201,47 @@ describe('play graceful close on stdin EOF', () => {
   // out on slow runners (observed under loreweaver-jqk PR CI). The vitest
   // timeout is set to match the inner `execFileSync` timeout, so a hang in the
   // spawned process surfaces from execFileSync rather than as a vitest abort.
-  it(
-    'runs the close pipeline when stdin reaches EOF before any turn',
-    () => {
-      const cliDist = requireCliDist();
-      const dir = mkdtempSync(join(tmpdir(), 'lw-eof-'));
-      const dbPath = join(dir, 'campaign.db');
+  it('runs the close pipeline when stdin reaches EOF before any turn', () => {
+    const cliDist = requireCliDist();
+    const dir = mkdtempSync(join(tmpdir(), 'lw-eof-'));
+    const dbPath = join(dir, 'campaign.db');
+    try {
+      const stdout = execFileSync(process.execPath, [cliDist, 'play'], {
+        encoding: 'utf8',
+        input: '/defer\n', // defer creation, then EOF before any turn
+        timeout: 30_000,
+        env: {
+          ...process.env,
+          LOREWEAVER_DB_PATH: dbPath,
+          ANTHROPIC_API_KEY: 'sk-eof-test-not-used',
+        },
+      });
+
+      expect(stdout).toContain('Character creation deferred');
+      expect(stdout).toContain('Started session');
+      expect(stdout).toContain('closed and recapped');
+
+      const db = openDatabase(dbPath);
       try {
-        const stdout = execFileSync(process.execPath, [cliDist, 'play'], {
-          encoding: 'utf8',
-          input: '/defer\n', // defer creation, then EOF before any turn
-          timeout: 30_000,
-          env: {
-            ...process.env,
-            LOREWEAVER_DB_PATH: dbPath,
-            ANTHROPIC_API_KEY: 'sk-eof-test-not-used',
-          },
-        });
-
-        expect(stdout).toContain('Character creation deferred');
-        expect(stdout).toContain('Started session');
-        expect(stdout).toContain('closed and recapped');
-
-        const db = openDatabase(dbPath);
-        try {
-          const campaign = getCampaign(db);
-          expect(campaign).toBeDefined();
-          expect(
-            getOpenSession(db, { campaignId: campaign!.campaignId }),
-          ).toBeUndefined();
-        } finally {
-          db.close();
-        }
+        const campaign = getCampaign(db);
+        expect(campaign).toBeDefined();
+        expect(
+          getOpenSession(db, { campaignId: campaign!.campaignId }),
+        ).toBeUndefined();
       } finally {
-        // Best-effort: the graceful close writes a Dolt `.checkpoints` repo
-        // whose storage files are read-only, which can EPERM on Windows. The
-        // dir lives under the OS temp root, so a failed unlink is harmless.
-        try {
-          rmSync(dir, { recursive: true, force: true });
-        } catch {
-          /* leave it for OS temp cleanup */
-        }
+        db.close();
       }
-    },
-    30_000,
-  );
+    } finally {
+      // Best-effort: the graceful close writes a Dolt `.checkpoints` repo
+      // whose storage files are read-only, which can EPERM on Windows. The
+      // dir lives under the OS temp root, so a failed unlink is harmless.
+      try {
+        rmSync(dir, { recursive: true, force: true });
+      } catch {
+        /* leave it for OS temp cleanup */
+      }
+    }
+  }, 30_000);
 });
 
 /**

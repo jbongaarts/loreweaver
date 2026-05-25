@@ -31,8 +31,9 @@ describe('session lifecycle persistence', () => {
     expect(getOpenSession(db, { campaignId: CAMPAIGN })?.sessionId).toBe(
       'session-1',
     );
-    expect(getSession(db, { campaignId: CAMPAIGN, sessionId: 'session-1' }))
-      .toEqual(session);
+    expect(
+      getSession(db, { campaignId: CAMPAIGN, sessionId: 'session-1' }),
+    ).toEqual(session);
     db.close();
   });
 
@@ -105,8 +106,9 @@ describe('session lifecycle persistence', () => {
       startedAt: '2026-05-21T04:00:00.000Z',
     });
 
-    expect(listSessions(db, { campaignId: CAMPAIGN }).map((s) => s.sessionId))
-      .toEqual(['session-1', 'session-2']);
+    expect(
+      listSessions(db, { campaignId: CAMPAIGN }).map((s) => s.sessionId),
+    ).toEqual(['session-1', 'session-2']);
     expect(() =>
       closeSession(db, {
         campaignId: CAMPAIGN,

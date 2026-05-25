@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
+  DEFAULT_PROFILE_REGISTRY,
   MODEL_PROFILES,
   PROVIDER_IDS,
-  DEFAULT_PROFILE_REGISTRY,
-  resolveProfileRegistry,
-  getProfile,
   ProfileConfigError,
+  getProfile,
+  resolveProfileRegistry,
 } from '../src/model/profiles.js';
 
 describe('model profiles', () => {

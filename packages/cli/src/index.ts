@@ -8,41 +8,39 @@ import {
   CORE_VERSION,
   ConfigError,
   DEMO_TURN_CAP,
+  type DoltInstallPrompt,
   EMBERFALL_HOLLOW,
+  type EnsureDoltOptions,
+  type LoreweaverConfig,
   createDefaultToolRegistry,
   ensureDoltAvailable,
   loadConfig,
   openDatabase,
   runTurn,
-  type DoltInstallPrompt,
-  type EnsureDoltOptions,
-  type LoreweaverConfig,
 } from '@loreweaver/core';
+import { DEFAULT_MEMORY_CONFIG } from '@loreweaver/core/internal';
 import {
+  type CampaignDeps,
+  resolvePlayCampaign,
   runCampaignsCommand,
   runNewCommand,
-  resolvePlayCampaign,
-  type CampaignDeps,
 } from './campaigns.js';
+import { runCheckpointCommand } from './checkpoints.js';
 import {
   type CliConfigFile,
   ConfigFileError,
   installConfigDefaults,
   loadConfigFile,
 } from './configFile.js';
-import { runCheckpointCommand } from './checkpoints.js';
 import { campaignsDir, ensureDataRoot, resolveDataRoot } from './dataRoot.js';
 import {
+  type CliIO,
+  type PlayDeps,
   doltCheckpointRunner,
   nodeIO,
   runDemo,
   runPlay,
-  type CliIO,
-  type PlayDeps,
 } from './play.js';
-import {
-  DEFAULT_MEMORY_CONFIG,
-} from '@loreweaver/core/internal';
 
 export function buildBanner(version: string): string {
   return `Loreweaver — core v${version}`;
@@ -207,9 +205,7 @@ function loadCliConfig():
 }
 
 /** `loreweaver play [campaign-id]` — the interactive campaign front-end. */
-export async function runPlaySubcommand(
-  campaignArg?: string,
-): Promise<number> {
+export async function runPlaySubcommand(campaignArg?: string): Promise<number> {
   const cli = resolveCliEnv();
   if (cli === undefined) {
     return 1;

@@ -1,22 +1,17 @@
-import {
-  existsSync,
-  mkdtempSync,
-  readFileSync,
-  writeFileSync,
-} from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { openDatabase } from '../src/persistence/db.js';
 import { DoltRepo } from '../src/persistence/checkpoint/doltRepo.js';
+import {
+  canonicalize,
+  serializeCampaign,
+} from '../src/persistence/checkpoint/serialize.js';
 import {
   CheckpointError,
   CheckpointStore,
 } from '../src/persistence/checkpoint/store.js';
-import {
-  serializeCampaign,
-  canonicalize,
-} from '../src/persistence/checkpoint/serialize.js';
+import { openDatabase } from '../src/persistence/db.js';
 
 const doltOk = DoltRepo.available();
 

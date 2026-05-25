@@ -180,7 +180,10 @@ export function getProfile(
   return registry[profile];
 }
 
-function envKey(profile: ModelProfileName, suffix: 'PROVIDER' | 'MODEL'): string {
+function envKey(
+  profile: ModelProfileName,
+  suffix: 'PROVIDER' | 'MODEL',
+): string {
   return `LOREWEAVER_PROFILE_${profile.toUpperCase()}_${suffix}`;
 }
 

@@ -1,9 +1,9 @@
 import { existsSync, renameSync, rmSync } from 'node:fs';
 import { openDatabase, withTransaction } from '../db.js';
 import { quoteIdent } from '../sql.js';
+import { type Checkpoint, DoltRepo } from './doltRepo.js';
 import { assertSeparateFromBeads } from './separation.js';
 import { serializeCampaign } from './serialize.js';
-import { DoltRepo, type Checkpoint } from './doltRepo.js';
 import type { SnapshotRecord } from './serialize.js';
 
 const RESTORE_TEMP_SUFFIX = 'restore';
@@ -73,8 +73,7 @@ function materialize(records: SnapshotRecord[], destDbPath: string): void {
       `restore destination already exists: ${destDbPath}`,
     );
   }
-  const tmpDbPath =
-    `${destDbPath}.${RESTORE_TEMP_SUFFIX}-${process.pid}-${Date.now()}.tmp`;
+  const tmpDbPath = `${destDbPath}.${RESTORE_TEMP_SUFFIX}-${process.pid}-${Date.now()}.tmp`;
   try {
     const db = openDatabase(tmpDbPath);
     try {

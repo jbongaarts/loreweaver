@@ -3,16 +3,23 @@
   "private": true,
   "type": "module",
   "workspaces": ["packages/core", "packages/cli"],
-  "engines": { "node": ">=22 <23" },
+  "engines": {
+    "node": ">=22 <23"
+  },
   "scripts": {
     "build": "tsc --build",
     "clean": "tsc --build --clean",
     "typecheck": "tsc --build --force",
     "pretest": "tsc --build",
     "test": "vitest run",
-    "smoke:cli-install": "node scripts/smoke-cli-install.mjs"
+    "smoke:cli-install": "node scripts/smoke-cli-install.mjs",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "lint": "biome lint .",
+    "check": "biome ci ."
   },
   "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
     "@types/node": "^22.0.0",
     "typescript": "^5.6.0",
     "vitest": "^4.1.7"

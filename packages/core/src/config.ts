@@ -1,8 +1,8 @@
 import {
   ProfileConfigError,
-  resolveProfileRegistry,
   type ProfileEntry,
   type ProfileRegistry,
+  resolveProfileRegistry,
 } from './model/profiles.js';
 
 /**

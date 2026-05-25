@@ -3,8 +3,8 @@ import {
   MutateStateError,
   getStateProvenance,
   initSchema,
-  mutateStateBatch,
   mutateState,
+  mutateStateBatch,
   openDatabase,
 } from '../src/internal.js';
 
@@ -117,7 +117,9 @@ describe('game state', () => {
     });
     expect(
       db
-        .prepare('SELECT current_location_id, provenance FROM clock WHERE id = 1')
+        .prepare(
+          'SELECT current_location_id, provenance FROM clock WHERE id = 1',
+        )
         .get(),
     ).toEqual({
       current_location_id: 'green-hollow',
@@ -276,9 +278,7 @@ describe('game state', () => {
     });
     expect(
       db
-        .prepare(
-          "SELECT key FROM plot_flags WHERE key = 'accepted_the_oath'",
-        )
+        .prepare("SELECT key FROM plot_flags WHERE key = 'accepted_the_oath'")
         .get(),
     ).toBeUndefined();
 
@@ -318,9 +318,11 @@ describe('game state', () => {
     // afterMutation fires once per mutation, in order.
     expect(seen).toEqual([0, 1]);
     // A successful return is the durable signal: every mutation committed.
-    expect(db.prepare('SELECT name FROM character WHERE id = 1').get()).toEqual({
-      name: 'Mira',
-    });
+    expect(db.prepare('SELECT name FROM character WHERE id = 1').get()).toEqual(
+      {
+        name: 'Mira',
+      },
+    );
     expect(
       db
         .prepare("SELECT key FROM plot_flags WHERE key = 'accepted_the_oath'")

@@ -150,9 +150,7 @@ export function loadConfigFile(
     if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
       return {};
     }
-    throw new ConfigFileError(
-      `cannot read ${path}: ${(err as Error).message}`,
-    );
+    throw new ConfigFileError(`cannot read ${path}: ${(err as Error).message}`);
   }
 
   let parsed: unknown;

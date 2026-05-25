@@ -1,6 +1,10 @@
-import type { ModelClient, ModelCompleteInput, ModelMessage } from './client.js';
-import type { ModelProfileName } from './profiles.js';
 import { parseToolCalls } from '../orchestrator/protocol.js';
+import type {
+  ModelClient,
+  ModelCompleteInput,
+  ModelMessage,
+} from './client.js';
+import type { ModelProfileName } from './profiles.js';
 
 export const EVALUATION_DIMENSIONS = [
   'continuity',
@@ -99,12 +103,16 @@ export interface EvaluationReport {
 }
 
 const zeroScores = (): EvaluationScores =>
-  Object.fromEntries(EVALUATION_DIMENSIONS.map((dimension) => [dimension, 0])) as
-    EvaluationScores;
+  Object.fromEntries(
+    EVALUATION_DIMENSIONS.map((dimension) => [dimension, 0]),
+  ) as EvaluationScores;
 
 const clampScore = (score: number): number => Math.max(0, Math.min(1, score));
 
-function scoreNeedles(text: string, needles: readonly string[] | undefined): number {
+function scoreNeedles(
+  text: string,
+  needles: readonly string[] | undefined,
+): number {
   if (needles === undefined || needles.length === 0) {
     return 0;
   }
@@ -131,7 +139,10 @@ function hasJsonObject(text: string): boolean {
   return false;
 }
 
-function scoreToolUse(text: string, expectedTools: readonly string[] | undefined): number {
+function scoreToolUse(
+  text: string,
+  expectedTools: readonly string[] | undefined,
+): number {
   if (expectedTools === undefined || expectedTools.length === 0) {
     return 0;
   }
@@ -170,7 +181,9 @@ function average(values: readonly number[]): number {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
-function aggregateScores(reports: readonly EvaluationScenarioReport[]): EvaluationScores {
+function aggregateScores(
+  reports: readonly EvaluationScenarioReport[],
+): EvaluationScores {
   const aggregate = zeroScores();
   for (const dimension of EVALUATION_DIMENSIONS) {
     aggregate[dimension] = average(
@@ -252,13 +265,16 @@ export async function evaluateModelProfile(
   }
 
   const scores = aggregateScores(scenarios);
-  const allScoreValues = EVALUATION_DIMENSIONS.map((dimension) => scores[dimension]);
+  const allScoreValues = EVALUATION_DIMENSIONS.map(
+    (dimension) => scores[dimension],
+  );
   const totalUsd = allTurns.reduce((sum, turn) => sum + turn.costUsd, 0);
   const perTurnMs = allTurns.map((turn) => turn.latencyMs);
   const cost = {
     totalUsd,
     perTurnUsd: average(allTurns.map((turn) => turn.costUsd)),
-    perSessionUsd: input.scenarios.length === 0 ? 0 : totalUsd / input.scenarios.length,
+    perSessionUsd:
+      input.scenarios.length === 0 ? 0 : totalUsd / input.scenarios.length,
   };
   const latency = {
     totalMs: perTurnMs.reduce((sum, value) => sum + value, 0),
@@ -266,7 +282,9 @@ export async function evaluateModelProfile(
     perTurnMs,
   };
   const threshold =
-    input.profile === 'premium_dm' ? PREMIUM_DM_EVALUATION_THRESHOLD : undefined;
+    input.profile === 'premium_dm'
+      ? PREMIUM_DM_EVALUATION_THRESHOLD
+      : undefined;
 
   return {
     profile: input.profile,
@@ -276,6 +294,8 @@ export async function evaluateModelProfile(
     latency,
     threshold,
     passed:
-      threshold === undefined ? true : passesPremiumThreshold(scores, cost, latency),
+      threshold === undefined
+        ? true
+        : passesPremiumThreshold(scores, cost, latency),
   };
 }

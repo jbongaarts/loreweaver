@@ -17,8 +17,20 @@ afterAll(() => {
 });
 
 const SNAP: SnapshotRecord[] = [
-  { table: 'meta', kind: 'schema', ordinal: 0, payload: JSON.stringify({ create: 'CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)' }) },
-  { table: 'meta', kind: 'row', ordinal: 0, payload: JSON.stringify({ key: 'a', value: '1' }) },
+  {
+    table: 'meta',
+    kind: 'schema',
+    ordinal: 0,
+    payload: JSON.stringify({
+      create: 'CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)',
+    }),
+  },
+  {
+    table: 'meta',
+    kind: 'row',
+    ordinal: 0,
+    payload: JSON.stringify({ key: 'a', value: '1' }),
+  },
 ];
 
 describe.skipIf(!doltOk)('DoltRepo', () => {

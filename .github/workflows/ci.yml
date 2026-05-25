@@ -79,3 +79,6 @@ jobs:
 
       - name: CLI install smoke
         run: npm run smoke:cli-install
+
+      - name: Biome check (format + lint)
+        run: npm run check

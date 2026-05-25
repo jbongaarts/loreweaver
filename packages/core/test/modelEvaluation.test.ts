@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  evaluateModelProfile,
   PREMIUM_DM_EVALUATION_THRESHOLD,
+  evaluateModelProfile,
 } from '../src/internal.js';
 import type {
   EvaluationDimension,
@@ -100,4 +100,3 @@ describe('model evaluation harness', () => {
     });
   });
 });
-

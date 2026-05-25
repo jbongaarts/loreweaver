@@ -47,7 +47,9 @@ export class TurnTraceError extends Error {
 
 /** JSON codecs for the `turn_trace` table's JSON-backed columns. */
 const traceColumns = {
-  retrievedContext: jsonColumn<TraceJsonValue[]>('turn_trace.retrieved_context'),
+  retrievedContext: jsonColumn<TraceJsonValue[]>(
+    'turn_trace.retrieved_context',
+  ),
   toolCalls: jsonColumn<TraceJsonValue[]>('turn_trace.tool_calls'),
   rulesResolution: jsonColumn<TraceJsonValue>('turn_trace.rules_resolution'),
   acceptedStateDelta: jsonColumn<TraceJsonValue[]>(
@@ -151,9 +153,7 @@ export function getTurnTrace(
        FROM turn_trace
        WHERE campaign_id = ? AND session_id = ? AND turn_id = ?`,
     )
-    .get(key.campaignId, key.sessionId, key.turnId) as
-    | TurnTraceRow
-    | undefined;
+    .get(key.campaignId, key.sessionId, key.turnId) as TurnTraceRow | undefined;
 
   if (row === undefined) {
     return undefined;

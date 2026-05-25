@@ -147,7 +147,9 @@ describe('campaign rules binding', () => {
     ).toThrow(CampaignError);
 
     // The module rows must not have been forked.
-    const moduleRow = db.prepare('SELECT id FROM module_meta WHERE id = 1').get();
+    const moduleRow = db
+      .prepare('SELECT id FROM module_meta WHERE id = 1')
+      .get();
     expect(moduleRow).toBeUndefined();
     db.close();
   });

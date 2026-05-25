@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   AgentSdkModelClient,
-  extractCampaignBible,
   type CampaignBibleInput,
   type SessionRecapRecord,
+  extractCampaignBible,
 } from '../src/index.js';
 
 /**
@@ -99,27 +99,30 @@ const RECAPS: SessionRecapRecord[] = [
   ),
 ];
 
-describe.skipIf(!hasKey)('campaign bible faithfulness over 10 iterations', () => {
-  it('keeps the session-1 NPC in majorNpcs even after 9 off-screen recaps', async () => {
-    const client = new AgentSdkModelClient(
-      process.env.LOREWEAVER_MODEL ?? 'claude-opus-4-7',
-    );
+describe.skipIf(!hasKey)(
+  'campaign bible faithfulness over 10 iterations',
+  () => {
+    it('keeps the session-1 NPC in majorNpcs even after 9 off-screen recaps', async () => {
+      const client = new AgentSdkModelClient(
+        process.env.LOREWEAVER_MODEL ?? 'claude-opus-4-7',
+      );
 
-    let priorBible: CampaignBibleInput | undefined;
-    for (let n = 1; n <= RECAPS.length; n++) {
-      const recapsSoFar = RECAPS.slice(0, n);
-      priorBible = await extractCampaignBible(client, {
-        campaignId: CAMPAIGN_ID,
-        recaps: recapsSoFar,
-        priorBible,
-      });
-    }
+      let priorBible: CampaignBibleInput | undefined;
+      for (let n = 1; n <= RECAPS.length; n++) {
+        const recapsSoFar = RECAPS.slice(0, n);
+        priorBible = await extractCampaignBible(client, {
+          campaignId: CAMPAIGN_ID,
+          recaps: recapsSoFar,
+          priorBible,
+        });
+      }
 
-    const npcs = priorBible?.majorNpcs ?? [];
-    const hasMira = npcs.some((entry) => /mira/i.test(entry));
-    expect(
-      hasMira,
-      `expected an entry containing 'mira' (case-insensitive) in majorNpcs after 10 iterations; got ${JSON.stringify(npcs)}`,
-    ).toBe(true);
-  }, 600_000);
-});
+      const npcs = priorBible?.majorNpcs ?? [];
+      const hasMira = npcs.some((entry) => /mira/i.test(entry));
+      expect(
+        hasMira,
+        `expected an entry containing 'mira' (case-insensitive) in majorNpcs after 10 iterations; got ${JSON.stringify(npcs)}`,
+      ).toBe(true);
+    }, 600_000);
+  },
+);
