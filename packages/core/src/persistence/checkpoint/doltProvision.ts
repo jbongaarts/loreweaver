@@ -173,7 +173,9 @@ function findBinary(root: string, binName: string): string | undefined {
  * Verification is fail-closed and happens BEFORE extraction. Never invoked
  * automatically — only via {@link ensureDoltAvailable} after explicit consent.
  */
-export async function provisionDolt(opts: ProvisionOptions = {}): Promise<string> {
+export async function provisionDolt(
+  opts: ProvisionOptions = {},
+): Promise<string> {
   const env = opts.env ?? process.env;
   const platform = opts.platform ?? process.platform;
   const arch = opts.arch ?? process.arch;
@@ -279,11 +281,11 @@ export async function ensureDoltAvailable(
     throw new DoltUnavailableError(
       explicit
         ? `LOREWEAVER_DOLT_BIN="${explicit}" was set but no file exists there, ` +
-          `and a managed install was declined. Fix the path, or re-run and ` +
-          `approve a managed install.`
+            `and a managed install was declined. Fix the path, or re-run and ` +
+            `approve a managed install.`
         : `dolt not found and a managed install was declined. Set ` +
-          `LOREWEAVER_DOLT_BIN to a dolt binary, or re-run and approve the ` +
-          `managed install.`,
+            `LOREWEAVER_DOLT_BIN to a dolt binary, or re-run and approve the ` +
+            `managed install.`,
     );
   }
 

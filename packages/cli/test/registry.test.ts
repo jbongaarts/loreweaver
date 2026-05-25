@@ -18,7 +18,9 @@ import {
   updateCampaign,
 } from '../src/registry.js';
 
-function entry(over: Partial<CampaignRegistryEntry> = {}): CampaignRegistryEntry {
+function entry(
+  over: Partial<CampaignRegistryEntry> = {},
+): CampaignRegistryEntry {
   return {
     id: 'emberfall',
     name: 'Emberfall',

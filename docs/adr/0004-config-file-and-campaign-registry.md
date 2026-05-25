@@ -140,13 +140,13 @@ campaign state, and is stored distinctly:
   campaign; they are never written to the per-user data root.
 - **Installed packs** — rules packs that are not bundled, such as other RPG
   systems or publisher-licensed packs — live under `<root>/rules-packs/`, one
-  pack per subdirectory. This ADR only *reserves* that directory; it stays
+  pack per subdirectory. This ADR only _reserves_ that directory; it stays
   empty until the multiple-rules-pack work ships.
 
 Rules data is deliberately **not** copied into campaign SQLite databases. Unlike
 module content — forked into immutable `module_*` tables when a campaign is
 created — rules lookups resolve against the active pack at runtime. A campaign
-records *which* rules pack(s) it is bound to (the registry entry already keeps
+records _which_ rules pack(s) it is bound to (the registry entry already keeps
 the pack identity used to create it), so a pack remains a single shared source
 instead of being duplicated into every campaign database.
 

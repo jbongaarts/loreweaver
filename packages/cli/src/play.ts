@@ -176,10 +176,7 @@ function hasCanonicalCharacter(db: Db): boolean {
   );
 }
 
-async function ensureCharacterReady(
-  deps: PlayDeps,
-  db: Db,
-): Promise<boolean> {
+async function ensureCharacterReady(deps: PlayDeps, db: Db): Promise<boolean> {
   if (hasCanonicalCharacter(db)) {
     return true;
   }
@@ -196,7 +193,9 @@ async function ensureCharacterReady(
       return true;
     }
     if (draft === undefined) {
-      deps.io.write('Character creation required before normal turns can begin.');
+      deps.io.write(
+        'Character creation required before normal turns can begin.',
+      );
       return false;
     }
 
@@ -258,7 +257,8 @@ async function promptCharacterDraft(
     ancestry,
     className,
     level: 1,
-    abilityScoreMethod: abilityScoreMethod as CharacterCreationDraft['abilityScoreMethod'],
+    abilityScoreMethod:
+      abilityScoreMethod as CharacterCreationDraft['abilityScoreMethod'],
     abilityScores: {
       strength: Number.parseInt(strength, 10),
       dexterity: Number.parseInt(dexterity, 10),
@@ -311,7 +311,9 @@ export async function runDemo(
       }
     } else {
       campaignId = existing.campaignId;
-      deps.io.write(`Demo campaign: ${existing.title} (${existing.campaignId}).`);
+      deps.io.write(
+        `Demo campaign: ${existing.title} (${existing.campaignId}).`,
+      );
       sessionId = await launch(deps, db, options.dbPath, existing);
     }
     await turnLoop(deps, db, options.dbPath, campaignId, sessionId, cap);
@@ -365,7 +367,13 @@ async function launch(
   );
   const normalized = (answer ?? 'resume').toLowerCase();
   if (normalized === 'close' || normalized === 'c') {
-    await gracefulClose(deps, db, dbPath, campaign.campaignId, state.session.sessionId);
+    await gracefulClose(
+      deps,
+      db,
+      dbPath,
+      campaign.campaignId,
+      state.session.sessionId,
+    );
     return startNewSession(deps, db, campaign.campaignId);
   }
 
@@ -391,9 +399,7 @@ function renderSceneTail(
 function startNewSession(deps: PlayDeps, db: Db, campaignId: string): string {
   const sessionId = deps.nextId('session');
   startSession(db, { campaignId, sessionId, startedAt: deps.now() });
-  deps.io.write(
-    `Started session ${sessionId}. Type /quit to save and exit.`,
-  );
+  deps.io.write(`Started session ${sessionId}. Type /quit to save and exit.`);
   return sessionId;
 }
 
@@ -488,7 +494,11 @@ async function gracefulClose(
     );
   } else {
     try {
-      const closed = closeSessionGracefully(db, { ...input, checkpoint, arcStamp });
+      const closed = closeSessionGracefully(db, {
+        ...input,
+        checkpoint,
+        arcStamp,
+      });
       deps.io.write(
         `Session ${closed.session.sessionId} closed and recapped` +
           `${closed.checkpointId ? ` (checkpoint ${closed.checkpointId})` : ''}.`,

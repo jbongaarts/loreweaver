@@ -139,10 +139,7 @@ export function getOpenArc(
 /**
  * Returns the count of closed arcs for the campaign.
  */
-export function getClosedArcCount(
-  db: Db,
-  key: { campaignId: string },
-): number {
+export function getClosedArcCount(db: Db, key: { campaignId: string }): number {
   const row = db
     .prepare(
       `SELECT COUNT(*) AS count
@@ -270,8 +267,7 @@ export function closeOpenArcAndOpenNext(
     // Step 1: verify the open arc matches the caller's expectation.
     const openArc = getOpenArc(txnDb, { campaignId: input.campaignId });
     if (openArc === undefined || openArc.arcId !== input.arcId) {
-      const actual =
-        openArc === undefined ? '(none)' : `'${openArc.arcId}'`;
+      const actual = openArc === undefined ? '(none)' : `'${openArc.arcId}'`;
       throw new Error(
         `closeOpenArcAndOpenNext: expected open arc '${input.arcId}' for campaign '${input.campaignId}' but found ${actual}`,
       );

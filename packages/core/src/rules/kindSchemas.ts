@@ -38,12 +38,7 @@ function reqNum(parent: Obj, key: string, path: string): number {
   return value;
 }
 
-function reqInt(
-  parent: Obj,
-  key: string,
-  path: string,
-  min?: number,
-): number {
+function reqInt(parent: Obj, key: string, path: string, min?: number): number {
   const value = reqNum(parent, key, path);
   if (!Number.isInteger(value)) {
     throw new RulesPackError(`${path}.${key} must be an integer`);
@@ -54,7 +49,11 @@ function reqInt(
   return value;
 }
 
-function reqStrArray(parent: Obj, key: string, path: string): readonly string[] {
+function reqStrArray(
+  parent: Obj,
+  key: string,
+  path: string,
+): readonly string[] {
   const value = parent[key];
   if (!Array.isArray(value)) {
     throw new RulesPackError(`${path}.${key} must be an array`);
@@ -303,8 +302,7 @@ export function validateRecordKindSchema(
   path: string,
 ): void {
   BASE_KIND_VALIDATORS[record.kind](record, path);
-  const systemValidator = SYSTEM_KIND_VALIDATORS[record.systemId]?.[
-    record.kind
-  ];
+  const systemValidator =
+    SYSTEM_KIND_VALIDATORS[record.systemId]?.[record.kind];
   systemValidator?.(record, path);
 }

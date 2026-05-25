@@ -40,10 +40,10 @@ stays on 5.1 unless the user explicitly rebinds.
 
 ### Pack identities
 
-| Pack | `packId` | `meta.source.sourceVersion` | `meta.version` |
-| --- | --- | --- | --- |
-| SRD 5.1 | `rules:dnd5e-srd-5.1` | `5.1` | `5.1` |
-| SRD 5.2 | `rules:dnd5e-srd-5.2` | `5.2` | `5.2` |
+| Pack    | `packId`              | `meta.source.sourceVersion` | `meta.version` |
+| ------- | --------------------- | --------------------------- | -------------- |
+| SRD 5.1 | `rules:dnd5e-srd-5.1` | `5.1`                       | `5.1`          |
+| SRD 5.2 | `rules:dnd5e-srd-5.2` | `5.2`                       | `5.2`          |
 
 Both packs share `meta.systemId = "dnd5e-srd"` so that add-on packs and
 campaigns can declare compatibility against either base without inventing

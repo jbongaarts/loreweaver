@@ -21,7 +21,9 @@ function doltRepoWithRemotes(
     full[name] = {
       name,
       url: r.url,
-      fetch_specs: r.fetch_specs ?? ['refs/heads/*:refs/remotes/' + name + '/*'],
+      fetch_specs: r.fetch_specs ?? [
+        'refs/heads/*:refs/remotes/' + name + '/*',
+      ],
       params: {},
     };
   }
@@ -40,9 +42,9 @@ describe('beads-Dolt separation guard', () => {
   });
 
   it('rejects a dolt dir equal to the beads dir', () => {
-    expect(() => assertSeparateFromBeads('/proj/.beads', '/proj/.beads')).toThrow(
-      SeparationError,
-    );
+    expect(() =>
+      assertSeparateFromBeads('/proj/.beads', '/proj/.beads'),
+    ).toThrow(SeparationError);
   });
 
   it('rejects a dolt dir nested inside the beads dir', () => {

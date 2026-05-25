@@ -54,7 +54,7 @@ jobs:
     env:
       # Prebuilt-binary-only: never silently compile better-sqlite3 from source.
       # If no matching prebuilt exists, `npm ci` fails loudly here.
-      npm_config_build_from_source: "false"
+      npm_config_build_from_source: 'false'
     steps:
       - uses: actions/checkout@v4
 
@@ -79,3 +79,6 @@ jobs:
 
       - name: CLI install smoke
         run: npm run smoke:cli-install
+
+      - name: Format check
+        run: npm run format:check

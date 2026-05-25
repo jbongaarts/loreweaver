@@ -28,7 +28,8 @@ export function lookupSrdRecord(
   input: SrdLookupInput,
   catalog: SrdCatalog = SRD_CATALOG,
 ): SrdLookupResult {
-  const index = catalog === SRD_CATALOG ? getDefaultIndex() : buildSrdIndex(catalog);
+  const index =
+    catalog === SRD_CATALOG ? getDefaultIndex() : buildSrdIndex(catalog);
   const kindIndex = index[input.kind];
   const record =
     input.ref !== undefined
@@ -58,7 +59,9 @@ function getDefaultIndex(): SrdIndex {
 function buildKindIndex(records: readonly SrdRecord[]): SrdKindIndex {
   return {
     byRef: new Map(records.map((record) => [record.ref, record])),
-    byName: new Map(records.map((record) => [normalizeName(record.name), record])),
+    byName: new Map(
+      records.map((record) => [normalizeName(record.name), record]),
+    ),
   };
 }
 
@@ -73,4 +76,3 @@ function describeLookupInput(input: SrdLookupInput): string {
 
   return `name ${input.name}`;
 }
-

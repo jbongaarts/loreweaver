@@ -40,9 +40,7 @@ import {
   type CliIO,
   type PlayDeps,
 } from './play.js';
-import {
-  DEFAULT_MEMORY_CONFIG,
-} from '@loreweaver/core/internal';
+import { DEFAULT_MEMORY_CONFIG } from '@loreweaver/core/internal';
 
 export function buildBanner(version: string): string {
   return `Loreweaver — core v${version}`;
@@ -207,9 +205,7 @@ function loadCliConfig():
 }
 
 /** `loreweaver play [campaign-id]` — the interactive campaign front-end. */
-export async function runPlaySubcommand(
-  campaignArg?: string,
-): Promise<number> {
+export async function runPlaySubcommand(campaignArg?: string): Promise<number> {
   const cli = resolveCliEnv();
   if (cli === undefined) {
     return 1;

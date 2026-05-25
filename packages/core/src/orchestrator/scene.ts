@@ -222,10 +222,7 @@ export function getOpenScene(
   return row === undefined ? undefined : sceneFromRow(row);
 }
 
-export function appendSceneLog(
-  db: Db,
-  input: SceneLogInput,
-): SceneLogRecord {
+export function appendSceneLog(db: Db, input: SceneLogInput): SceneLogRecord {
   requireNonEmpty(
     SceneError,
     [
@@ -320,7 +317,9 @@ export function listSceneLogWindow(
   input: SceneLogWindowInput,
 ): SceneLogRecord[] {
   if (!Number.isInteger(input.limit) || input.limit < 0) {
-    throw new SceneError('scene log window limit must be a non-negative integer');
+    throw new SceneError(
+      'scene log window limit must be a non-negative integer',
+    );
   }
   if (input.limit === 0) {
     return [];
@@ -329,7 +328,9 @@ export function listSceneLogWindow(
     input.beforeSeq !== undefined &&
     (!Number.isInteger(input.beforeSeq) || input.beforeSeq < 1)
   ) {
-    throw new SceneError('scene log window beforeSeq must be a positive integer');
+    throw new SceneError(
+      'scene log window beforeSeq must be a positive integer',
+    );
   }
 
   const seqPredicate = input.beforeSeq === undefined ? '' : 'AND seq < ?';

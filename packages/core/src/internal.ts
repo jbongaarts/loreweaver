@@ -264,10 +264,7 @@ export {
 } from './world/loadModule.js';
 export { forkModuleIntoCampaign } from './world/forkCampaign.js';
 export { worldOverlayKey, worldQuery } from './world/worldQuery.js';
-export {
-  assertShippablePack,
-  evaluatePackPolicy,
-} from './world/license.js';
+export { assertShippablePack, evaluatePackPolicy } from './world/license.js';
 export type { PackUsePolicy } from './world/license.js';
 export type {
   Encounter,

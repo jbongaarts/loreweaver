@@ -395,7 +395,9 @@ function validatePointBuy(scores: readonly number[], errors: string[]): void {
   for (const score of scores) {
     const cost = POINT_BUY_COSTS.get(score);
     if (cost === undefined) {
-      errors.push(`point-buy score must be between 8 and 15 before bonuses: ${score}`);
+      errors.push(
+        `point-buy score must be between 8 and 15 before bonuses: ${score}`,
+      );
       return;
     }
     total += cost;
@@ -421,7 +423,8 @@ function validateHitPoints(
   characterClass: SrdClassRecord,
   errors: string[],
 ): void {
-  const expected = characterClass.hitDie + abilityModifier(draft.abilityScores.constitution);
+  const expected =
+    characterClass.hitDie + abilityModifier(draft.abilityScores.constitution);
   if (draft.maxHitPoints !== expected) {
     errors.push(`level-1 hit point maximum must be ${expected}`);
   }
@@ -469,7 +472,9 @@ function fallbackClass(): SrdClassRecord {
 
 function asSpellRecord(record: SrdRecord): SrdSpellRecord {
   if (record.kind !== 'spell') {
-    throw new CharacterCreationError([`expected spell SRD record: ${record.ref}`]);
+    throw new CharacterCreationError([
+      `expected spell SRD record: ${record.ref}`,
+    ]);
   }
 
   return record;

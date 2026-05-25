@@ -70,10 +70,10 @@ for the first-release storage decision. The local CLI release plan is in
 
 Monorepo using npm workspaces:
 
-| Package            | Path             | Role                                                    |
-| ------------------ | ---------------- | ------------------------------------------------------- |
-| `@loreweaver/core` | `packages/core`  | UI-agnostic engine: config, models, tools, persistence  |
-| `@loreweaver/cli`  | `packages/cli`   | Thin CLI front end for local play and development       |
+| Package            | Path            | Role                                                   |
+| ------------------ | --------------- | ------------------------------------------------------ |
+| `@loreweaver/core` | `packages/core` | UI-agnostic engine: config, models, tools, persistence |
+| `@loreweaver/cli`  | `packages/cli`  | Thin CLI front end for local play and development      |
 
 ## Getting Started
 

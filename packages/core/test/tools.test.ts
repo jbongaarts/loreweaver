@@ -92,7 +92,9 @@ describe('rollDice', () => {
     expect(first).toEqual(second);
     expect(first.rolls).toHaveLength(3);
     expect(first.modifier).toBe(2);
-    expect(first.total).toBe(first.rolls[0] + first.rolls[1] + first.rolls[2] + 2);
+    expect(first.total).toBe(
+      first.rolls[0] + first.rolls[1] + first.rolls[2] + 2,
+    );
     for (const r of first.rolls) {
       expect(r).toBeGreaterThanOrEqual(1);
       expect(r).toBeLessThanOrEqual(6);

@@ -1,8 +1,5 @@
 import type { TraceJsonValue } from './memory/turnTrace.js';
-import {
-  rollupSessionRecap,
-  summarizeSceneFromLog,
-} from './memory/summary.js';
+import { rollupSessionRecap, summarizeSceneFromLog } from './memory/summary.js';
 import type { Db } from './persistence/db.js';
 import { withTransaction } from './persistence/db.js';
 import { closeScene, getOpenScene } from './orchestrator/scene.js';
@@ -160,4 +157,3 @@ function markCheckpointDone(
     checkpointId,
   );
 }
-

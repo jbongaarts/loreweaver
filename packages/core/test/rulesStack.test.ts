@@ -10,9 +10,7 @@ import type {
   RulesRecord,
 } from '../src/internal.js';
 
-function license(
-  overrides: Partial<RulesPackLicense> = {},
-): RulesPackLicense {
+function license(overrides: Partial<RulesPackLicense> = {}): RulesPackLicense {
   return {
     licenseClass: 'open',
     licenseName: 'Creative Commons Attribution 4.0 International',
@@ -32,7 +30,10 @@ function license(
   };
 }
 
-function record(key: string, overrides: Partial<RulesRecord> = {}): RulesRecord {
+function record(
+  key: string,
+  overrides: Partial<RulesRecord> = {},
+): RulesRecord {
   return {
     systemId: 'dnd5e-srd',
     kind: 'creature',
@@ -259,13 +260,13 @@ describe('rules stack resolution', () => {
 
     const stack = resolveRulesStack({ base, addons: [addon] });
 
-    expect(lookupRulesRecord(stack, { kind: 'creature', name: 'Goblin' })).toEqual(
-      {
-        ok: false,
-        code: 'not_found',
-        message: 'No rules creature found for name Goblin.',
-      },
-    );
+    expect(
+      lookupRulesRecord(stack, { kind: 'creature', name: 'Goblin' }),
+    ).toEqual({
+      ok: false,
+      code: 'not_found',
+      message: 'No rules creature found for name Goblin.',
+    });
     expect(
       lookupRulesRecord(stack, { kind: 'creature', name: 'cave   goblin' }),
     ).toMatchObject({
@@ -314,10 +315,12 @@ describe('rules stack resolution', () => {
       ok: true,
       record: { key: 'spell:goblin' },
     });
-    expect(lookupRulesRecord(stack, { kind: 'creature', name: 'Gob' })).toEqual({
-      ok: false,
-      code: 'not_found',
-      message: 'No rules creature found for name Gob.',
-    });
+    expect(lookupRulesRecord(stack, { kind: 'creature', name: 'Gob' })).toEqual(
+      {
+        ok: false,
+        code: 'not_found',
+        message: 'No rules creature found for name Gob.',
+      },
+    );
   });
 });

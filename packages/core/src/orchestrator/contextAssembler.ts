@@ -1,19 +1,13 @@
 import type { Db } from '../persistence/db.js';
 import { jsonColumn } from '../persistence/jsonColumn.js';
-import {
-  selectAlwaysOnMemory,
-} from '../memory/summary.js';
+import { selectAlwaysOnMemory } from '../memory/summary.js';
 import type {
   ArcSummaryRecord,
   CampaignBibleRecord,
   SessionRecapRecord,
 } from '../memory/summary.js';
 import { listClosedArcSummaries } from '../memory/campaignArc.js';
-import {
-  countSceneLog,
-  getOpenScene,
-  listSceneLogWindow,
-} from './scene.js';
+import { countSceneLog, getOpenScene, listSceneLogWindow } from './scene.js';
 import type { SceneLogRecord } from './scene.js';
 
 /**
@@ -152,9 +146,7 @@ export function readStateSnapshot(db: Db): StateSnapshot {
     .all() as InventoryRow[];
 
   const clock = db
-    .prepare(
-      `SELECT in_game_time, current_location_id FROM clock WHERE id = 1`,
-    )
+    .prepare(`SELECT in_game_time, current_location_id FROM clock WHERE id = 1`)
     .get() as ClockRow;
 
   const plotFlagRows = db
@@ -192,9 +184,7 @@ export function readStateSnapshot(db: Db): StateSnapshot {
   };
 }
 
-export function assembleContext(
-  input: ContextAssemblyInput,
-): AssembledContext {
+export function assembleContext(input: ContextAssemblyInput): AssembledContext {
   const recentSessionLimit =
     input.recentSessionLimit ?? DEFAULT_RECENT_SESSION_LIMIT;
   const sceneTranscriptLimit =
@@ -282,9 +272,7 @@ function renderState(state: StateSnapshot): string {
   }
   lines.push(
     `Clock: ${state.clock.inGameTime || '(unset)'}${
-      state.clock.currentLocationId
-        ? ` @ ${state.clock.currentLocationId}`
-        : ''
+      state.clock.currentLocationId ? ` @ ${state.clock.currentLocationId}` : ''
     }`,
   );
   return lines.join('\n');
@@ -335,7 +323,9 @@ export function renderContextMessage(ctx: AssembledContext): string {
     const transcript =
       ctx.sceneTranscript.length > 0
         ? ctx.sceneTranscript
-            .map((e) => `${e.role === 'player' ? 'Player' : 'DM'}: ${e.content}`)
+            .map(
+              (e) => `${e.role === 'player' ? 'Player' : 'DM'}: ${e.content}`,
+            )
             .join('\n')
         : '(no turns yet)';
     const firstSeq = ctx.sceneTranscript[0]?.seq ?? 'null';

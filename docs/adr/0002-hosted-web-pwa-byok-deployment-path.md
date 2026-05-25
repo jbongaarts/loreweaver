@@ -11,7 +11,7 @@ MVP is CLI/local-friendly, with a hosted mobile-friendly web app or PWA as the
 likely medium-term public experience and native mobile deferred. It also set
 billing as BYOK-first with hosted credits as a future option.
 
-ADR 0001 recorded those positions but did not describe *how* the deployment
+ADR 0001 recorded those positions but did not describe _how_ the deployment
 path is staged or — critically — how player-supplied provider API keys are
 handled once the product is hosted. E6 builds the player-facing session
 wrapper and a thin CLI; before that boundary hardens we need a decision record
@@ -55,7 +55,7 @@ history, or `turn_trace`. The user owns the key's lifecycle entirely.
 
 The public medium-term experience is a hosted, mobile-friendly responsive web
 app delivered as an installable PWA (offline-capable shell, home-screen
-install, push-free). It runs the *same* core behind a thin server: the browser
+install, push-free). It runs the _same_ core behind a thin server: the browser
 is a presentation client only — campaign state, orchestration, tools, and
 canon writes stay server-side. The PWA gives a near-app mobile experience
 without a native build.

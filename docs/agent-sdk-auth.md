@@ -60,7 +60,7 @@ Loreweaver reads `CLAUDE_CODE_OAUTH_TOKEN` when `ANTHROPIC_API_KEY` is absent,
 resolves `auth.mode = 'oauth-token'`, and injects only the OAuth token into the
 SDK process.
 
-Interactive `claude` `/login` is *not* sufficient on its own: `loadConfig`
+Interactive `claude` `/login` is _not_ sufficient on its own: `loadConfig`
 requires an explicit `ANTHROPIC_API_KEY` or `CLAUDE_CODE_OAUTH_TOKEN` in the
 environment, and does not read the cached `~/.claude/.credentials.json` that
 `/login` writes. Use `claude setup-token` to mint a token Loreweaver can see.
@@ -75,8 +75,8 @@ environment, and does not read the cached `~/.claude/.credentials.json` that
   apply — a long campaign can exhaust them.
 - **No third-party "Log in with Claude" for hosted Loreweaver.** Anthropic does
   not allow third-party developers to offer claude.ai login in products built on
-  the Agent SDK without prior approval. A *self-hosted* user authenticating
-  their *own* subscription locally is fine; a hosted Loreweaver service letting
+  the Agent SDK without prior approval. A _self-hosted_ user authenticating
+  their _own_ subscription locally is fine; a hosted Loreweaver service letting
   end-users log in with their Claude.ai accounts is not, absent approval. Hosted
   BYOK remains governed by [ADR 0002](adr/0002-hosted-web-pwa-byok-deployment-path.md).
 - **Token scope.** `CLAUDE_CODE_OAUTH_TOKEN` is inference-only and cannot
@@ -84,12 +84,12 @@ environment, and does not read the cached `~/.claude/.credentials.json` that
 
 ## Status in Loreweaver
 
-| Path | Supported by Agent SDK | Supported by Loreweaver CLI |
-| --- | --- | --- |
-| `ANTHROPIC_API_KEY` | yes | **yes** |
-| `CLAUDE_CODE_OAUTH_TOKEN` (Pro/Max) | yes | **yes** |
-| Interactive `/login` subscription creds | yes | no — `loadConfig` needs an explicit env var |
-| Cloud providers (Bedrock/Vertex/Foundry) | yes | no — no adapter wired |
+| Path                                     | Supported by Agent SDK | Supported by Loreweaver CLI                 |
+| ---------------------------------------- | ---------------------- | ------------------------------------------- |
+| `ANTHROPIC_API_KEY`                      | yes                    | **yes**                                     |
+| `CLAUDE_CODE_OAUTH_TOKEN` (Pro/Max)      | yes                    | **yes**                                     |
+| Interactive `/login` subscription creds  | yes                    | no — `loadConfig` needs an explicit env var |
+| Cloud providers (Bedrock/Vertex/Foundry) | yes                    | no — no adapter wired                       |
 
 `loadConfig` resolves a `ProviderAuth` (`mode: 'api-key' | 'oauth-token'`) and
 the CLI injects exactly that credential through the `AgentSdkModelClient` auth

@@ -105,8 +105,14 @@ export function loadRulesPackFromDirectory(dir: string): RulesPack {
   // (sorted) order.
   if (Array.isArray(rawRecords)) {
     rawRecords = [...rawRecords].sort((a, b) => {
-      const ka = typeof a === 'object' && a !== null ? (a as Record<string, unknown>).key : undefined;
-      const kb = typeof b === 'object' && b !== null ? (b as Record<string, unknown>).key : undefined;
+      const ka =
+        typeof a === 'object' && a !== null
+          ? (a as Record<string, unknown>).key
+          : undefined;
+      const kb =
+        typeof b === 'object' && b !== null
+          ? (b as Record<string, unknown>).key
+          : undefined;
       if (typeof ka === 'string' && typeof kb === 'string') {
         return ka < kb ? -1 : ka > kb ? 1 : 0;
       }

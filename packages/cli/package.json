@@ -2,9 +2,19 @@
   "name": "@loreweaver/cli",
   "version": "0.0.0",
   "type": "module",
-  "files": ["dist"],
-  "engines": { "node": ">=22 <23" },
-  "bin": { "loreweaver": "./dist/index.js" },
-  "scripts": { "build": "tsc --build" },
-  "dependencies": { "@loreweaver/core": "0.0.0" }
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22 <23"
+  },
+  "bin": {
+    "loreweaver": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc --build"
+  },
+  "dependencies": {
+    "@loreweaver/core": "0.0.0"
+  }
 }

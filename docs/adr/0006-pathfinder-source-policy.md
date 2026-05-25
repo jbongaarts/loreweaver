@@ -43,13 +43,13 @@ no Community-Use-Policy content, no adventure-path content.
 
 ### Allowed corpus (ingestable into the bundled pack)
 
-| Source | License | Pack content |
-| --- | --- | --- |
-| Pathfinder Player Core | ORC | Ancestries, backgrounds, classes (Player Core list), class feats, general feats, equipment, spells, conditions, core rules text. |
-| Pathfinder GM Core | ORC | Hazards, environments, rewards/treasure tables, GM-facing rules text, conditions delta if any. |
-| Pathfinder Monster Core | ORC | Creatures / monsters. |
-| Pathfinder Player Core 2 | ORC | Additional ancestries, classes, feats, spells, equipment as published. |
-| Future ORC-licensed Remaster releases | ORC | Same rules-element kinds as above, added in subsequent pack versions. |
+| Source                                | License | Pack content                                                                                                                     |
+| ------------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Pathfinder Player Core                | ORC     | Ancestries, backgrounds, classes (Player Core list), class feats, general feats, equipment, spells, conditions, core rules text. |
+| Pathfinder GM Core                    | ORC     | Hazards, environments, rewards/treasure tables, GM-facing rules text, conditions delta if any.                                   |
+| Pathfinder Monster Core               | ORC     | Creatures / monsters.                                                                                                            |
+| Pathfinder Player Core 2              | ORC     | Additional ancestries, classes, feats, spells, equipment as published.                                                           |
+| Future ORC-licensed Remaster releases | ORC     | Same rules-element kinds as above, added in subsequent pack versions.                                                            |
 
 All ingested records must come from the published ORC text. Importer
 output is deterministic and reproducible from the source artifact.

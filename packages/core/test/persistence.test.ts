@@ -91,8 +91,9 @@ describe('persistence', () => {
       )
       .all() as Array<{ name: string }>;
     expect(tables.map((row) => row.name)).toEqual(['character']);
-    const characterColumns = db.prepare('PRAGMA table_info(character)').all() as
-      Array<{ name: string }>;
+    const characterColumns = db
+      .prepare('PRAGMA table_info(character)')
+      .all() as Array<{ name: string }>;
     expect(characterColumns.map((column) => column.name)).toEqual([
       'id',
       'name',
@@ -152,7 +153,9 @@ describe('persistence', () => {
   it('adds an arc_id column to campaign_session', () => {
     const db = openDatabase(':memory:');
     initSchema(db);
-    const cols = db.prepare('PRAGMA table_info(campaign_session)').all() as Array<{
+    const cols = db
+      .prepare('PRAGMA table_info(campaign_session)')
+      .all() as Array<{
       name: string;
     }>;
     expect(cols.map((c) => c.name)).toContain('arc_id');

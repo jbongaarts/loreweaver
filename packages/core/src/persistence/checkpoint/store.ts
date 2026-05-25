@@ -73,8 +73,7 @@ function materialize(records: SnapshotRecord[], destDbPath: string): void {
       `restore destination already exists: ${destDbPath}`,
     );
   }
-  const tmpDbPath =
-    `${destDbPath}.${RESTORE_TEMP_SUFFIX}-${process.pid}-${Date.now()}.tmp`;
+  const tmpDbPath = `${destDbPath}.${RESTORE_TEMP_SUFFIX}-${process.pid}-${Date.now()}.tmp`;
   try {
     const db = openDatabase(tmpDbPath);
     try {

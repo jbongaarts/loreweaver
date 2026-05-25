@@ -108,7 +108,8 @@ describe('memory summaries', () => {
     const input = {
       campaignId: 'campaign-1',
       sessionId: 'session-1',
-      recap: 'Mira investigates the ruined shrine and learns the north road is dangerous.',
+      recap:
+        'Mira investigates the ruined shrine and learns the north road is dangerous.',
       stateDelta: [
         {
           target: 'plot_flags',
@@ -146,7 +147,9 @@ describe('memory summaries', () => {
       updatedAt: '2026-05-19T06:00:00.000Z',
     });
 
-    const rows = db.prepare('SELECT COUNT(*) AS count FROM session_recap').get() as {
+    const rows = db
+      .prepare('SELECT COUNT(*) AS count FROM session_recap')
+      .get() as {
       count: number;
     };
     expect(rows.count).toBe(1);
@@ -194,7 +197,8 @@ describe('memory summaries', () => {
     const input = {
       campaignId: 'campaign-1',
       arcId: 'arc-1',
-      summary: 'Mira follows shrine tracks north and gains the road warden as an ally.',
+      summary:
+        'Mira follows shrine tracks north and gains the road warden as an ally.',
       sourceSessionIds: ['session-1', 'session-2'],
       campaignBible: {
         worldFacts: ['The Ash Ford lies north of the ruined shrine.'],
@@ -208,7 +212,9 @@ describe('memory summaries', () => {
     rollupArcSummary(db, input);
     rollupArcSummary(db, input);
 
-    expect(getArcSummary(db, { campaignId: 'campaign-1', arcId: 'arc-1' })).toEqual({
+    expect(
+      getArcSummary(db, { campaignId: 'campaign-1', arcId: 'arc-1' }),
+    ).toEqual({
       campaignId: 'campaign-1',
       arcId: 'arc-1',
       summary:
@@ -250,7 +256,9 @@ describe('memory summaries', () => {
       updatedAt: '2026-05-19T07:00:00.000Z',
     });
 
-    const arcRows = db.prepare('SELECT COUNT(*) AS count FROM arc_summary').get() as {
+    const arcRows = db
+      .prepare('SELECT COUNT(*) AS count FROM arc_summary')
+      .get() as {
       count: number;
     };
     const bibleRows = db
@@ -334,7 +342,9 @@ describe('memory summaries', () => {
       })?.target,
     ).toBe('arc');
 
-    expect(getCampaignBible(db, { campaignId: 'campaign-1' })).toEqual(beforeBible);
+    expect(getCampaignBible(db, { campaignId: 'campaign-1' })).toEqual(
+      beforeBible,
+    );
 
     db.close();
   });
@@ -468,7 +478,10 @@ describe('summarizeSceneFromLog', () => {
       { campaignId: 'c1', sessionId: 's1', sceneId: 'sc1' },
       '2026-05-20T12:00:00.000Z',
     );
-    const second = listSceneSummaries(db, { campaignId: 'c1', sessionId: 's1' });
+    const second = listSceneSummaries(db, {
+      campaignId: 'c1',
+      sessionId: 's1',
+    });
     expect(second).toHaveLength(1);
     expect(second[0].summary).toBe('The road forks at a broken shrine.');
     db.close();

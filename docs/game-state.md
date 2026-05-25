@@ -46,4 +46,3 @@ state.
 `getStateProvenance(db, query)` returns row-level provenance metadata for
 narrative callbacks. It supports character, inventory, plot flag, clock, and
 overlay fact rows.
-

@@ -65,9 +65,7 @@ function oneOf<T extends string>(
 ): T {
   const s = str(value, path);
   if (!(allowed as readonly string[]).includes(s)) {
-    throw new WorldModuleError(
-      `${path} must be one of: ${allowed.join(', ')}`,
-    );
+    throw new WorldModuleError(`${path} must be one of: ${allowed.join(', ')}`);
   }
   return s as T;
 }
@@ -117,10 +115,7 @@ function license(value: unknown): PackLicense {
       o.sourceMaterialDescription,
       'meta.license.sourceMaterialDescription',
     ),
-    provenancePolicy: str(
-      o.provenancePolicy,
-      'meta.license.provenancePolicy',
-    ),
+    provenancePolicy: str(o.provenancePolicy, 'meta.license.provenancePolicy'),
     outputRestrictions: str(
       o.outputRestrictions,
       'meta.license.outputRestrictions',
@@ -171,10 +166,7 @@ function meta(value: unknown): ModuleMeta {
       'mixed',
     ]),
     description: str(o.description, 'meta.description'),
-    startingLocationId: str(
-      o.startingLocationId,
-      'meta.startingLocationId',
-    ),
+    startingLocationId: str(o.startingLocationId, 'meta.startingLocationId'),
     license: license(o.license),
     rulesRequirements: rulesRequirements(o.rulesRequirements),
   };

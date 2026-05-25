@@ -105,13 +105,7 @@ describe('Context Assembler', () => {
       at: '2026-05-20T10:00:00.000Z',
     });
     for (const n of [1, 2, 3, 4, 5]) {
-      logTurn(
-        db,
-        'scene-now',
-        `turn-${n}`,
-        `player line ${n}`,
-        `dm line ${n}`,
-      );
+      logTurn(db, 'scene-now', `turn-${n}`, `player line ${n}`, `dm line ${n}`);
     }
 
     const ctx = assembleContext({
@@ -235,13 +229,21 @@ describe('Context Assembler', () => {
     const db = freshDbWithSession({ sessionId: SESSION });
 
     // Open arc-1 and immediately close it to get arc-2 open.
-    openArcIfMissing(db, { campaignId: CAMPAIGN, now: '2026-05-19T18:00:00.000Z' });
+    openArcIfMissing(db, {
+      campaignId: CAMPAIGN,
+      now: '2026-05-19T18:00:00.000Z',
+    });
     closeOpenArcAndOpenNext(db, {
       campaignId: CAMPAIGN,
       arcId: 'arc-1',
       summary: 'Arc one summary.',
       sourceSessionIds: ['session-1'],
-      campaignBible: { worldFacts: [], majorNpcs: [], factions: [], openThreads: [] },
+      campaignBible: {
+        worldFacts: [],
+        majorNpcs: [],
+        factions: [],
+        openThreads: [],
+      },
       now: '2026-05-19T19:00:00.000Z',
     });
     // arc-2 is now open; close it to get arc-3 open.
@@ -250,7 +252,12 @@ describe('Context Assembler', () => {
       arcId: 'arc-2',
       summary: 'Arc two summary.',
       sourceSessionIds: ['session-2'],
-      campaignBible: { worldFacts: [], majorNpcs: [], factions: [], openThreads: [] },
+      campaignBible: {
+        worldFacts: [],
+        majorNpcs: [],
+        factions: [],
+        openThreads: [],
+      },
       now: '2026-05-19T20:00:00.000Z',
     });
 
@@ -296,7 +303,10 @@ describe('Context Assembler', () => {
     const db = freshDbWithSession({ sessionId: 's1' });
 
     // Open arc-1.
-    openArcIfMissing(db, { campaignId: CAMPAIGN, now: '2026-05-19T08:00:00.000Z' });
+    openArcIfMissing(db, {
+      campaignId: CAMPAIGN,
+      now: '2026-05-19T08:00:00.000Z',
+    });
 
     // Create and stamp 5 sessions to arc-1.
     for (let n = 1; n <= 5; n++) {
@@ -334,7 +344,12 @@ describe('Context Assembler', () => {
       arcId: 'arc-1',
       summary: 'Arc one is done.',
       sourceSessionIds: ['s1', 's2', 's3', 's4', 's5'],
-      campaignBible: { worldFacts: [], majorNpcs: [], factions: [], openThreads: [] },
+      campaignBible: {
+        worldFacts: [],
+        majorNpcs: [],
+        factions: [],
+        openThreads: [],
+      },
       now: '2026-05-20T00:00:00.000Z',
     });
 
@@ -351,7 +366,11 @@ describe('Context Assembler', () => {
     expect(ctx.arcSummaries).toHaveLength(1);
     expect(ctx.arcSummaries[0]?.arcId).toBe('arc-1');
     expect(ctx.recentSessionRecaps.map((r) => r.sessionId)).toEqual([
-      's1', 's2', 's3', 's4', 's5',
+      's1',
+      's2',
+      's3',
+      's4',
+      's5',
     ]);
     db.close();
   });

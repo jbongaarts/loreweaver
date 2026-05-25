@@ -137,18 +137,14 @@ describe('getClosedArcCount', () => {
 describe('getClosedSessionsInOpenArc', () => {
   it('returns empty when no open arc exists', () => {
     const db = makeDb();
-    expect(
-      getClosedSessionsInOpenArc(db, { campaignId: 'c1' }),
-    ).toEqual([]);
+    expect(getClosedSessionsInOpenArc(db, { campaignId: 'c1' })).toEqual([]);
     db.close();
   });
 
   it('returns empty when open arc has no stamped closed sessions', () => {
     const db = makeDb();
     openArcIfMissing(db, { campaignId: 'c1', now: '2026-01-01T00:00:00Z' });
-    expect(
-      getClosedSessionsInOpenArc(db, { campaignId: 'c1' }),
-    ).toEqual([]);
+    expect(getClosedSessionsInOpenArc(db, { campaignId: 'c1' })).toEqual([]);
     db.close();
   });
 
@@ -188,12 +184,24 @@ describe('getClosedSessionsInOpenArc', () => {
     db.prepare(
       `INSERT INTO campaign_session(campaign_id, session_id, status, started_at, closed_at, arc_id)
        VALUES (?, ?, 'closed', ?, ?, ?)`,
-    ).run('c1', 's-other', '2026-01-01T00:00:00Z', '2026-01-01T12:00:00Z', 'arc-0');
+    ).run(
+      'c1',
+      's-other',
+      '2026-01-01T00:00:00Z',
+      '2026-01-01T12:00:00Z',
+      'arc-0',
+    );
     // Session stamped with open arc
     db.prepare(
       `INSERT INTO campaign_session(campaign_id, session_id, status, started_at, closed_at, arc_id)
        VALUES (?, ?, 'closed', ?, ?, ?)`,
-    ).run('c1', 's-current', '2026-01-02T00:00:00Z', '2026-01-02T12:00:00Z', 'arc-1');
+    ).run(
+      'c1',
+      's-current',
+      '2026-01-02T00:00:00Z',
+      '2026-01-02T12:00:00Z',
+      'arc-1',
+    );
 
     const sessions = getClosedSessionsInOpenArc(db, { campaignId: 'c1' });
     expect(sessions).toHaveLength(1);
@@ -343,7 +351,12 @@ describe('closeOpenArcAndOpenNext', () => {
       arcId: 'arc-1',
       summary: 'arc summary text',
       sourceSessionIds: ['s1', 's2'],
-      campaignBible: { worldFacts: [], majorNpcs: [], factions: [], openThreads: [] },
+      campaignBible: {
+        worldFacts: [],
+        majorNpcs: [],
+        factions: [],
+        openThreads: [],
+      },
       now: '2026-01-10T00:00:00Z',
     } satisfies CloseOpenArcAndOpenNextInput);
 
@@ -366,7 +379,9 @@ describe('closeOpenArcAndOpenNext', () => {
       .prepare(
         `SELECT status, sequence_no, opened_at FROM campaign_arc WHERE campaign_id = ? AND arc_id = ?`,
       )
-      .get('c1', 'arc-2') as { status: string; sequence_no: number; opened_at: string } | undefined;
+      .get('c1', 'arc-2') as
+      | { status: string; sequence_no: number; opened_at: string }
+      | undefined;
     expect(arc2Row).toBeDefined();
     expect(arc2Row!.status).toBe('open');
     expect(arc2Row!.sequence_no).toBe(2);
@@ -394,7 +409,12 @@ describe('closeOpenArcAndOpenNext', () => {
         arcId: 'arc-99',
         summary: 's',
         sourceSessionIds: [],
-        campaignBible: { worldFacts: [], majorNpcs: [], factions: [], openThreads: [] },
+        campaignBible: {
+          worldFacts: [],
+          majorNpcs: [],
+          factions: [],
+          openThreads: [],
+        },
         now: '2026-01-10T00:00:00Z',
       }),
     ).toThrow(/arc-99/);
@@ -416,7 +436,12 @@ describe('closeOpenArcAndOpenNext', () => {
         arcId: 'arc-1',
         summary: 's',
         sourceSessionIds: [],
-        campaignBible: { worldFacts: [], majorNpcs: [], factions: [], openThreads: [] },
+        campaignBible: {
+          worldFacts: [],
+          majorNpcs: [],
+          factions: [],
+          openThreads: [],
+        },
         now: '2026-01-10T00:00:00Z',
       }),
     ).toThrow(/\(none\)/);

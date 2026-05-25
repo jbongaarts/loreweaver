@@ -3,7 +3,8 @@ import type { SrdCatalog, SrdLicenseMetadata } from './types.js';
 export const SRD_LICENSE: SrdLicenseMetadata = {
   sourceTitle: 'System Reference Document 5.1',
   sourceVersion: '5.1',
-  sourceUrl: 'https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf',
+  sourceUrl:
+    'https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf',
   licenseName: 'Creative Commons Attribution 4.0 International',
   licenseUrl: 'https://creativecommons.org/licenses/by/4.0/',
   attribution:

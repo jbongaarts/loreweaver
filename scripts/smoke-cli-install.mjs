@@ -50,11 +50,15 @@ try {
     'loreweaver play',
   ]) {
     if (!output.includes(expected)) {
-      throw new Error(`missing expected output ${JSON.stringify(expected)}:\n${output}`);
+      throw new Error(
+        `missing expected output ${JSON.stringify(expected)}:\n${output}`,
+      );
     }
   }
 
-  console.log(`CLI install smoke passed using ${basename(coreTarball)} and ${basename(cliTarball)}.`);
+  console.log(
+    `CLI install smoke passed using ${basename(coreTarball)} and ${basename(cliTarball)}.`,
+  );
 } finally {
   rmSync(scratch, { recursive: true, force: true });
 }
@@ -90,7 +94,9 @@ function assertInstalled(packageName) {
   ]);
   const tree = JSON.parse(stdout);
   if (tree.dependencies?.[packageName]?.version !== '0.0.0') {
-    throw new Error(`${packageName} was not installed from the local 0.0.0 tarball`);
+    throw new Error(
+      `${packageName} was not installed from the local 0.0.0 tarball`,
+    );
   }
 }
 

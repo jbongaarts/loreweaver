@@ -1,6 +1,9 @@
 import type { Db } from '../persistence/db.js';
 import type { ModelClient, ModelMessage } from '../model/client.js';
-import type { TraceJsonValue, TurnTraceConsentScope } from '../memory/turnTrace.js';
+import type {
+  TraceJsonValue,
+  TurnTraceConsentScope,
+} from '../memory/turnTrace.js';
 import { recordTurnTrace } from '../memory/turnTrace.js';
 import { summarizeSceneFromLog } from '../memory/summary.js';
 import { createSeededRng } from './rng.js';

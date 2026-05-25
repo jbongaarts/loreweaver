@@ -1,12 +1,7 @@
 import type { Db } from '../persistence/db.js';
 import type { Rng } from './rng.js';
 import { DiceError, rollDice } from './dice.js';
-import {
-  SceneError,
-  closeScene,
-  getOpenScene,
-  openScene,
-} from './scene.js';
+import { SceneError, closeScene, getOpenScene, openScene } from './scene.js';
 import type { SceneRecord } from './scene.js';
 import {
   DEFAULT_DND5E_SRD_BINDING,
@@ -100,7 +95,10 @@ const rollTool: Tool = {
       typeof a.reason !== 'string' ||
       a.reason.length === 0
     ) {
-      return err('invalid_args', 'roll requires { dice: string, reason: string }');
+      return err(
+        'invalid_args',
+        'roll requires { dice: string, reason: string }',
+      );
     }
     try {
       const roll = rollDice(a.dice, ctx.rng);
@@ -177,8 +175,7 @@ function findBundledPackById(packId: string): RulesPack | undefined {
 
 function findBundledBaseBySystemId(systemId: string): RulesPack | undefined {
   return BUNDLED_RULES_PACKS.find(
-    (pack) =>
-      pack.meta.systemId === systemId && pack.meta.role === 'base',
+    (pack) => pack.meta.systemId === systemId && pack.meta.role === 'base',
   );
 }
 
