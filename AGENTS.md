@@ -20,7 +20,8 @@ npm run test       # vitest run
 ```
 
 Expected: **all non-skipped tests pass.** The suite skips by default the
-live-API integration test (`model.integration.test.ts`, gated off unless a real
+live-API integration tests (`model.integration.test.ts` and
+`campaignBibleFaithfulness.integration.test.ts`, both gated off unless a real
 provider key is supplied) and any Dolt-gated checkpoint tests when the `dolt`
 binary is absent. Treat exact pass/skip counts as approximate — they grow with
 the suite; the gate is that nothing outside those documented skips fails. (As a
