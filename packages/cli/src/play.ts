@@ -12,12 +12,14 @@ import {
   createDemoCampaign,
   extractCampaignBible,
   getCampaign,
+  getCampaignBible,
   getDemoTurnBudget,
   getSessionLaunchState,
   getSessionRecap,
   initSchema,
   startSession,
   type CampaignBibleInput,
+  type CampaignBibleRecord,
   type CampaignInfo,
   type CharacterCreationDraft,
   type CloseSessionGracefullyInput,
@@ -27,6 +29,8 @@ import {
   type RunTurnDeps,
   type RunTurnInput,
   type RunTurnResult,
+  type ArcSummaryRecord,
+  type ExtractCampaignBibleInput,
   type SessionCheckpointRunner,
   type SessionLaunchState,
   type SessionRecapRecord,
@@ -36,6 +40,7 @@ import {
   closeOpenArcAndOpenNext,
   DEFAULT_MEMORY_CONFIG,
   getClosedSessionsInOpenArc,
+  listClosedArcSummaries,
   openArcIfMissing,
   validateMemoryConfig,
   type MemoryConfig,
@@ -514,13 +519,37 @@ async function gracefulClose(
  */
 async function extractBibleWithRetry(
   model: ModelClient,
-  input: { campaignId: string; recaps: SessionRecapRecord[] },
+  input: ExtractCampaignBibleInput,
 ): Promise<CampaignBibleInput> {
   try {
     return await extractCampaignBible(model, input);
   } catch {
     return await extractCampaignBible(model, input);
   }
+}
+
+/**
+ * Project a {@link CampaignBibleRecord} (rich entries with source provenance)
+ * down to a {@link CampaignBibleInput} (plain string lists) for feeding back
+ * into the extractor as the "previously known bible". Returns `undefined`
+ * when every list is empty so the extractor sees no priorBible block.
+ */
+function projectBibleForExtractor(
+  record: CampaignBibleRecord | undefined,
+): CampaignBibleInput | undefined {
+  if (record === undefined) return undefined;
+  const projected: CampaignBibleInput = {
+    worldFacts: record.worldFacts.map((e) => e.text),
+    majorNpcs: record.majorNpcs.map((e) => e.text),
+    factions: record.factions.map((e) => e.text),
+    openThreads: record.openThreads.map((e) => e.text),
+  };
+  const total =
+    projected.worldFacts.length +
+    projected.majorNpcs.length +
+    projected.factions.length +
+    projected.openThreads.length;
+  return total === 0 ? undefined : projected;
 }
 
 /**
@@ -551,9 +580,27 @@ async function rollupCampaignArcIfReady(
     .map((s) => getSessionRecap(db, { campaignId, sessionId: s.sessionId }))
     .filter((r): r is SessionRecapRecord => r !== undefined);
 
+  // Feed the prior bible and any closed-arc summaries back into the extractor
+  // so previously surfaced entities persist by default (loreweaver-06b.1).
+  // Both are absent on the first-ever rollover and the extractor falls back
+  // to the legacy recap-only layout.
+  const priorBible = projectBibleForExtractor(
+    getCampaignBible(db, { campaignId }),
+  );
+  const closedArcSummariesAll: ArcSummaryRecord[] = listClosedArcSummaries(db, {
+    campaignId,
+  });
+  const closedArcSummaries =
+    closedArcSummariesAll.length > 0 ? closedArcSummariesAll : undefined;
+
   let bible: CampaignBibleInput;
   try {
-    bible = await extractBibleWithRetry(deps.model, { campaignId, recaps });
+    bible = await extractBibleWithRetry(deps.model, {
+      campaignId,
+      recaps,
+      priorBible,
+      closedArcSummaries,
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     deps.io.write(`Arc rollup skipped (bible extraction failed): ${message}.`);
