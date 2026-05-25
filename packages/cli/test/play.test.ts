@@ -742,6 +742,61 @@ describe('runPlay', () => {
     dispose();
   });
 
+  it('feeds prior bible and closed arc summaries into the extractor on the second rollover', async () => {
+    // Documents the 06b.1 contract: the first rollover sees neither block
+    // (no prior bible row, no closed arcs yet); the second rollover passes
+    // both — the previously-extracted bible's entries appear as
+    // "## previously known bible" and the closed arc-1 summary appears
+    // as "## closed arc summaries".
+    const { db, dispose } = makeDb();
+    const N = 3;
+    const sharedDeps = baseDeps(db, scriptedIO([]).io);
+
+    const bibleCallContents: string[] = [];
+    const capturingModel: ModelClient = {
+      complete: async (input) => {
+        if (input.system?.includes('extract structured world facts')) {
+          bibleCallContents.push(input.messages[0]?.content ?? '');
+          return ROUTED_FAKE_BIBLE_JSON;
+        }
+        return FAKE_ARC_SUMMARY;
+      },
+    };
+
+    for (let i = 0; i < 2 * N; i++) {
+      const { io } = scriptedIO(['/defer', '/quit']);
+      await runPlay(
+        {
+          ...sharedDeps,
+          io,
+          model: capturingModel,
+          memoryConfig: { arcRolloverThreshold: N, recapWindowSize: 5 },
+        },
+        { dbPath: 'demo.db' },
+      );
+    }
+
+    // Exactly two bible calls — one per rollover.
+    expect(bibleCallContents).toHaveLength(2);
+
+    const first = bibleCallContents[0]!;
+    expect(first).not.toContain('## previously known bible');
+    expect(first).not.toContain('## closed arc summaries');
+
+    const second = bibleCallContents[1]!;
+    expect(second).toContain('## previously known bible');
+    // The bible written by the first rollover (from ROUTED_FAKE_BIBLE_JSON)
+    // must round-trip back into the extractor input.
+    expect(second).toContain('- Emberfall sits on a fault line');
+    expect(second).toContain('- Mira the runesmith');
+    expect(second).toContain('- Lantern Court');
+    expect(second).toContain('- The chalk sigil is unsolved');
+    expect(second).toContain('## closed arc summaries');
+    expect(second).toContain(`- arc-1: ${FAKE_ARC_SUMMARY}`);
+
+    dispose();
+  });
+
   it('skips rollover and warns when the model errors during rollover', async () => {
     // Drive N-1=4 successful invocations, then the Nth with a model that throws on the bible call.
     // Share one baseDeps so nextId produces unique session IDs across all 5 calls.
