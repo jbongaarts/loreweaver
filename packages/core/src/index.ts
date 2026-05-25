@@ -194,11 +194,13 @@ export type {
 export { RulesPackError } from './rules/types.js';
 export type {
   CompatibleBaseSystem,
+  RecordProvenance,
   RulesPack,
   RulesPackLicense,
   RulesPackLicenseClass,
   RulesPackMeta,
   RulesPackRole,
+  RulesPackSource,
 } from './rules/types.js';
 
 // Dolt-backed checkpoint store + managed-binary install seam.

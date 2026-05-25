@@ -5,14 +5,33 @@ import type {
   SrdSpellRecord,
 } from '../srd/types.js';
 import type {
+  RecordProvenance,
   RulesPack,
   RulesPackLicense,
   RulesPackMeta,
+  RulesPackSource,
   RulesRecord,
 } from './types.js';
 
 const DND5E_SYSTEM_ID = 'dnd5e-srd';
 const DND5E_PACK_ID = 'rules:dnd5e-srd';
+
+const DND5E_SOURCE: RulesPackSource = {
+  sourceTitle: SRD_LICENSE.sourceTitle,
+  sourceVersion: SRD_LICENSE.sourceVersion,
+  sourceUrl: SRD_LICENSE.sourceUrl,
+  recordProvenancePolicy:
+    'Each record names the SRD page it was extracted from when the upstream record carries a page; pageless records cite the SRD section as the locator.',
+};
+
+function provenanceFor(sourcePage: number | undefined): RecordProvenance {
+  return {
+    sourceRef: SRD_LICENSE.sourceUrl,
+    ...(sourcePage === undefined
+      ? {}
+      : { locator: `p. ${sourcePage}` }),
+  };
+}
 
 const DND5E_LICENSE: RulesPackLicense = {
   licenseClass: 'open',
@@ -57,6 +76,7 @@ function fromMonster(monster: SrdMonsterRecord): RulesRecord {
     },
     source: sourceLabel(monster.sourcePage),
     license: DND5E_LICENSE,
+    provenance: provenanceFor(monster.sourcePage),
   };
 }
 
@@ -77,6 +97,7 @@ function fromSpell(spell: SrdSpellRecord): RulesRecord {
     },
     source: sourceLabel(spell.sourcePage),
     license: DND5E_LICENSE,
+    provenance: provenanceFor(spell.sourcePage),
   };
 }
 
@@ -95,6 +116,7 @@ function fromClass(klass: SrdClassRecord): RulesRecord {
     },
     source: sourceLabel(klass.sourcePage),
     license: DND5E_LICENSE,
+    provenance: provenanceFor(klass.sourcePage),
   };
 }
 
@@ -107,6 +129,7 @@ const DND5E_META: RulesPackMeta = {
   systemId: DND5E_SYSTEM_ID,
   version: SRD_LICENSE.sourceVersion,
   license: DND5E_LICENSE,
+  source: DND5E_SOURCE,
 };
 
 export const DND5E_SRD_RULES_PACK: RulesPack = {

@@ -302,7 +302,12 @@ export type {
 } from './rules/stack.js';
 export { lookupRulesRecord } from './rules/lookup.js';
 export type { RulesLookupInput, RulesLookupResult } from './rules/lookup.js';
-export type { RulesRecord, RulesRecordKind } from './rules/types.js';
+export type {
+  RecordProvenance,
+  RulesPackSource,
+  RulesRecord,
+  RulesRecordKind,
+} from './rules/types.js';
 
 // SRD raw catalog data and lookup index.
 export { SRD_CATALOG, SRD_LICENSE } from './srd/data.js';
