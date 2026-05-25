@@ -799,6 +799,86 @@ describe('runPlay', () => {
     dispose();
   });
 
+  it('recovers on the next session after a transient rollover failure', async () => {
+    // Documented graceful-degradation path: rollover model call fails at the
+    // Nth close → arc-1 stays open with N stamped sessions. The next session
+    // (N+1) closes, gets stamped onto the still-open arc-1, and at close time
+    // the rollover retries — this time with N+1 source sessions.
+    const { db, dispose } = makeDb();
+    const sharedDeps = baseDeps(db, scriptedIO([]).io);
+
+    // 4 successful pre-rollover sessions.
+    for (let i = 0; i < 4; i++) {
+      const { io } = scriptedIO(['/defer', '/quit']);
+      await runPlay({ ...sharedDeps, io }, { dbPath: 'demo.db' });
+    }
+
+    // 5th (Nth) session: model fails during the rollover step.
+    const { io: failIo, lines: failLines } = scriptedIO(['/defer', '/quit']);
+    await runPlay({
+      ...sharedDeps,
+      io: failIo,
+      model: {
+        complete: async () => {
+          throw new ModelClientError('provider down');
+        },
+      },
+    }, { dbPath: 'demo.db' });
+
+    const cid = campaignId(db);
+
+    // Sanity: rollover was skipped at session 5; arc-1 still open with 5 stamped closed sessions.
+    expect(failLines.join('\n')).toContain(
+      'Arc rollup skipped (bible extraction failed): provider down.',
+    );
+    expect(getArcSummary(db, { campaignId: cid, arcId: 'arc-1' })).toBeUndefined();
+    expect(
+      getClosedSessionsInOpenArc(db, { campaignId: cid }),
+    ).toHaveLength(5);
+
+    // 6th (N+1) session: model recovers. The threshold check kicks in again
+    // with 6 closed sessions stamped to arc-1.
+    const { io: okIo, lines: okLines } = scriptedIO(['/defer', '/quit']);
+    const code = await runPlay({ ...sharedDeps, io: okIo }, { dbPath: 'demo.db' });
+
+    expect(code).toBe(0);
+    expect(okLines.join('\n')).toContain('Arc arc-1 closed; opened arc-2.');
+
+    // arc-1 is now closed with N+1 = 6 source sessions in the summary.
+    const arc1Row = db
+      .prepare(`SELECT status FROM campaign_arc WHERE campaign_id = ? AND arc_id = ?`)
+      .get(cid, 'arc-1') as { status: string } | undefined;
+    expect(arc1Row?.status).toBe('closed');
+
+    const arc1Summary = getArcSummary(db, { campaignId: cid, arcId: 'arc-1' });
+    expect(arc1Summary).toBeDefined();
+    expect(arc1Summary?.sourceSessionIds).toHaveLength(6);
+
+    // arc-2 is now open with no closed sessions stamped to it yet.
+    const openArc = getOpenArc(db, { campaignId: cid });
+    expect(openArc?.arcId).toBe('arc-2');
+    expect(
+      getClosedSessionsInOpenArc(db, { campaignId: cid }),
+    ).toHaveLength(0);
+
+    dispose();
+  });
+
+  it('throws on invalid memoryConfig', async () => {
+    // Validation runs at runPlay entry so a misconfigured deployment fails
+    // loud instead of silently rolling over on every close (threshold=0) or
+    // assembling an empty recap window every turn (recapWindowSize=0).
+    const { db, dispose } = makeDb();
+    const { io } = scriptedIO([]);
+    await expect(
+      runPlay(
+        { ...baseDeps(db, io), memoryConfig: { arcRolloverThreshold: 0, recapWindowSize: 5 } },
+        { dbPath: 'demo.db' },
+      ),
+    ).rejects.toThrow(/arcRolloverThreshold/);
+    dispose();
+  });
+
   it('honors memoryConfig.recapWindowSize by passing it to runTurn as recentSessionLimit', async () => {
     // Close 5 sessions so there are 5 recaps available.
     // Then run a 6th session with recapWindowSize=3 and assert via assembleContext

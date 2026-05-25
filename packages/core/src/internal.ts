@@ -40,6 +40,7 @@ export type {
 // Memory configuration (N and K knobs for arc rollover and recap window).
 export {
   DEFAULT_MEMORY_CONFIG,
+  validateMemoryConfig,
   type MemoryConfig,
 } from './memory/config.js';
 
