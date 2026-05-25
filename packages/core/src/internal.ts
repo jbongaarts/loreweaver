@@ -309,6 +309,11 @@ export type {
   RulesRecordKind,
 } from './rules/types.js';
 export { validateRecordKindSchema } from './rules/kindSchemas.js';
+export {
+  PACK_MANIFEST_FILE,
+  PACK_RECORDS_FILE,
+  loadRulesPackFromDirectory,
+} from './rules/packLoader.js';
 
 // SRD raw catalog data and lookup index.
 export { SRD_CATALOG, SRD_LICENSE } from './srd/data.js';
