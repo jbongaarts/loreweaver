@@ -1,9 +1,7 @@
 import type { TraceJsonValue } from './memory/turnTrace.js';
 import {
-  rollupArcSummary,
   rollupSessionRecap,
   summarizeSceneFromLog,
-  type CampaignBibleInput,
 } from './memory/summary.js';
 import type { Db } from './persistence/db.js';
 import { withTransaction } from './persistence/db.js';
@@ -21,18 +19,18 @@ export interface SessionCheckpointRunner {
   run: (liveDbPath: string, message: string) => string;
 }
 
-export interface GracefulSessionArcRollup {
-  arcId: string;
-  summary: string;
-  campaignBible: CampaignBibleInput;
-}
-
 export interface CloseSessionGracefullyInput extends SessionKey {
   closedAt: string;
   recap: string;
   stateDelta: TraceJsonValue[];
   checkpoint?: SessionCheckpointRunner;
-  arcRollup?: GracefulSessionArcRollup;
+  /**
+   * When provided, stamps the just-closed session's `arc_id` inside the same
+   * DB transaction that commits the session close. This makes the stamp atomic
+   * with the close: a crash between them cannot leave the session closed with
+   * `arc_id=NULL`.
+   */
+  arcStamp?: { arcId: string };
 }
 
 export interface CloseSessionGracefullyResult {
@@ -94,22 +92,22 @@ export function closeSessionGracefully(
           createdAt: input.closedAt,
         });
 
-        if (input.arcRollup !== undefined) {
-          rollupArcSummary(txnDb, {
-            campaignId: input.campaignId,
-            arcId: input.arcRollup.arcId,
-            summary: input.arcRollup.summary,
-            sourceSessionIds: [input.sessionId],
-            campaignBible: input.arcRollup.campaignBible,
-            createdAt: input.closedAt,
-          });
-        }
-
         const session = closeSession(txnDb, {
           campaignId: input.campaignId,
           sessionId: input.sessionId,
           closedAt: input.closedAt,
         });
+
+        if (input.arcStamp !== undefined) {
+          txnDb
+            .prepare(
+              `UPDATE campaign_session
+               SET arc_id = ?
+               WHERE campaign_id = ? AND session_id = ?`,
+            )
+            .run(input.arcStamp.arcId, input.campaignId, input.sessionId);
+        }
+
         return { session, closedSceneIds, needsCheckpoint };
       }
 

@@ -16,8 +16,6 @@ import {
   getSessionLaunchState,
   getSessionRecap,
   initSchema,
-  listSessions,
-  rollupArcSummary,
   startSession,
   type CampaignBibleInput,
   type CampaignInfo,
@@ -34,6 +32,13 @@ import {
   type SessionRecapRecord,
   type ToolRegistry,
 } from '@loreweaver/core';
+import {
+  closeOpenArcAndOpenNext,
+  DEFAULT_MEMORY_CONFIG,
+  getClosedSessionsInOpenArc,
+  openArcIfMissing,
+  type MemoryConfig,
+} from '@loreweaver/core/internal';
 
 /**
  * Thin interactive front-end for the E6 session lifecycle.
@@ -93,6 +98,8 @@ export interface PlayDeps {
    * {@link doltCheckpointRunner}.
    */
   makeCheckpointRunner: (dbPath: string) => SessionCheckpointRunner | undefined;
+  /** Memory configuration: arc rollover threshold (N) and recap window (K). */
+  memoryConfig: MemoryConfig;
 }
 
 export interface PlayOptions {
@@ -425,6 +432,7 @@ async function turnLoop(
         playerInput: input,
         seed: deps.seed(),
         at: deps.now(),
+        recentSessionLimit: deps.memoryConfig.recapWindowSize,
       },
     );
     if (result.ok) {
@@ -457,17 +465,23 @@ async function gracefulClose(
   campaignId: string,
   sessionId: string,
 ): Promise<void> {
+  // Open (or reuse) the campaign's arc BEFORE closing the session so the
+  // arc_id stamp and session close land in the same DB transaction.
+  const now = deps.now();
+  const openArc = openArcIfMissing(db, { campaignId, now });
+
   const input = closeInput(deps, db, campaignId, sessionId);
+  const arcStamp = { arcId: openArc.arcId };
   const checkpoint = deps.makeCheckpointRunner(dbPath);
   if (checkpoint === undefined) {
-    const closed = closeSessionGracefully(db, input);
+    const closed = closeSessionGracefully(db, { ...input, arcStamp });
     deps.io.write(
       `Session ${closed.session.sessionId} closed and recapped ` +
         '(no checkpoint — Dolt is not available).',
     );
   } else {
     try {
-      const closed = closeSessionGracefully(db, { ...input, checkpoint });
+      const closed = closeSessionGracefully(db, { ...input, checkpoint, arcStamp });
       deps.io.write(
         `Session ${closed.session.sessionId} closed and recapped` +
           `${closed.checkpointId ? ` (checkpoint ${closed.checkpointId})` : ''}.`,
@@ -482,15 +496,12 @@ async function gracefulClose(
       );
     }
   }
-  // The session is now closed and recapped on every path above (the recap is
-  // written before the checkpoint, so a checkpoint failure does not skip it).
+  // The session is now closed, recapped, and arc-stamped on every path above.
   // Roll the campaign's arc up so the arc tier of the memory pyramid reflects
-  // the closed session.
-  await rollupCampaignArc(deps, db, campaignId);
+  // the closed session. The arc-stamp already happened atomically in close, so
+  // rollupCampaignArcIfReady begins at the "check threshold" step.
+  await rollupCampaignArcIfReady(deps, db, campaignId, openArc.arcId, now);
 }
-
-/** The campaign's single ongoing arc. Multi-arc support is future work. */
-const CAMPAIGN_ARC_ID = 'arc-1';
 
 /**
  * Extract a campaign bible with one retry on failure. Retry policy lives in
@@ -511,59 +522,65 @@ async function extractBibleWithRetry(
 }
 
 /**
- * Roll the campaign's closed sessions up into a model-authored arc summary
- * and a model-extracted campaign bible. The bible is extracted first (with
- * one retry on failure) so the arc summary can reference NPCs/factions
- * canonically. Either model call failing leads to an atomic skip — a
- * warning is written and arc_summary stays at whatever it was; the next
- * successful close retries the full pipeline.
+ * Check whether the campaign's open arc has accumulated enough closed sessions
+ * to roll over. When it has, compose an arc summary + campaign bible via the
+ * model and atomically close the arc and open the next one. The arc-stamp on
+ * the just-closed session already happened atomically inside
+ * {@link gracefulClose}, so this function starts at the threshold check.
+ *
+ * If the threshold has not yet been reached the function returns silently.
+ * Either model call failing leads to an atomic skip: a warning is written and
+ * the arc stays open; the next session will re-attempt once enough sessions
+ * have closed.
  */
-async function rollupCampaignArc(
+async function rollupCampaignArcIfReady(
   deps: PlayDeps,
   db: Db,
   campaignId: string,
+  openArcId: string,
+  now: string,
 ): Promise<void> {
-  const recaps = listSessions(db, { campaignId })
-    .map((session) =>
-      getSessionRecap(db, { campaignId, sessionId: session.sessionId }),
-    )
-    .filter((recap): recap is SessionRecapRecord => recap !== undefined);
-  if (recaps.length === 0) {
-    return;
+  const closedSessions = getClosedSessionsInOpenArc(db, { campaignId });
+  if (closedSessions.length < deps.memoryConfig.arcRolloverThreshold) {
+    return; // not yet at N; silent
   }
+
+  const recaps = closedSessions
+    .map((s) => getSessionRecap(db, { campaignId, sessionId: s.sessionId }))
+    .filter((r): r is SessionRecapRecord => r !== undefined);
+
   let bible: CampaignBibleInput;
   try {
     bible = await extractBibleWithRetry(deps.model, { campaignId, recaps });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    deps.io.write(
-      'Arc rollup skipped (bible extraction failed): ' + message + '.',
-    );
+    deps.io.write(`Arc rollup skipped (bible extraction failed): ${message}.`);
     return;
   }
+
   let summary: string;
   try {
     summary = await composeArcSummary(deps.model, {
       campaignId,
-      arcId: CAMPAIGN_ARC_ID,
+      arcId: openArcId,
       recaps,
       bible,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    deps.io.write(
-      'Arc rollup skipped (arc summary failed): ' + message + '.',
-    );
+    deps.io.write(`Arc rollup skipped (arc summary failed): ${message}.`);
     return;
   }
-  rollupArcSummary(db, {
+
+  const result = closeOpenArcAndOpenNext(db, {
     campaignId,
-    arcId: CAMPAIGN_ARC_ID,
+    arcId: openArcId,
     summary,
-    sourceSessionIds: recaps.map((recap) => recap.sessionId),
+    sourceSessionIds: recaps.map((r) => r.sessionId),
     campaignBible: bible,
-    createdAt: deps.now(),
+    now,
   });
+  deps.io.write(`Arc ${result.closedArcId} closed; opened ${result.newArcId}.`);
 }
 
 /**

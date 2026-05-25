@@ -40,6 +40,9 @@ import {
   type CliIO,
   type PlayDeps,
 } from './play.js';
+import {
+  DEFAULT_MEMORY_CONFIG,
+} from '@loreweaver/core/internal';
 
 export function buildBanner(version: string): string {
   return `Loreweaver — core v${version}`;
@@ -137,6 +140,7 @@ function buildPlayDeps(cfg: LoreweaverConfig, io: PlayDeps['io']): PlayDeps {
     nextId: makeId,
     seed: () => (Math.random() * 0x7fffffff) | 0,
     makeCheckpointRunner: doltCheckpointRunner,
+    memoryConfig: { ...DEFAULT_MEMORY_CONFIG },
   };
 }
 

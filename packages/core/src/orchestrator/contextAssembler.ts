@@ -1,7 +1,6 @@
 import type { Db } from '../persistence/db.js';
 import { jsonColumn } from '../persistence/jsonColumn.js';
 import {
-  getArcSummary,
   selectAlwaysOnMemory,
 } from '../memory/summary.js';
 import type {
@@ -9,6 +8,7 @@ import type {
   CampaignBibleRecord,
   SessionRecapRecord,
 } from '../memory/summary.js';
+import { listClosedArcSummaries } from '../memory/campaignArc.js';
 import {
   countSceneLog,
   getOpenScene,
@@ -30,7 +30,7 @@ import type { SceneLogRecord } from './scene.js';
  * Fills the ContextAssembler seam.
  */
 
-const DEFAULT_RECENT_SESSION_LIMIT = 1;
+const DEFAULT_RECENT_SESSION_LIMIT = 5;
 const DEFAULT_SCENE_TRANSCRIPT_LIMIT = 12;
 
 /** JSON codecs for the JSON-backed state columns the assembler reads. */
@@ -47,10 +47,8 @@ export interface ContextAssemblyInput {
   db: Db;
   campaignId: string;
   sessionId: string;
-  /** Current arc, if the campaign has rolled one up. */
-  arcId?: string;
   playerInput: string;
-  /** How many recent session recaps to inline. Default 1. */
+  /** How many recent session recaps to inline. Default 5. */
   recentSessionLimit?: number;
   /** How many current-scene transcript entries to inline. Default 12. */
   sceneTranscriptLimit?: number;
@@ -96,7 +94,8 @@ export interface AssembledContext {
   campaignId: string;
   sessionId: string;
   campaignBible: CampaignBibleRecord | undefined;
-  arcSummary: ArcSummaryRecord | undefined;
+  /** All closed arc summaries in sequence_no ASC order. */
+  arcSummaries: ArcSummaryRecord[];
   recentSessionRecaps: SessionRecapRecord[];
   omittedSessionCount: number;
   drilldownAvailable: boolean;
@@ -209,13 +208,9 @@ export function assembleContext(
     recentSessionLimit,
   });
 
-  const arcSummary =
-    input.arcId === undefined
-      ? undefined
-      : getArcSummary(input.db, {
-          campaignId: input.campaignId,
-          arcId: input.arcId,
-        });
+  const arcSummaries = listClosedArcSummaries(input.db, {
+    campaignId: input.campaignId,
+  });
 
   const openScene = getOpenScene(input.db, {
     campaignId: input.campaignId,
@@ -246,7 +241,7 @@ export function assembleContext(
     campaignId: input.campaignId,
     sessionId: input.sessionId,
     campaignBible: alwaysOn.campaignBible,
-    arcSummary,
+    arcSummaries,
     recentSessionRecaps: alwaysOn.recentSessionRecaps.filter(
       (r): r is SessionRecapRecord => r !== undefined,
     ),
@@ -315,8 +310,10 @@ export function renderContextMessage(ctx: AssembledContext): string {
     }
   }
 
-  if (ctx.arcSummary !== undefined) {
-    sections.push(`## Current Arc\n${ctx.arcSummary.summary}`);
+  if (ctx.arcSummaries.length > 0) {
+    sections.push(
+      `## Arc Summaries\n${ctx.arcSummaries.map((a) => `- ${a.summary}`).join('\n')}`,
+    );
   }
 
   if (ctx.recentSessionRecaps.length > 0) {

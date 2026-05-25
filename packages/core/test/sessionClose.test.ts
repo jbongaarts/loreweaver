@@ -2,8 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   appendSceneLog,
   closeSessionGracefully,
-  getArcSummary,
-  getCampaignBible,
   getOpenScene,
   getOpenSession,
   getSession,
@@ -11,6 +9,7 @@ import {
   listSceneSummaries,
   openScene,
   startSession,
+  withTransaction,
 } from '../src/internal.js';
 import { bareDb } from './support/db.js';
 
@@ -65,16 +64,6 @@ describe('graceful session close pipeline', () => {
           return 'checkpoint-1';
         },
       },
-      arcRollup: {
-        arcId: 'arc-1',
-        summary: 'The road north becomes the active lead.',
-        campaignBible: {
-          worldFacts: ['A chalk sigil on the old mile marker points north.'],
-          majorNpcs: [],
-          factions: [],
-          openThreads: ['Follow the sigil north.'],
-        },
-      },
     });
 
     expect(result.session.status).toBe('closed');
@@ -100,10 +89,6 @@ describe('graceful session close pipeline', () => {
     expect(
       getSessionRecap(db, { campaignId: CAMPAIGN, sessionId: SESSION })?.recap,
     ).toBe('The mile marker sigil points north.');
-    expect(getArcSummary(db, { campaignId: CAMPAIGN, arcId: 'arc-1' })?.summary)
-      .toBe('The road north becomes the active lead.');
-    expect(getCampaignBible(db, { campaignId: CAMPAIGN })?.worldFacts[0]?.text)
-      .toBe('A chalk sigil on the old mile marker points north.');
     expect(checkpoints).toEqual(['campaign.db session-close: session-1']);
     db.close();
   });
@@ -237,7 +222,7 @@ describe('graceful session close pipeline', () => {
     db.close();
   });
 
-  it('rolls back scene close, summaries, recap, and session close when a rollup fails', () => {
+  it('rolls back scene close, summaries, recap, and session close on outer transaction abort', () => {
     const db = bareDb();
     startSession(db, {
       campaignId: CAMPAIGN,
@@ -261,25 +246,25 @@ describe('graceful session close pipeline', () => {
       at: '2026-05-21T00:02:00.000Z',
     });
 
-    expect(() =>
-      closeSessionGracefully(db, {
-        campaignId: CAMPAIGN,
-        sessionId: SESSION,
-        closedAt: '2026-05-21T01:00:00.000Z',
-        recap: 'The road bends north.',
-        stateDelta: [],
-        arcRollup: {
-          arcId: 'arc-1',
-          summary: 'Invalid campaign bible payload.',
-          campaignBible: {
-            worldFacts: [1n as unknown as string],
-            majorNpcs: [],
-            factions: [],
-            openThreads: [],
-          },
-        },
-      }),
-    ).toThrow();
+    // Wrap closeSessionGracefully in an outer transaction that aborts after the
+    // inner close commits its savepoint. The outer abort rolls back the savepoint
+    // too, so the session remains open and no recap is written.
+    let threw = false;
+    try {
+      withTransaction(db, (txnDb) => {
+        closeSessionGracefully(txnDb, {
+          campaignId: CAMPAIGN,
+          sessionId: SESSION,
+          closedAt: '2026-05-21T01:00:00.000Z',
+          recap: 'The road bends north.',
+          stateDelta: [],
+        });
+        throw new Error('simulated crash after close');
+      });
+    } catch {
+      threw = true;
+    }
+    expect(threw).toBe(true);
 
     expect(getSession(db, { campaignId: CAMPAIGN, sessionId: SESSION })?.status)
       .toBe('open');
@@ -294,9 +279,82 @@ describe('graceful session close pipeline', () => {
     expect(
       getSessionRecap(db, { campaignId: CAMPAIGN, sessionId: SESSION }),
     ).toBeUndefined();
-    expect(getArcSummary(db, { campaignId: CAMPAIGN, arcId: 'arc-1' }))
-      .toBeUndefined();
-    expect(getCampaignBible(db, { campaignId: CAMPAIGN })).toBeUndefined();
+    db.close();
+  });
+
+  it('stamps arc_id atomically with session close when arcStamp is provided', () => {
+    // Verify that arcStamp.arcId is set on the session inside the same
+    // transaction as the session close. We prove atomicity by wrapping both in
+    // an outer withTransaction that aborts: neither the session close nor the
+    // arc stamp should be visible after the abort.
+    const db = bareDb();
+    startSession(db, {
+      campaignId: CAMPAIGN,
+      sessionId: SESSION,
+      startedAt: '2026-05-21T00:00:00.000Z',
+    });
+
+    // First: verify the happy path — arcStamp is committed with the close.
+    closeSessionGracefully(db, {
+      campaignId: CAMPAIGN,
+      sessionId: SESSION,
+      closedAt: '2026-05-21T01:00:00.000Z',
+      recap: 'Arc stamp test.',
+      stateDelta: [],
+      arcStamp: { arcId: 'arc-42' },
+    });
+
+    const row = db
+      .prepare(
+        `SELECT arc_id, status FROM campaign_session
+         WHERE campaign_id = ? AND session_id = ?`,
+      )
+      .get(CAMPAIGN, SESSION) as
+      | { arc_id: string | null; status: string }
+      | undefined;
+
+    expect(row?.status).toBe('closed');
+    expect(row?.arc_id).toBe('arc-42');
+
+    // Second: verify atomicity — if the outer transaction aborts, neither the
+    // session close nor the arc stamp persists.
+    const SESSION2 = 'session-2';
+    startSession(db, {
+      campaignId: CAMPAIGN,
+      sessionId: SESSION2,
+      startedAt: '2026-05-21T02:00:00.000Z',
+    });
+
+    let threw = false;
+    try {
+      withTransaction(db, (txnDb) => {
+        closeSessionGracefully(txnDb, {
+          campaignId: CAMPAIGN,
+          sessionId: SESSION2,
+          closedAt: '2026-05-21T03:00:00.000Z',
+          recap: 'Arc stamp rollback test.',
+          stateDelta: [],
+          arcStamp: { arcId: 'arc-99' },
+        });
+        throw new Error('simulated outer abort');
+      });
+    } catch {
+      threw = true;
+    }
+    expect(threw).toBe(true);
+
+    const row2 = db
+      .prepare(
+        `SELECT arc_id, status FROM campaign_session
+         WHERE campaign_id = ? AND session_id = ?`,
+      )
+      .get(CAMPAIGN, SESSION2) as
+      | { arc_id: string | null; status: string }
+      | undefined;
+
+    // Session is still open and arc_id is NULL — the outer abort rolled back both.
+    expect(row2?.status).toBe('open');
+    expect(row2?.arc_id).toBeNull();
     db.close();
   });
 });
