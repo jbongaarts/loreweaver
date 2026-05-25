@@ -58,13 +58,33 @@ function license(
   };
 }
 
+function creatureData(): Record<string, unknown> {
+  return {
+    size: 'Small',
+    type: 'humanoid',
+    alignment: 'neutral evil',
+    armorClass: 15,
+    hitPoints: 7,
+    speed: { walk: 30 },
+    challengeRating: '1/4',
+    abilityScores: {
+      strength: 8,
+      dexterity: 14,
+      constitution: 10,
+      intelligence: 10,
+      wisdom: 8,
+      charisma: 8,
+    },
+  };
+}
+
 function record(key: string, overrides: Partial<RulesRecord> = {}): RulesRecord {
   return {
     systemId: 'dnd5e-srd',
     kind: 'creature',
     key,
     name: 'Goblin',
-    data: { hitPoints: 7 },
+    data: creatureData(),
     source: 'Example SRD p. 1',
     license: license(),
     provenance: recordProvenance(),
@@ -262,6 +282,123 @@ describe('rules pack validation', () => {
     };
     expect(() => validateRulesPack(pack)).toThrow(RulesPackError);
     expect(() => validateRulesPack(pack)).toThrow(/meta\.source/);
+  });
+
+  it('rejects dnd5e creature records missing required schema fields', () => {
+    const pack = validRulesPack({
+      records: [record('creature:goblin', { data: { hitPoints: 7 } })],
+    });
+    expect(() => validateRulesPack(pack)).toThrow(RulesPackError);
+    expect(() => validateRulesPack(pack)).toThrow(/data\.size/);
+  });
+
+  it('rejects dnd5e creature records with malformed ability scores', () => {
+    const data = creatureData();
+    const abilityScores = {
+      ...(data.abilityScores as Record<string, number>),
+      strength: -1,
+    };
+    const pack = validRulesPack({
+      records: [
+        record('creature:goblin', {
+          data: { ...data, abilityScores },
+        }),
+      ],
+    });
+    expect(() => validateRulesPack(pack)).toThrow(RulesPackError);
+    expect(() => validateRulesPack(pack)).toThrow(
+      /abilityScores\.strength/,
+    );
+  });
+
+  it('rejects dnd5e spell records missing the level field', () => {
+    const pack = validRulesPack({
+      records: [
+        record('spell:fire-bolt', {
+          kind: 'spell',
+          name: 'Fire Bolt',
+          data: {
+            school: 'evocation',
+            castingTime: '1 action',
+            range: '120 feet',
+            components: ['V', 'S'],
+            duration: 'Instantaneous',
+            classes: ['Sorcerer', 'Wizard'],
+          },
+        }),
+      ],
+    });
+    expect(() => validateRulesPack(pack)).toThrow(RulesPackError);
+    expect(() => validateRulesPack(pack)).toThrow(/data\.level/);
+  });
+
+  it('accepts dnd5e spell records that match the spell schema', () => {
+    const pack = validateRulesPack(
+      validRulesPack({
+        records: [
+          record('spell:fire-bolt', {
+            kind: 'spell',
+            name: 'Fire Bolt',
+            data: {
+              level: 0,
+              school: 'evocation',
+              castingTime: '1 action',
+              range: '120 feet',
+              components: ['V', 'S'],
+              duration: 'Instantaneous',
+              classes: ['Sorcerer', 'Wizard'],
+            },
+          }),
+        ],
+      }),
+    );
+    expect(pack.records[0].kind).toBe('spell');
+  });
+
+  it('rejects rule records without a text body', () => {
+    const pack = validRulesPack({
+      records: [
+        record('rule:cover', {
+          kind: 'rule',
+          name: 'Cover',
+          systemId: 'misc-system',
+          data: { description: 'A creature behind cover...' },
+        }),
+      ],
+    });
+    expect(() => validateRulesPack(pack)).toThrow(RulesPackError);
+    expect(() => validateRulesPack(pack)).toThrow(/data\.text/);
+  });
+
+  it('rejects table records without columns and rows arrays', () => {
+    const pack = validRulesPack({
+      records: [
+        record('table:starting-equipment', {
+          kind: 'table',
+          name: 'Starting Equipment',
+          systemId: 'misc-system',
+          data: { columns: ['Class', 'Pack'] },
+        }),
+      ],
+    });
+    expect(() => validateRulesPack(pack)).toThrow(RulesPackError);
+    expect(() => validateRulesPack(pack)).toThrow(/data\.rows/);
+  });
+
+  it('falls through to the baseline data check for unregistered systems', () => {
+    const pack = validateRulesPack(
+      validRulesPack({
+        systemId: 'experimental-system',
+        records: [
+          record('creature:goblin', {
+            systemId: 'experimental-system',
+            kind: 'creature',
+            data: { description: 'A small green humanoid.' },
+          }),
+        ],
+      }),
+    );
+    expect(pack.records[0].systemId).toBe('experimental-system');
   });
 
   it('rejects user-private packs at shippable boundaries', () => {

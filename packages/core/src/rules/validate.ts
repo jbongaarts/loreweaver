@@ -1,3 +1,4 @@
+import { validateRecordKindSchema } from './kindSchemas.js';
 import type {
   CompatibleBaseSystem,
   RecordProvenance,
@@ -262,6 +263,12 @@ function assertProvenanceMatchesPackSource(pack: RulesPack): void {
   });
 }
 
+function assertRecordsMatchKindSchemas(pack: RulesPack): void {
+  pack.records.forEach((item, i) => {
+    validateRecordKindSchema(item, `records[${i}]`);
+  });
+}
+
 export function validateRulesPack(value: unknown): RulesPack {
   const o = obj(value, 'rulesPack');
   const pack: RulesPack = {
@@ -271,6 +278,7 @@ export function validateRulesPack(value: unknown): RulesPack {
 
   assertUniqueRecordKeys(pack.records);
   assertProvenanceMatchesPackSource(pack);
+  assertRecordsMatchKindSchemas(pack);
 
   return pack;
 }

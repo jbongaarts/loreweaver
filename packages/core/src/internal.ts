@@ -308,6 +308,7 @@ export type {
   RulesRecord,
   RulesRecordKind,
 } from './rules/types.js';
+export { validateRecordKindSchema } from './rules/kindSchemas.js';
 
 // SRD raw catalog data and lookup index.
 export { SRD_CATALOG, SRD_LICENSE } from './srd/data.js';
