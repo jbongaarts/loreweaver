@@ -402,6 +402,28 @@ describe('closeOpenArcAndOpenNext', () => {
     db.close();
   });
 
+  it('throws when the campaign has zero arc rows at all', () => {
+    // The wrong-arcId path above and this zero-rows path both surface as
+    // openArc === undefined in the implementation; documenting both inputs
+    // pins the contract for the "no open arc" case independently of whether
+    // the campaign has ever had an arc.
+    const db = makeDb();
+    // No openArcIfMissing call — campaign_arc has no rows for this campaign.
+
+    expect(() =>
+      closeOpenArcAndOpenNext(db, {
+        campaignId: 'c1',
+        arcId: 'arc-1',
+        summary: 's',
+        sourceSessionIds: [],
+        campaignBible: { worldFacts: [], majorNpcs: [], factions: [], openThreads: [] },
+        now: '2026-01-10T00:00:00Z',
+      }),
+    ).toThrow(/\(none\)/);
+
+    db.close();
+  });
+
   it('rolls back the whole transaction when arc_summary write fails', () => {
     const db = makeDb();
     openArcIfMissing(db, { campaignId: 'c1', now: '2026-01-01T00:00:00Z' });

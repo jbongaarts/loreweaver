@@ -287,14 +287,22 @@ export function closeOpenArcAndOpenNext(
       createdAt: input.now,
     });
 
-    // Step 3: mark the current arc as closed.
-    txnDb
+    // Step 3: mark the current arc as closed. Step 1's open-arc verification
+    // runs inside the same transaction, so the row is guaranteed present and
+    // changes === 1; the assert is a guard against future refactors that move
+    // the verification out of the transaction.
+    const closeInfo = txnDb
       .prepare(
         `UPDATE campaign_arc
          SET status = 'closed', closed_at = ?
          WHERE campaign_id = ? AND arc_id = ?`,
       )
       .run(input.now, input.campaignId, input.arcId);
+    if (closeInfo.changes !== 1) {
+      throw new Error(
+        `closeOpenArcAndOpenNext: expected to close exactly 1 row for arc '${input.arcId}' in campaign '${input.campaignId}' but updated ${closeInfo.changes}`,
+      );
+    }
 
     // Step 4: insert the new open arc.
     const nextSequenceNo = openArc.sequenceNo + 1;

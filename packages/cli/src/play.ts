@@ -37,6 +37,7 @@ import {
   DEFAULT_MEMORY_CONFIG,
   getClosedSessionsInOpenArc,
   openArcIfMissing,
+  validateMemoryConfig,
   type MemoryConfig,
 } from '@loreweaver/core/internal';
 
@@ -124,6 +125,7 @@ export async function runPlay(
   deps: PlayDeps,
   options: PlayOptions,
 ): Promise<number> {
+  validateMemoryConfig(deps.memoryConfig);
   const db = deps.openDb(options.dbPath);
   try {
     // initSchema is idempotent (CREATE IF NOT EXISTS), so this is safe whether
