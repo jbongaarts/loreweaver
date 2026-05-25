@@ -1,9 +1,12 @@
+import { validateRecordKindSchema } from './kindSchemas.js';
 import type {
   CompatibleBaseSystem,
+  RecordProvenance,
   RulesPack,
   RulesPackLicense,
   RulesPackMeta,
   RulesPackRole,
+  RulesPackSource,
   RulesRecord,
   RulesRecordKind,
 } from './types.js';
@@ -126,6 +129,52 @@ function license(value: unknown, path: string): RulesPackLicense {
   };
 }
 
+function optStr(value: unknown, path: string): string | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  return str(value, path);
+}
+
+function source(value: unknown): RulesPackSource {
+  const path = 'meta.source';
+  const o = obj(value, path);
+  const sourceUrl = optStr(o.sourceUrl, `${path}.sourceUrl`);
+  const sourceIdentity = optStr(o.sourceIdentity, `${path}.sourceIdentity`);
+  if (sourceUrl === undefined && sourceIdentity === undefined) {
+    throw new RulesPackError(
+      `${path} must set sourceUrl or sourceIdentity`,
+    );
+  }
+  return {
+    sourceTitle: str(o.sourceTitle, `${path}.sourceTitle`),
+    sourceVersion: str(o.sourceVersion, `${path}.sourceVersion`),
+    ...(sourceUrl === undefined ? {} : { sourceUrl }),
+    ...(sourceIdentity === undefined ? {} : { sourceIdentity }),
+    ...(o.sourceHash === undefined
+      ? {}
+      : { sourceHash: str(o.sourceHash, `${path}.sourceHash`) }),
+    ...(o.sourceDate === undefined
+      ? {}
+      : { sourceDate: str(o.sourceDate, `${path}.sourceDate`) }),
+    recordProvenancePolicy: str(
+      o.recordProvenancePolicy,
+      `${path}.recordProvenancePolicy`,
+    ),
+  };
+}
+
+function provenance(value: unknown, path: string): RecordProvenance {
+  const o = obj(value, path);
+  return {
+    sourceRef: str(o.sourceRef, `${path}.sourceRef`),
+    ...(o.locator === undefined
+      ? {}
+      : { locator: str(o.locator, `${path}.locator`) }),
+    ...(o.note === undefined ? {} : { note: str(o.note, `${path}.note`) }),
+  };
+}
+
 function compatibleBaseSystem(
   value: unknown,
   i: number,
@@ -167,6 +216,7 @@ function meta(value: unknown): RulesPackMeta {
     version: str(o.version, 'meta.version'),
     ...(compatibleBaseSystems === undefined ? {} : { compatibleBaseSystems }),
     license: license(o.license, 'meta.license'),
+    source: source(o.source),
   };
 }
 
@@ -181,6 +231,7 @@ function record(value: unknown, i: number): RulesRecord {
     data: required(o.data, `${path}.data`),
     source: str(o.source, `${path}.source`),
     license: license(o.license, `${path}.license`),
+    provenance: provenance(o.provenance, `${path}.provenance`),
     ...(o.overrides === undefined
       ? {}
       : { overrides: strArray(o.overrides, `${path}.overrides`) }),
@@ -197,6 +248,27 @@ function assertUniqueRecordKeys(records: readonly RulesRecord[]): void {
   }
 }
 
+function assertProvenanceMatchesPackSource(pack: RulesPack): void {
+  const identities = new Set<string>(
+    [pack.meta.source.sourceUrl, pack.meta.source.sourceIdentity].filter(
+      (value): value is string => value !== undefined,
+    ),
+  );
+  pack.records.forEach((item, i) => {
+    if (!identities.has(item.provenance.sourceRef)) {
+      throw new RulesPackError(
+        `records[${i}].provenance.sourceRef must match meta.source.sourceUrl or meta.source.sourceIdentity`,
+      );
+    }
+  });
+}
+
+function assertRecordsMatchKindSchemas(pack: RulesPack): void {
+  pack.records.forEach((item, i) => {
+    validateRecordKindSchema(item, `records[${i}]`);
+  });
+}
+
 export function validateRulesPack(value: unknown): RulesPack {
   const o = obj(value, 'rulesPack');
   const pack: RulesPack = {
@@ -205,6 +277,8 @@ export function validateRulesPack(value: unknown): RulesPack {
   };
 
   assertUniqueRecordKeys(pack.records);
+  assertProvenanceMatchesPackSource(pack);
+  assertRecordsMatchKindSchemas(pack);
 
   return pack;
 }

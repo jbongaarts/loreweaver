@@ -1,13 +1,30 @@
 import type {
+  RecordProvenance,
   RulesPack,
   RulesPackLicense,
   RulesPackMeta,
+  RulesPackSource,
   RulesRecord,
 } from './types.js';
 
 const PF2E_SYSTEM_ID = 'pathfinder2e-remaster';
 const PF2E_PACK_ID = 'rules:pathfinder2e-remaster';
 const PF2E_VERSION = '1.0';
+const PF2E_SOURCE_IDENTITY = 'pathfinder2e-remaster:fixture';
+
+const PF2E_SOURCE: RulesPackSource = {
+  sourceTitle: 'Pathfinder Second Edition Remaster Reference (fixture)',
+  sourceVersion: PF2E_VERSION,
+  sourceIdentity: PF2E_SOURCE_IDENTITY,
+  recordProvenancePolicy:
+    'Records cite the Player Core / GM Core / Monster Core section that defines the element; locators stay coarse while this fixture stands in for a full ORC import.',
+};
+
+const PF2E_PROVENANCE_FIXTURE: RecordProvenance = {
+  sourceRef: PF2E_SOURCE_IDENTITY,
+  locator: 'fixture',
+  note: 'Placeholder pending the full ORC importer (loreweaver-0m9.8).',
+};
 
 const PF2E_LICENSE: RulesPackLicense = {
   licenseClass: 'open',
@@ -32,11 +49,17 @@ const PF2E_LICENSE: RulesPackLicense = {
 
 const SOURCE_LABEL = 'Pathfinder 2e Remaster Reference (ORC fixture)';
 
-function record(record: Omit<RulesRecord, 'systemId' | 'source' | 'license'>): RulesRecord {
+function record(
+  record: Omit<
+    RulesRecord,
+    'systemId' | 'source' | 'license' | 'provenance'
+  >,
+): RulesRecord {
   return {
     systemId: PF2E_SYSTEM_ID,
     source: SOURCE_LABEL,
     license: PF2E_LICENSE,
+    provenance: PF2E_PROVENANCE_FIXTURE,
     ...record,
   };
 }
@@ -169,6 +192,7 @@ const PF2E_META: RulesPackMeta = {
   systemId: PF2E_SYSTEM_ID,
   version: PF2E_VERSION,
   license: PF2E_LICENSE,
+  source: PF2E_SOURCE,
 };
 
 export const PATHFINDER2E_REMASTER_RULES_PACK: RulesPack = {

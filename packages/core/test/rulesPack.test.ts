@@ -5,7 +5,36 @@ import {
   evaluateRulesPackPolicy,
   validateRulesPack,
 } from '../src/internal.js';
-import type { RulesPack, RulesPackLicense, RulesRecord } from '../src/internal.js';
+import type {
+  RecordProvenance,
+  RulesPack,
+  RulesPackLicense,
+  RulesPackSource,
+  RulesRecord,
+} from '../src/internal.js';
+
+const DEFAULT_SOURCE_URL = 'https://example.test/srd/5.1';
+
+function packSource(overrides: Partial<RulesPackSource> = {}): RulesPackSource {
+  return {
+    sourceTitle: 'Example SRD',
+    sourceVersion: '5.1',
+    sourceUrl: DEFAULT_SOURCE_URL,
+    recordProvenancePolicy:
+      'Every record cites the SRD page it was extracted from.',
+    ...overrides,
+  };
+}
+
+function recordProvenance(
+  overrides: Partial<RecordProvenance> = {},
+): RecordProvenance {
+  return {
+    sourceRef: DEFAULT_SOURCE_URL,
+    locator: 'p. 1',
+    ...overrides,
+  };
+}
 
 function license(
   overrides: Partial<RulesPackLicense> = {},
@@ -29,15 +58,36 @@ function license(
   };
 }
 
+function creatureData(): Record<string, unknown> {
+  return {
+    size: 'Small',
+    type: 'humanoid',
+    alignment: 'neutral evil',
+    armorClass: 15,
+    hitPoints: 7,
+    speed: { walk: 30 },
+    challengeRating: '1/4',
+    abilityScores: {
+      strength: 8,
+      dexterity: 14,
+      constitution: 10,
+      intelligence: 10,
+      wisdom: 8,
+      charisma: 8,
+    },
+  };
+}
+
 function record(key: string, overrides: Partial<RulesRecord> = {}): RulesRecord {
   return {
     systemId: 'dnd5e-srd',
     kind: 'creature',
     key,
     name: 'Goblin',
-    data: { hitPoints: 7 },
+    data: creatureData(),
     source: 'Example SRD p. 1',
     license: license(),
+    provenance: recordProvenance(),
     ...overrides,
   };
 }
@@ -60,6 +110,7 @@ function validRulesPack(
       license: license(
         licenseClass === undefined ? {} : { licenseClass },
       ),
+      source: packSource(),
       ...metaOverrides,
     },
     records: records ?? [record('creature:goblin')],
@@ -132,6 +183,222 @@ describe('rules pack validation', () => {
     expect(pack.records[0].license.attributionText).toBe(
       'No attribution required.',
     );
+  });
+
+  it('preserves source manifest fields on meta', () => {
+    const sourceUrl = 'https://example.test/srd/5.2';
+    const pack = validateRulesPack(
+      validRulesPack({
+        source: packSource({
+          sourceHash: 'sha256:deadbeef',
+          sourceDate: '2024-01-15',
+          sourceUrl,
+        }),
+        records: [
+          record('creature:goblin', {
+            provenance: recordProvenance({ sourceRef: sourceUrl }),
+          }),
+        ],
+      }),
+    );
+    expect(pack.meta.source.sourceTitle).toBe('Example SRD');
+    expect(pack.meta.source.sourceHash).toBe('sha256:deadbeef');
+    expect(pack.meta.source.sourceDate).toBe('2024-01-15');
+    expect(pack.meta.source.sourceUrl).toBe(sourceUrl);
+  });
+
+  it('rejects packs whose source has neither sourceUrl nor sourceIdentity', () => {
+    const sourceWithNeither = {
+      sourceTitle: 'Example SRD',
+      sourceVersion: '5.1',
+      recordProvenancePolicy: 'records cite section',
+    };
+    const pack = validRulesPack({
+      source: sourceWithNeither as RulesPackSource,
+    });
+    expect(() => validateRulesPack(pack)).toThrow(RulesPackError);
+    expect(() => validateRulesPack(pack)).toThrow(
+      /sourceUrl or sourceIdentity/,
+    );
+  });
+
+  it('accepts sourceIdentity in place of sourceUrl for vendored corpora', () => {
+    const identity = 'pf2e-remaster:vendor:2024-q4';
+    const pack = validateRulesPack(
+      validRulesPack({
+        source: {
+          sourceTitle: 'Pathfinder 2e Remaster (vendored)',
+          sourceVersion: '1.0',
+          sourceIdentity: identity,
+          recordProvenancePolicy: 'records cite Player/GM/Monster Core section.',
+        },
+        records: [
+          record('creature:goblin', {
+            provenance: recordProvenance({ sourceRef: identity }),
+          }),
+        ],
+      }),
+    );
+    expect(pack.meta.source.sourceIdentity).toBe(identity);
+    expect(pack.records[0].provenance.sourceRef).toBe(identity);
+  });
+
+  it('rejects records whose provenance does not match the pack source', () => {
+    const pack = validRulesPack({
+      records: [
+        record('creature:goblin', {
+          provenance: recordProvenance({
+            sourceRef: 'https://example.test/other',
+          }),
+        }),
+      ],
+    });
+    expect(() => validateRulesPack(pack)).toThrow(RulesPackError);
+    expect(() => validateRulesPack(pack)).toThrow(
+      /provenance\.sourceRef must match/,
+    );
+  });
+
+  it('rejects records missing provenance', () => {
+    const { provenance: _p, ...recordWithoutProvenance } = record(
+      'creature:goblin',
+    );
+    const pack = {
+      ...validRulesPack(),
+      records: [recordWithoutProvenance],
+    };
+    expect(() => validateRulesPack(pack)).toThrow(RulesPackError);
+    expect(() => validateRulesPack(pack)).toThrow(
+      /records\[0\]\.provenance/,
+    );
+  });
+
+  it('rejects packs missing meta.source entirely', () => {
+    const validMeta = validRulesPack().meta;
+    const { source: _s, ...metaWithoutSource } = validMeta;
+    const pack = {
+      ...validRulesPack(),
+      meta: metaWithoutSource as RulesPack['meta'],
+    };
+    expect(() => validateRulesPack(pack)).toThrow(RulesPackError);
+    expect(() => validateRulesPack(pack)).toThrow(/meta\.source/);
+  });
+
+  it('rejects dnd5e creature records missing required schema fields', () => {
+    const pack = validRulesPack({
+      records: [record('creature:goblin', { data: { hitPoints: 7 } })],
+    });
+    expect(() => validateRulesPack(pack)).toThrow(RulesPackError);
+    expect(() => validateRulesPack(pack)).toThrow(/data\.size/);
+  });
+
+  it('rejects dnd5e creature records with malformed ability scores', () => {
+    const data = creatureData();
+    const abilityScores = {
+      ...(data.abilityScores as Record<string, number>),
+      strength: -1,
+    };
+    const pack = validRulesPack({
+      records: [
+        record('creature:goblin', {
+          data: { ...data, abilityScores },
+        }),
+      ],
+    });
+    expect(() => validateRulesPack(pack)).toThrow(RulesPackError);
+    expect(() => validateRulesPack(pack)).toThrow(
+      /abilityScores\.strength/,
+    );
+  });
+
+  it('rejects dnd5e spell records missing the level field', () => {
+    const pack = validRulesPack({
+      records: [
+        record('spell:fire-bolt', {
+          kind: 'spell',
+          name: 'Fire Bolt',
+          data: {
+            school: 'evocation',
+            castingTime: '1 action',
+            range: '120 feet',
+            components: ['V', 'S'],
+            duration: 'Instantaneous',
+            classes: ['Sorcerer', 'Wizard'],
+          },
+        }),
+      ],
+    });
+    expect(() => validateRulesPack(pack)).toThrow(RulesPackError);
+    expect(() => validateRulesPack(pack)).toThrow(/data\.level/);
+  });
+
+  it('accepts dnd5e spell records that match the spell schema', () => {
+    const pack = validateRulesPack(
+      validRulesPack({
+        records: [
+          record('spell:fire-bolt', {
+            kind: 'spell',
+            name: 'Fire Bolt',
+            data: {
+              level: 0,
+              school: 'evocation',
+              castingTime: '1 action',
+              range: '120 feet',
+              components: ['V', 'S'],
+              duration: 'Instantaneous',
+              classes: ['Sorcerer', 'Wizard'],
+            },
+          }),
+        ],
+      }),
+    );
+    expect(pack.records[0].kind).toBe('spell');
+  });
+
+  it('rejects rule records without a text body', () => {
+    const pack = validRulesPack({
+      records: [
+        record('rule:cover', {
+          kind: 'rule',
+          name: 'Cover',
+          systemId: 'misc-system',
+          data: { description: 'A creature behind cover...' },
+        }),
+      ],
+    });
+    expect(() => validateRulesPack(pack)).toThrow(RulesPackError);
+    expect(() => validateRulesPack(pack)).toThrow(/data\.text/);
+  });
+
+  it('rejects table records without columns and rows arrays', () => {
+    const pack = validRulesPack({
+      records: [
+        record('table:starting-equipment', {
+          kind: 'table',
+          name: 'Starting Equipment',
+          systemId: 'misc-system',
+          data: { columns: ['Class', 'Pack'] },
+        }),
+      ],
+    });
+    expect(() => validateRulesPack(pack)).toThrow(RulesPackError);
+    expect(() => validateRulesPack(pack)).toThrow(/data\.rows/);
+  });
+
+  it('falls through to the baseline data check for unregistered systems', () => {
+    const pack = validateRulesPack(
+      validRulesPack({
+        systemId: 'experimental-system',
+        records: [
+          record('creature:goblin', {
+            systemId: 'experimental-system',
+            kind: 'creature',
+            data: { description: 'A small green humanoid.' },
+          }),
+        ],
+      }),
+    );
+    expect(pack.records[0].systemId).toBe('experimental-system');
   });
 
   it('rejects user-private packs at shippable boundaries', () => {
