@@ -27,7 +27,7 @@ function isInside(child: string, parent: string): boolean {
 export function normalizeRemoteUrl(url: string): string {
   return url
     .trim()
-    .replace(/\/+$/, '')
+    .replace(/(?<!\/)\/+$/, '')
     .replace(/\.git$/i, '')
     .toLowerCase();
 }
