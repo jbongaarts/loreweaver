@@ -27,12 +27,16 @@ export interface DiceRoll {
   total: number;
 }
 
-const DICE_RE = /^\s*(\d*)\s*d\s*(\d+)\s*(?:([+-])\s*(\d+))?\s*$/i;
+const DICE_RE = /^(\d*)d(\d+)(?:([+-])(\d+))?$/i;
 const MAX_COUNT = 100;
 const MAX_FACES = 1000;
+const MAX_NOTATION_LEN = 32;
 
 export function parseDice(notation: string): DiceNotation {
-  const match = DICE_RE.exec(notation);
+  if (notation.length > MAX_NOTATION_LEN) {
+    throw new DiceError(`invalid dice notation: '${notation}'`);
+  }
+  const match = DICE_RE.exec(notation.replace(/\s+/g, ''));
   if (match === null) {
     throw new DiceError(`invalid dice notation: '${notation}'`);
   }

@@ -10,7 +10,7 @@ import type { ToolRegistry, ToolResult } from './tools.js';
  * model replies with no tool_call block, that reply is the final narration.
  */
 
-const TOOL_CALL_FENCE = /```tool_call\s*\n([\s\S]*?)\n?```/g;
+const TOOL_CALL_FENCE = /```tool_call[^\S\n]*\n([\s\S]*?)```/g;
 
 export type ParsedToolCall =
   | { ok: true; tool: string; args: unknown }

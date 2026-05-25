@@ -44,6 +44,10 @@ on:
   push:
   pull_request:
 
+# Least-privilege GITHUB_TOKEN: CI only needs to check out the repo.
+permissions:
+  contents: read
+
 jobs:
   build-test:
     runs-on: ubuntu-latest
