@@ -100,6 +100,21 @@ export type {
   StateProvenanceRecord,
 } from './state/mutateState.js';
 
+// Live-state JSON schema validators (internal — no stability promise).
+export {
+  LiveStateSchemaError,
+  validateAbilityScoresJson,
+  validateConditionsJson,
+  validateInventoryPropertiesJson,
+} from './state/liveStateSchema.js';
+export type {
+  AbilityScoreName,
+  AbilityScores,
+  CharacterConditionEntry,
+  InventoryItemProperties,
+  JsonValue,
+} from './state/liveStateSchema.js';
+
 // Scene + scene-log primitives.
 export {
   SceneError,

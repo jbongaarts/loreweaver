@@ -2,6 +2,31 @@ import type { Db } from './db.js';
 import { withTransaction } from './db.js';
 import { migrateSchema } from './migrations.js';
 
+/**
+ * JSON columns: live state vs archival/generated
+ *
+ * Live queryable state — validated at both the mutateState write boundary and
+ * the contextAssembler read boundary via `state/liveStateSchema.ts`:
+ *   - `character.ability_scores_json`   (shape: AbilityScores — exactly 6 keys, int 0–30)
+ *   - `character.conditions_json`       (shape: CharacterConditionEntry[] — array of {id}+)
+ *   - `inventory.properties_json`       (shape: InventoryItemProperties — plain JSON object)
+ *
+ * Opaque extension points — validated as plain JSON root-type only:
+ *   - `plot_flags.value_json`           (any JSON value)
+ *   - `overlay_facts.value_json`        (any JSON value)
+ *
+ * Archival / trace / generated — deliberately opaque, jsonColumn<TraceJsonValue[]>.
+ * Do not add shape validation here; these blobs are owned by the memory subsystem:
+ *   - `turn_trace.*_json`
+ *   - `scene_summary.*_json`
+ *   - `session_recap.*_json`
+ *   - `arc_summary.*_json`
+ *   - `campaign_bible.*_json`
+ *
+ * Module template columns (`module_*.data_json`) are read-only post-fork and
+ * validated by the pack importer at load time — not by mutateState or the
+ * context assembler.
+ */
 export const SCHEMA_VERSION = 8;
 
 export class SchemaCompatibilityError extends Error {

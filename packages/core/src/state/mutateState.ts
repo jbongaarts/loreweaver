@@ -2,6 +2,12 @@ import type { Db } from '../persistence/db.js';
 import { withTransaction } from '../persistence/db.js';
 import { JsonColumnError, jsonColumn } from '../persistence/jsonColumn.js';
 import { requireNonEmpty } from '../validation.js';
+import {
+  LiveStateSchemaError,
+  validateAbilityScoresJson,
+  validateConditionsJson,
+  validateInventoryPropertiesJson,
+} from './liveStateSchema.js';
 
 /**
  * Codec for the JSON-valued columns mutate_state writes — plot_flags /
@@ -78,7 +84,12 @@ export interface StateProvenanceRecord {
 type FieldDescriptor =
   | { kind: 'text'; nullable: boolean }
   | { kind: 'integer'; min: number }
-  | { kind: 'json'; root: 'array' | 'object' };
+  | { kind: 'json'; root: 'array' | 'object' }
+  | {
+      kind: 'shaped-json';
+      root: 'array' | 'object';
+      validate: (parsed: unknown, label: string) => void;
+    };
 
 const CHARACTER_FIELDS: Record<string, FieldDescriptor> = {
   name: { kind: 'text', nullable: true },
@@ -87,15 +98,27 @@ const CHARACTER_FIELDS: Record<string, FieldDescriptor> = {
   level: { kind: 'integer', min: 1 },
   hp_current: { kind: 'integer', min: 0 },
   hp_max: { kind: 'integer', min: 0 },
-  ability_scores_json: { kind: 'json', root: 'object' },
-  conditions_json: { kind: 'json', root: 'array' },
+  ability_scores_json: {
+    kind: 'shaped-json',
+    root: 'object',
+    validate: validateAbilityScoresJson,
+  },
+  conditions_json: {
+    kind: 'shaped-json',
+    root: 'array',
+    validate: validateConditionsJson,
+  },
 };
 
 const INVENTORY_FIELDS: Record<string, FieldDescriptor> = {
   name: { kind: 'text', nullable: false },
   quantity: { kind: 'integer', min: 0 },
   location: { kind: 'text', nullable: true },
-  properties_json: { kind: 'json', root: 'object' },
+  properties_json: {
+    kind: 'shaped-json',
+    root: 'object',
+    validate: validateInventoryPropertiesJson,
+  },
 };
 
 const CLOCK_FIELDS: Record<string, FieldDescriptor> = {
@@ -407,6 +430,11 @@ function validatedFieldValue(
       return jsonColumnValue(target, field, value, {
         expectedRoot: descriptor.root,
       });
+    case 'shaped-json':
+      return shapedJsonColumnValue(target, field, value, {
+        expectedRoot: descriptor.root,
+        validate: descriptor.validate,
+      });
   }
 }
 
@@ -468,6 +496,38 @@ function jsonColumnValue(
     );
   }
   return serializeJsonValue(parsed, `${target}.${field}`);
+}
+
+function shapedJsonColumnValue(
+  target: string,
+  field: string,
+  value: MutateStateValue,
+  options: {
+    expectedRoot: 'array' | 'object';
+    validate: (parsed: unknown, label: string) => void;
+  },
+): string {
+  const parsed = parseOrUseJsonValue(target, field, value);
+  const rootIsArray = Array.isArray(parsed);
+  if (
+    (options.expectedRoot === 'array' && !rootIsArray) ||
+    (options.expectedRoot === 'object' &&
+      (rootIsArray || typeof parsed !== 'object' || parsed === null))
+  ) {
+    throw new MutateStateError(
+      `${target}.${field} must be a JSON ${options.expectedRoot}`,
+    );
+  }
+  const label = `${target}.${field}`;
+  try {
+    options.validate(parsed, label);
+  } catch (error) {
+    if (error instanceof LiveStateSchemaError) {
+      throw new MutateStateError(error.message);
+    }
+    throw error;
+  }
+  return serializeJsonValue(parsed, label);
 }
 
 function parseOrUseJsonValue(
