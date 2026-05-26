@@ -116,6 +116,15 @@ describe('validateAbilityScoresJson', () => {
       'between 0 and 30',
     );
   });
+
+  it('rejects a class instance root (e.g. Date)', () => {
+    expect(() => validateAbilityScoresJson(new Date(), 'test')).toThrow(
+      LiveStateSchemaError,
+    );
+    expect(() => validateAbilityScoresJson(new Date(), 'test')).toThrow(
+      'must be a plain JSON object',
+    );
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -251,6 +260,27 @@ describe('validateInventoryPropertiesJson', () => {
     const props = { weight: Number.POSITIVE_INFINITY };
     expect(() => validateInventoryPropertiesJson(props, 'test')).toThrow(
       LiveStateSchemaError,
+    );
+  });
+
+  it('rejects a root Date object', () => {
+    expect(() => validateInventoryPropertiesJson(new Date(), 'test')).toThrow(
+      LiveStateSchemaError,
+    );
+    expect(() => validateInventoryPropertiesJson(new Date(), 'test')).toThrow(
+      'must be a plain JSON object',
+    );
+  });
+
+  it('rejects a root class instance', () => {
+    class Weapon {
+      name = 'sword';
+    }
+    expect(() => validateInventoryPropertiesJson(new Weapon(), 'test')).toThrow(
+      LiveStateSchemaError,
+    );
+    expect(() => validateInventoryPropertiesJson(new Weapon(), 'test')).toThrow(
+      'must be a plain JSON object',
     );
   });
 });

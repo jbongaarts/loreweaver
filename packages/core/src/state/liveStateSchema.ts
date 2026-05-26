@@ -69,12 +69,16 @@ const ABILITY_SCORE_KEYS: readonly AbilityScoreName[] = [
   'charisma',
 ];
 
-function assertPlainObject(
+function assertPlainJsonObject(
   value: unknown,
   path: string,
-): asserts value is Record<string, unknown> {
+): asserts value is Record<string, JsonValue> {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
     throw new LiveStateSchemaError(`${path} must be a non-null object`);
+  }
+  const proto = Object.getPrototypeOf(value) as unknown;
+  if (proto !== Object.prototype && proto !== null) {
+    throw new LiveStateSchemaError(`${path} must be a plain JSON object`);
   }
 }
 
@@ -103,12 +107,8 @@ function assertJsonValue(value: unknown, path: string): void {
     return;
   }
   if (typeof value === 'object') {
-    // Plain object check: constructor must be Object or null (Object.create(null)).
-    const proto = Object.getPrototypeOf(value) as unknown;
-    if (proto !== Object.prototype && proto !== null) {
-      throw new LiveStateSchemaError(`${path} must be a plain JSON object`);
-    }
-    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+    assertPlainJsonObject(value, path);
+    for (const [k, v] of Object.entries(value)) {
       assertJsonValue(v, `${path}.${k}`);
     }
     return;
@@ -132,7 +132,7 @@ export function validateAbilityScoresJson(
   value: unknown,
   path: string,
 ): AbilityScores {
-  assertPlainObject(value, path);
+  assertPlainJsonObject(value, path);
   const obj = value as Record<string, unknown>;
 
   // Must have exactly the six canonical keys — no more, no less.
@@ -185,10 +185,7 @@ export function validateConditionsJson(
     const entry = value[i];
     const entryPath = `${path}[${i}]`;
 
-    if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) {
-      throw new LiveStateSchemaError(`${entryPath} must be a non-null object`);
-    }
-
+    assertPlainJsonObject(entry, entryPath);
     const entryObj = entry as Record<string, unknown>;
     if (typeof entryObj.id !== 'string' || entryObj.id.length === 0) {
       throw new LiveStateSchemaError(
@@ -217,11 +214,8 @@ export function validateInventoryPropertiesJson(
   value: unknown,
   path: string,
 ): InventoryItemProperties {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-    throw new LiveStateSchemaError(`${path} must be a non-null object`);
-  }
-
-  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+  assertPlainJsonObject(value, path);
+  for (const [k, v] of Object.entries(value)) {
     assertJsonValue(v, `${path}.${k}`);
   }
 

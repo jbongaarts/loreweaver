@@ -280,12 +280,14 @@ export function initSchema(db: Db): void {
     `,
     );
     const now = new Date(0).toISOString();
+    const defaultAbilityScores =
+      '{"strength":0,"dexterity":0,"constitution":0,"intelligence":0,"wisdom":0,"charisma":0}';
     txnDb
       .prepare(
-        `INSERT OR IGNORE INTO character(id, provenance, session_id, updated_at)
-     VALUES (1, ?, ?, ?)`,
+        `INSERT OR IGNORE INTO character(id, ability_scores_json, provenance, session_id, updated_at)
+     VALUES (1, ?, ?, ?, ?)`,
       )
-      .run('system:init_schema', 'bootstrap', now);
+      .run(defaultAbilityScores, 'system:init_schema', 'bootstrap', now);
     txnDb
       .prepare(
         `INSERT OR IGNORE INTO clock(id, provenance, session_id, updated_at)
