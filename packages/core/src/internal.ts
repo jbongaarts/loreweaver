@@ -3,9 +3,9 @@
  *
  * Everything re-exported below is **explicitly unstable**: low-level
  * primitives, raw datasets, model-profile/benchmarking helpers, world/rules
- * loaders, dolt provisioning innards, scaffolding for architectural seams,
- * and system-specific character-creation pieces. Names, signatures, and
- * locations may change in any release with no migration path.
+ * loaders, dolt provisioning innards, and system-specific character-creation
+ * pieces. Names, signatures, and locations may change in any release with
+ * no migration path.
  *
  * Use the stable root export (`@loreweaver/core`) from production code.
  * Imports of this subpath belong in co-developed callers inside this
@@ -160,18 +160,6 @@ export {
   renderToolResults,
 } from './orchestrator/protocol.js';
 export type { ParsedToolCall } from './orchestrator/protocol.js';
-
-// Architectural seams scaffold.
-export { SEAMS } from './seams.js';
-export type {
-  ContextAssembler,
-  MemorySubsystem,
-  Orchestrator,
-  Persistence,
-  SeamName,
-  ToolLayer,
-  WorldSubsystem,
-} from './seams.js';
 
 // Demo-mode policy + budget helpers (the high-level entrypoints are stable).
 export {

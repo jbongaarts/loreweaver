@@ -30,8 +30,6 @@ import type { ToolContext, ToolResult } from './tools.js';
  * exhausted tool budget rolls back every write, leaving pre-turn state intact.
  * Narration that is not a tool call never mutates canon — only the tool layer
  * writes.
- *
- * Fills the Orchestrator seam.
  */
 
 const TURN_SAVEPOINT = 'loreweaver_turn';
