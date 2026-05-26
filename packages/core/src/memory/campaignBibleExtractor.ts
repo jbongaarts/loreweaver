@@ -59,23 +59,35 @@ export async function extractCampaignBible(
   const result = await model.complete({
     system: BIBLE_EXTRACTOR_SYSTEM_PROMPT,
     messages,
+    // JSON-only site (loreweaver-cuu): the system prompt demands a JSON-shaped
+    // response. Adapters with a native JSON mode (e.g. provider response_format)
+    // may opt in; today's Agent SDK adapter ignores the hint per the contract.
+    responseFormat: 'json',
   });
   return parseBibleResponse(result.text);
 }
 
+/**
+ * Extract the campaign bible payload from a model response. Accepts both the
+ * fenced form the prompt asks for (`​```bible_json\n{...}\n```​`) AND a raw JSON
+ * object — the latter is the shape a future JSON-mode adapter is permitted to
+ * return when it honours `responseFormat: 'json'` and strips the markdown
+ * wrapper, so the call site stays robust across adapter capabilities.
+ */
 function parseBibleResponse(raw: string): CampaignBibleInput {
   const match = BIBLE_FENCE.exec(raw);
-  if (match === null) {
-    throw new MemorySummaryError(
-      'campaign bible response missing fenced bible_json block',
-    );
+  const payload = match !== null ? match[1] : raw.trim();
+  if (payload === '') {
+    throw new MemorySummaryError('campaign bible response was empty');
   }
   let parsed: unknown;
   try {
-    parsed = JSON.parse(match[1]);
+    parsed = JSON.parse(payload);
   } catch (error) {
     throw new MemorySummaryError(
-      `campaign bible response could not be parsed as JSON: ${error instanceof Error ? error.message : String(error)}`,
+      match !== null
+        ? `campaign bible response could not be parsed as JSON: ${error instanceof Error ? error.message : String(error)}`
+        : 'campaign bible response missing fenced bible_json block and was not raw JSON',
     );
   }
   if (!isCampaignBibleInput(parsed)) {
