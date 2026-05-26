@@ -64,6 +64,44 @@ SQLite may create transient sidecar files beside the database while it is open,
 such as `dev.db-wal`, `dev.db-shm`, or `dev.db-journal`. Treat those as part of
 the live local working copy, not as separate Loreweaver stores.
 
+## Schema Versions and Migration
+
+Every campaign SQLite database records its schema version in the `meta` table
+(`key = 'schema_version'`). The current application schema version is `8`.
+
+### Compatibility expectations (pre-release)
+
+Loreweaver is pre-release software. Campaign databases may not survive arbitrary
+schema changes, but the migration framework minimises breakage:
+
+| Situation | Outcome |
+|-----------|---------|
+| DB version == current | Opens normally; `initSchema` is idempotent. |
+| DB version > current (newer build wrote it) | Rejected with `SchemaCompatibilityError`. Update your `loreweaver` installation. |
+| DB version < current, migration registered | `initSchema` runs all registered migrations in order before proceeding. Each migration step commits atomically; a partial failure leaves the DB at the last successfully migrated version. |
+| DB version < current, no migration registered | Fails with `SchemaMigrationError`. The DB is not touched. |
+| DB has tables but no `meta` table | Rejected with `SchemaCompatibilityError` (pre-migration legacy). |
+
+### Adding a schema migration
+
+When the schema changes (bump `SCHEMA_VERSION` in `schema.ts`), add an entry to
+`MIGRATIONS` in `packages/core/src/persistence/migrations.ts`:
+
+```typescript
+export const MIGRATIONS: Readonly<Record<number, Migration>> = {
+  8: v7_to_v8,   // existing
+  9: (db) => {   // new migration
+    db.exec('ALTER TABLE some_table ADD COLUMN new_col TEXT');
+  },
+};
+```
+
+Each migration function receives the database **inside a transaction** and must
+not open its own nested transaction. The framework commits the migration and
+advances `schema_version` together; a thrown error rolls back both. SQLite does
+not support `ALTER TABLE … ADD COLUMN IF NOT EXISTS`, so guard with
+`PRAGMA table_info(…)` when the column may already exist.
+
 ## Bundled Static Content
 
 Static content ships with the package source/build output:

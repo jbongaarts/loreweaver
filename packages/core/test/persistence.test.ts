@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { openDatabase, withTransaction } from '../src/persistence/db.js';
+import { SchemaMigrationError } from '../src/persistence/migrations.js';
 import {
   SCHEMA_VERSION,
   SchemaCompatibilityError,
@@ -52,14 +53,16 @@ describe('persistence', () => {
     db.close();
   });
 
-  it('fails clearly for older versioned databases without partial mutation', () => {
+  it('throws SchemaMigrationError without partial mutation when no migration covers the database version', () => {
+    // v6 has no registered migration (MIGRATIONS only covers v7→v8), so
+    // initSchema must fail clearly without altering the database.
     const db = openDatabase(':memory:');
     db.exec(`
       CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
-      INSERT INTO meta(key, value) VALUES ('schema_version', '${SCHEMA_VERSION - 1}');
+      INSERT INTO meta(key, value) VALUES ('schema_version', '${SCHEMA_VERSION - 2}');
     `);
 
-    expect(() => initSchema(db)).toThrow(SchemaCompatibilityError);
+    expect(() => initSchema(db)).toThrow(SchemaMigrationError);
 
     const tables = db
       .prepare(
@@ -70,7 +73,7 @@ describe('persistence', () => {
     const row = db
       .prepare('SELECT value FROM meta WHERE key = ?')
       .get('schema_version') as { value: string } | undefined;
-    expect(row?.value).toBe(String(SCHEMA_VERSION - 1));
+    expect(row?.value).toBe(String(SCHEMA_VERSION - 2));
     db.close();
   });
 
