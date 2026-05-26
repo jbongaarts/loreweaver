@@ -1,0 +1,89 @@
+import type { CampaignInfo, Db, SessionLaunchState } from '@loreweaver/core';
+import {
+  createCampaign,
+  getCampaign,
+  getSessionLaunchState,
+  startSession,
+} from '@loreweaver/core';
+import { gracefulClose } from './playClose.js';
+import type { PlayDeps } from './playTypes.js';
+
+/** Replay the volatile tail of the open scene so a resumed player has context. */
+function renderSceneTail(
+  io: PlayDeps['io'],
+  state: Extract<SessionLaunchState, { kind: 'resume' }>,
+): void {
+  if (state.openScene === undefined || state.sceneTail.length === 0) {
+    return;
+  }
+  io.write(`— Recent scene: ${state.openScene.title} —`);
+  for (const entry of state.sceneTail) {
+    io.write(`${entry.role}: ${entry.content}`);
+  }
+  io.write('—');
+}
+
+function startNewSession(deps: PlayDeps, db: Db, campaignId: string): string {
+  const sessionId = deps.nextId('session');
+  startSession(db, { campaignId, sessionId, startedAt: deps.now() });
+  deps.io.write(`Started session ${sessionId}. Type /quit to save and exit.`);
+  return sessionId;
+}
+
+/** Select the existing campaign, or create one from the module template. */
+export function resolveCampaign(deps: PlayDeps, db: Db): CampaignInfo {
+  const existing = getCampaign(db);
+  if (existing !== undefined) {
+    deps.io.write(`Campaign: ${existing.title} (${existing.campaignId}).`);
+    return existing;
+  }
+  const created = createCampaign(db, {
+    campaignId: deps.nextId('campaign'),
+    pack: deps.pack,
+  });
+  deps.io.write(
+    `Created campaign '${created.campaignId}' from module: ${created.title}.`,
+  );
+  return created;
+}
+
+/**
+ * Resolve which session to play. A crash leaves a session open; launch offers
+ * the player Resume (reattach to the open session) or Close-and-recap (run the
+ * close pipeline, then start fresh).
+ */
+export async function launch(
+  deps: PlayDeps,
+  db: Db,
+  dbPath: string,
+  campaign: CampaignInfo,
+): Promise<string> {
+  const state = getSessionLaunchState(db, { campaignId: campaign.campaignId });
+  if (state.kind === 'start_new') {
+    return startNewSession(deps, db, campaign.campaignId);
+  }
+
+  deps.io.write(
+    `An unfinished session is open: ${state.session.sessionId} ` +
+      `(started ${state.session.startedAt}).`,
+  );
+  renderSceneTail(deps.io, state);
+
+  const answer = await deps.io.prompt(
+    'Resume this session, or close it and recap? [resume/close] ',
+  );
+  const normalized = (answer ?? 'resume').toLowerCase();
+  if (normalized === 'close' || normalized === 'c') {
+    await gracefulClose(
+      deps,
+      db,
+      dbPath,
+      campaign.campaignId,
+      state.session.sessionId,
+    );
+    return startNewSession(deps, db, campaign.campaignId);
+  }
+
+  deps.io.write(`Resuming session ${state.session.sessionId}.`);
+  return state.session.sessionId;
+}
