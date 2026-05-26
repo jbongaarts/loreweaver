@@ -69,8 +69,8 @@ function renderBible(bible: CampaignBibleInput): string {
   ];
   const blocks = sections.map(([name, items]) => {
     const body =
-      items.length === 0 ? '(none)' : items.map((s) => '- ' + s).join('\n');
-    return '### ' + name + '\n' + body;
+      items.length === 0 ? '(none)' : items.map((s) => `- ${s}`).join('\n');
+    return `### ${name}\n${body}`;
   });
   return ['## campaign bible', ...blocks].join('\n');
 }
@@ -81,10 +81,10 @@ function renderRecaps(recaps: SessionRecapRecord[]): string {
       recap.stateDelta.length === 0
         ? '(no canon mutations)'
         : recap.stateDelta
-            .map((entry) => '  - ' + JSON.stringify(entry))
+            .map((entry) => `  - ${JSON.stringify(entry)}`)
             .join('\n');
     return [
-      '## ' + recap.sessionId + ' (' + recap.createdAt + ')',
+      `## ${recap.sessionId} (${recap.createdAt})`,
       recap.recap,
       'Canon mutations:',
       delta,

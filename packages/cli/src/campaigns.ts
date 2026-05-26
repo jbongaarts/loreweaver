@@ -158,7 +158,7 @@ function runAdd(args: string[], deps: CampaignDeps): number {
   ensureDataRoot(deps.root);
   const registry = loadRegistry(deps.root);
   if (registry.campaigns.some((c) => resolve(c.dbPath) === dbPath)) {
-    deps.log(`that database is already registered`);
+    deps.log('that database is already registered');
     return 1;
   }
   const entry: CampaignRegistryEntry = {

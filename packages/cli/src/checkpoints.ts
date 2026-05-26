@@ -124,8 +124,7 @@ function runRestore(rest: string[], deps: CheckpointDeps): number {
       destPath,
     );
     deps.log(
-      `Restored checkpoint ${checkpointId} to ${destPath} ` +
-        '(the active campaign was not modified).',
+      `Restored checkpoint ${checkpointId} to ${destPath} (the active campaign was not modified).`,
     );
     return 0;
   } catch (err) {

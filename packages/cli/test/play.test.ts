@@ -490,14 +490,14 @@ describe('runPlay', () => {
     // arc-1 stays open.
     const arcRow = db
       .prepare(
-        `SELECT status FROM campaign_arc WHERE campaign_id = ? AND arc_id = ?`,
+        'SELECT status FROM campaign_arc WHERE campaign_id = ? AND arc_id = ?',
       )
       .get(cid, 'arc-1') as { status: string } | undefined;
     expect(arcRow?.status).toBe('open');
     // Session closed and recap written despite the arc rollup failure.
     expect(getOpenSession(db, { campaignId: cid })).toBeUndefined();
     const sessions = listSessions(db, { campaignId: cid });
-    const lastSession = sessions[sessions.length - 1]!;
+    const lastSession = sessions[sessions.length - 1];
     expect(
       getSessionRecap(db, {
         campaignId: cid,
@@ -599,7 +599,7 @@ describe('runPlay', () => {
     // Session closed and recap written despite the bible failure.
     expect(getOpenSession(db, { campaignId: cid })).toBeUndefined();
     const sessions = listSessions(db, { campaignId: cid });
-    const lastSession = sessions[sessions.length - 1]!;
+    const lastSession = sessions[sessions.length - 1];
     expect(
       getSessionRecap(db, {
         campaignId: cid,
@@ -678,7 +678,7 @@ describe('runPlay', () => {
     // arc-1 is closed with a summary covering 5 sessions.
     const arc1Row = db
       .prepare(
-        `SELECT arc_id, status, sequence_no FROM campaign_arc WHERE campaign_id = ? AND arc_id = ?`,
+        'SELECT arc_id, status, sequence_no FROM campaign_arc WHERE campaign_id = ? AND arc_id = ?',
       )
       .get(cid, 'arc-1') as
       | { arc_id: string; status: string; sequence_no: number }
@@ -692,7 +692,7 @@ describe('runPlay', () => {
     // arc-2 is now open.
     const arc2Row = db
       .prepare(
-        `SELECT arc_id, status FROM campaign_arc WHERE campaign_id = ? AND arc_id = ?`,
+        'SELECT arc_id, status FROM campaign_arc WHERE campaign_id = ? AND arc_id = ?',
       )
       .get(cid, 'arc-2') as { arc_id: string; status: string } | undefined;
     expect(arc2Row?.status).toBe('open');
@@ -724,7 +724,7 @@ describe('runPlay', () => {
     // arc-1 is still open.
     const arc1Row = db
       .prepare(
-        `SELECT status FROM campaign_arc WHERE campaign_id = ? AND arc_id = ?`,
+        'SELECT status FROM campaign_arc WHERE campaign_id = ? AND arc_id = ?',
       )
       .get(cid, 'arc-1') as { status: string } | undefined;
     expect(arc1Row?.status).toBe('open');
@@ -735,7 +735,7 @@ describe('runPlay', () => {
     for (const s of sessions) {
       const row = db
         .prepare(
-          `SELECT arc_id FROM campaign_session WHERE campaign_id = ? AND session_id = ?`,
+          'SELECT arc_id FROM campaign_session WHERE campaign_id = ? AND session_id = ?',
         )
         .get(cid, s.sessionId) as { arc_id: string } | undefined;
       expect(row?.arc_id).toBe('arc-1');
@@ -778,7 +778,7 @@ describe('runPlay', () => {
     for (const arcId of ['arc-1', 'arc-2']) {
       const row = db
         .prepare(
-          `SELECT status FROM campaign_arc WHERE campaign_id = ? AND arc_id = ?`,
+          'SELECT status FROM campaign_arc WHERE campaign_id = ? AND arc_id = ?',
         )
         .get(cid, arcId) as { status: string } | undefined;
       expect(row?.status).toBe('closed');
@@ -831,11 +831,11 @@ describe('runPlay', () => {
     // Exactly two bible calls — one per rollover.
     expect(bibleCallContents).toHaveLength(2);
 
-    const first = bibleCallContents[0]!;
+    const first = bibleCallContents[0];
     expect(first).not.toContain('## previously known bible');
     expect(first).not.toContain('## closed arc summaries');
 
-    const second = bibleCallContents[1]!;
+    const second = bibleCallContents[1];
     expect(second).toContain('## previously known bible');
     // The bible written by the first rollover (from ROUTED_FAKE_BIBLE_JSON)
     // must round-trip back into the extractor input.
@@ -890,17 +890,17 @@ describe('runPlay', () => {
     // arc-1 is still open.
     const arc1Row = db
       .prepare(
-        `SELECT status FROM campaign_arc WHERE campaign_id = ? AND arc_id = ?`,
+        'SELECT status FROM campaign_arc WHERE campaign_id = ? AND arc_id = ?',
       )
       .get(cid, 'arc-1') as { status: string } | undefined;
     expect(arc1Row?.status).toBe('open');
 
     // The 5th session is stamped with arc_id='arc-1'.
     const sessions = listSessions(db, { campaignId: cid });
-    const lastSession = sessions[sessions.length - 1]!;
+    const lastSession = sessions[sessions.length - 1];
     const sessionRow = db
       .prepare(
-        `SELECT arc_id FROM campaign_session WHERE campaign_id = ? AND session_id = ?`,
+        'SELECT arc_id FROM campaign_session WHERE campaign_id = ? AND session_id = ?',
       )
       .get(cid, lastSession.sessionId) as { arc_id: string } | undefined;
     expect(sessionRow?.arc_id).toBe('arc-1');
@@ -976,7 +976,7 @@ describe('runPlay', () => {
     // arc-1 is now closed with N+1 = 6 source sessions in the summary.
     const arc1Row = db
       .prepare(
-        `SELECT status FROM campaign_arc WHERE campaign_id = ? AND arc_id = ?`,
+        'SELECT status FROM campaign_arc WHERE campaign_id = ? AND arc_id = ?',
       )
       .get(cid, 'arc-1') as { status: string } | undefined;
     expect(arc1Row?.status).toBe('closed');

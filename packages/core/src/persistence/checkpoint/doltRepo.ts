@@ -80,8 +80,7 @@ export class DoltRepo {
     ];
     for (const r of records) {
       lines.push(
-        `INSERT INTO campaign_snapshot (tbl, kind, ordinal, payload) VALUES (` +
-          `${sq(r.table)}, ${sq(r.kind)}, ${r.ordinal}, ${sq(r.payload)});`,
+        `INSERT INTO campaign_snapshot (tbl, kind, ordinal, payload) VALUES (${sq(r.table)}, ${sq(r.kind)}, ${r.ordinal}, ${sq(r.payload)});`,
       );
     }
     this.run(['sql'], lines.join('\n'));
@@ -121,8 +120,7 @@ export class DoltRepo {
       '-r',
       'json',
       '-q',
-      `SELECT tbl, kind, ordinal, HEX(payload) AS payload FROM campaign_snapshot ` +
-        `AS OF '${id.replace(/'/g, "''")}' ORDER BY tbl, kind, ordinal`,
+      `SELECT tbl, kind, ordinal, HEX(payload) AS payload FROM campaign_snapshot AS OF '${id.replace(/'/g, "''")}' ORDER BY tbl, kind, ordinal`,
     ]);
     const parsed = JSON.parse(out) as {
       rows: { tbl: string; kind: string; ordinal: number; payload: string }[];

@@ -146,11 +146,11 @@ export function readStateSnapshot(db: Db): StateSnapshot {
     .all() as InventoryRow[];
 
   const clock = db
-    .prepare(`SELECT in_game_time, current_location_id FROM clock WHERE id = 1`)
+    .prepare('SELECT in_game_time, current_location_id FROM clock WHERE id = 1')
     .get() as ClockRow;
 
   const plotFlagRows = db
-    .prepare(`SELECT key, value_json FROM plot_flags ORDER BY key`)
+    .prepare('SELECT key, value_json FROM plot_flags ORDER BY key')
     .all() as KeyedJsonRow[];
 
   const plotFlags: Record<string, unknown> = {};

@@ -71,9 +71,7 @@ function assertNoSecrets(value: unknown, path: string): void {
     for (const pattern of SECRET_VALUE) {
       if (pattern.test(value)) {
         throw new ConfigFileError(
-          `config.json must not contain secrets: ${path} looks like a ` +
-            'provider API key. Keep credentials in the environment ' +
-            '(ANTHROPIC_API_KEY / CLAUDE_CODE_OAUTH_TOKEN), not config.json.',
+          `config.json must not contain secrets: ${path} looks like a provider API key. Keep credentials in the environment (ANTHROPIC_API_KEY / CLAUDE_CODE_OAUTH_TOKEN), not config.json.`,
         );
       }
     }
@@ -87,9 +85,7 @@ function assertNoSecrets(value: unknown, path: string): void {
     for (const [key, child] of Object.entries(value)) {
       if (SECRET_KEY_NAME.test(key)) {
         throw new ConfigFileError(
-          `config.json must not contain secrets: the key '${key}' ` +
-            `(at ${path}) is not allowed. Keep credentials in the ` +
-            'environment, not config.json.',
+          `config.json must not contain secrets: the key '${key}' (at ${path}) is not allowed. Keep credentials in the environment, not config.json.`,
         );
       }
       assertNoSecrets(child, path === '' ? key : `${path}.${key}`);
