@@ -33,6 +33,7 @@ export type {
   ProviderAuth,
   ProviderAuthMode,
 } from './config.js';
+export type { ConfiguredProfileEntry } from './model/profiles.js';
 
 // Live campaign database.
 export { openDatabase } from './persistence/db.js';

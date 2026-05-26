@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ConfigError, loadConfig } from '../src/config.js';
-import { DEFAULT_PROFILE_REGISTRY } from '../src/model/profiles.js';
+import { DEFAULT_PROFILE_REGISTRY, getProfile } from '../src/model/profiles.js';
 
 describe('loadConfig', () => {
   it('returns a valid config from a complete env', () => {
@@ -22,8 +22,9 @@ describe('loadConfig', () => {
       LOREWEAVER_DB_PATH: './x.db',
       ANTHROPIC_API_KEY: 'sk-test',
     });
-    expect(cfg.model).toBe(DEFAULT_PROFILE_REGISTRY.premium_dm.model);
-    expect(cfg.dmProfile).toEqual(DEFAULT_PROFILE_REGISTRY.premium_dm);
+    const premiumDm = getProfile(DEFAULT_PROFILE_REGISTRY, 'premium_dm');
+    expect(cfg.model).toBe(premiumDm.model);
+    expect(cfg.dmProfile).toEqual(premiumDm);
   });
 
   it('resolves the runtime DM model from a premium_dm profile override', () => {

@@ -14,6 +14,7 @@ import {
   getSessionRecap,
   openScene,
   resolveDemoModel,
+  resolveProfileRegistry,
 } from '../src/internal.js';
 import type { ModulePack } from '../src/internal.js';
 import { bareDb } from './support/db.js';
@@ -91,7 +92,17 @@ describe('demo campaign mode', () => {
     expect(intended.profile).toBe('premium_dm');
     expect(intended.quality).toBe('intended');
 
-    const economy = resolveDemoModel(undefined, 'economy_or_experimental');
+    // economy_or_experimental has no default provider/model — explicit config
+    // is required. This mirrors real usage: ops must opt in deliberately.
+    const economyRegistry = resolveProfileRegistry({
+      LOREWEAVER_PROFILE_ECONOMY_OR_EXPERIMENTAL_PROVIDER: 'anthropic',
+      LOREWEAVER_PROFILE_ECONOMY_OR_EXPERIMENTAL_MODEL:
+        'claude-haiku-4-5-20251001',
+    });
+    const economy = resolveDemoModel(
+      economyRegistry,
+      'economy_or_experimental',
+    );
     expect(economy.quality).toBe('experimental');
     expect(economy.experimental).toBe(true);
     expect(economy.disclaimer).toMatch(/experimental/i);
@@ -103,6 +114,7 @@ describe('demo campaign mode', () => {
       sessionId: SESSION,
       startedAt: '2026-05-21T00:00:00.000Z',
       dmProfile: 'economy_or_experimental',
+      profileRegistry: economyRegistry,
     });
     expect(demo.model.quality).toBe('experimental');
     expect(demo.model.disclaimer).toMatch(/experimental/i);
