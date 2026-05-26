@@ -2,6 +2,12 @@ import type { ModelClient, ModelMessage } from '../model/client.js';
 import { parseToolCalls, renderToolResults } from './protocol.js';
 import type { ToolContext, ToolRegistry, ToolResult } from './tools.js';
 
+export interface RunModelLoopTrace {
+  readonly campaignId?: string;
+  readonly sessionId?: string;
+  readonly turnId?: string;
+}
+
 /**
  * Model/tool round loop (E5).
  *
@@ -47,6 +53,12 @@ export interface RunModelLoopInput {
    * the success and failure paths.
    */
   onRoundStart?: () => void;
+  /**
+   * Optional trace metadata forwarded to the ModelClient on every round
+   * (loreweaver-0jq.11). Adapters that can route trace info to provider-side
+   * logs will use it; others ignore it.
+   */
+  trace?: RunModelLoopTrace;
 }
 
 export interface RunModelLoopResult {
@@ -66,19 +78,30 @@ export async function runModelLoop(
     initialUserMessage,
     maxToolRounds,
     onRoundStart,
+    trace,
   } = input;
 
   const messages: ModelMessage[] = [
     { role: 'user', content: initialUserMessage },
   ];
   const toolCalls: ExecutedToolCall[] = [];
+  const tools = registry.definitions();
   let rounds = 0;
   let narration: string | undefined;
 
   while (rounds < maxToolRounds) {
     rounds += 1;
     onRoundStart?.();
-    const modelText = await model.complete({ system, messages });
+    const result = await model.complete({
+      system,
+      messages,
+      // Provider-neutral tool definitions (loreweaver-0jq.10) — adapters with
+      // a native tool channel may use them; the fenced-text protocol below
+      // does not consult them and is unchanged.
+      tools,
+      ...(trace ? { trace } : {}),
+    });
+    const modelText = result.text;
     const calls = parseToolCalls(modelText);
     if (calls.length === 0) {
       narration = modelText.trim();

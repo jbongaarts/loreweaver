@@ -45,7 +45,11 @@ describe('AgentSdkModelClient', () => {
       ],
     });
 
-    expect(out).toBe('narration');
+    expect(out.text).toBe('narration');
+    // The adapter knows it received a successful result message and reports
+    // `end_turn` accordingly — there is no native tool-call channel exposed.
+    expect(out.stopReason).toBe('end_turn');
+    expect(out.toolCalls).toBeUndefined();
     expect(queryMock).toHaveBeenCalledOnce();
     const arg = queryMock.mock.calls[0][0] as {
       prompt: string;
@@ -80,7 +84,39 @@ describe('AgentSdkModelClient', () => {
       messages: [{ role: 'user', content: 'x' }],
     });
 
-    expect(out).toBe('final');
+    expect(out.text).toBe('final');
+  });
+
+  it('ignores structured tools / responseFormat / profile / trace without failing (loreweaver-0jq.11)', async () => {
+    queryMock.mockReturnValue(sdkStream(ok('ok')));
+
+    const out = await new AgentSdkModelClient('m').complete({
+      messages: [{ role: 'user', content: 'hi' }],
+      tools: [
+        {
+          name: 'roll',
+          description: 'roll dice',
+          inputSchema: {
+            type: 'object',
+            properties: { dice: { type: 'string' } },
+            required: ['dice'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      responseFormat: 'text',
+      profile: { profile: 'premium_dm', tier: 'premium', canonChanging: true },
+      trace: { turnId: 'turn-1', campaignId: 'camp-1' },
+    });
+
+    // The Agent SDK has no native tool-use surface; the adapter accepts the
+    // structured fields, ignores them, and still returns the text result.
+    expect(out.text).toBe('ok');
+    const arg = queryMock.mock.calls[0][0] as {
+      options: Record<string, unknown>;
+    };
+    expect(arg.options).not.toHaveProperty('tools');
+    expect(arg.options).not.toHaveProperty('trace');
   });
 
   it('throws ModelClientError on an SDK error result (loreweaver-jmv)', async () => {

@@ -8,6 +8,7 @@ import type {
   EvaluationScenario,
   ModelClient,
   ModelCompleteInput,
+  ModelCompleteResult,
 } from '../src/internal.js';
 
 class ScriptedModel implements ModelClient {
@@ -16,11 +17,11 @@ class ScriptedModel implements ModelClient {
 
   constructor(private readonly replies: string[]) {}
 
-  complete(input: ModelCompleteInput): Promise<string> {
+  complete(input: ModelCompleteInput): Promise<ModelCompleteResult> {
     this.seen.push(input);
     const reply = this.replies[this.index] ?? '';
     this.index += 1;
-    return Promise.resolve(reply);
+    return Promise.resolve({ text: reply });
   }
 }
 
