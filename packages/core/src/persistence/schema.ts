@@ -1,5 +1,6 @@
 import type { Db } from './db.js';
 import { withTransaction } from './db.js';
+import { migrateSchema } from './migrations.js';
 
 export const SCHEMA_VERSION = 8;
 
@@ -317,8 +318,6 @@ function assertSchemaCompatible(db: Db): void {
     );
   }
   if (version < SCHEMA_VERSION) {
-    throw new SchemaCompatibilityError(
-      `database schema_version ${version} is older than supported version ${SCHEMA_VERSION}; automatic migration is not available`,
-    );
+    migrateSchema(db, version, SCHEMA_VERSION);
   }
 }
