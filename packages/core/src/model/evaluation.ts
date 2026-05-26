@@ -230,7 +230,8 @@ export async function evaluateModelProfile(
         messages: [...transcript],
       };
       const startedAt = now();
-      const output = await input.model.complete(modelInput);
+      const result = await input.model.complete(modelInput);
+      const output = result.text;
       const latencyMs = now() - startedAt;
       const costUsd =
         input.costEstimator?.({

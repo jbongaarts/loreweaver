@@ -1,6 +1,10 @@
 import { query } from '@anthropic-ai/claude-agent-sdk';
 import type { SDKResultSuccess } from '@anthropic-ai/claude-agent-sdk';
-import type { ModelClient, ModelCompleteInput } from './client.js';
+import type {
+  ModelClient,
+  ModelCompleteInput,
+  ModelCompleteResult,
+} from './client.js';
 import { ModelClientError } from './client.js';
 
 /**
@@ -68,12 +72,19 @@ export class AgentSdkModelClient implements ModelClient {
     this.#auth = auth;
   }
 
-  async complete(input: ModelCompleteInput): Promise<string> {
+  async complete(input: ModelCompleteInput): Promise<ModelCompleteResult> {
+    // The Agent SDK exposes a single `prompt` string + `systemPrompt` option,
+    // so the adapter flattens the structured messages internally. This is the
+    // permitted-flatten path (loreweaver-0jq.11): the contract above carries
+    // structure, the adapter renders the SDK's actual surface. Native tool
+    // channels, response-format hints, profile, and trace are not yet wired
+    // through the Agent SDK and are intentionally ignored — callers can
+    // populate them and other adapters will read them.
     const prompt = input.messages
       .map((m) => `${m.role}: ${m.content}`)
       .join('\n');
     const auth = this.#resolveAuth();
-    let result: string | undefined;
+    let text: string | undefined;
     let errorSubtype: string | undefined;
     for await (const message of query({
       prompt,
@@ -89,21 +100,25 @@ export class AgentSdkModelClient implements ModelClient {
     })) {
       if (message.type === 'result') {
         if (message.subtype === 'success') {
-          result = (message as SDKResultSuccess).result;
+          text = (message as SDKResultSuccess).result;
         } else {
           // SDKResultError: type 'result' with a non-'success' subtype.
           errorSubtype = message.subtype;
         }
       }
     }
-    if (result === undefined) {
+    if (text === undefined) {
       throw new ModelClientError(
         errorSubtype !== undefined
           ? `Agent SDK returned an error result (subtype: ${errorSubtype})`
           : 'Agent SDK response ended without a result message',
       );
     }
-    return result;
+    // The Agent SDK already drives any tool use internally and surfaces only
+    // the final assistant text, so the structured `toolCalls` channel stays
+    // unpopulated. `stopReason` is `end_turn` whenever we got a successful
+    // result message.
+    return { text, stopReason: 'end_turn' };
   }
 
   /**

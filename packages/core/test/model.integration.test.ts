@@ -12,6 +12,6 @@ describe.skipIf(!hasKey)('AgentSdkModelClient round-trip', () => {
       system: 'Reply with exactly the word: pong',
       messages: [{ role: 'user', content: 'ping' }],
     });
-    expect(out.trim().length).toBeGreaterThan(0);
+    expect(out.text.trim().length).toBeGreaterThan(0);
   }, 30_000);
 });

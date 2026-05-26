@@ -56,11 +56,11 @@ export async function extractCampaignBible(
   }
   const userContent = renderUserContent(input);
   const messages: ModelMessage[] = [{ role: 'user', content: userContent }];
-  const raw = await model.complete({
+  const result = await model.complete({
     system: BIBLE_EXTRACTOR_SYSTEM_PROMPT,
     messages,
   });
-  return parseBibleResponse(raw);
+  return parseBibleResponse(result.text);
 }
 
 function parseBibleResponse(raw: string): CampaignBibleInput {

@@ -116,6 +116,11 @@ export async function runTurn(
       onRoundStart: () => {
         rounds += 1;
       },
+      trace: {
+        campaignId: input.campaignId,
+        sessionId: input.sessionId,
+        turnId: input.turnId,
+      },
     });
 
     const closedSceneIds = extractClosedSceneIds(toolCalls);

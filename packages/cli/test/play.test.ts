@@ -59,9 +59,9 @@ function routedFakeModel(routes: {
   return {
     complete: async (input) => {
       if (input.system?.includes('extract structured world facts')) {
-        return routes.bible();
+        return { text: await routes.bible() };
       }
-      return routes.summary();
+      return { text: await routes.summary() };
     },
   };
 }
@@ -809,9 +809,9 @@ describe('runPlay', () => {
       complete: async (input) => {
         if (input.system?.includes('extract structured world facts')) {
           bibleCallContents.push(input.messages[0]?.content ?? '');
-          return ROUTED_FAKE_BIBLE_JSON;
+          return { text: ROUTED_FAKE_BIBLE_JSON };
         }
-        return FAKE_ARC_SUMMARY;
+        return { text: FAKE_ARC_SUMMARY };
       },
     };
 
