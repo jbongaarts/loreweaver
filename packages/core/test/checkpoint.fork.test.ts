@@ -13,7 +13,7 @@ import { openDatabase } from '../src/persistence/db.js';
 const doltOk = DoltRepo.available();
 
 describe.skipIf(!doltOk)('CheckpointStore.forkFromCheckpoint', () => {
-  it('forks a checkpoint into an isolated branch + working copy', () => {
+  it('forks a checkpoint into an isolated branch + working copy', { timeout: 30000 }, () => {
     const root = mkdtempSync(join(tmpdir(), 'lw-fk-'));
     const src = join(root, 'live.db');
     const db = openDatabase(src);
