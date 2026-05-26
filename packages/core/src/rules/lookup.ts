@@ -1,7 +1,4 @@
-import type {
-  ResolvedRulesStack,
-  RulesStackRecordSource,
-} from './stack.js';
+import type { ResolvedRulesStack, RulesStackRecordSource } from './stack.js';
 import { normalizeRulesRecordName } from './stack.js';
 import type {
   RulesPackLicense,

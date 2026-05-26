@@ -3,11 +3,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
+  BEADS_RESERVED_REF,
   SeparationError,
   assertSeparateFromBeads,
   normalizeRemoteUrl,
   readDoltRemotes,
-  BEADS_RESERVED_REF,
 } from '../src/persistence/checkpoint/separation.js';
 
 /** Write a minimal `.dolt/repo_state.json` with the given remotes. */
@@ -21,7 +21,9 @@ function doltRepoWithRemotes(
     full[name] = {
       name,
       url: r.url,
-      fetch_specs: r.fetch_specs ?? ['refs/heads/*:refs/remotes/' + name + '/*'],
+      fetch_specs: r.fetch_specs ?? [
+        'refs/heads/*:refs/remotes/' + name + '/*',
+      ],
       params: {},
     };
   }
@@ -40,9 +42,9 @@ describe('beads-Dolt separation guard', () => {
   });
 
   it('rejects a dolt dir equal to the beads dir', () => {
-    expect(() => assertSeparateFromBeads('/proj/.beads', '/proj/.beads')).toThrow(
-      SeparationError,
-    );
+    expect(() =>
+      assertSeparateFromBeads('/proj/.beads', '/proj/.beads'),
+    ).toThrow(SeparationError);
   });
 
   it('rejects a dolt dir nested inside the beads dir', () => {

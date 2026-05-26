@@ -65,7 +65,9 @@ describe('AgentSdkModelClient', () => {
       messages: [{ role: 'user', content: 'hi' }],
     });
 
-    const arg = queryMock.mock.calls[0][0] as { options: Record<string, unknown> };
+    const arg = queryMock.mock.calls[0][0] as {
+      options: Record<string, unknown>;
+    };
     expect('systemPrompt' in arg.options).toBe(false);
   });
 
@@ -96,7 +98,9 @@ describe('AgentSdkModelClient', () => {
   });
 
   it('throws ModelClientError when the stream ends without a result message', async () => {
-    queryMock.mockReturnValue(sdkStream({ type: 'system' }, { type: 'assistant' }));
+    queryMock.mockReturnValue(
+      sdkStream({ type: 'system' }, { type: 'assistant' }),
+    );
 
     await expect(
       new AgentSdkModelClient('m').complete({
@@ -113,7 +117,9 @@ describe('AgentSdkModelClient', () => {
         messages: [{ role: 'user', content: 'hi' }],
       });
 
-      const arg = queryMock.mock.calls[0][0] as { options: Record<string, unknown> };
+      const arg = queryMock.mock.calls[0][0] as {
+        options: Record<string, unknown>;
+      };
       expect('env' in arg.options).toBe(false);
     });
 

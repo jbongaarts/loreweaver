@@ -1,7 +1,4 @@
-import {
-  assertShippablePack,
-  evaluatePackPolicy,
-} from '../world/license.js';
+import { assertShippablePack, evaluatePackPolicy } from '../world/license.js';
 import type { PackUsePolicy } from '../world/license.js';
 import type { RulesPackLicense } from './types.js';
 import { RulesPackError } from './types.js';

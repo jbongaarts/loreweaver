@@ -9,12 +9,12 @@
  * — for non-caster classes — that no spells were selected.
  */
 
+import type { AbilityScoreName, AbilityScores } from '../characterCreation.js';
 import { lookupRulesRecord } from '../rules/lookup.js';
 import { PATHFINDER2E_REMASTER_RULES_PACK } from '../rules/pathfinder2eRemaster.js';
 import { resolveRulesStack } from '../rules/stack.js';
 import type { ResolvedRulesStack } from '../rules/stack.js';
 import type { RulesRecordKind } from '../rules/types.js';
-import type { AbilityScoreName, AbilityScores } from '../characterCreation.js';
 
 const ABILITY_SCORE_NAMES: readonly AbilityScoreName[] = [
   'strength',
@@ -108,7 +108,12 @@ function lookupOfKind(
   const traits = Array.isArray(traitsRaw)
     ? traitsRaw.filter((t): t is string => typeof t === 'string')
     : [];
-  return { ok: true, data: result.record.data, recordName: result.record.name, traits };
+  return {
+    ok: true,
+    data: result.record.data,
+    recordName: result.record.name,
+    traits,
+  };
 }
 
 export function validatePathfinderCharacterDraft(
@@ -122,13 +127,7 @@ export function validatePathfinderCharacterDraft(
   validateBackground(draft, stack, errors);
   const classData = validateClass(draft, stack, errors);
   validateAbilityScores(draft, errors);
-  validateFeat(
-    'class feat',
-    draft.classFeat,
-    draft.className,
-    stack,
-    errors,
-  );
+  validateFeat('class feat', draft.classFeat, draft.className, stack, errors);
   validateFeat(
     'ancestry feat',
     draft.ancestryFeat,
@@ -245,10 +244,7 @@ function validateAbilityScores(
   draft: PathfinderCharacterDraft,
   errors: string[],
 ): void {
-  if (
-    typeof draft.abilityScores !== 'object' ||
-    draft.abilityScores === null
-  ) {
+  if (typeof draft.abilityScores !== 'object' || draft.abilityScores === null) {
     errors.push('abilityScores object is required');
     return;
   }

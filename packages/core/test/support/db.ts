@@ -17,9 +17,7 @@ export function bareDb(): Db {
   return db;
 }
 
-export function freshDbWithSession(
-  options: FreshDbSessionOptions = {},
-): Db {
+export function freshDbWithSession(options: FreshDbSessionOptions = {}): Db {
   const db = bareDb();
   startSession(db, {
     campaignId: options.campaignId ?? DEFAULT_TEST_CAMPAIGN_ID,

@@ -1,12 +1,9 @@
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
-import {
-  RulesPackError,
-  loadRulesPackFromDirectory,
-} from '../src/internal.js';
+import { RulesPackError, loadRulesPackFromDirectory } from '../src/internal.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -166,18 +163,23 @@ describe('loadRulesPackFromDirectory — determinism', () => {
     const dir = makeTmpDir();
     // Write records in reverse alphabetical key order.
     const reversedRecords = JSON.stringify(
-      JSON.parse(VALID_RECORDS).concat([
-        {
-          systemId: 'test-system',
-          kind: 'rule',
-          key: 'rule:zeta',
-          name: 'Zeta Rule',
-          data: { text: 'The last rule alphabetically.' },
-          source: 'Loader fixture § 2',
-          license: JSON.parse(VALID_RECORDS)[0].license,
-          provenance: { sourceRef: 'test-system:loader-fixture', locator: '§ 2' },
-        },
-      ]).reverse(),
+      JSON.parse(VALID_RECORDS)
+        .concat([
+          {
+            systemId: 'test-system',
+            kind: 'rule',
+            key: 'rule:zeta',
+            name: 'Zeta Rule',
+            data: { text: 'The last rule alphabetically.' },
+            source: 'Loader fixture § 2',
+            license: JSON.parse(VALID_RECORDS)[0].license,
+            provenance: {
+              sourceRef: 'test-system:loader-fixture',
+              locator: '§ 2',
+            },
+          },
+        ])
+        .reverse(),
     );
     writeFileSync(join(dir, 'manifest.json'), VALID_MANIFEST, 'utf8');
     writeFileSync(join(dir, 'records.json'), reversedRecords, 'utf8');

@@ -6,12 +6,12 @@
 //   ContextAssembler  - E5 bounded prompt assembly
 //   Orchestrator      - E5 turn loop
 
-export interface Persistence {}
-export interface WorldSubsystem {}
-export interface MemorySubsystem {}
-export interface ToolLayer {}
-export interface ContextAssembler {}
-export interface Orchestrator {}
+export type Persistence = {};
+export type WorldSubsystem = {};
+export type MemorySubsystem = {};
+export type ToolLayer = {};
+export type ContextAssembler = {};
+export type Orchestrator = {};
 
 // Runtime witness so the seam set is testable and discoverable.
 export const SEAMS = [

@@ -60,8 +60,9 @@ describe('rules pack fixtures', () => {
   });
 
   it('marks both fixtures shippable under the rules-pack policy', () => {
-    expect(evaluateRulesPackPolicy(DND5E_SRD_RULES_PACK.meta.license).shippable)
-      .toBe(true);
+    expect(
+      evaluateRulesPackPolicy(DND5E_SRD_RULES_PACK.meta.license).shippable,
+    ).toBe(true);
     expect(
       evaluateRulesPackPolicy(PATHFINDER2E_REMASTER_RULES_PACK.meta.license)
         .shippable,

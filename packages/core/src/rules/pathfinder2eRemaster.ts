@@ -50,10 +50,7 @@ const PF2E_LICENSE: RulesPackLicense = {
 const SOURCE_LABEL = 'Pathfinder 2e Remaster Reference (ORC fixture)';
 
 function record(
-  record: Omit<
-    RulesRecord,
-    'systemId' | 'source' | 'license' | 'provenance'
-  >,
+  record: Omit<RulesRecord, 'systemId' | 'source' | 'license' | 'provenance'>,
 ): RulesRecord {
   return {
     systemId: PF2E_SYSTEM_ID,

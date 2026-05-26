@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
-  buildCharacterCreationMutations,
   CharacterCreationError,
   EMBERFALL_HOLLOW,
   PATHFINDER2E_REMASTER_RULES_PACK,
+  buildCharacterCreationMutations,
   completeCharacterCreation,
   createCampaign,
   initSchema,
@@ -176,7 +176,10 @@ describe('character creation', () => {
 
     expect(result).toEqual({
       ok: false,
-      errors: ['unsupported SRD class: Warlock', 'level-1 hit point maximum must be 2'],
+      errors: [
+        'unsupported SRD class: Warlock',
+        'level-1 hit point maximum must be 2',
+      ],
       prompt:
         'Revise the character draft before persisting it: unsupported SRD class: Warlock; level-1 hit point maximum must be 2',
     });

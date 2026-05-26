@@ -31,7 +31,9 @@ function emptyHome(): string {
 describe('resolveDoltBinary precedence', () => {
   it('returns an explicit override path when it exists', () => {
     const p = fakeBin(BIN);
-    expect(resolveDoltBinary({ explicitPath: p, env: {}, pathDirs: [] })).toBe(p);
+    expect(resolveDoltBinary({ explicitPath: p, env: {}, pathDirs: [] })).toBe(
+      p,
+    );
   });
 
   it('honors the LOREWEAVER_DOLT_BIN env override', () => {

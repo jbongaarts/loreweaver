@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 import type { ModelClient, ModelMessage } from '../src/model/client.js';
 
 class FakeModelClient implements ModelClient {
-  async complete(input: { system?: string; messages: ModelMessage[] }): Promise<string> {
+  async complete(input: {
+    system?: string;
+    messages: ModelMessage[];
+  }): Promise<string> {
     const last = input.messages.at(-1)?.content ?? '';
     return `echo:${last}`;
   }

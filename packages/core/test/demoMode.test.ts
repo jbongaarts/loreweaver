@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  DEMO_TURN_CAP,
   DEFAULT_DEMO_PACK,
+  DEMO_TURN_CAP,
   DemoModeError,
   appendSceneLog,
   assertDemoContentAllowed,
@@ -216,8 +216,9 @@ describe('demo campaign mode', () => {
 
     expect(checkpointCalls).toBe(1);
     expect(result.checkpointId).toBe('demo-checkpoint-1');
-    expect(getSessionRecap(db, { campaignId: CAMPAIGN, sessionId: SESSION })?.recap)
-      .toBe('Demo session: the wanderer set out for the hollow.');
+    expect(
+      getSessionRecap(db, { campaignId: CAMPAIGN, sessionId: SESSION })?.recap,
+    ).toBe('Demo session: the wanderer set out for the hollow.');
     db.close();
   });
 });

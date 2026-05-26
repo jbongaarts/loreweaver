@@ -21,10 +21,7 @@ import type { ModulePack, PackLicense } from '../src/internal.js';
 
 const tmpDirs: string[] = [];
 const worldQuerySource = readFileSync(
-  join(
-    dirname(fileURLToPath(import.meta.url)),
-    '../src/world/worldQuery.ts',
-  ),
+  join(dirname(fileURLToPath(import.meta.url)), '../src/world/worldQuery.ts'),
   'utf8',
 );
 
@@ -77,7 +74,9 @@ describe('module schema validation', () => {
   });
 
   it('rejects a missing required field', () => {
-    const bad = clone() as Record<string, unknown> & { meta: { title?: string } };
+    const bad = clone() as Record<string, unknown> & {
+      meta: { title?: string };
+    };
     delete bad.meta.title;
     expect(() => validateModulePack(bad)).toThrow(WorldModuleError);
   });
@@ -104,15 +103,18 @@ describe('module schema validation', () => {
 
   it('rejects an exit pointing at an unknown location', () => {
     const bad = clone();
-    (bad.locations[0].exits as Array<{ toLocationId: string }>)[0].toLocationId =
-      'void';
+    (
+      bad.locations[0].exits as Array<{ toLocationId: string }>
+    )[0].toLocationId = 'void';
     expect(() => validateModulePack(bad)).toThrow(/unknown location/);
   });
 
   it('rejects an encounter whose locationId does not resolve', () => {
     const bad = clone();
     (bad.encounters[0] as { locationId: string }).locationId = 'nowhere';
-    expect(() => validateModulePack(bad)).toThrow(/encounters\[.*\] locationId/);
+    expect(() => validateModulePack(bad)).toThrow(
+      /encounters\[.*\] locationId/,
+    );
   });
 
   it('rejects an npc whose locationId does not resolve', () => {
@@ -276,9 +278,24 @@ describe('campaign fork + worldQuery', () => {
     );
     // Three ids that collide if '_' and '%' are treated as LIKE wildcards
     // rather than literals.
-    insertNpc.run('gob_lin', 'Underscore', 'loc-1', JSON.stringify({ mood: 'calm' }));
-    insertNpc.run('gobXlin', 'Decoy', 'loc-1', JSON.stringify({ mood: 'calm' }));
-    insertNpc.run('gob%lin', 'Percent', 'loc-1', JSON.stringify({ mood: 'calm' }));
+    insertNpc.run(
+      'gob_lin',
+      'Underscore',
+      'loc-1',
+      JSON.stringify({ mood: 'calm' }),
+    );
+    insertNpc.run(
+      'gobXlin',
+      'Decoy',
+      'loc-1',
+      JSON.stringify({ mood: 'calm' }),
+    );
+    insertNpc.run(
+      'gob%lin',
+      'Percent',
+      'loc-1',
+      JSON.stringify({ mood: 'calm' }),
+    );
 
     const writeOverlay = (id: string, value: string) =>
       mutateState(db, {

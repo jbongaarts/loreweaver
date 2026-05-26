@@ -107,10 +107,7 @@ export function closeSession(db: Db, input: CloseSessionInput): SessionRecord {
   });
 }
 
-export function getSession(
-  db: Db,
-  key: SessionKey,
-): SessionRecord | undefined {
+export function getSession(db: Db, key: SessionKey): SessionRecord | undefined {
   const row = db
     .prepare(
       `SELECT campaign_id, session_id, status, started_at, closed_at

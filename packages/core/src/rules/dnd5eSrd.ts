@@ -27,9 +27,7 @@ const DND5E_SOURCE: RulesPackSource = {
 function provenanceFor(sourcePage: number | undefined): RecordProvenance {
   return {
     sourceRef: SRD_LICENSE.sourceUrl,
-    ...(sourcePage === undefined
-      ? {}
-      : { locator: `p. ${sourcePage}` }),
+    ...(sourcePage === undefined ? {} : { locator: `p. ${sourcePage}` }),
   };
 }
 

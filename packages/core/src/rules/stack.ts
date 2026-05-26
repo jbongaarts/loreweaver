@@ -115,10 +115,7 @@ function addonOrder(pack: RulesPack): number {
   return pack.meta.order ?? Number.MAX_SAFE_INTEGER;
 }
 
-function assertCompatibleWithBase(
-  addon: RulesPack,
-  base: RulesPackMeta,
-): void {
+function assertCompatibleWithBase(addon: RulesPack, base: RulesPackMeta): void {
   const compatible = addon.meta.compatibleBaseSystems?.some((candidate) =>
     matchesBase(candidate, base),
   );

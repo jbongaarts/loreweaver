@@ -80,9 +80,7 @@ describe('runNewCommand', () => {
       // managed campaigns ship with an authoritative system identity.
       const binding = readCampaignRulesBinding(db);
       expect(binding).toBeDefined();
-      expect(binding?.base.systemId).toBe(
-        DND5E_SRD_RULES_PACK.meta.systemId,
-      );
+      expect(binding?.base.systemId).toBe(DND5E_SRD_RULES_PACK.meta.systemId);
       expect(binding?.base.packId).toBe(DND5E_SRD_RULES_PACK.meta.packId);
       expect(binding?.addons).toEqual([]);
     } finally {
@@ -123,7 +121,9 @@ describe('runCampaignsCommand', () => {
   it('renames a campaign', () => {
     const h = harness();
     runNewCommand(['Quest'], h.deps);
-    expect(runCampaignsCommand(['rename', 'quest', 'New Name'], h.deps)).toBe(0);
+    expect(runCampaignsCommand(['rename', 'quest', 'New Name'], h.deps)).toBe(
+      0,
+    );
     expect(loadRegistry(h.root).campaigns[0].name).toBe('New Name');
   });
 

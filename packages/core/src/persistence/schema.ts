@@ -254,18 +254,21 @@ export function initSchema(db: Db): void {
     `,
     );
     const now = new Date(0).toISOString();
-    txnDb.prepare(
-      `INSERT OR IGNORE INTO character(id, provenance, session_id, updated_at)
+    txnDb
+      .prepare(
+        `INSERT OR IGNORE INTO character(id, provenance, session_id, updated_at)
      VALUES (1, ?, ?, ?)`,
-    ).run('system:init_schema', 'bootstrap', now);
-    txnDb.prepare(
-      `INSERT OR IGNORE INTO clock(id, provenance, session_id, updated_at)
+      )
+      .run('system:init_schema', 'bootstrap', now);
+    txnDb
+      .prepare(
+        `INSERT OR IGNORE INTO clock(id, provenance, session_id, updated_at)
      VALUES (1, ?, ?, ?)`,
-    ).run('system:init_schema', 'bootstrap', now);
-    txnDb.prepare('INSERT OR REPLACE INTO meta(key, value) VALUES (?, ?)').run(
-      'schema_version',
-      String(SCHEMA_VERSION),
-    );
+      )
+      .run('system:init_schema', 'bootstrap', now);
+    txnDb
+      .prepare('INSERT OR REPLACE INTO meta(key, value) VALUES (?, ?)')
+      .run('schema_version', String(SCHEMA_VERSION));
   });
 }
 

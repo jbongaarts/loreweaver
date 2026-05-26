@@ -205,7 +205,12 @@ function validateCommonInput(input: MutateStateInput): void {
 }
 
 function setCharacterField(db: Db, input: MutateStateInput): void {
-  const value = validatedFieldValue('character', input.field, input.value, CHARACTER_FIELDS);
+  const value = validatedFieldValue(
+    'character',
+    input.field,
+    input.value,
+    CHARACTER_FIELDS,
+  );
   db.prepare(
     `UPDATE character
      SET ${input.field} = ?,
@@ -222,7 +227,12 @@ function setInventoryField(db: Db, input: MutateStateInput): void {
     [['id', input.id ?? '']],
     () => 'inventory mutate_state id is required',
   );
-  const value = validatedFieldValue('inventory', input.field, input.value, INVENTORY_FIELDS);
+  const value = validatedFieldValue(
+    'inventory',
+    input.field,
+    input.value,
+    INVENTORY_FIELDS,
+  );
 
   db.prepare(
     `INSERT INTO inventory(
@@ -252,7 +262,12 @@ function setInventoryField(db: Db, input: MutateStateInput): void {
 }
 
 function setClockField(db: Db, input: MutateStateInput): void {
-  const value = validatedFieldValue('clock', input.field, input.value, CLOCK_FIELDS);
+  const value = validatedFieldValue(
+    'clock',
+    input.field,
+    input.value,
+    CLOCK_FIELDS,
+  );
   db.prepare(
     `UPDATE clock
      SET ${input.field} = ?,
@@ -362,13 +377,7 @@ function setKeyedJsonFact(
        provenance = excluded.provenance,
        session_id = excluded.session_id,
        updated_at = excluded.updated_at`,
-  ).run(
-    input.field,
-    valueJson,
-    input.provenance,
-    input.sessionId,
-    input.at,
-  );
+  ).run(input.field, valueJson, input.provenance, input.sessionId, input.at);
 }
 
 type SqlValue = string | number | null;

@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, statSync } from 'node:fs';
-import { resolve, relative, isAbsolute, join } from 'node:path';
+import { isAbsolute, join, relative, resolve } from 'node:path';
 
 export const BEADS_RESERVED_REF = 'refs/dolt/data';
 /** The whole namespace beads syncs through; campaigns must never touch it. */

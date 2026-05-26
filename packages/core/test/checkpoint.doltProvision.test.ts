@@ -25,8 +25,12 @@ describe('doltAssetFor', () => {
     const a = doltAssetFor('win32', 'x64');
     expect(a.asset).toBe('dolt-windows-amd64.zip');
     expect(a.sha256).toMatch(/^[0-9a-f]{64}$/);
-    expect(a.url).toContain(`/download/${DOLT_PINNED_VERSION}/dolt-windows-amd64.zip`);
-    expect(doltAssetFor('linux', 'arm64').asset).toBe('dolt-linux-arm64.tar.gz');
+    expect(a.url).toContain(
+      `/download/${DOLT_PINNED_VERSION}/dolt-windows-amd64.zip`,
+    );
+    expect(doltAssetFor('linux', 'arm64').asset).toBe(
+      'dolt-linux-arm64.tar.gz',
+    );
   });
 
   it('throws DoltUnavailableError for an unsupported platform/arch', () => {
@@ -61,7 +65,10 @@ describe('extractInvocation', () => {
   it.skipIf(process.platform !== 'win32')(
     'uses system bsdtar by absolute path for a .zip on win32',
     () => {
-      const inv = extractInvocation('C:\\t\\dolt-windows-amd64.zip', 'C:\\t\\x');
+      const inv = extractInvocation(
+        'C:\\t\\dolt-windows-amd64.zip',
+        'C:\\t\\x',
+      );
       expect(inv.file).toBe(
         join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'tar.exe'),
       );
@@ -77,7 +84,12 @@ describe('extractInvocation', () => {
   it('uses plain tar for a .tar.gz', () => {
     const inv = extractInvocation('/t/dolt-linux-amd64.tar.gz', '/t/x');
     expect(inv.file).toBe('tar');
-    expect(inv.args).toEqual(['-xf', '/t/dolt-linux-amd64.tar.gz', '-C', '/t/x']);
+    expect(inv.args).toEqual([
+      '-xf',
+      '/t/dolt-linux-amd64.tar.gz',
+      '-C',
+      '/t/x',
+    ]);
   });
 });
 
@@ -118,7 +130,9 @@ describe('ensureDoltAvailable decision tree', () => {
 
   it('prompts (reason=not-found) and installs on approval', async () => {
     const confirm = vi.fn().mockResolvedValue(true);
-    const provision = vi.fn().mockResolvedValue('/home/u/.loreweaver/dolt/dolt');
+    const provision = vi
+      .fn()
+      .mockResolvedValue('/home/u/.loreweaver/dolt/dolt');
     const got = await ensureDoltAvailable({
       env: {},
       platform: 'linux',
@@ -177,7 +191,9 @@ describe('ensureDoltAvailable decision tree', () => {
   });
 
   it('with LOREWEAVER_DOLT_BIN set but missing: installs only on explicit approval', async () => {
-    const provision = vi.fn().mockResolvedValue('/home/u/.loreweaver/dolt/dolt');
+    const provision = vi
+      .fn()
+      .mockResolvedValue('/home/u/.loreweaver/dolt/dolt');
     const got = await ensureDoltAvailable({
       env: { LOREWEAVER_DOLT_BIN: '/nope/dolt' },
       platform: 'linux',

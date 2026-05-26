@@ -69,7 +69,9 @@ export class AgentSdkModelClient implements ModelClient {
   }
 
   async complete(input: ModelCompleteInput): Promise<string> {
-    const prompt = input.messages.map((m) => `${m.role}: ${m.content}`).join('\n');
+    const prompt = input.messages
+      .map((m) => `${m.role}: ${m.content}`)
+      .join('\n');
     const auth = this.#resolveAuth();
     let result: string | undefined;
     let errorSubtype: string | undefined;

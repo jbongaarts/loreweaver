@@ -12,12 +12,15 @@ import {
 } from '@loreweaver/core';
 import { afterEach, describe, expect, it } from 'vitest';
 import { resolveCampaignDbPath } from '../src/campaigns.js';
-import { type CheckpointDeps, runCheckpointCommand } from '../src/checkpoints.js';
 import {
+  type CheckpointDeps,
+  runCheckpointCommand,
+} from '../src/checkpoints.js';
+import {
+  type CampaignRegistryEntry,
   addCampaign,
   emptyRegistry,
   saveRegistry,
-  type CampaignRegistryEntry,
 } from '../src/registry.js';
 
 const HAS_DOLT = DoltRepo.available();
@@ -68,7 +71,10 @@ function campaignWithCheckpoint(): { dbPath: string; checkpointId: string } {
   } finally {
     db.close();
   }
-  const store = new CheckpointStore(`${dbPath}.checkpoints`, join(dir, '.beads'));
+  const store = new CheckpointStore(
+    `${dbPath}.checkpoints`,
+    join(dir, '.beads'),
+  );
   const checkpointId = store.checkpoint(dbPath, 'first checkpoint');
   return { dbPath, checkpointId };
 }
@@ -100,7 +106,9 @@ describe('runCheckpointCommand argument handling', () => {
 });
 
 describe('resolveCampaignDbPath', () => {
-  function entry(over: Partial<CampaignRegistryEntry> = {}): CampaignRegistryEntry {
+  function entry(
+    over: Partial<CampaignRegistryEntry> = {},
+  ): CampaignRegistryEntry {
     return {
       id: 'quest',
       name: 'Quest',
@@ -177,7 +185,9 @@ describe.skipIf(!HAS_DOLT)('runCheckpointCommand with Dolt', () => {
     const { dbPath, checkpointId } = campaignWithCheckpoint();
     const h = harness({ LOREWEAVER_DB_PATH: dbPath });
     const dest = join(dirname(dbPath), 'restored.db');
-    expect(runCheckpointCommand(['restore', checkpointId, dest], h.deps)).toBe(0);
+    expect(runCheckpointCommand(['restore', checkpointId, dest], h.deps)).toBe(
+      0,
+    );
     expect(existsSync(dest)).toBe(true);
     // the active campaign database is untouched and still openable
     const db = openDatabase(dbPath);
@@ -193,7 +203,9 @@ describe.skipIf(!HAS_DOLT)('runCheckpointCommand with Dolt', () => {
     const h = harness({ LOREWEAVER_DB_PATH: dbPath });
     const dest = join(dirname(dbPath), 'occupied.db');
     openDatabase(dest).close();
-    expect(runCheckpointCommand(['restore', checkpointId, dest], h.deps)).toBe(1);
+    expect(runCheckpointCommand(['restore', checkpointId, dest], h.deps)).toBe(
+      1,
+    );
     expect(h.logs.join('\n')).toContain('restore failed');
   });
 

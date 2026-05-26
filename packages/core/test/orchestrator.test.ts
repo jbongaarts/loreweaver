@@ -108,7 +108,9 @@ describe('orchestrator turn loop', () => {
 
     expect(result.ok).toBe(true);
     expect(result.toolCalls).toHaveLength(0);
-    const inventory = db.prepare('SELECT COUNT(*) AS n FROM inventory').get() as {
+    const inventory = db
+      .prepare('SELECT COUNT(*) AS n FROM inventory')
+      .get() as {
       n: number;
     };
     expect(inventory.n).toBe(0);
@@ -186,9 +188,9 @@ describe('orchestrator turn loop', () => {
     );
 
     expect(result.ok).toBe(false);
-    const row = db
-      .prepare('SELECT name FROM character WHERE id = 1')
-      .get() as { name: string };
+    const row = db.prepare('SELECT name FROM character WHERE id = 1').get() as {
+      name: string;
+    };
     expect(row.name).toBe('Mira');
     expect(
       listSceneLog(db, {

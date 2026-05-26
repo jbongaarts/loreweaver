@@ -36,9 +36,7 @@ function recordProvenance(
   };
 }
 
-function license(
-  overrides: Partial<RulesPackLicense> = {},
-): RulesPackLicense {
+function license(overrides: Partial<RulesPackLicense> = {}): RulesPackLicense {
   return {
     licenseClass: 'open',
     licenseName: 'Creative Commons Attribution 4.0 International',
@@ -78,7 +76,10 @@ function creatureData(): Record<string, unknown> {
   };
 }
 
-function record(key: string, overrides: Partial<RulesRecord> = {}): RulesRecord {
+function record(
+  key: string,
+  overrides: Partial<RulesRecord> = {},
+): RulesRecord {
   return {
     systemId: 'dnd5e-srd',
     kind: 'creature',
@@ -107,9 +108,7 @@ function validRulesPack(
       role: 'base',
       systemId: 'dnd5e-srd',
       version: '5.1',
-      license: license(
-        licenseClass === undefined ? {} : { licenseClass },
-      ),
+      license: license(licenseClass === undefined ? {} : { licenseClass }),
       source: packSource(),
       ...metaOverrides,
     },
@@ -230,7 +229,8 @@ describe('rules pack validation', () => {
           sourceTitle: 'Pathfinder 2e Remaster (vendored)',
           sourceVersion: '1.0',
           sourceIdentity: identity,
-          recordProvenancePolicy: 'records cite Player/GM/Monster Core section.',
+          recordProvenancePolicy:
+            'records cite Player/GM/Monster Core section.',
         },
         records: [
           record('creature:goblin', {
@@ -260,17 +260,14 @@ describe('rules pack validation', () => {
   });
 
   it('rejects records missing provenance', () => {
-    const { provenance: _p, ...recordWithoutProvenance } = record(
-      'creature:goblin',
-    );
+    const { provenance: _p, ...recordWithoutProvenance } =
+      record('creature:goblin');
     const pack = {
       ...validRulesPack(),
       records: [recordWithoutProvenance],
     };
     expect(() => validateRulesPack(pack)).toThrow(RulesPackError);
-    expect(() => validateRulesPack(pack)).toThrow(
-      /records\[0\]\.provenance/,
-    );
+    expect(() => validateRulesPack(pack)).toThrow(/records\[0\]\.provenance/);
   });
 
   it('rejects packs missing meta.source entirely', () => {
@@ -306,9 +303,7 @@ describe('rules pack validation', () => {
       ],
     });
     expect(() => validateRulesPack(pack)).toThrow(RulesPackError);
-    expect(() => validateRulesPack(pack)).toThrow(
-      /abilityScores\.strength/,
-    );
+    expect(() => validateRulesPack(pack)).toThrow(/abilityScores\.strength/);
   });
 
   it('rejects dnd5e spell records missing the level field', () => {

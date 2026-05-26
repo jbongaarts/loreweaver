@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
-  composeArcSummary,
-  ModelClientError,
   MemorySummaryError,
   type ModelClient,
+  ModelClientError,
   type ModelCompleteInput,
   type SessionRecapRecord,
+  composeArcSummary,
 } from '../src/internal.js';
 
 function fakeModel(
@@ -52,8 +52,16 @@ describe('composeArcSummary', () => {
       campaignId: 'camp-1',
       arcId: 'arc-1',
       recaps: [
-        recap('session-1', 'Mira found the chalk sigil.', '2026-05-20T10:00:00.000Z'),
-        recap('session-2', 'The warden welcomed you in.', '2026-05-21T10:00:00.000Z'),
+        recap(
+          'session-1',
+          'Mira found the chalk sigil.',
+          '2026-05-20T10:00:00.000Z',
+        ),
+        recap(
+          'session-2',
+          'The warden welcomed you in.',
+          '2026-05-21T10:00:00.000Z',
+        ),
       ],
       bible: EMPTY_BIBLE,
     });
@@ -70,9 +78,19 @@ describe('composeArcSummary', () => {
       campaignId: 'camp-1',
       arcId: 'arc-1',
       recaps: [
-        recap('session-1', 'Mira found the chalk sigil.', '2026-05-20T10:00:00.000Z', [
-          { target: 'plot_flags', field: 'found_sigil', op: 'set', value: true },
-        ]),
+        recap(
+          'session-1',
+          'Mira found the chalk sigil.',
+          '2026-05-20T10:00:00.000Z',
+          [
+            {
+              target: 'plot_flags',
+              field: 'found_sigil',
+              op: 'set',
+              value: true,
+            },
+          ],
+        ),
       ],
       bible: EMPTY_BIBLE,
     });
@@ -93,7 +111,13 @@ describe('composeArcSummary', () => {
     await composeArcSummary(model, {
       campaignId: 'camp-1',
       arcId: 'arc-1',
-      recaps: [recap('session-1', 'Mira found the chalk sigil.', '2026-05-20T10:00:00.000Z')],
+      recaps: [
+        recap(
+          'session-1',
+          'Mira found the chalk sigil.',
+          '2026-05-20T10:00:00.000Z',
+        ),
+      ],
       bible: NON_EMPTY_BIBLE,
     });
     const userContent = captured?.messages[0].content ?? '';

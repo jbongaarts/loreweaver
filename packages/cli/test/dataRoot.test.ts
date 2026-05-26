@@ -1,7 +1,7 @@
 import { existsSync, mkdtempSync, rmSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   campaignsDir,
@@ -18,9 +18,9 @@ describe('resolveDataRoot', () => {
     expect(resolveDataRoot({ LOREWEAVER_HOME: '/custom/root' }, 'linux')).toBe(
       '/custom/root',
     );
-    expect(
-      resolveDataRoot({ LOREWEAVER_HOME: 'C:\\custom' }, 'win32'),
-    ).toBe('C:\\custom');
+    expect(resolveDataRoot({ LOREWEAVER_HOME: 'C:\\custom' }, 'win32')).toBe(
+      'C:\\custom',
+    );
   });
 
   it('ignores a blank LOREWEAVER_HOME and falls back to the default', () => {
@@ -37,7 +37,10 @@ describe('resolveDataRoot', () => {
 
   it('uses %LOCALAPPDATA%\\Loreweaver on Windows', () => {
     expect(
-      resolveDataRoot({ LOCALAPPDATA: 'C:\\Users\\x\\AppData\\Local' }, 'win32'),
+      resolveDataRoot(
+        { LOCALAPPDATA: 'C:\\Users\\x\\AppData\\Local' },
+        'win32',
+      ),
     ).toBe(join('C:\\Users\\x\\AppData\\Local', 'Loreweaver'));
   });
 
