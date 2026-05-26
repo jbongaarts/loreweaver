@@ -7,6 +7,16 @@ import type {
 } from '../memory/summary.js';
 import type { Db } from '../persistence/db.js';
 import { jsonColumn } from '../persistence/jsonColumn.js';
+import type { AbilityScores } from '../state/liveStateSchema.js';
+import {
+  validateAbilityScoresJson,
+  validateConditionsJson,
+  validateInventoryPropertiesJson,
+} from '../state/liveStateSchema.js';
+import type {
+  CharacterConditionEntry,
+  InventoryItemProperties,
+} from '../state/liveStateSchema.js';
 import { countSceneLog, getOpenScene, listSceneLogWindow } from './scene.js';
 import type { SceneLogRecord } from './scene.js';
 
@@ -27,11 +37,11 @@ const DEFAULT_SCENE_TRANSCRIPT_LIMIT = 12;
 
 /** JSON codecs for the JSON-backed state columns the assembler reads. */
 const plotFlagValueColumn = jsonColumn<unknown>('plot_flags.value_json');
-const abilityScoresColumn = jsonColumn<Record<string, unknown>>(
+const abilityScoresColumn = jsonColumn<unknown>(
   'character.ability_scores_json',
 );
-const conditionsColumn = jsonColumn<unknown[]>('character.conditions_json');
-const inventoryPropertiesColumn = jsonColumn<Record<string, unknown>>(
+const conditionsColumn = jsonColumn<unknown>('character.conditions_json');
+const inventoryPropertiesColumn = jsonColumn<unknown>(
   'inventory.properties_json',
 );
 
@@ -53,8 +63,8 @@ export interface CharacterSnapshot {
   level: number;
   hpCurrent: number;
   hpMax: number;
-  abilityScores: Record<string, unknown>;
-  conditions: unknown[];
+  abilityScores: AbilityScores;
+  conditions: readonly CharacterConditionEntry[];
 }
 
 export interface InventoryItem {
@@ -62,7 +72,7 @@ export interface InventoryItem {
   name: string;
   quantity: number;
   location: string | undefined;
-  properties: Record<string, unknown>;
+  properties: InventoryItemProperties;
 }
 
 export interface ClockSnapshot {
@@ -156,6 +166,11 @@ export function readStateSnapshot(db: Db): StateSnapshot {
     plotFlags[row.key] = plotFlagValueColumn.decode(row.value_json);
   }
 
+  const rawAbilityScores = abilityScoresColumn.decode(
+    character.ability_scores_json,
+  );
+  const rawConditions = conditionsColumn.decode(character.conditions_json);
+
   return {
     character: {
       name: character.name ?? undefined,
@@ -164,16 +179,30 @@ export function readStateSnapshot(db: Db): StateSnapshot {
       level: character.level,
       hpCurrent: character.hp_current,
       hpMax: character.hp_max,
-      abilityScores: abilityScoresColumn.decode(character.ability_scores_json),
-      conditions: conditionsColumn.decode(character.conditions_json),
+      abilityScores: validateAbilityScoresJson(
+        rawAbilityScores,
+        'character.ability_scores_json',
+      ),
+      conditions: validateConditionsJson(
+        rawConditions,
+        'character.conditions_json',
+      ),
     },
-    inventory: inventoryRows.map((row) => ({
-      id: row.id,
-      name: row.name,
-      quantity: row.quantity,
-      location: row.location ?? undefined,
-      properties: inventoryPropertiesColumn.decode(row.properties_json),
-    })),
+    inventory: inventoryRows.map((row) => {
+      const rawProperties = inventoryPropertiesColumn.decode(
+        row.properties_json,
+      );
+      return {
+        id: row.id,
+        name: row.name,
+        quantity: row.quantity,
+        location: row.location ?? undefined,
+        properties: validateInventoryPropertiesJson(
+          rawProperties,
+          `inventory[${row.id}].properties_json`,
+        ),
+      };
+    }),
     plotFlags,
     clock: {
       inGameTime: clock.in_game_time,

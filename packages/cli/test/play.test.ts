@@ -32,6 +32,7 @@ import {
   getOpenArc,
   getOpenScene,
   listClosedArcSummaries,
+  mutateState,
   openScene,
   recordTurnTrace,
   renderContextMessage,
@@ -69,10 +70,30 @@ function routedFakeModel(routes: {
 /**
  * An in-memory database whose `close()` is a no-op, so a test can assert on
  * persisted state after `runPlay` returns (runPlay closes its db on exit).
+ *
+ * Seeds a valid ability-scores object so `readStateSnapshot` passes the
+ * live-state shape validator even when tests skip character creation.
  */
 function makeDb(): { db: Db; dispose: () => void } {
   const real = openDatabase(':memory:');
   initSchema(real);
+  // Seed valid ability scores for tests that skip character creation.
+  mutateState(real, {
+    target: 'character',
+    field: 'ability_scores_json',
+    op: 'set',
+    value: {
+      strength: 10,
+      dexterity: 10,
+      constitution: 10,
+      intelligence: 10,
+      wisdom: 10,
+      charisma: 10,
+    },
+    provenance: 'test:init',
+    sessionId: 'bootstrap',
+    at: new Date(0).toISOString(),
+  });
   const db = new Proxy(real, {
     get(target, prop) {
       if (prop === 'close') {
