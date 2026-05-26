@@ -44,6 +44,24 @@ a missing prebuilt fails loud instead. Fallback: install a C++ toolchain and
 Node 24 prebuilt). Full rationale: header comment in
 `.github/workflows/ci.yml`.
 
+## Formatting & Linting
+
+Biome is the canonical formatter/linter for JS/TS source files. Do not
+introduce a second formatter for these file types; do not manually reformat code
+to fight Biome's output.
+
+```bash
+npm run format        # apply Biome formatting and import organization
+npm run format:check  # check formatting without writing
+npm run lint          # run Biome lint rules
+npm run check         # CI-style Biome validation (format + lint, no writes)
+```
+
+Run `npm run check` before opening or updating any PR that touches source files.
+The full config is in `biome.json`; existing style warnings are tracked there
+and addressed incrementally — do not suppress them with inline ignores without
+a reason.
+
 ## Architecture
 
 Text-first, persistent AI Dungeon Master for long-running fantasy campaigns;
