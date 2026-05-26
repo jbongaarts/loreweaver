@@ -1,8 +1,4 @@
-import type {
-  ModelClient,
-  ModelCompleteInput,
-  ModelMessage,
-} from '../model/client.js';
+import type { ModelClient, ModelMessage } from '../model/client.js';
 import type { CampaignBibleInput, SessionRecapRecord } from './summary.js';
 import { MemorySummaryError } from './summary.js';
 
@@ -50,7 +46,11 @@ export async function composeArcSummary(
   }
   const userContent = renderBibleAndRecaps(input.bible, input.recaps);
   const messages: ModelMessage[] = [{ role: 'user', content: userContent }];
-  return model.complete({ system: ARC_SUMMARY_SYSTEM_PROMPT, messages });
+  const result = await model.complete({
+    system: ARC_SUMMARY_SYSTEM_PROMPT,
+    messages,
+  });
+  return result.text;
 }
 
 function renderBibleAndRecaps(

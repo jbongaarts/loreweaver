@@ -106,7 +106,13 @@ export { ModelClientError } from './model/client.js';
 export type {
   ModelClient,
   ModelCompleteInput,
+  ModelCompleteResult,
   ModelMessage,
+  ModelProfileMetadata,
+  ModelResponseFormat,
+  ModelStopReason,
+  ModelToolCall,
+  ModelTraceMetadata,
 } from './model/client.js';
 export { AgentSdkModelClient } from './model/agentSdkClient.js';
 export type {

@@ -11,7 +11,9 @@ import {
 function fakeModel(
   handler: (input: ModelCompleteInput) => Promise<string> | string,
 ): ModelClient {
-  return { complete: async (input) => handler(input) };
+  return {
+    complete: async (input) => ({ text: await handler(input) }),
+  };
 }
 
 function recap(
@@ -146,7 +148,7 @@ describe('composeArcSummary', () => {
 
   it('throws MemorySummaryError when recaps is empty', async () => {
     const model: ModelClient = {
-      complete: async () => 'unused',
+      complete: async () => ({ text: 'unused' }),
     };
     await expect(
       composeArcSummary(model, {

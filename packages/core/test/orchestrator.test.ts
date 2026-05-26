@@ -7,7 +7,12 @@ import {
   openScene,
   runTurn,
 } from '../src/internal.js';
-import type { Db, ModelClient, ModelCompleteInput } from '../src/internal.js';
+import type {
+  Db,
+  ModelClient,
+  ModelCompleteInput,
+  ModelCompleteResult,
+} from '../src/internal.js';
 import { freshDbWithSession } from './support/db.js';
 
 const CAMPAIGN = 'campaign-1';
@@ -18,17 +23,17 @@ class ScriptedModel implements ModelClient {
   private index = 0;
   readonly seen: ModelCompleteInput[] = [];
   constructor(private readonly replies: string[]) {}
-  complete(input: ModelCompleteInput): Promise<string> {
+  complete(input: ModelCompleteInput): Promise<ModelCompleteResult> {
     this.seen.push(input);
     const reply = this.replies[this.index] ?? '';
     this.index += 1;
-    return Promise.resolve(reply);
+    return Promise.resolve({ text: reply });
   }
 }
 
 /** A ModelClient that always throws — simulates an SDK/model failure. */
 class FailingModel implements ModelClient {
-  complete(): Promise<string> {
+  complete(): Promise<ModelCompleteResult> {
     return Promise.reject(new Error('model unavailable'));
   }
 }
@@ -209,17 +214,17 @@ describe('orchestrator turn loop', () => {
     // Round 1 applies a mutation, round 2 throws.
     let call = 0;
     const model: ModelClient = {
-      complete(): Promise<string> {
+      complete(): Promise<ModelCompleteResult> {
         call += 1;
         if (call === 1) {
-          return Promise.resolve(
-            toolCall('mutate_state', {
+          return Promise.resolve({
+            text: toolCall('mutate_state', {
               target: 'character',
               field: 'hp_current',
               op: 'set',
               value: 99,
             }),
-          );
+          });
         }
         return Promise.reject(new Error('model crashed mid-turn'));
       },
@@ -383,7 +388,9 @@ describe('orchestrator turn loop', () => {
     // Always returns a tool call — never final narration.
     const model: ModelClient = {
       complete: () =>
-        Promise.resolve(toolCall('roll', { dice: '1d6', reason: 'loop' })),
+        Promise.resolve({
+          text: toolCall('roll', { dice: '1d6', reason: 'loop' }),
+        }),
     };
 
     const result = await runTurn(
