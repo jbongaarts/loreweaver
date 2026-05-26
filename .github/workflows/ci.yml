@@ -56,10 +56,10 @@ jobs:
       # If no matching prebuilt exists, `npm ci` fails loudly here.
       npm_config_build_from_source: "false"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Node 22 LTS (has a confirmed better-sqlite3 11.x prebuilt)
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: npm
