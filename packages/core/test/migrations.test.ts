@@ -149,6 +149,47 @@ describe('migrations', () => {
     db.close();
   });
 
+  it('migrateSchema pre-flight rejects a gap before applying any migration', () => {
+    // fromVersion=5, toVersion=8; migrations has 6 and 8 but not 7.
+    // No mutation should occur — not even migration 6.
+    const db = openDatabase(':memory:');
+    db.exec(`
+      CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+      INSERT INTO meta VALUES ('schema_version', '5');
+    `);
+    let migration6Applied = false;
+    const testMigrations: Record<number, (db: Db) => void> = {
+      6: (d) => {
+        migration6Applied = true;
+        d.exec('CREATE TABLE migration_6_proof (id INTEGER PRIMARY KEY)');
+      },
+      // 7 intentionally absent
+      8: (_d) => {},
+    };
+
+    expect(() => migrateSchema(db, 5, 8, testMigrations)).toThrow(
+      SchemaMigrationError,
+    );
+    expect(() => migrateSchema(db, 5, 8, testMigrations)).toThrow(
+      /no migration defined for version 7/,
+    );
+
+    const row = db
+      .prepare('SELECT value FROM meta WHERE key = ?')
+      .get('schema_version') as { value: string } | undefined;
+    expect(row?.value).toBe('5');
+
+    const tables = db
+      .prepare(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='migration_6_proof'",
+      )
+      .all();
+    expect(tables).toHaveLength(0);
+    expect(migration6Applied).toBe(false);
+
+    db.close();
+  });
+
   it('production MIGRATIONS registry contains a migration for SCHEMA_VERSION', () => {
     expect(MIGRATIONS[SCHEMA_VERSION]).toBeDefined();
     expect(typeof MIGRATIONS[SCHEMA_VERSION]).toBe('function');

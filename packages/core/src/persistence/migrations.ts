@@ -61,14 +61,16 @@ export function migrateSchema(
   toVersion: number,
   migrations: Readonly<Record<number, Migration>> = MIGRATIONS,
 ): void {
+  // Pre-flight: verify every required step exists before touching the DB.
   for (let v = fromVersion + 1; v <= toVersion; v++) {
-    const migration = migrations[v];
-    if (migration === undefined) {
+    if (migrations[v] === undefined) {
       throw new SchemaMigrationError(`no migration defined for version ${v}`);
     }
+  }
+  for (let v = fromVersion + 1; v <= toVersion; v++) {
     try {
       withTransaction(db, (txnDb) => {
-        migration(txnDb);
+        migrations[v]!(txnDb);
         txnDb
           .prepare('UPDATE meta SET value = ? WHERE key = ?')
           .run(String(v), 'schema_version');
