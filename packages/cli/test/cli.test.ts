@@ -226,7 +226,7 @@ describe('play graceful close on stdin EOF', () => {
         const campaign = getCampaign(db);
         expect(campaign).toBeDefined();
         expect(
-          getOpenSession(db, { campaignId: campaign!.campaignId }),
+          getOpenSession(db, { campaignId: campaign?.campaignId }),
         ).toBeUndefined();
       } finally {
         db.close();
@@ -256,10 +256,7 @@ function requireCliDist(): string {
   const cliDist = fileURLToPath(new URL('../dist/index.js', import.meta.url));
   if (!existsSync(cliDist)) {
     throw new Error(
-      `CLI dist entrypoint missing: ${cliDist}\n` +
-        '`npm test` builds it via the root `pretest` script. For a bare ' +
-        '`vitest run`, build first: `npm run build` (or `npm run clean && ' +
-        'npm run build` if a stale tsbuildinfo suppresses emit).',
+      `CLI dist entrypoint missing: ${cliDist}\n\`npm test\` builds it via the root \`pretest\` script. For a bare \`vitest run\`, build first: \`npm run build\` (or \`npm run clean && npm run build\` if a stale tsbuildinfo suppresses emit).`,
     );
   }
   return cliDist;

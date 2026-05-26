@@ -223,7 +223,7 @@ describe('stampSessionWithOpenArc', () => {
 
     const row = db
       .prepare(
-        `SELECT arc_id FROM campaign_session WHERE campaign_id = ? AND session_id = ?`,
+        'SELECT arc_id FROM campaign_session WHERE campaign_id = ? AND session_id = ?',
       )
       .get('c1', 's1') as { arc_id: string | null };
     expect(row.arc_id).toBe('arc-1');
@@ -368,7 +368,7 @@ describe('closeOpenArcAndOpenNext', () => {
     // arc-1 row: status='closed', closed_at set
     const arc1Row = db
       .prepare(
-        `SELECT status, closed_at FROM campaign_arc WHERE campaign_id = ? AND arc_id = ?`,
+        'SELECT status, closed_at FROM campaign_arc WHERE campaign_id = ? AND arc_id = ?',
       )
       .get('c1', 'arc-1') as { status: string; closed_at: string | null };
     expect(arc1Row.status).toBe('closed');
@@ -377,24 +377,24 @@ describe('closeOpenArcAndOpenNext', () => {
     // arc-2 row: status='open', sequence_no=2, opened_at=now
     const arc2Row = db
       .prepare(
-        `SELECT status, sequence_no, opened_at FROM campaign_arc WHERE campaign_id = ? AND arc_id = ?`,
+        'SELECT status, sequence_no, opened_at FROM campaign_arc WHERE campaign_id = ? AND arc_id = ?',
       )
       .get('c1', 'arc-2') as
       | { status: string; sequence_no: number; opened_at: string }
       | undefined;
     expect(arc2Row).toBeDefined();
-    expect(arc2Row!.status).toBe('open');
-    expect(arc2Row!.sequence_no).toBe(2);
-    expect(arc2Row!.opened_at).toBe('2026-01-10T00:00:00Z');
+    expect(arc2Row?.status).toBe('open');
+    expect(arc2Row?.sequence_no).toBe(2);
+    expect(arc2Row?.opened_at).toBe('2026-01-10T00:00:00Z');
 
     // arc_summary row exists for (c1, arc-1)
     const summaryRow = db
       .prepare(
-        `SELECT summary FROM arc_summary WHERE campaign_id = ? AND arc_id = ?`,
+        'SELECT summary FROM arc_summary WHERE campaign_id = ? AND arc_id = ?',
       )
       .get('c1', 'arc-1') as { summary: string } | undefined;
     expect(summaryRow).toBeDefined();
-    expect(summaryRow!.summary).toBe('arc summary text');
+    expect(summaryRow?.summary).toBe('arc summary text');
 
     db.close();
   });
@@ -479,7 +479,7 @@ describe('closeOpenArcAndOpenNext', () => {
     // arc-1 must still be open (rollback succeeded)
     const arc1 = db
       .prepare(
-        `SELECT status FROM campaign_arc WHERE campaign_id = ? AND arc_id = ?`,
+        'SELECT status FROM campaign_arc WHERE campaign_id = ? AND arc_id = ?',
       )
       .get('c1', 'arc-1') as { status: string };
     expect(arc1.status).toBe('open');
@@ -487,7 +487,7 @@ describe('closeOpenArcAndOpenNext', () => {
     // No arc-2 row should exist
     const arc2 = db
       .prepare(
-        `SELECT arc_id FROM campaign_arc WHERE campaign_id = ? AND arc_id = ?`,
+        'SELECT arc_id FROM campaign_arc WHERE campaign_id = ? AND arc_id = ?',
       )
       .get('c1', 'arc-2');
     expect(arc2).toBeUndefined();
@@ -495,7 +495,7 @@ describe('closeOpenArcAndOpenNext', () => {
     // No arc_summary row for arc-1
     const arcSummary = db
       .prepare(
-        `SELECT arc_id FROM arc_summary WHERE campaign_id = ? AND arc_id = ?`,
+        'SELECT arc_id FROM arc_summary WHERE campaign_id = ? AND arc_id = ?',
       )
       .get('c1', 'arc-1');
     expect(arcSummary).toBeUndefined();

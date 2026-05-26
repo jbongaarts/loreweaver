@@ -74,11 +74,6 @@ export function resolveDoltBinary(opts: ResolveDoltOptions = {}): string {
   }
 
   throw new DoltUnavailableError(
-    `No "dolt" binary found. Checkpoint/restore/fork need the Dolt CLI. ` +
-      `Resolve it by either: set LOREWEAVER_DOLT_BIN=/path/to/${BIN}; ` +
-      `install via "brew install dolt" (macOS), ` +
-      `"curl -L https://github.com/dolthub/dolt/releases/latest/download/install.sh | sudo bash" (Linux/macOS), ` +
-      `or the Windows .msi from github.com/dolthub/dolt/releases; ` +
-      `or place it under ${managedDoltDir(env)}.`,
+    `No "dolt" binary found. Checkpoint/restore/fork need the Dolt CLI. Resolve it by either: set LOREWEAVER_DOLT_BIN=/path/to/${BIN}; install via "brew install dolt" (macOS), "curl -L https://github.com/dolthub/dolt/releases/latest/download/install.sh | sudo bash" (Linux/macOS), or the Windows .msi from github.com/dolthub/dolt/releases; or place it under ${managedDoltDir(env)}.`,
   );
 }

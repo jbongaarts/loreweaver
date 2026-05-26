@@ -21,9 +21,7 @@ function doltRepoWithRemotes(
     full[name] = {
       name,
       url: r.url,
-      fetch_specs: r.fetch_specs ?? [
-        'refs/heads/*:refs/remotes/' + name + '/*',
-      ],
+      fetch_specs: r.fetch_specs ?? [`refs/heads/*:refs/remotes/${name}/*`],
       params: {},
     };
   }
@@ -104,7 +102,7 @@ describe('beads remote / ref-namespace collision guard', () => {
 
   it('rejects a campaign repo sharing a remote URL with the beads repo', () => {
     const shared = 'https://git.example.com/team/repo.git';
-    const campaign = doltRepoWithRemotes({ origin: { url: shared + '/' } });
+    const campaign = doltRepoWithRemotes({ origin: { url: `${shared}/` } });
     const beads = doltRepoWithRemotes({ origin: { url: shared } });
     expect(() => assertSeparateFromBeads(campaign, beads)).toThrow(
       SeparationError,

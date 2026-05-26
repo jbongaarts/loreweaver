@@ -77,7 +77,7 @@ export function forkModuleIntoCampaign(db: Db, pack: ModulePack): void {
     }
 
     const insTrigger = txn.prepare(
-      `INSERT INTO module_trigger(id, data_json) VALUES (?, ?)`,
+      'INSERT INTO module_trigger(id, data_json) VALUES (?, ?)',
     );
     for (const t of pack.triggers) {
       insTrigger.run(t.id, moduleDataColumn.encode(t));

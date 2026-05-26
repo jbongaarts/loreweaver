@@ -76,8 +76,7 @@ export function doltAssetFor(
   const spec = MANIFEST[`${platform}-${arch}`];
   if (!spec) {
     throw new DoltUnavailableError(
-      `No pinned dolt asset for ${platform}/${arch}. Install dolt manually and ` +
-        `point LOREWEAVER_DOLT_BIN at it.`,
+      `No pinned dolt asset for ${platform}/${arch}. Install dolt manually and point LOREWEAVER_DOLT_BIN at it.`,
     );
   }
   return {
@@ -102,8 +101,7 @@ export function verifyArchive(filePath: string, expectedSha256: string): void {
   const actual = sha256File(filePath);
   if (actual !== expectedSha256) {
     throw new DoltUnverifiedError(
-      `dolt archive sha256 mismatch: expected ${expectedSha256}, got ${actual}. ` +
-        `Refusing to install.`,
+      `dolt archive sha256 mismatch: expected ${expectedSha256}, got ${actual}. Refusing to install.`,
     );
   }
 }
@@ -280,12 +278,10 @@ export async function ensureDoltAvailable(
   if (!approved) {
     throw new DoltUnavailableError(
       explicit
-        ? `LOREWEAVER_DOLT_BIN="${explicit}" was set but no file exists there, ` +
-            `and a managed install was declined. Fix the path, or re-run and ` +
-            `approve a managed install.`
-        : `dolt not found and a managed install was declined. Set ` +
-            `LOREWEAVER_DOLT_BIN to a dolt binary, or re-run and approve the ` +
-            `managed install.`,
+        ? `LOREWEAVER_DOLT_BIN="${explicit}" was set but no file exists there, and a managed install was declined. Fix the path, or re-run and approve a managed install.`
+        : 'dolt not found and a managed install was declined. Set ' +
+            'LOREWEAVER_DOLT_BIN to a dolt binary, or re-run and approve the ' +
+            'managed install.',
     );
   }
 

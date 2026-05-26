@@ -75,8 +75,7 @@ function parseBibleResponse(raw: string): CampaignBibleInput {
     parsed = JSON.parse(match[1]);
   } catch (error) {
     throw new MemorySummaryError(
-      'campaign bible response could not be parsed as JSON: ' +
-        (error instanceof Error ? error.message : String(error)),
+      `campaign bible response could not be parsed as JSON: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
   if (!isCampaignBibleInput(parsed)) {
@@ -128,8 +127,8 @@ function renderPriorBible(bible: CampaignBibleInput | undefined): string {
     ['openThreads', bible.openThreads],
   ];
   const blocks = lists.map(([label, entries]) => {
-    if (entries.length === 0) return '### ' + label + '\n(none)';
-    return '### ' + label + '\n' + entries.map((e) => '- ' + e).join('\n');
+    if (entries.length === 0) return `### ${label}\n(none)`;
+    return `### ${label}\n${entries.map((e) => `- ${e}`).join('\n')}`;
   });
   return ['## previously known bible', ...blocks].join('\n');
 }
@@ -138,7 +137,7 @@ function renderClosedArcSummaries(
   arcs: ArcSummaryRecord[] | undefined,
 ): string {
   if (arcs === undefined || arcs.length === 0) return '';
-  const lines = arcs.map((arc) => '- ' + arc.arcId + ': ' + arc.summary);
+  const lines = arcs.map((arc) => `- ${arc.arcId}: ${arc.summary}`);
   return ['## closed arc summaries', ...lines].join('\n');
 }
 
@@ -148,10 +147,10 @@ function renderRecaps(recaps: SessionRecapRecord[]): string {
       recap.stateDelta.length === 0
         ? '(no canon mutations)'
         : recap.stateDelta
-            .map((entry) => '  - ' + JSON.stringify(entry))
+            .map((entry) => `  - ${JSON.stringify(entry)}`)
             .join('\n');
     return [
-      '## ' + recap.sessionId + ' (' + recap.createdAt + ')',
+      `## ${recap.sessionId} (${recap.createdAt})`,
       recap.recap,
       'Canon mutations:',
       delta,

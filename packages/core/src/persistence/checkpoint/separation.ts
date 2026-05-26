@@ -111,9 +111,7 @@ export function assertSeparateFromBeads(
   for (const remote of campaignRemotes) {
     if (beadsUrls.has(normalizeRemoteUrl(remote.url))) {
       throw new SeparationError(
-        `Loreweaver Dolt remote "${remote.name}" (${remote.url}) collides ` +
-          `with a beads Dolt remote; campaign history must not share a remote ` +
-          `with beads.`,
+        `Loreweaver Dolt remote "${remote.name}" (${remote.url}) collides with a beads Dolt remote; campaign history must not share a remote with beads.`,
       );
     }
     if (touchesBeadsRefNamespace(remote.fetchSpecs)) {

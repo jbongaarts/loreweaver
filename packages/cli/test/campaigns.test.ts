@@ -53,7 +53,7 @@ function harness(answers: Array<string | undefined> = []): Harness {
     io,
     log: (message) => logs.push(message),
     now: () => '2026-05-22T12:00:00.000Z',
-    nextId: (prefix) => `${prefix}-${(counter += 1)}`,
+    nextId: (prefix) => `${prefix}-${++counter}`,
     pack: EMBERFALL_HOLLOW,
     openDb: (path) => openDatabase(path),
   };

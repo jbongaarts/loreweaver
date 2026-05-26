@@ -91,9 +91,7 @@ export function resolveDemoModel(
     experimental: !intended,
     disclaimer: intended
       ? undefined
-      : `Demo running on the '${profile}' profile (${entry.tier} tier). ` +
-        'Output is EXPERIMENTAL and does not represent the intended ' +
-        'premium_dm quality of Loreweaver.',
+      : `Demo running on the '${profile}' profile (${entry.tier} tier). Output is EXPERIMENTAL and does not represent the intended premium_dm quality of Loreweaver.`,
   };
 }
 
@@ -128,8 +126,7 @@ export function assertDemoContentAllowed(pack: ModulePack): void {
   const policy = evaluateDemoContent(pack);
   if (!policy.allowed) {
     throw new DemoModeError(
-      `pack '${pack.meta.packId}' is not allowed in the public demo: ` +
-        policy.reasons.join('; '),
+      `pack '${pack.meta.packId}' is not allowed in the public demo: ${policy.reasons.join('; ')}`,
     );
   }
 }
@@ -250,8 +247,7 @@ export function getDemoTurnBudget(
 export function assertDemoTurnAllowed(budget: DemoTurnBudget): void {
   if (budget.capReached) {
     throw new DemoModeError(
-      `demo turn cap reached (${budget.turnsUsed}/${budget.turnCap}); ` +
-        'start a full campaign to keep playing',
+      `demo turn cap reached (${budget.turnsUsed}/${budget.turnCap}); start a full campaign to keep playing`,
     );
   }
 }
