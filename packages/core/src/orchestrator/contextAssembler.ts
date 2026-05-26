@@ -20,8 +20,6 @@ import type { SceneLogRecord } from './scene.js';
  * scene_summary, and omitted current-scene entries can be retrieved via the
  * `memory_drilldown` tool. Slices stay compact so the stable head of the
  * prompt is friendly to provider prompt caching.
- *
- * Fills the ContextAssembler seam.
  */
 
 const DEFAULT_RECENT_SESSION_LIMIT = 5;
