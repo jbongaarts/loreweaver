@@ -36,22 +36,32 @@ describe('model profiles', () => {
     );
   });
 
-  it('default registry maps every profile to a selectable provider adapter', () => {
+  it('default registry covers all profiles: premium_dm is configured, others are not', () => {
     for (const profile of MODEL_PROFILES) {
       const entry = DEFAULT_PROFILE_REGISTRY[profile];
       expect(entry).toBeDefined();
-      expect(PROVIDER_IDS).toContain(entry.provider);
-      expect(typeof entry.model).toBe('string');
-      expect(entry.model.length).toBeGreaterThan(0);
+      if (profile === 'premium_dm') {
+        expect(entry.configured).toBe(true);
+        if (entry.configured) {
+          expect(PROVIDER_IDS).toContain(entry.provider);
+          expect(entry.model.length).toBeGreaterThan(0);
+        }
+      } else {
+        // Auxiliary, helper, embedding, and economy profiles are declared but
+        // have no default provider/model — they must be explicitly configured
+        // via env vars before use.
+        expect(entry.configured).toBe(false);
+      }
     }
   });
 
   it('premium_dm carries documented quality/capability-floor expectations', () => {
     const premium = DEFAULT_PROFILE_REGISTRY.premium_dm;
+    expect(premium.configured).toBe(true);
+    if (!premium.configured) return;
     expect(premium.capabilityFloor).toBeDefined();
     expect(premium.capabilityFloor).toMatch(/Opus 4\.6|GPT-5\.5/i);
     expect(premium.canonChanging).toBe(true);
-    // Premium DM must not be an economy/experimental tier.
     expect(premium.tier).toBe('premium');
   });
 
@@ -61,9 +71,31 @@ describe('model profiles', () => {
     expect(eco.tier).toBe('experimental');
   });
 
-  it('getProfile returns the resolved entry for a profile name', () => {
-    const entry = getProfile(DEFAULT_PROFILE_REGISTRY, 'summarizer');
-    expect(entry).toEqual(DEFAULT_PROFILE_REGISTRY.summarizer);
+  it('getProfile returns the configured entry for premium_dm', () => {
+    const entry = getProfile(DEFAULT_PROFILE_REGISTRY, 'premium_dm');
+    expect(entry.configured).toBe(true);
+    expect(entry.provider).toBe('anthropic');
+    expect(entry.model).toBe('claude-opus-4-7');
+  });
+
+  it('getProfile throws ProfileConfigError for unconfigured profiles', () => {
+    const unconfiguredProfiles = MODEL_PROFILES.filter(
+      (p) => p !== 'premium_dm',
+    );
+    for (const profile of unconfiguredProfiles) {
+      expect(
+        () => getProfile(DEFAULT_PROFILE_REGISTRY, profile),
+        `expected ${profile} to throw`,
+      ).toThrow(ProfileConfigError);
+    }
+  });
+
+  it('getProfile error message names the missing env vars', () => {
+    expect(() =>
+      getProfile(DEFAULT_PROFILE_REGISTRY, 'embedding_provider'),
+    ).toThrowError(
+      /LOREWEAVER_PROFILE_EMBEDDING_PROVIDER_PROVIDER.*LOREWEAVER_PROFILE_EMBEDDING_PROVIDER_MODEL/,
+    );
   });
 
   it('resolveProfileRegistry allows per-profile provider/model override via env', () => {
@@ -71,10 +103,45 @@ describe('model profiles', () => {
       LOREWEAVER_PROFILE_PREMIUM_DM_PROVIDER: 'bedrock',
       LOREWEAVER_PROFILE_PREMIUM_DM_MODEL: 'some-bedrock-model',
     });
-    expect(reg.premium_dm.provider).toBe('bedrock');
-    expect(reg.premium_dm.model).toBe('some-bedrock-model');
-    // Untouched profiles keep defaults.
+    expect(reg.premium_dm).toMatchObject({
+      configured: true,
+      provider: 'bedrock',
+      model: 'some-bedrock-model',
+    });
+    // Untouched profiles keep their defaults.
     expect(reg.summarizer).toEqual(DEFAULT_PROFILE_REGISTRY.summarizer);
+  });
+
+  it('resolveProfileRegistry enables an unconfigured profile when both env vars are set', () => {
+    const reg = resolveProfileRegistry({
+      LOREWEAVER_PROFILE_ECONOMY_OR_EXPERIMENTAL_PROVIDER: 'anthropic',
+      LOREWEAVER_PROFILE_ECONOMY_OR_EXPERIMENTAL_MODEL:
+        'claude-haiku-4-5-20251001',
+    });
+    const entry = reg.economy_or_experimental;
+    expect(entry.configured).toBe(true);
+    if (!entry.configured) return;
+    expect(entry.provider).toBe('anthropic');
+    expect(entry.model).toBe('claude-haiku-4-5-20251001');
+    // Structural metadata is preserved from the default.
+    expect(entry.tier).toBe('experimental');
+    expect(entry.canonChanging).toBe(false);
+  });
+
+  it('resolveProfileRegistry throws when only one env var is set for an unconfigured profile', () => {
+    expect(() =>
+      resolveProfileRegistry({
+        LOREWEAVER_PROFILE_SUMMARIZER_MODEL: 'some-model',
+        // LOREWEAVER_PROFILE_SUMMARIZER_PROVIDER intentionally missing
+      }),
+    ).toThrow(ProfileConfigError);
+
+    expect(() =>
+      resolveProfileRegistry({
+        LOREWEAVER_PROFILE_SUMMARIZER_PROVIDER: 'anthropic',
+        // LOREWEAVER_PROFILE_SUMMARIZER_MODEL intentionally missing
+      }),
+    ).toThrow(ProfileConfigError);
   });
 
   it('resolveProfileRegistry rejects an unknown provider id', () => {

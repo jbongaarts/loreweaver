@@ -57,7 +57,13 @@ export type ProviderId = (typeof PROVIDER_IDS)[number];
 /** Quality tier of a profile entry. */
 export type ProfileTier = 'premium' | 'standard' | 'auxiliary' | 'experimental';
 
-export interface ProfileEntry {
+/**
+ * A model profile entry that has been configured with a concrete provider and
+ * model. Only configured entries can be used at runtime; {@link getProfile}
+ * returns this type and throws for unconfigured entries.
+ */
+export interface ConfiguredProfileEntry {
+  configured: true;
   /** Neutral provider-adapter identifier used to select an adapter. */
   provider: ProviderId;
   /** Provider-specific model id (opaque to the core). */
@@ -79,6 +85,28 @@ export interface ProfileEntry {
   notes?: string;
 }
 
+/**
+ * A declared profile that has not yet been configured with a provider and
+ * model. Accessing it via {@link getProfile} throws {@link ProfileConfigError}.
+ * Enable it by setting both LOREWEAVER_PROFILE_<PROFILE>_PROVIDER and
+ * LOREWEAVER_PROFILE_<PROFILE>_MODEL in the environment.
+ */
+export interface UnconfiguredProfileEntry {
+  configured: false;
+  /** Quality tier — declared even for unconfigured profiles. */
+  tier: ProfileTier;
+  /**
+   * Whether this profile is permitted to perform canon-changing operations.
+   * Declared even for unconfigured profiles.
+   */
+  canonChanging: boolean;
+  /** Human-readable note on intended use / constraints. */
+  notes?: string;
+}
+
+/** A profile registry entry — either configured (has provider+model) or not. */
+export type ProfileEntry = ConfiguredProfileEntry | UnconfiguredProfileEntry;
+
 export type ProfileRegistry = Record<ModelProfileName, ProfileEntry>;
 
 /**
@@ -99,13 +127,20 @@ export const PREMIUM_DM_CAPABILITY_FLOOR =
   'serve the primary DM or the public demo.';
 
 /**
- * Default, provider-neutral profile registry. The `anthropic` provider maps to
- * the existing Claude Agent SDK adapter today; other providers are selectable
- * but not yet implemented. Defaults intentionally keep the existing flat-config
- * Anthropic model as the premium DM model for backward compatibility.
+ * Default, provider-neutral profile registry.
+ *
+ * Only `premium_dm` ships with a configured default (the Claude Agent SDK
+ * adapter + claude-opus-4-7) because it is the only profile with a live
+ * adapter and production callers today. All other profiles are declared
+ * (`configured: false`) — they carry capability metadata but have no
+ * provider/model assignment. Accessing an unconfigured profile via
+ * {@link getProfile} throws {@link ProfileConfigError}; set both
+ * LOREWEAVER_PROFILE_<PROFILE>_PROVIDER and LOREWEAVER_PROFILE_<PROFILE>_MODEL
+ * to enable a profile explicitly.
  */
 export const DEFAULT_PROFILE_REGISTRY: ProfileRegistry = {
   premium_dm: {
+    configured: true,
     provider: 'anthropic',
     model: 'claude-opus-4-7',
     tier: 'premium',
@@ -114,43 +149,37 @@ export const DEFAULT_PROFILE_REGISTRY: ProfileRegistry = {
     notes: 'Primary Dungeon Master. Canon-trusted; do not downgrade silently.',
   },
   state_extractor: {
-    provider: 'anthropic',
-    model: 'claude-opus-4-7',
+    configured: false,
     tier: 'standard',
     canonChanging: false,
     notes: 'Structured extraction; outputs validated before any canon write.',
   },
   summarizer: {
-    provider: 'anthropic',
-    model: 'claude-opus-4-7',
+    configured: false,
     tier: 'auxiliary',
     canonChanging: false,
     notes: 'Draft/rollup summaries; bounded auxiliary task.',
   },
   rules_adjudicator: {
-    provider: 'anthropic',
-    model: 'claude-opus-4-7',
+    configured: false,
     tier: 'standard',
     canonChanging: false,
     notes: 'Rules reasoning support; deterministic tools own the final math.',
   },
   memory_reconciler: {
-    provider: 'anthropic',
-    model: 'claude-opus-4-7',
+    configured: false,
     tier: 'standard',
     canonChanging: false,
     notes: 'Memory pyramid reconciliation; reconciled writes are validated.',
   },
   embedding_provider: {
-    provider: 'anthropic',
-    model: 'claude-opus-4-7',
+    configured: false,
     tier: 'auxiliary',
     canonChanging: false,
     notes: 'Retrieval embeddings; no narrative authority.',
   },
   economy_or_experimental: {
-    provider: 'anthropic',
-    model: 'claude-opus-4-7',
+    configured: false,
     tier: 'experimental',
     canonChanging: false,
     notes:
@@ -172,12 +201,24 @@ export function isProviderId(value: string): value is ProviderId {
   return (PROVIDER_IDS as readonly string[]).includes(value);
 }
 
-/** Look up the resolved entry for a profile by name. */
+/**
+ * Look up the resolved entry for a profile by name.
+ *
+ * @throws {ProfileConfigError} if the profile is not configured. Configure it
+ *   with LOREWEAVER_PROFILE_<PROFILE>_PROVIDER and
+ *   LOREWEAVER_PROFILE_<PROFILE>_MODEL environment variables.
+ */
 export function getProfile(
   registry: ProfileRegistry,
   profile: ModelProfileName,
-): ProfileEntry {
-  return registry[profile];
+): ConfiguredProfileEntry {
+  const entry = registry[profile];
+  if (!entry.configured) {
+    throw new ProfileConfigError(
+      `Profile '${profile}' is not configured. Set ${envKey(profile, 'PROVIDER')} and ${envKey(profile, 'MODEL')} to enable this profile.`,
+    );
+  }
+  return entry;
 }
 
 function envKey(
@@ -192,7 +233,13 @@ function envKey(
  * the environment. Each profile supports:
  *   LOREWEAVER_PROFILE_<PROFILE>_PROVIDER  (a neutral provider id)
  *   LOREWEAVER_PROFILE_<PROFILE>_MODEL     (a provider-specific model id)
- * Unset overrides fall back to {@link DEFAULT_PROFILE_REGISTRY}.
+ *
+ * For profiles that already have a configured default (currently only
+ * `premium_dm`), env vars override individual fields.
+ *
+ * For profiles with no configured default, BOTH variables must be set together
+ * to enable the profile. Setting only one throws {@link ProfileConfigError}.
+ * Setting neither leaves the profile unconfigured.
  *
  * Overrides intentionally do NOT recompute `tier`/`canonChanging`: pointing a
  * profile at a cheaper provider/model never relaxes its declared capability
@@ -207,22 +254,53 @@ export function resolveProfileRegistry(
     const providerOverride = env[envKey(profile, 'PROVIDER')]?.trim();
     const modelOverride = env[envKey(profile, 'MODEL')]?.trim();
 
-    let provider = base.provider;
-    if (providerOverride) {
+    if (base.configured) {
+      // Configured profile: apply optional per-field overrides.
+      let provider = base.provider;
+      if (providerOverride) {
+        if (!isProviderId(providerOverride)) {
+          throw new ProfileConfigError(
+            `${envKey(profile, 'PROVIDER')} is not a known provider id: ` +
+              `'${providerOverride}' (expected one of ${PROVIDER_IDS.join(', ')})`,
+          );
+        }
+        provider = providerOverride;
+      }
+      resolved[profile] = {
+        ...base,
+        provider,
+        model: modelOverride || base.model,
+      };
+    } else if (!providerOverride && !modelOverride) {
+      // Unconfigured profile, no env vars: leave unconfigured.
+      resolved[profile] = base;
+    } else if (!providerOverride || !modelOverride) {
+      // Partial env config for an unconfigured profile: explicit error.
+      const missing = !providerOverride
+        ? envKey(profile, 'PROVIDER')
+        : envKey(profile, 'MODEL');
+      throw new ProfileConfigError(
+        `Profile '${profile}' has no default configuration; both ` +
+          `${envKey(profile, 'PROVIDER')} and ${envKey(profile, 'MODEL')} ` +
+          `must be set together to enable it. Missing: ${missing}.`,
+      );
+    } else {
+      // Both env vars set for an unconfigured profile: validate and enable.
       if (!isProviderId(providerOverride)) {
         throw new ProfileConfigError(
           `${envKey(profile, 'PROVIDER')} is not a known provider id: ` +
             `'${providerOverride}' (expected one of ${PROVIDER_IDS.join(', ')})`,
         );
       }
-      provider = providerOverride;
+      resolved[profile] = {
+        configured: true,
+        provider: providerOverride,
+        model: modelOverride,
+        tier: base.tier,
+        canonChanging: base.canonChanging,
+        ...(base.notes ? { notes: base.notes } : {}),
+      };
     }
-
-    resolved[profile] = {
-      ...base,
-      provider,
-      ...(modelOverride ? { model: modelOverride } : {}),
-    };
   }
   return resolved;
 }

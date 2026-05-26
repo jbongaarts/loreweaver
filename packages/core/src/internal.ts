@@ -194,11 +194,13 @@ export {
   resolveProfileRegistry,
 } from './model/profiles.js';
 export type {
+  ConfiguredProfileEntry,
   ModelProfileName,
   ProfileEntry,
   ProfileRegistry,
   ProfileTier,
   ProviderId,
+  UnconfiguredProfileEntry,
 } from './model/profiles.js';
 export {
   EVALUATION_DIMENSIONS,

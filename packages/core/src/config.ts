@@ -1,6 +1,6 @@
 import {
+  type ConfiguredProfileEntry,
   ProfileConfigError,
-  type ProfileEntry,
   type ProfileRegistry,
   resolveProfileRegistry,
 } from './model/profiles.js';
@@ -44,8 +44,9 @@ export interface LoreweaverConfig {
   /**
    * Resolved `premium_dm` profile entry (provider + model + tier) from the
    * profile registry, including any `LOREWEAVER_PROFILE_PREMIUM_DM_*` overrides.
+   * Always a configured entry — `premium_dm` ships with a default provider+model.
    */
-  dmProfile: ProfileEntry;
+  dmProfile: ConfiguredProfileEntry;
   /**
    * Resolved provider authentication — an Anthropic Console API key or a
    * Claude Pro/Max subscription OAuth token.
@@ -108,7 +109,15 @@ export function loadConfig(
     }
     throw err;
   }
-  const dmProfile = registry.premium_dm;
+  const dmRaw = registry.premium_dm;
+  // premium_dm ships with a configured default; guard defensively in case
+  // some future code path leaves it unconfigured.
+  if (!dmRaw.configured) {
+    throw new ConfigError(
+      'internal: premium_dm profile was not configured — this should not happen',
+    );
+  }
+  const dmProfile = dmRaw;
 
   // LOREWEAVER_MODEL is the legacy flat override and still wins when set;
   // otherwise the runtime DM model comes from the premium_dm profile entry
@@ -120,9 +129,7 @@ export function loadConfig(
   // would otherwise be silently ignored.
   if (dmProfile.provider !== 'anthropic') {
     throw new ConfigError(
-      `premium_dm profile resolves to provider '${dmProfile.provider}', but ` +
-        'the CLI ships only the Anthropic (Claude Agent SDK) adapter. Unset ' +
-        'LOREWEAVER_PROFILE_PREMIUM_DM_PROVIDER or set it to "anthropic".',
+      `premium_dm profile resolves to provider '${dmProfile.provider}', but the CLI ships only the Anthropic (Claude Agent SDK) adapter. Unset LOREWEAVER_PROFILE_PREMIUM_DM_PROVIDER or set it to "anthropic".`,
     );
   }
 
