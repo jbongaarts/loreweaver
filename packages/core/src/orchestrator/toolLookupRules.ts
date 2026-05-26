@@ -41,6 +41,49 @@ export const lookupRulesTool: Tool = {
     'binding. args: { kind, name?: string, ref?: string, systemId?: string }. ' +
     'Omit systemId to use the campaign binding; pass it to query a specific ' +
     'bundled rules system (e.g. "dnd5e-srd", "pathfinder2e-remaster").',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      kind: {
+        type: 'string',
+        enum: [
+          'ability',
+          'action',
+          'ancestry',
+          'background',
+          'class',
+          'condition',
+          'creature',
+          'equipment',
+          'feat',
+          'hazard',
+          'rule',
+          'spell',
+          'table',
+        ],
+        description: 'The kind of rules record to look up.',
+      },
+      name: {
+        type: 'string',
+        description: 'Exact record name (mutually exclusive with ref).',
+        minLength: 1,
+      },
+      ref: {
+        type: 'string',
+        description: 'Stable record ref (mutually exclusive with name).',
+        minLength: 1,
+      },
+      systemId: {
+        type: 'string',
+        description:
+          'Optional bundled rules system id (e.g. "dnd5e-srd", ' +
+          '"pathfinder2e-remaster"). Omit to use the campaign binding.',
+        minLength: 1,
+      },
+    },
+    required: ['kind'],
+    additionalProperties: false,
+  },
   run(args, ctx) {
     const a = asRecord(args);
     if (

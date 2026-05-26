@@ -94,6 +94,12 @@ export {
   createDefaultToolRegistry,
 } from './orchestrator/tools.js';
 export type { Tool, ToolContext, ToolResult } from './orchestrator/tools.js';
+export type {
+  JsonSchema,
+  JsonSchemaType,
+  ModelToolDefinition,
+  ToolInputSchema,
+} from './model/toolSchema.js';
 
 // Model client contract + Agent SDK adapter.
 export { ModelClientError } from './model/client.js';

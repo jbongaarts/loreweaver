@@ -8,6 +8,24 @@ export const worldQueryTool: Tool = {
   description:
     'Resolve a world target (template + live overlay). ' +
     'args: { type: "location"|"encounter"|"npc"|"lore"|"meta", id?: string }.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      type: {
+        type: 'string',
+        enum: ['location', 'encounter', 'npc', 'lore', 'meta'],
+        description: 'The world target kind to resolve.',
+      },
+      id: {
+        type: 'string',
+        description:
+          'Target id. Required for every type except "meta" (the singleton ' +
+          'pack metadata).',
+      },
+    },
+    required: ['type'],
+    additionalProperties: false,
+  },
   run(args, ctx) {
     const a = asRecord(args);
     if (a === undefined || typeof a.type !== 'string') {

@@ -24,6 +24,23 @@ export const markSceneTool: Tool = {
   name: 'mark_scene',
   description:
     'Open or close a scene. args: { boundary: "open" | "close", title?: string }.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      boundary: {
+        type: 'string',
+        enum: ['open', 'close'],
+        description: 'Whether to open a new scene or close the current one.',
+      },
+      title: {
+        type: 'string',
+        description: 'Required when boundary is "open"; ignored when "close".',
+        minLength: 1,
+      },
+    },
+    required: ['boundary'],
+    additionalProperties: false,
+  },
   run(args, ctx) {
     const a = asRecord(args);
     if (a === undefined || (a.boundary !== 'open' && a.boundary !== 'close')) {

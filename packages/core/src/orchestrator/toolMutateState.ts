@@ -10,6 +10,44 @@ export const mutateStateTool: Tool = {
   name: 'mutate_state',
   description:
     'Write canonical game state. args: { target, id?, field, op: "set", value }.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      target: {
+        type: 'string',
+        enum: [
+          'character',
+          'inventory',
+          'plot_flags',
+          'clock',
+          'overlay_facts',
+        ],
+        description: 'The canonical state table to write to.',
+      },
+      id: {
+        type: 'string',
+        description:
+          'Optional row identifier within the target table (e.g. inventory id).',
+      },
+      field: {
+        type: 'string',
+        description: 'The writable column name on the target table.',
+        minLength: 1,
+      },
+      op: {
+        type: 'string',
+        enum: ['set'],
+        description: 'Mutation operator. Only "set" is supported today.',
+      },
+      value: {
+        description:
+          'New value for the field. May be a string, number, boolean, null, ' +
+          'object, or array, depending on the target column type.',
+      },
+    },
+    required: ['target', 'field', 'op', 'value'],
+    additionalProperties: false,
+  },
   run(args, ctx) {
     const a = asRecord(args);
     if (

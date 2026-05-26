@@ -3,6 +3,11 @@
  * Individual tools live in their own modules; this module is the provider-neutral seam.
  */
 
+import type {
+  ModelToolDefinition,
+  ToolInputSchema,
+} from '../model/toolSchema.js';
+
 export type ToolResult =
   | { ok: true; data: unknown }
   | { ok: false; code: string; message: string };
@@ -20,6 +25,14 @@ export interface ToolContext {
 export interface Tool {
   readonly name: string;
   readonly description: string;
+  /**
+   * Provider-neutral input schema (loreweaver-0jq.10). Lifted straight into
+   * {@link ToolRegistry.definitions} so adapters can render native tool calls;
+   * the fenced-text protocol does not consult it. Tool authors are still
+   * responsible for runtime validation in `run` — the schema is documentation
+   * and a contract surface, not an enforcement seam.
+   */
+  readonly inputSchema: ToolInputSchema;
   run(args: unknown, ctx: ToolContext): ToolResult;
 }
 
@@ -55,6 +68,19 @@ export class ToolRegistry {
 
   list(): string[] {
     return [...this.tools.keys()];
+  }
+
+  /**
+   * Provider-neutral tool definitions in registration order. Each entry has the
+   * (name, description, inputSchema) triple a ModelClient adapter needs to
+   * render native tool calls — no provider-specific keys leak through.
+   */
+  definitions(): readonly ModelToolDefinition[] {
+    return [...this.tools.values()].map((tool) => ({
+      name: tool.name,
+      description: tool.description,
+      inputSchema: tool.inputSchema,
+    }));
   }
 
   invoke(name: string, args: unknown, ctx: ToolContext): ToolResult {
