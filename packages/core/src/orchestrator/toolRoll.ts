@@ -6,6 +6,24 @@ export const rollTool: Tool = {
   name: 'roll',
   description:
     'Roll dice with code-owned RNG. args: { dice: "NdM+K", reason: string }.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      dice: {
+        type: 'string',
+        description: 'Dice notation, e.g. "1d20+5" or "4d6".',
+        minLength: 1,
+      },
+      reason: {
+        type: 'string',
+        description:
+          'Short justification for the roll; recorded in the turn trace.',
+        minLength: 1,
+      },
+    },
+    required: ['dice', 'reason'],
+    additionalProperties: false,
+  },
   run(args, ctx) {
     const a = asRecord(args);
     if (

@@ -11,6 +11,12 @@
 
 export type { Tool, ToolContext, ToolResult } from './toolRegistry.js';
 export { ToolRegistry } from './toolRegistry.js';
+export type {
+  JsonSchema,
+  JsonSchemaType,
+  ModelToolDefinition,
+  ToolInputSchema,
+} from '../model/toolSchema.js';
 
 export type { MarkSceneToolData } from './toolMarkScene.js';
 export { isMarkSceneToolData } from './toolMarkScene.js';

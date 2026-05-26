@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  DEFAULT_TOOLS,
   DiceError,
   ToolRegistry,
   appendSceneLog,
@@ -14,7 +15,11 @@ import {
   rollDice,
   startSession,
 } from '../src/internal.js';
-import type { MarkSceneToolData, ToolContext } from '../src/internal.js';
+import type {
+  MarkSceneToolData,
+  ModelToolDefinition,
+  ToolContext,
+} from '../src/internal.js';
 
 const closedMarkSceneDataTypecheck = {
   boundary: 'close',
@@ -394,6 +399,93 @@ describe('memory_drilldown tool', () => {
       };
       expect(data.records.map((e) => e.content)).toEqual(['line 1', 'line 2']);
     }
+  });
+});
+
+describe('tool schema metadata (loreweaver-0jq.10)', () => {
+  it('every bundled tool publishes an object-typed input schema', () => {
+    for (const tool of DEFAULT_TOOLS) {
+      expect(tool.inputSchema.type).toBe('object');
+      expect(tool.inputSchema.properties).toBeDefined();
+      // Schemas SHOULD be closed — `additionalProperties: false` — so the
+      // model can't smuggle unrecognised keys past native tool channels.
+      expect(tool.inputSchema.additionalProperties).toBe(false);
+    }
+  });
+
+  it('exposes provider-neutral definitions through ToolRegistry.definitions()', () => {
+    const definitions = createDefaultToolRegistry().definitions();
+    const names = definitions.map((d) => d.name).sort();
+    expect(names).toEqual(
+      [
+        'lookup_rules',
+        'mark_scene',
+        'memory_drilldown',
+        'mutate_state',
+        'roll',
+        'world_query',
+      ].sort(),
+    );
+    for (const def of definitions) {
+      // Carries the (name, description, inputSchema) triple a model adapter
+      // needs to render native tool calls — nothing more.
+      expect(def.name.length).toBeGreaterThan(0);
+      expect(def.description.length).toBeGreaterThan(0);
+      expect(def.inputSchema.type).toBe('object');
+      // No provider-specific keys leak through.
+      expect(Object.keys(def).sort()).toEqual(
+        ['description', 'inputSchema', 'name'].sort(),
+      );
+    }
+  });
+
+  it('roll requires both dice and reason, and rejects extra keys', () => {
+    const def = createDefaultToolRegistry()
+      .definitions()
+      .find((d) => d.name === 'roll') as ModelToolDefinition;
+    expect(def.inputSchema.required).toEqual(['dice', 'reason']);
+    expect(def.inputSchema.properties.dice?.type).toBe('string');
+    expect(def.inputSchema.properties.reason?.type).toBe('string');
+    expect(def.inputSchema.additionalProperties).toBe(false);
+  });
+
+  it('mark_scene enumerates the boundary values', () => {
+    const def = createDefaultToolRegistry()
+      .definitions()
+      .find((d) => d.name === 'mark_scene') as ModelToolDefinition;
+    expect(def.inputSchema.required).toEqual(['boundary']);
+    expect(def.inputSchema.properties.boundary?.enum).toEqual([
+      'open',
+      'close',
+    ]);
+  });
+
+  it('mutate_state pins op to "set" and enumerates the writable targets', () => {
+    const def = createDefaultToolRegistry()
+      .definitions()
+      .find((d) => d.name === 'mutate_state') as ModelToolDefinition;
+    expect(def.inputSchema.properties.op?.enum).toEqual(['set']);
+    expect(def.inputSchema.properties.target?.enum).toEqual([
+      'character',
+      'inventory',
+      'plot_flags',
+      'clock',
+      'overlay_facts',
+    ]);
+    expect(def.inputSchema.required).toEqual([
+      'target',
+      'field',
+      'op',
+      'value',
+    ]);
+  });
+
+  it('definitions are a snapshot — mutating the array does not affect later reads', () => {
+    const registry = createDefaultToolRegistry();
+    const first = registry.definitions();
+    (first as unknown as ModelToolDefinition[]).pop();
+    const second = registry.definitions();
+    expect(second).toHaveLength(6);
   });
 });
 
