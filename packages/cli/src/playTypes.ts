@@ -1,0 +1,69 @@
+import type {
+  Db,
+  ModelClient,
+  ModulePack,
+  RunTurnDeps,
+  RunTurnInput,
+  RunTurnResult,
+  SessionCheckpointRunner,
+  ToolRegistry,
+} from '@loreweaver/core';
+import type { MemoryConfig } from '@loreweaver/core/internal';
+
+/** Player-facing input/output seam. A terminal impl is {@link nodeIO}. */
+export interface CliIO {
+  /** Write one line of output to the player. */
+  write(line: string): void;
+  /**
+   * Prompt the player and resolve with their trimmed answer, or `undefined`
+   * when input is exhausted (EOF / closed stream) — which the turn loop treats
+   * as a graceful quit.
+   */
+  prompt(question: string): Promise<string | undefined>;
+}
+
+export interface PlayDeps {
+  io: CliIO;
+  /** Open (creating the file if absent) the campaign database at a path. */
+  openDb: (path: string) => Db;
+  /**
+   * Model client powering the DM. Passed straight to `runTurn` for turn-time
+   * narration, and used by graceful close to author the campaign arc summary
+   * via {@link composeArcSummary}.
+   */
+  model: ModelClient;
+  /** Tool registry passed straight to `runTurn`. */
+  registry: ToolRegistry;
+  /**
+   * Run one orchestrated turn. Injected (rather than imported) so the loop is
+   * exercisable in tests without a live model — defaults to the core `runTurn`.
+   */
+  runTurn: (deps: RunTurnDeps, input: RunTurnInput) => Promise<RunTurnResult>;
+  /** Module template forked into a brand-new campaign. */
+  pack: ModulePack;
+  /** ISO-8601 timestamp source. */
+  now: () => string;
+  /** Unique id source for new campaigns / sessions / turns. */
+  nextId: (prefix: string) => string;
+  /** Per-turn RNG seed source (each turn is reproducible from its seed). */
+  seed: () => number;
+  /**
+   * Build a checkpoint runner for the campaign DB at `dbPath`, or `undefined`
+   * when checkpointing is unavailable (e.g. no `dolt` binary). Injected so the
+   * close path is exercisable without Dolt; the default is
+   * {@link doltCheckpointRunner}.
+   */
+  makeCheckpointRunner: (dbPath: string) => SessionCheckpointRunner | undefined;
+  /** Memory configuration: arc rollover threshold (N) and recap window (K). */
+  memoryConfig: MemoryConfig;
+}
+
+export interface PlayOptions {
+  /** Path to the campaign database; created on first run. */
+  dbPath: string;
+  /**
+   * When set, the turn loop stops once this many player turns have been
+   * recorded — the bounded-demo turn cap. Unset for an unbounded campaign.
+   */
+  turnCap?: number;
+}
