@@ -52,7 +52,7 @@ describe('module schema validation', () => {
 
   it('rejects a module pack missing meta.rulesRequirements', () => {
     const bad = clone();
-    delete (bad.meta as { rulesRequirements?: unknown }).rulesRequirements;
+    (bad.meta as { rulesRequirements?: unknown }).rulesRequirements = undefined;
     expect(() => validateModulePack(bad)).toThrow(WorldModuleError);
     expect(() => validateModulePack(bad)).toThrow(/rulesRequirements/);
   });
@@ -60,7 +60,7 @@ describe('module schema validation', () => {
   it('rejects rulesRequirements missing baseSystemId', () => {
     const bad = clone();
     const reqs = bad.meta.rulesRequirements as { baseSystemId?: string };
-    delete reqs.baseSystemId;
+    reqs.baseSystemId = undefined;
     expect(() => validateModulePack(bad)).toThrow(WorldModuleError);
     expect(() => validateModulePack(bad)).toThrow(/baseSystemId/);
   });
@@ -68,7 +68,7 @@ describe('module schema validation', () => {
   it('rejects an encounter creature missing rulesRef', () => {
     const bad = clone();
     const creature = bad.encounters[0].creatures[0] as { rulesRef?: string };
-    delete creature.rulesRef;
+    creature.rulesRef = undefined;
     expect(() => validateModulePack(bad)).toThrow(WorldModuleError);
     expect(() => validateModulePack(bad)).toThrow(/rulesRef/);
   });
@@ -77,7 +77,7 @@ describe('module schema validation', () => {
     const bad = clone() as Record<string, unknown> & {
       meta: { title?: string };
     };
-    delete bad.meta.title;
+    bad.meta.title = undefined;
     expect(() => validateModulePack(bad)).toThrow(WorldModuleError);
   });
 

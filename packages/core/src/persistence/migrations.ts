@@ -68,9 +68,13 @@ export function migrateSchema(
     }
   }
   for (let v = fromVersion + 1; v <= toVersion; v++) {
+    const migration = migrations[v];
+    if (migration === undefined) {
+      throw new SchemaMigrationError(`no migration defined for version ${v}`);
+    }
     try {
       withTransaction(db, (txnDb) => {
-        migrations[v]!(txnDb);
+        migration(txnDb);
         txnDb
           .prepare('UPDATE meta SET value = ? WHERE key = ?')
           .run(String(v), 'schema_version');

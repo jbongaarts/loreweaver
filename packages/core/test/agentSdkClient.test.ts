@@ -131,7 +131,7 @@ describe('AgentSdkModelClient', () => {
           env: { ANTHROPIC_API_KEY: 'sk-injected' },
         }).complete({ messages: [{ role: 'user', content: 'hi' }] });
       } finally {
-        delete process.env.LW_TEST_AMBIENT;
+        Reflect.deleteProperty(process.env, 'LW_TEST_AMBIENT');
       }
 
       const arg = queryMock.mock.calls[0][0] as {

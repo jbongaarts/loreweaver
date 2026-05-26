@@ -164,7 +164,7 @@ function npmArgs(args) {
 
 function withoutLoreweaverConfig() {
   const env = { ...process.env };
-  delete env.LOREWEAVER_DB_PATH;
-  delete env.ANTHROPIC_API_KEY;
+  Reflect.deleteProperty(env, 'LOREWEAVER_DB_PATH');
+  Reflect.deleteProperty(env, 'ANTHROPIC_API_KEY');
   return env;
 }
