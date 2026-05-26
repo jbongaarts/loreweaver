@@ -103,6 +103,40 @@ describe('extractCampaignBible', () => {
     ).rejects.toBeInstanceOf(MemorySummaryError);
   });
 
+  it("passes responseFormat: 'json' to the ModelClient (loreweaver-cuu)", async () => {
+    let captured: ModelCompleteInput | undefined;
+    const model = fakeModel((input) => {
+      captured = input;
+      return VALID_BIBLE_OUTPUT;
+    });
+    await extractCampaignBible(model, {
+      campaignId: 'camp-1',
+      recaps: [recap('session-1', 'r', '2026-05-20T10:00:00.000Z')],
+    });
+    // The bible extractor is the JSON-only call site in core; setting the hint
+    // lets future adapters opt into a native JSON mode without changing this
+    // call site again.
+    expect(captured?.responseFormat).toBe('json');
+  });
+
+  it('accepts a raw JSON response when an adapter strips the fence (loreweaver-cuu)', async () => {
+    // Simulates a future provider adapter that honours responseFormat: 'json'
+    // and returns the JSON payload without the markdown wrapper.
+    const RAW_JSON_OUTPUT = JSON.stringify({
+      worldFacts: ['Emberfall sits on a fault line'],
+      majorNpcs: ['Mira the runesmith'],
+      factions: ['Lantern Court'],
+      openThreads: ['The chalk sigil is unsolved'],
+    });
+    const model = fakeModel(() => RAW_JSON_OUTPUT);
+    const bible = await extractCampaignBible(model, {
+      campaignId: 'camp-1',
+      recaps: [recap('session-1', 'r', '2026-05-20T10:00:00.000Z')],
+    });
+    expect(bible.majorNpcs).toEqual(['Mira the runesmith']);
+    expect(bible.openThreads).toEqual(['The chalk sigil is unsolved']);
+  });
+
   it('throws MemorySummaryError when the fenced content is not valid JSON', async () => {
     const model = fakeModel(() => '```bible_json\nnot json at all\n```');
     await expect(
