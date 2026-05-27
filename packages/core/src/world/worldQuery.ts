@@ -7,6 +7,7 @@ import type {
   WorldTargetType,
 } from './types.js';
 import { WorldModuleError } from './validate.js';
+import { classifyVisibility } from './worldVisibility.js';
 
 /** JSON codecs for the JSON-backed columns worldQuery reads. */
 const templateDataColumn =
@@ -128,6 +129,11 @@ export function worldQuery(db: Db, target: WorldQueryTarget): WorldQueryResult {
     });
   }
 
+  const { visibility, dmOnlyFields } = classifyVisibility(
+    target.type,
+    resolved,
+  );
+
   return {
     ok: true,
     type: target.type,
@@ -135,5 +141,7 @@ export function worldQuery(db: Db, target: WorldQueryTarget): WorldQueryResult {
     resolved,
     template,
     overlays,
+    visibility,
+    dmOnlyFields,
   };
 }

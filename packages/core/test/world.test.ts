@@ -7,12 +7,14 @@ import {
   EMBERFALL_HOLLOW,
   WorldModuleError,
   assertShippablePack,
+  classifyVisibility,
   evaluatePackPolicy,
   forkModuleIntoCampaign,
   initSchema,
   loadModuleFromDir,
   mutateState,
   openDatabase,
+  toPlayerSafeView,
   validateModulePack,
   worldOverlayKey,
   worldQuery,
@@ -365,5 +367,165 @@ describe('world overlay key safety', () => {
     expect(worldOverlayKey('npc', 'warden-sela', 'disposition')).toBe(
       'world:npc:warden-sela:disposition',
     );
+  });
+});
+
+describe('world entity visibility', () => {
+  function freshCampaign() {
+    const db = openDatabase(':memory:');
+    initSchema(db);
+    forkModuleIntoCampaign(db, validateModulePack(clone()));
+    return db;
+  }
+
+  describe('classifyVisibility', () => {
+    it('marks npc as mixed with secret as DM-only', () => {
+      const result = classifyVisibility('npc', {
+        id: 'x',
+        name: 'Test',
+        secret: 'hidden',
+      });
+      expect(result.visibility).toBe('mixed');
+      expect(result.dmOnlyFields).toEqual(['secret']);
+    });
+
+    it('marks dm-scope lore as entirely DM-only', () => {
+      const result = classifyVisibility('lore', {
+        id: 'x',
+        title: 'Secret Lore',
+        text: 'hidden text',
+        scope: 'dm',
+      });
+      expect(result.visibility).toBe('dm');
+      expect(result.dmOnlyFields).toEqual([]);
+    });
+
+    it('marks public-scope lore as public', () => {
+      const result = classifyVisibility('lore', {
+        id: 'x',
+        title: 'Known Lore',
+        text: 'common knowledge',
+        scope: 'public',
+      });
+      expect(result.visibility).toBe('public');
+    });
+
+    it('marks location, encounter, and meta as public', () => {
+      expect(classifyVisibility('location', { id: 'x' }).visibility).toBe(
+        'public',
+      );
+      expect(classifyVisibility('encounter', { id: 'x' }).visibility).toBe(
+        'public',
+      );
+      expect(classifyVisibility('meta', { packId: 'x' }).visibility).toBe(
+        'public',
+      );
+    });
+  });
+
+  describe('worldQuery visibility annotations', () => {
+    it('annotates an NPC query with mixed visibility', () => {
+      const db = freshCampaign();
+      const result = worldQuery(db, { type: 'npc', id: 'warden-sela' });
+      expect(result).toMatchObject({
+        ok: true,
+        visibility: 'mixed',
+        dmOnlyFields: ['secret'],
+      });
+      db.close();
+    });
+
+    it('annotates dm-scope lore as DM-only', () => {
+      const db = freshCampaign();
+      const result = worldQuery(db, { type: 'lore', id: 'the-hollow-truth' });
+      expect(result).toMatchObject({
+        ok: true,
+        visibility: 'dm',
+        dmOnlyFields: [],
+      });
+      db.close();
+    });
+
+    it('annotates public-scope lore as public', () => {
+      const db = freshCampaign();
+      const result = worldQuery(db, {
+        type: 'lore',
+        id: 'why-emberfall-burned',
+      });
+      expect(result).toMatchObject({
+        ok: true,
+        visibility: 'public',
+        dmOnlyFields: [],
+      });
+      db.close();
+    });
+
+    it('annotates a location as public', () => {
+      const db = freshCampaign();
+      const result = worldQuery(db, {
+        type: 'location',
+        id: 'emberfall-square',
+      });
+      expect(result).toMatchObject({
+        ok: true,
+        visibility: 'public',
+        dmOnlyFields: [],
+      });
+      db.close();
+    });
+  });
+
+  describe('toPlayerSafeView', () => {
+    it('strips the secret field from an NPC result', () => {
+      const db = freshCampaign();
+      const result = worldQuery(db, { type: 'npc', id: 'warden-sela' });
+      if (!result.ok) throw new Error('expected ok');
+      const safe = toPlayerSafeView(result);
+      if (safe === undefined) throw new Error('expected defined');
+      expect(safe.name).toBe('Warden Sela');
+      expect(safe.disposition).toBe('wary but grateful');
+      expect(safe.secret).toBeUndefined();
+      db.close();
+    });
+
+    it('returns undefined for a DM-only lore entity', () => {
+      const db = freshCampaign();
+      const result = worldQuery(db, { type: 'lore', id: 'the-hollow-truth' });
+      if (!result.ok) throw new Error('expected ok');
+      expect(toPlayerSafeView(result)).toBeUndefined();
+      db.close();
+    });
+
+    it('returns the full resolved record for a public entity', () => {
+      const db = freshCampaign();
+      const result = worldQuery(db, {
+        type: 'location',
+        id: 'emberfall-square',
+      });
+      if (!result.ok) throw new Error('expected ok');
+      const safe = toPlayerSafeView(result);
+      expect(safe).toEqual(result.resolved);
+      db.close();
+    });
+
+    it('respects overlays when projecting player-safe NPC data', () => {
+      const db = freshCampaign();
+      mutateState(db, {
+        target: 'overlay_facts',
+        field: worldOverlayKey('npc', 'warden-sela', 'disposition'),
+        op: 'set',
+        value: 'friendly',
+        provenance: 'test',
+        sessionId: 'session-1',
+        at: '2026-05-26T00:00:00.000Z',
+      });
+      const result = worldQuery(db, { type: 'npc', id: 'warden-sela' });
+      if (!result.ok) throw new Error('expected ok');
+      const safe = toPlayerSafeView(result);
+      if (safe === undefined) throw new Error('expected defined');
+      expect(safe.disposition).toBe('friendly');
+      expect(safe.secret).toBeUndefined();
+      db.close();
+    });
   });
 });

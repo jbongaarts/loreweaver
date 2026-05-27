@@ -143,6 +143,14 @@ export type WorldTargetType =
   | 'lore'
   | 'meta';
 
+/**
+ * Whether a resolved world entity is safe for player-facing surfaces.
+ * - `public`: all fields are safe for players.
+ * - `dm`: the entire entity is DM-only (e.g. lore with `scope: 'dm'`).
+ * - `mixed`: some fields are DM-only; see `dmOnlyFields` for which ones.
+ */
+export type WorldEntityVisibility = 'public' | 'dm' | 'mixed';
+
 export interface WorldQueryTarget {
   readonly type: WorldTargetType;
   /** Required for every type except `meta` (the singleton pack metadata). */
@@ -167,6 +175,9 @@ export type WorldQueryResult =
       readonly resolved: Record<string, unknown>;
       readonly template: Record<string, unknown>;
       readonly overlays: readonly WorldOverlay[];
+      readonly visibility: WorldEntityVisibility;
+      /** Field names within `resolved` that are DM-only. Empty for fully public or fully DM-only entities. */
+      readonly dmOnlyFields: readonly string[];
     }
   | {
       readonly ok: false;

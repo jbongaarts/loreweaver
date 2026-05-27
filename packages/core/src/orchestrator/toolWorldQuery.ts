@@ -7,6 +7,8 @@ export const worldQueryTool: Tool = {
   name: 'world_query',
   description:
     'Resolve a world target (template + live overlay). ' +
+    'The result includes visibility annotations: fields marked DM-only ' +
+    '(e.g. an NPC\'s "secret") must not be narrated to the player verbatim. ' +
     'args: { type: "location"|"encounter"|"npc"|"lore"|"meta", id?: string }.',
   inputSchema: {
     type: 'object',

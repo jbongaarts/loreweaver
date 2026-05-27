@@ -292,6 +292,10 @@ export {
 export { forkModuleIntoCampaign } from './world/forkCampaign.js';
 export { worldOverlayKey, worldQuery } from './world/worldQuery.js';
 export {
+  classifyVisibility,
+  toPlayerSafeView,
+} from './world/worldVisibility.js';
+export {
   assertShippablePack,
   evaluatePackPolicy,
 } from './world/license.js';
@@ -305,6 +309,7 @@ export type {
   LoreScope,
   Npc,
   Trigger,
+  WorldEntityVisibility,
   WorldOverlay,
   WorldQueryResult,
   WorldQueryTarget,
