@@ -39,3 +39,19 @@ export function resolveCharacterId(db: Db, explicitId?: string): string {
   }
   return getActiveCharacterId(db);
 }
+
+const DEFAULT_ABILITY_SCORES =
+  '{"strength":0,"dexterity":0,"constitution":0,"intelligence":0,"wisdom":0,"charisma":0}';
+
+export function ensureCharacterRow(
+  db: Db,
+  characterId: string,
+  provenance: string,
+  sessionId: string,
+  at: string,
+): void {
+  db.prepare(
+    `INSERT OR IGNORE INTO character(id, ability_scores_json, role, provenance, session_id, updated_at)
+     VALUES (?, ?, 'pc', ?, ?, ?)`,
+  ).run(characterId, DEFAULT_ABILITY_SCORES, provenance, sessionId, at);
+}

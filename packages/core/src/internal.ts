@@ -86,6 +86,7 @@ export type {
 // Active character resolution.
 export {
   NoActiveCharacterError,
+  ensureCharacterRow,
   getActiveCharacterId,
   resolveCharacterId,
   setActiveCharacterId,

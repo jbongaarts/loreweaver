@@ -6,6 +6,7 @@ import {
   buildCharacterCreationMutations,
   completeCharacterCreation,
   createCampaign,
+  getActiveCharacterId,
   initSchema,
   openDatabase,
   validateCharacterDraft,
@@ -302,6 +303,65 @@ describe('character creation', () => {
       session_id: 'session-0',
       updated_at: '2026-05-20T22:47:00.000Z',
     });
+
+    db.close();
+  });
+
+  it('creates a second character (pc-2) without disturbing pc-1', () => {
+    const db = openDatabase(':memory:');
+    initSchema(db);
+
+    completeCharacterCreation(db, {
+      draft: validDraft,
+      sessionId: 'session-0',
+      at: '2026-05-20T22:47:00.000Z',
+    });
+
+    const pc2Draft = {
+      ...validDraft,
+      name: 'Korvin',
+      abilityScores: {
+        strength: 8,
+        dexterity: 15,
+        constitution: 14,
+        intelligence: 10,
+        wisdom: 14,
+        charisma: 8,
+      },
+      maxHitPoints: 12,
+    };
+
+    const result = completeCharacterCreation(db, {
+      draft: pc2Draft,
+      characterId: 'pc-2',
+      sessionId: 'session-0',
+      at: '2026-05-20T22:48:00.000Z',
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.character.name).toBe('Korvin');
+    }
+
+    const pc2 = db
+      .prepare(
+        `SELECT name, class_name, hp_current, hp_max FROM character WHERE id = 'pc-2'`,
+      )
+      .get() as {
+      name: string;
+      class_name: string;
+      hp_current: number;
+      hp_max: number;
+    };
+    expect(pc2.name).toBe('Korvin');
+    expect(pc2.hp_current).toBe(12);
+
+    const pc1 = db
+      .prepare(`SELECT name FROM character WHERE id = 'pc-1'`)
+      .get() as { name: string };
+    expect(pc1.name).toBe('Mira');
+
+    expect(getActiveCharacterId(db)).toBe('pc-2');
 
     db.close();
   });

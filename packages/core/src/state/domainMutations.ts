@@ -166,31 +166,39 @@ export function giveItem(
     throw new MutateStateError('item name must be a non-empty string');
   }
 
-  const base = {
-    target: 'inventory' as const,
-    id: item.id,
-    op: 'set' as const,
-    ...ctx,
-  };
+  withTransaction(db, (txnDb) => {
+    const charId = resolveCharacterId(txnDb, ctx.characterId);
 
-  const mutations: MutateStateInput[] = [
-    { ...base, field: 'name', value: item.name },
-    { ...base, field: 'quantity', value: item.quantity ?? 1 },
-  ];
+    const base = {
+      target: 'inventory' as const,
+      id: item.id,
+      op: 'set' as const,
+      ...ctx,
+    };
 
-  if (item.location !== undefined) {
-    mutations.push({ ...base, field: 'location', value: item.location });
-  }
+    const mutations: MutateStateInput[] = [
+      { ...base, field: 'name', value: item.name },
+      { ...base, field: 'quantity', value: item.quantity ?? 1 },
+    ];
 
-  if (item.properties !== undefined) {
-    mutations.push({
-      ...base,
-      field: 'properties_json',
-      value: item.properties,
-    });
-  }
+    if (item.location !== undefined) {
+      mutations.push({ ...base, field: 'location', value: item.location });
+    }
 
-  mutateStateBatch(db, mutations);
+    if (item.properties !== undefined) {
+      mutations.push({
+        ...base,
+        field: 'properties_json',
+        value: item.properties,
+      });
+    }
+
+    mutateStateBatch(txnDb, mutations);
+
+    txnDb
+      .prepare('UPDATE inventory SET character_id = ? WHERE id = ?')
+      .run(charId, item.id);
+  });
 }
 
 export interface RemoveItemResult {
@@ -215,9 +223,12 @@ export function removeItem(
   }
 
   return withTransaction(db, (txnDb) => {
+    const charId = resolveCharacterId(txnDb, ctx.characterId);
     const row = txnDb
-      .prepare('SELECT quantity FROM inventory WHERE id = ?')
-      .get(itemId) as { quantity: number } | undefined;
+      .prepare(
+        'SELECT quantity FROM inventory WHERE id = ? AND (character_id = ? OR character_id IS NULL)',
+      )
+      .get(itemId, charId) as { quantity: number } | undefined;
 
     if (row === undefined) {
       return { removed: false, previousQuantity: 0, newQuantity: 0 };
@@ -226,7 +237,11 @@ export function removeItem(
     const previousQuantity = row.quantity;
 
     if (quantity === undefined || previousQuantity - quantity <= 0) {
-      txnDb.prepare('DELETE FROM inventory WHERE id = ?').run(itemId);
+      txnDb
+        .prepare(
+          'DELETE FROM inventory WHERE id = ? AND (character_id = ? OR character_id IS NULL)',
+        )
+        .run(itemId, charId);
       return { removed: true, previousQuantity, newQuantity: 0 };
     }
 

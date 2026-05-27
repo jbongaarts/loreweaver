@@ -20,7 +20,10 @@ import type {
   SrdRecord,
   SrdSpellRecord,
 } from './srd/types.js';
-import { setActiveCharacterId } from './state/activeCharacter.js';
+import {
+  ensureCharacterRow,
+  setActiveCharacterId,
+} from './state/activeCharacter.js';
 import {
   type MutateStateInput,
   mutateStateBatch,
@@ -202,6 +205,13 @@ export function completeCharacterCreation(
     const mutations = characterMutations(character, metadata, charId);
 
     withTransaction(db, (txnDb) => {
+      ensureCharacterRow(
+        txnDb,
+        charId,
+        metadata.provenance,
+        metadata.sessionId,
+        metadata.at,
+      );
       mutateStateBatch(txnDb, mutations);
       setActiveCharacterId(txnDb, charId);
     });
@@ -239,6 +249,13 @@ function completePathfinderCharacterCreation(
     const mutations = pathfinderCharacterMutations(character, metadata, charId);
 
     withTransaction(db, (txnDb) => {
+      ensureCharacterRow(
+        txnDb,
+        charId,
+        metadata.provenance,
+        metadata.sessionId,
+        metadata.at,
+      );
       mutateStateBatch(txnDb, mutations);
       setActiveCharacterId(txnDb, charId);
     });
