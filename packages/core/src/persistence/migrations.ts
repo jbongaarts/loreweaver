@@ -43,8 +43,80 @@ const v7_to_v8: Migration = (db) => {
   }
 };
 
+// v8 → v9: party-oriented character model. Character table changes from
+// singleton (INTEGER PK, CHECK id=1) to multi-row (TEXT PK, role column).
+// Inventory gains a character_id FK. Active character tracked in meta.
+const v8_to_v9: Migration = (db) => {
+  const hasCharacterTable =
+    db
+      .prepare(
+        "SELECT 1 AS present FROM sqlite_master WHERE type = 'table' AND name = 'character'",
+      )
+      .get() !== undefined;
+
+  const defaultCharacterId = 'pc-1';
+
+  if (hasCharacterTable) {
+    db.exec(`
+      CREATE TABLE character_new (
+        id TEXT PRIMARY KEY,
+        name TEXT,
+        ancestry TEXT,
+        class_name TEXT,
+        level INTEGER NOT NULL DEFAULT 1 CHECK (level >= 1),
+        hp_current INTEGER NOT NULL DEFAULT 0 CHECK (hp_current >= 0),
+        hp_max INTEGER NOT NULL DEFAULT 0 CHECK (hp_max >= 0),
+        ability_scores_json TEXT NOT NULL DEFAULT '{}',
+        conditions_json TEXT NOT NULL DEFAULT '[]',
+        role TEXT NOT NULL DEFAULT 'pc',
+        provenance TEXT NOT NULL,
+        session_id TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+    `);
+    db.exec(`
+      INSERT INTO character_new(id, name, ancestry, class_name, level,
+        hp_current, hp_max, ability_scores_json, conditions_json,
+        role, provenance, session_id, updated_at)
+      SELECT '${defaultCharacterId}', name, ancestry, class_name, level,
+        hp_current, hp_max, ability_scores_json, conditions_json,
+        'pc', provenance, session_id, updated_at
+      FROM character WHERE id = 1;
+    `);
+    db.exec('DROP TABLE character;');
+    db.exec('ALTER TABLE character_new RENAME TO character;');
+  }
+
+  const hasInventoryTable =
+    db
+      .prepare(
+        "SELECT 1 AS present FROM sqlite_master WHERE type = 'table' AND name = 'inventory'",
+      )
+      .get() !== undefined;
+
+  if (hasInventoryTable) {
+    const cols = db.prepare('PRAGMA table_info(inventory)').all() as {
+      name: string;
+    }[];
+    if (!cols.some((c) => c.name === 'character_id')) {
+      db.exec(
+        'ALTER TABLE inventory ADD COLUMN character_id TEXT REFERENCES character(id)',
+      );
+      if (hasCharacterTable) {
+        db.exec(`UPDATE inventory SET character_id = '${defaultCharacterId}'`);
+      }
+    }
+  }
+
+  db.prepare('INSERT OR REPLACE INTO meta(key, value) VALUES (?, ?)').run(
+    'active_character_id',
+    defaultCharacterId,
+  );
+};
+
 export const MIGRATIONS: Readonly<Record<number, Migration>> = {
   8: v7_to_v8,
+  9: v8_to_v9,
 };
 
 /**

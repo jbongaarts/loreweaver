@@ -27,7 +27,7 @@ describe('game state', () => {
       .prepare(
         `SELECT name, provenance, session_id, updated_at
          FROM character
-         WHERE id = 1`,
+         WHERE id = 'pc-1'`,
       )
       .get() as
       | {
@@ -153,7 +153,9 @@ describe('game state', () => {
     ).toThrow(MutateStateError);
 
     expect(
-      db.prepare('SELECT name, provenance FROM character WHERE id = 1').get(),
+      db
+        .prepare(`SELECT name, provenance FROM character WHERE id = 'pc-1'`)
+        .get(),
     ).toEqual({
       name: null,
       provenance: 'system:init_schema',
@@ -208,7 +210,7 @@ describe('game state', () => {
         .prepare(
           `SELECT hp_current, conditions_json, provenance
            FROM character
-           WHERE id = 1`,
+           WHERE id = 'pc-1'`,
         )
         .get(),
     ).toEqual({
@@ -271,7 +273,9 @@ describe('game state', () => {
     ).toThrow('simulated crash');
 
     expect(
-      db.prepare('SELECT name, provenance FROM character WHERE id = 1').get(),
+      db
+        .prepare(`SELECT name, provenance FROM character WHERE id = 'pc-1'`)
+        .get(),
     ).toEqual({
       name: 'Mira',
       provenance: 'player:session-zero',
@@ -318,11 +322,11 @@ describe('game state', () => {
     // afterMutation fires once per mutation, in order.
     expect(seen).toEqual([0, 1]);
     // A successful return is the durable signal: every mutation committed.
-    expect(db.prepare('SELECT name FROM character WHERE id = 1').get()).toEqual(
-      {
-        name: 'Mira',
-      },
-    );
+    expect(
+      db.prepare(`SELECT name FROM character WHERE id = 'pc-1'`).get(),
+    ).toEqual({
+      name: 'Mira',
+    });
     expect(
       db
         .prepare("SELECT key FROM plot_flags WHERE key = 'accepted_the_oath'")

@@ -3,12 +3,15 @@ import {
   MutateStateError,
   addCondition,
   adjustHp,
+  ensureCharacterRow,
   giveItem,
   initSchema,
   mutateState,
   openDatabase,
+  readStateSnapshot,
   removeCondition,
   removeItem,
+  setActiveCharacterId,
   setPlotFlag,
   setWorldFact,
   updateClock,
@@ -388,6 +391,98 @@ describe('setWorldFact', () => {
       .prepare('SELECT value_json FROM overlay_facts WHERE key = ?')
       .get('world:location:green-hollow:name') as { value_json: string };
     expect(JSON.parse(row.value_json)).toBe('The Hidden Grove');
+    db.close();
+  });
+});
+
+describe('inventory ownership isolation', () => {
+  function freshDbWithTwoCharacters() {
+    const db = freshDb();
+    ensureCharacterRow(db, 'pc-2', 'test:init', 'session-1', CTX.at);
+    mutateState(db, {
+      target: 'character',
+      id: 'pc-2',
+      field: 'ability_scores_json',
+      op: 'set',
+      value: {
+        strength: 10,
+        dexterity: 10,
+        constitution: 10,
+        intelligence: 10,
+        wisdom: 10,
+        charisma: 10,
+      },
+      ...CTX,
+    });
+    return db;
+  }
+
+  it('giveItem assigns character_id to the active character', () => {
+    const db = freshDbWithTwoCharacters();
+
+    giveItem(db, { id: 'sword', name: 'Longsword' }, CTX);
+
+    const row = db
+      .prepare('SELECT character_id FROM inventory WHERE id = ?')
+      .get('sword') as { character_id: string };
+    expect(row.character_id).toBe('pc-1');
+    db.close();
+  });
+
+  it('giveItem assigns character_id to an explicit target character', () => {
+    const db = freshDbWithTwoCharacters();
+
+    giveItem(
+      db,
+      { id: 'shield', name: 'Shield' },
+      { ...CTX, characterId: 'pc-2' },
+    );
+
+    const row = db
+      .prepare('SELECT character_id FROM inventory WHERE id = ?')
+      .get('shield') as { character_id: string };
+    expect(row.character_id).toBe('pc-2');
+    db.close();
+  });
+
+  it('items given to pc-2 do not appear in pc-1 snapshot', () => {
+    const db = freshDbWithTwoCharacters();
+
+    giveItem(db, { id: 'torch', name: 'Torch', quantity: 3 }, CTX);
+    giveItem(
+      db,
+      { id: 'potion', name: 'Health Potion' },
+      { ...CTX, characterId: 'pc-2' },
+    );
+
+    const pc1Snapshot = readStateSnapshot(db, 'pc-1');
+    const pc2Snapshot = readStateSnapshot(db, 'pc-2');
+
+    expect(pc1Snapshot.inventory.map((i) => i.id)).toEqual(['torch']);
+    expect(pc2Snapshot.inventory.map((i) => i.id)).toEqual(['potion']);
+    db.close();
+  });
+
+  it('removeItem only affects items owned by the active character', () => {
+    const db = freshDbWithTwoCharacters();
+
+    giveItem(db, { id: 'gem', name: 'Ruby' }, CTX);
+    giveItem(
+      db,
+      { id: 'gem2', name: 'Sapphire' },
+      { ...CTX, characterId: 'pc-2' },
+    );
+
+    setActiveCharacterId(db, 'pc-2');
+    const result = removeItem(db, 'gem', undefined, CTX);
+
+    expect(result.removed).toBe(false);
+    expect(result.previousQuantity).toBe(0);
+
+    const pc1Row = db
+      .prepare('SELECT id FROM inventory WHERE id = ?')
+      .get('gem');
+    expect(pc1Row).toBeDefined();
     db.close();
   });
 });

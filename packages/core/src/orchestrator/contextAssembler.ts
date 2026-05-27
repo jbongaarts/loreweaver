@@ -7,6 +7,7 @@ import type {
 } from '../memory/summary.js';
 import type { Db } from '../persistence/db.js';
 import { jsonColumn } from '../persistence/jsonColumn.js';
+import { resolveCharacterId } from '../state/activeCharacter.js';
 import type { AbilityScores } from '../state/liveStateSchema.js';
 import {
   validateAbilityScoresJson,
@@ -57,6 +58,7 @@ export interface ContextAssemblyInput {
 }
 
 export interface CharacterSnapshot {
+  id: string;
   name: string | undefined;
   ancestry: string | undefined;
   className: string | undefined;
@@ -65,6 +67,7 @@ export interface CharacterSnapshot {
   hpMax: number;
   abilityScores: AbilityScores;
   conditions: readonly CharacterConditionEntry[];
+  role: string;
 }
 
 export interface InventoryItem {
@@ -109,6 +112,7 @@ export interface AssembledContext {
 }
 
 interface CharacterRow {
+  id: string;
   name: string | null;
   ancestry: string | null;
   class_name: string | null;
@@ -117,6 +121,7 @@ interface CharacterRow {
   hp_max: number;
   ability_scores_json: string;
   conditions_json: string;
+  role: string;
 }
 
 interface InventoryRow {
@@ -137,21 +142,27 @@ interface KeyedJsonRow {
   value_json: string;
 }
 
-export function readStateSnapshot(db: Db): StateSnapshot {
+export function readStateSnapshot(
+  db: Db,
+  activeCharacterId?: string,
+): StateSnapshot {
+  const charId = resolveCharacterId(db, activeCharacterId);
   const character = db
     .prepare(
-      `SELECT name, ancestry, class_name, level, hp_current, hp_max,
-              ability_scores_json, conditions_json
-       FROM character WHERE id = 1`,
+      `SELECT id, name, ancestry, class_name, level, hp_current, hp_max,
+              ability_scores_json, conditions_json, role
+       FROM character WHERE id = ?`,
     )
-    .get() as CharacterRow;
+    .get(charId) as CharacterRow;
 
   const inventoryRows = db
     .prepare(
       `SELECT id, name, quantity, location, properties_json
-       FROM inventory ORDER BY id`,
+       FROM inventory
+       WHERE character_id = ? OR character_id IS NULL
+       ORDER BY id`,
     )
-    .all() as InventoryRow[];
+    .all(charId) as InventoryRow[];
 
   const clock = db
     .prepare('SELECT in_game_time, current_location_id FROM clock WHERE id = 1')
@@ -173,6 +184,7 @@ export function readStateSnapshot(db: Db): StateSnapshot {
 
   return {
     character: {
+      id: character.id,
       name: character.name ?? undefined,
       ancestry: character.ancestry ?? undefined,
       className: character.class_name ?? undefined,
@@ -187,6 +199,7 @@ export function readStateSnapshot(db: Db): StateSnapshot {
         rawConditions,
         'character.conditions_json',
       ),
+      role: character.role,
     },
     inventory: inventoryRows.map((row) => {
       const rawProperties = inventoryPropertiesColumn.decode(

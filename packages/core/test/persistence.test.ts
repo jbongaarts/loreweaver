@@ -131,8 +131,8 @@ describe('persistence', () => {
     db.close();
   });
 
-  it('exports SCHEMA_VERSION 8', () => {
-    expect(SCHEMA_VERSION).toBe(8);
+  it('exports SCHEMA_VERSION 9', () => {
+    expect(SCHEMA_VERSION).toBe(9);
   });
 
   it('creates the campaign_arc table with the one-open partial index', () => {
@@ -195,7 +195,7 @@ describe('persistence', () => {
     }
 
     const characterRows = db.prepare('SELECT id FROM character').all();
-    expect(characterRows).toEqual([{ id: 1 }]);
+    expect(characterRows).toEqual([{ id: 'pc-1' }]);
 
     const clockRows = db.prepare('SELECT id FROM clock').all();
     expect(clockRows).toEqual([{ id: 1 }]);

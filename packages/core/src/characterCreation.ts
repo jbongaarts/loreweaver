@@ -7,6 +7,7 @@ import type {
   PathfinderCharacterDraft,
 } from './character/pathfinder2e.js';
 import type { Db } from './persistence/db.js';
+import { withTransaction } from './persistence/db.js';
 import {
   DEFAULT_DND5E_SRD_BINDING,
   readCampaignRulesBinding,
@@ -19,6 +20,10 @@ import type {
   SrdRecord,
   SrdSpellRecord,
 } from './srd/types.js';
+import {
+  ensureCharacterRow,
+  setActiveCharacterId,
+} from './state/activeCharacter.js';
 import {
   type MutateStateInput,
   mutateStateBatch,
@@ -80,6 +85,7 @@ export interface CompleteCharacterCreationInput {
   readonly sessionId: string;
   readonly at: string;
   readonly provenance?: string;
+  readonly characterId?: string;
 }
 
 export type CompleteCharacterCreationResult =
@@ -161,9 +167,10 @@ export function buildCharacterCreationMutations(
   draft: CharacterCreationDraft,
   metadata: CharacterCreationMutationMetadata,
   catalog: SrdCatalog = SRD_CATALOG,
+  characterId = 'pc-1',
 ): MutateStateInput[] {
   const { character } = validateCharacterDraft(draft, catalog);
-  return characterMutations(character, metadata);
+  return characterMutations(character, metadata, characterId);
 }
 
 export function completeCharacterCreation(
@@ -189,13 +196,25 @@ export function completeCharacterCreation(
       catalog,
     );
 
+    const charId = input.characterId ?? 'pc-1';
     const metadata = {
       provenance: input.provenance ?? 'character_creation:complete',
       sessionId: input.sessionId,
       at: input.at,
     };
-    const mutations = characterMutations(character, metadata);
-    mutateStateBatch(db, mutations);
+    const mutations = characterMutations(character, metadata, charId);
+
+    withTransaction(db, (txnDb) => {
+      ensureCharacterRow(
+        txnDb,
+        charId,
+        metadata.provenance,
+        metadata.sessionId,
+        metadata.at,
+      );
+      mutateStateBatch(txnDb, mutations);
+      setActiveCharacterId(txnDb, charId);
+    });
 
     return {
       ok: true,
@@ -221,13 +240,25 @@ function completePathfinderCharacterCreation(
       input.draft as PathfinderCharacterDraft,
     );
 
+    const charId = input.characterId ?? 'pc-1';
     const metadata = {
       provenance: input.provenance ?? 'character_creation:complete',
       sessionId: input.sessionId,
       at: input.at,
     };
-    const mutations = pathfinderCharacterMutations(character, metadata);
-    mutateStateBatch(db, mutations);
+    const mutations = pathfinderCharacterMutations(character, metadata, charId);
+
+    withTransaction(db, (txnDb) => {
+      ensureCharacterRow(
+        txnDb,
+        charId,
+        metadata.provenance,
+        metadata.sessionId,
+        metadata.at,
+      );
+      mutateStateBatch(txnDb, mutations);
+      setActiveCharacterId(txnDb, charId);
+    });
 
     const projection: CreatedCharacter = {
       name: character.name,
@@ -256,9 +287,11 @@ function completePathfinderCharacterCreation(
 function pathfinderCharacterMutations(
   character: CreatedPathfinderCharacter,
   metadata: CharacterCreationMutationMetadata,
+  characterId: string,
 ): MutateStateInput[] {
   const base = {
     target: 'character',
+    id: characterId,
     op: 'set',
     provenance: metadata.provenance,
     sessionId: metadata.sessionId,
@@ -330,9 +363,11 @@ function completionPrompt(character: CreatedCharacter): string {
 function characterMutations(
   character: CreatedCharacter,
   metadata: CharacterCreationMutationMetadata,
+  characterId: string,
 ): MutateStateInput[] {
   const base = {
     target: 'character',
+    id: characterId,
     op: 'set',
     provenance: metadata.provenance,
     sessionId: metadata.sessionId,

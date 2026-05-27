@@ -249,7 +249,9 @@ describe('runPlay', () => {
     expect(recap?.sourceSceneIds.length).toBeGreaterThan(0);
     expect(
       db
-        .prepare('SELECT name, class_name, hp_max FROM character WHERE id = 1')
+        .prepare(
+          `SELECT name, class_name, hp_max FROM character WHERE id = 'pc-1'`,
+        )
         .get(),
     ).toEqual({ name: 'Mira', class_name: 'Fighter', hp_max: 12 });
 
@@ -397,7 +399,9 @@ describe('runPlay', () => {
     expect(out).toContain('Character creation complete');
     expect(out).toContain('DM: you said "look around"');
     expect(
-      db.prepare('SELECT name, class_name FROM character WHERE id = 1').get(),
+      db
+        .prepare(`SELECT name, class_name FROM character WHERE id = 'pc-1'`)
+        .get(),
     ).toEqual({ name: 'Mira', class_name: 'Fighter' });
     dispose();
   });
@@ -425,7 +429,9 @@ describe('runPlay', () => {
     expect(out).toContain('Character creation deferred');
     expect(out).toContain('DM: you said "look around"');
     expect(
-      db.prepare('SELECT name, class_name FROM character WHERE id = 1').get(),
+      db
+        .prepare(`SELECT name, class_name FROM character WHERE id = 'pc-1'`)
+        .get(),
     ).toEqual({ name: null, class_name: null });
     dispose();
   });

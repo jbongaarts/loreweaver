@@ -274,7 +274,7 @@ describe('domain mutation tools', () => {
     const { db } = c;
     const registry = createDefaultToolRegistry();
     db.prepare(
-      'UPDATE character SET hp_max = 20, hp_current = 15 WHERE id = 1',
+      `UPDATE character SET hp_max = 20, hp_current = 15 WHERE id = 'pc-1'`,
     ).run();
 
     const result = registry.invoke('adjust_hp', { amount: -5 }, c);

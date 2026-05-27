@@ -6,6 +6,7 @@ import {
   buildCharacterCreationMutations,
   completeCharacterCreation,
   createCampaign,
+  getActiveCharacterId,
   initSchema,
   openDatabase,
   validateCharacterDraft,
@@ -91,6 +92,7 @@ describe('character creation', () => {
     ).toEqual([
       {
         target: 'character',
+        id: 'pc-1',
         field: 'name',
         op: 'set',
         value: 'Mira',
@@ -100,6 +102,7 @@ describe('character creation', () => {
       },
       {
         target: 'character',
+        id: 'pc-1',
         field: 'ancestry',
         op: 'set',
         value: 'Human',
@@ -109,6 +112,7 @@ describe('character creation', () => {
       },
       {
         target: 'character',
+        id: 'pc-1',
         field: 'class_name',
         op: 'set',
         value: 'Fighter',
@@ -118,6 +122,7 @@ describe('character creation', () => {
       },
       {
         target: 'character',
+        id: 'pc-1',
         field: 'level',
         op: 'set',
         value: 1,
@@ -127,6 +132,7 @@ describe('character creation', () => {
       },
       {
         target: 'character',
+        id: 'pc-1',
         field: 'hp_current',
         op: 'set',
         value: 12,
@@ -136,6 +142,7 @@ describe('character creation', () => {
       },
       {
         target: 'character',
+        id: 'pc-1',
         field: 'hp_max',
         op: 'set',
         value: 12,
@@ -145,6 +152,7 @@ describe('character creation', () => {
       },
       {
         target: 'character',
+        id: 'pc-1',
         field: 'ability_scores_json',
         op: 'set',
         value: JSON.stringify(validDraft.abilityScores),
@@ -154,6 +162,7 @@ describe('character creation', () => {
       },
       {
         target: 'character',
+        id: 'pc-1',
         field: 'conditions_json',
         op: 'set',
         value: JSON.stringify([]),
@@ -184,7 +193,9 @@ describe('character creation', () => {
         'Revise the character draft before persisting it: unsupported SRD class: Warlock; level-1 hit point maximum must be 2',
     });
     expect(
-      db.prepare('SELECT name, class_name FROM character WHERE id = 1').get(),
+      db
+        .prepare(`SELECT name, class_name FROM character WHERE id = 'pc-1'`)
+        .get(),
     ).toEqual({ name: null, class_name: null });
 
     db.close();
@@ -240,7 +251,7 @@ describe('character creation', () => {
     }
     // No D&D character row was written.
     const row = db
-      .prepare('SELECT name, class_name FROM character WHERE id = 1')
+      .prepare(`SELECT name, class_name FROM character WHERE id = 'pc-1'`)
       .get() as { name: string | null; class_name: string | null };
     expect(row.name).toBeNull();
     expect(row.class_name).toBeNull();
@@ -277,7 +288,7 @@ describe('character creation', () => {
           `SELECT name, ancestry, class_name, level, hp_current, hp_max,
                   ability_scores_json, provenance, session_id, updated_at
            FROM character
-           WHERE id = 1`,
+           WHERE id = 'pc-1'`,
         )
         .get(),
     ).toEqual({
@@ -292,6 +303,65 @@ describe('character creation', () => {
       session_id: 'session-0',
       updated_at: '2026-05-20T22:47:00.000Z',
     });
+
+    db.close();
+  });
+
+  it('creates a second character (pc-2) without disturbing pc-1', () => {
+    const db = openDatabase(':memory:');
+    initSchema(db);
+
+    completeCharacterCreation(db, {
+      draft: validDraft,
+      sessionId: 'session-0',
+      at: '2026-05-20T22:47:00.000Z',
+    });
+
+    const pc2Draft = {
+      ...validDraft,
+      name: 'Korvin',
+      abilityScores: {
+        strength: 8,
+        dexterity: 15,
+        constitution: 14,
+        intelligence: 10,
+        wisdom: 14,
+        charisma: 8,
+      },
+      maxHitPoints: 12,
+    };
+
+    const result = completeCharacterCreation(db, {
+      draft: pc2Draft,
+      characterId: 'pc-2',
+      sessionId: 'session-0',
+      at: '2026-05-20T22:48:00.000Z',
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.character.name).toBe('Korvin');
+    }
+
+    const pc2 = db
+      .prepare(
+        `SELECT name, class_name, hp_current, hp_max FROM character WHERE id = 'pc-2'`,
+      )
+      .get() as {
+      name: string;
+      class_name: string;
+      hp_current: number;
+      hp_max: number;
+    };
+    expect(pc2.name).toBe('Korvin');
+    expect(pc2.hp_current).toBe(12);
+
+    const pc1 = db
+      .prepare(`SELECT name FROM character WHERE id = 'pc-1'`)
+      .get() as { name: string };
+    expect(pc1.name).toBe('Mira');
+
+    expect(getActiveCharacterId(db)).toBe('pc-2');
 
     db.close();
   });
