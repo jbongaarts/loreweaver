@@ -18,7 +18,7 @@
  * Roughly, the stable surface here covers: configuration, opening/initialising
  * the campaign database, the campaign + session + turn lifecycle, the
  * high-level memory composition/read APIs, character creation, the built-in
- * sample content and rules packs, the rules-binding read/write API, the
+ * sample content, the rules-binding read/write API, rules-pack types, the
  * model-client contract + Agent SDK adapter, demo-mode entrypoints, and the
  * Dolt-backed checkpoint store plus managed-binary install seam.
  */
