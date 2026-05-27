@@ -2,6 +2,7 @@ import type { Db } from '../persistence/db.js';
 import { withTransaction } from '../persistence/db.js';
 import { JsonColumnError, jsonColumn } from '../persistence/jsonColumn.js';
 import { requireNonEmpty } from '../validation.js';
+import { resolveCharacterId } from './activeCharacter.js';
 import {
   LiveStateSchemaError,
   validateAbilityScoresJson,
@@ -190,9 +191,11 @@ export function getStateProvenance(
   query: StateProvenanceQuery,
 ): StateProvenanceRecord | undefined {
   switch (query.target) {
-    case 'character':
+    case 'character': {
       requireAllowedField('character', query.field, CHARACTER_FIELDS);
-      return readSingletonProvenance(db, query, 'character');
+      const characterId = resolveCharacterId(db, query.id);
+      return readCharacterProvenance(db, query, characterId);
+    }
     case 'clock':
       requireAllowedField('clock', query.field, CLOCK_FIELDS);
       return readSingletonProvenance(db, query, 'clock');
@@ -234,14 +237,15 @@ function setCharacterField(db: Db, input: MutateStateInput): void {
     input.value,
     CHARACTER_FIELDS,
   );
+  const characterId = resolveCharacterId(db, input.id);
   db.prepare(
     `UPDATE character
      SET ${input.field} = ?,
          provenance = ?,
          session_id = ?,
          updated_at = ?
-     WHERE id = 1`,
-  ).run(value, input.provenance, input.sessionId, input.at);
+     WHERE id = ?`,
+  ).run(value, input.provenance, input.sessionId, input.at, characterId);
 }
 
 function setInventoryField(db: Db, input: MutateStateInput): void {
@@ -325,6 +329,21 @@ function readSingletonProvenance(
        WHERE id = 1`,
     )
     .get() as ProvenanceRow | undefined;
+  return provenanceRecordFromRow(query, row);
+}
+
+function readCharacterProvenance(
+  db: Db,
+  query: StateProvenanceQuery,
+  characterId: string,
+): StateProvenanceRecord | undefined {
+  const row = db
+    .prepare(
+      `SELECT provenance, session_id, updated_at
+       FROM character
+       WHERE id = ?`,
+    )
+    .get(characterId) as ProvenanceRow | undefined;
   return provenanceRecordFromRow(query, row);
 }
 

@@ -3,13 +3,21 @@ import { completeCharacterCreation } from '@loreweaver/core';
 import type { CliIO, PlayDeps } from './playTypes.js';
 
 function hasCanonicalCharacter(db: Db): boolean {
+  const activeId = (
+    db
+      .prepare("SELECT value FROM meta WHERE key = 'active_character_id'")
+      .get() as { value: string } | undefined
+  )?.value;
+  if (activeId === undefined) {
+    return false;
+  }
   const row = db
     .prepare(
       `SELECT name, class_name, hp_max
        FROM character
-       WHERE id = 1`,
+       WHERE id = ?`,
     )
-    .get() as
+    .get(activeId) as
     | { name: string | null; class_name: string | null; hp_max: number }
     | undefined;
   return (

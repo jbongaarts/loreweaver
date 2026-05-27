@@ -78,7 +78,7 @@ describe('Pathfinder character creation - happy path', () => {
       .prepare(
         `SELECT name, ancestry, class_name, level, hp_current, hp_max,
                 ability_scores_json
-         FROM character WHERE id = 1`,
+         FROM character WHERE id = 'pc-1'`,
       )
       .get() as {
       name: string;

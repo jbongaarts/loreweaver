@@ -91,6 +91,7 @@ describe('character creation', () => {
     ).toEqual([
       {
         target: 'character',
+        id: 'pc-1',
         field: 'name',
         op: 'set',
         value: 'Mira',
@@ -100,6 +101,7 @@ describe('character creation', () => {
       },
       {
         target: 'character',
+        id: 'pc-1',
         field: 'ancestry',
         op: 'set',
         value: 'Human',
@@ -109,6 +111,7 @@ describe('character creation', () => {
       },
       {
         target: 'character',
+        id: 'pc-1',
         field: 'class_name',
         op: 'set',
         value: 'Fighter',
@@ -118,6 +121,7 @@ describe('character creation', () => {
       },
       {
         target: 'character',
+        id: 'pc-1',
         field: 'level',
         op: 'set',
         value: 1,
@@ -127,6 +131,7 @@ describe('character creation', () => {
       },
       {
         target: 'character',
+        id: 'pc-1',
         field: 'hp_current',
         op: 'set',
         value: 12,
@@ -136,6 +141,7 @@ describe('character creation', () => {
       },
       {
         target: 'character',
+        id: 'pc-1',
         field: 'hp_max',
         op: 'set',
         value: 12,
@@ -145,6 +151,7 @@ describe('character creation', () => {
       },
       {
         target: 'character',
+        id: 'pc-1',
         field: 'ability_scores_json',
         op: 'set',
         value: JSON.stringify(validDraft.abilityScores),
@@ -154,6 +161,7 @@ describe('character creation', () => {
       },
       {
         target: 'character',
+        id: 'pc-1',
         field: 'conditions_json',
         op: 'set',
         value: JSON.stringify([]),
@@ -184,7 +192,9 @@ describe('character creation', () => {
         'Revise the character draft before persisting it: unsupported SRD class: Warlock; level-1 hit point maximum must be 2',
     });
     expect(
-      db.prepare('SELECT name, class_name FROM character WHERE id = 1').get(),
+      db
+        .prepare(`SELECT name, class_name FROM character WHERE id = 'pc-1'`)
+        .get(),
     ).toEqual({ name: null, class_name: null });
 
     db.close();
@@ -240,7 +250,7 @@ describe('character creation', () => {
     }
     // No D&D character row was written.
     const row = db
-      .prepare('SELECT name, class_name FROM character WHERE id = 1')
+      .prepare(`SELECT name, class_name FROM character WHERE id = 'pc-1'`)
       .get() as { name: string | null; class_name: string | null };
     expect(row.name).toBeNull();
     expect(row.class_name).toBeNull();
@@ -277,7 +287,7 @@ describe('character creation', () => {
           `SELECT name, ancestry, class_name, level, hp_current, hp_max,
                   ability_scores_json, provenance, session_id, updated_at
            FROM character
-           WHERE id = 1`,
+           WHERE id = 'pc-1'`,
         )
         .get(),
     ).toEqual({

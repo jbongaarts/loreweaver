@@ -126,7 +126,7 @@ describe('orchestrator turn loop', () => {
     const db = freshDbWithSession();
     withOpenScene(db);
     db.prepare(
-      'UPDATE character SET hp_max = 20, hp_current = 15 WHERE id = 1',
+      `UPDATE character SET hp_max = 20, hp_current = 15 WHERE id = 'pc-1'`,
     ).run();
     const model = new ScriptedModel([
       toolCall('adjust_hp', { amount: -3 }),
@@ -140,7 +140,7 @@ describe('orchestrator turn loop', () => {
 
     expect(result.ok).toBe(true);
     const row = db
-      .prepare('SELECT hp_current FROM character WHERE id = 1')
+      .prepare(`SELECT hp_current FROM character WHERE id = 'pc-1'`)
       .get() as { hp_current: number };
     expect(row.hp_current).toBe(12);
     db.close();
@@ -186,7 +186,9 @@ describe('orchestrator turn loop', () => {
     );
 
     expect(result.ok).toBe(false);
-    const row = db.prepare('SELECT name FROM character WHERE id = 1').get() as {
+    const row = db
+      .prepare(`SELECT name FROM character WHERE id = 'pc-1'`)
+      .get() as {
       name: string;
     };
     expect(row.name).toBe('Mira');
@@ -204,7 +206,7 @@ describe('orchestrator turn loop', () => {
     const db = freshDbWithSession();
     withOpenScene(db);
     db.prepare(
-      'UPDATE character SET hp_max = 20, hp_current = 10 WHERE id = 1',
+      `UPDATE character SET hp_max = 20, hp_current = 10 WHERE id = 'pc-1'`,
     ).run();
 
     // Round 1 applies a mutation, round 2 throws.
@@ -228,7 +230,7 @@ describe('orchestrator turn loop', () => {
 
     expect(result.ok).toBe(false);
     const row = db
-      .prepare('SELECT hp_current FROM character WHERE id = 1')
+      .prepare(`SELECT hp_current FROM character WHERE id = 'pc-1'`)
       .get() as { hp_current: number };
     expect(row.hp_current).toBe(10); // pre-turn state — mutation rolled back
     db.close();
@@ -279,7 +281,7 @@ describe('orchestrator turn loop', () => {
     const db = freshDbWithSession();
     withOpenScene(db);
     db.prepare(
-      'UPDATE character SET hp_max = 20, hp_current = 15 WHERE id = 1',
+      `UPDATE character SET hp_max = 20, hp_current = 15 WHERE id = 'pc-1'`,
     ).run();
     const model = new ScriptedModel([
       toolCall('roll', { dice: '1d20+2', reason: 'perception' }),

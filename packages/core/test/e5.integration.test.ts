@@ -196,7 +196,7 @@ describe('E5 epic verification', () => {
       .prepare('SELECT COUNT(*) AS n FROM inventory')
       .get() as { n: number };
     const character = db
-      .prepare('SELECT hp_current FROM character WHERE id = 1')
+      .prepare(`SELECT hp_current FROM character WHERE id = 'pc-1'`)
       .get() as { hp_current: number };
     expect(inventory.n).toBe(0);
     expect(character.hp_current).toBe(0); // schema default — prose changed nothing

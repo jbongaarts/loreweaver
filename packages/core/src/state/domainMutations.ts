@@ -1,5 +1,6 @@
 import type { Db } from '../persistence/db.js';
 import { withTransaction } from '../persistence/db.js';
+import { resolveCharacterId } from './activeCharacter.js';
 import type { CharacterConditionEntry } from './liveStateSchema.js';
 import {
   MutateStateError,
@@ -13,6 +14,7 @@ export interface DomainMutationContext {
   provenance: string;
   sessionId: string;
   at: string;
+  characterId?: string;
 }
 
 export interface AdjustHpResult {
@@ -32,9 +34,10 @@ export function adjustHp(
   }
 
   return withTransaction(db, (txnDb) => {
+    const charId = resolveCharacterId(txnDb, ctx.characterId);
     const row = txnDb
-      .prepare('SELECT hp_current, hp_max FROM character WHERE id = 1')
-      .get() as { hp_current: number; hp_max: number } | undefined;
+      .prepare('SELECT hp_current, hp_max FROM character WHERE id = ?')
+      .get(charId) as { hp_current: number; hp_max: number } | undefined;
 
     if (row === undefined) {
       throw new MutateStateError('no character row exists');
@@ -46,6 +49,7 @@ export function adjustHp(
 
     mutateState(txnDb, {
       target: 'character',
+      id: charId,
       field: 'hp_current',
       op: 'set',
       value: newHp,
@@ -81,7 +85,8 @@ export function addCondition(
   }
 
   return withTransaction(db, (txnDb) => {
-    const current = readConditions(txnDb);
+    const charId = resolveCharacterId(txnDb, ctx.characterId);
+    const current = readConditions(txnDb, charId);
 
     if (current.some((c) => c.id === condition.id)) {
       return { added: false, conditions: current };
@@ -94,6 +99,7 @@ export function addCondition(
 
     mutateState(txnDb, {
       target: 'character',
+      id: charId,
       field: 'conditions_json',
       op: 'set',
       value: updated,
@@ -119,7 +125,8 @@ export function removeCondition(
   }
 
   return withTransaction(db, (txnDb) => {
-    const current = readConditions(txnDb);
+    const charId = resolveCharacterId(txnDb, ctx.characterId);
+    const current = readConditions(txnDb, charId);
     const updated = current.filter((c) => c.id !== conditionId);
 
     if (updated.length === current.length) {
@@ -128,6 +135,7 @@ export function removeCondition(
 
     mutateState(txnDb, {
       target: 'character',
+      id: charId,
       field: 'conditions_json',
       op: 'set',
       value: updated,
@@ -304,10 +312,13 @@ export function setWorldFact(
   });
 }
 
-function readConditions(db: Db): CharacterConditionEntry[] {
+function readConditions(
+  db: Db,
+  characterId: string,
+): CharacterConditionEntry[] {
   const row = db
-    .prepare('SELECT conditions_json FROM character WHERE id = 1')
-    .get() as { conditions_json: string } | undefined;
+    .prepare('SELECT conditions_json FROM character WHERE id = ?')
+    .get(characterId) as { conditions_json: string } | undefined;
 
   if (row === undefined) {
     throw new MutateStateError('no character row exists');

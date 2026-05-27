@@ -27,7 +27,7 @@ import { migrateSchema } from './migrations.js';
  * validated by the pack importer at load time — not by mutateState or the
  * context assembler.
  */
-export const SCHEMA_VERSION = 8;
+export const SCHEMA_VERSION = 9;
 
 export class SchemaCompatibilityError extends Error {
   constructor(message: string) {
@@ -47,7 +47,7 @@ export function initSchema(db: Db): void {
     );
 
     CREATE TABLE IF NOT EXISTS character (
-      id INTEGER PRIMARY KEY CHECK (id = 1),
+      id TEXT PRIMARY KEY,
       name TEXT,
       ancestry TEXT,
       class_name TEXT,
@@ -56,6 +56,7 @@ export function initSchema(db: Db): void {
       hp_max INTEGER NOT NULL DEFAULT 0 CHECK (hp_max >= 0),
       ability_scores_json TEXT NOT NULL DEFAULT '{}',
       conditions_json TEXT NOT NULL DEFAULT '[]',
+      role TEXT NOT NULL DEFAULT 'pc',
       provenance TEXT NOT NULL,
       session_id TEXT NOT NULL,
       updated_at TEXT NOT NULL
@@ -63,6 +64,7 @@ export function initSchema(db: Db): void {
 
     CREATE TABLE IF NOT EXISTS inventory (
       id TEXT PRIMARY KEY,
+      character_id TEXT REFERENCES character(id),
       name TEXT NOT NULL,
       quantity INTEGER NOT NULL DEFAULT 1 CHECK (quantity >= 0),
       location TEXT,
@@ -282,18 +284,28 @@ export function initSchema(db: Db): void {
     const now = new Date(0).toISOString();
     const defaultAbilityScores =
       '{"strength":0,"dexterity":0,"constitution":0,"intelligence":0,"wisdom":0,"charisma":0}';
+    const defaultCharacterId = 'pc-1';
     txnDb
       .prepare(
-        `INSERT OR IGNORE INTO character(id, ability_scores_json, provenance, session_id, updated_at)
-     VALUES (1, ?, ?, ?, ?)`,
+        `INSERT OR IGNORE INTO character(id, ability_scores_json, role, provenance, session_id, updated_at)
+     VALUES (?, ?, 'pc', ?, ?, ?)`,
       )
-      .run(defaultAbilityScores, 'system:init_schema', 'bootstrap', now);
+      .run(
+        defaultCharacterId,
+        defaultAbilityScores,
+        'system:init_schema',
+        'bootstrap',
+        now,
+      );
     txnDb
       .prepare(
         `INSERT OR IGNORE INTO clock(id, provenance, session_id, updated_at)
      VALUES (1, ?, ?, ?)`,
       )
       .run('system:init_schema', 'bootstrap', now);
+    txnDb
+      .prepare('INSERT OR IGNORE INTO meta(key, value) VALUES (?, ?)')
+      .run('active_character_id', defaultCharacterId);
     txnDb
       .prepare('INSERT OR REPLACE INTO meta(key, value) VALUES (?, ?)')
       .run('schema_version', String(SCHEMA_VERSION));

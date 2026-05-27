@@ -83,6 +83,15 @@ export type {
   SceneSummarySelector,
 } from './memory/summary.js';
 
+// Active character resolution.
+export {
+  NoActiveCharacterError,
+  getActiveCharacterId,
+  resolveCharacterId,
+  setActiveCharacterId,
+  tryGetActiveCharacterId,
+} from './state/activeCharacter.js';
+
 // State mutation primitives.
 export {
   MutateStateError,
