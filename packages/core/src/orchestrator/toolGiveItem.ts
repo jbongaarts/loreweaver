@@ -1,0 +1,79 @@
+import { giveItem } from '../state/domainMutations.js';
+import { MutateStateError } from '../state/mutateState.js';
+import { asRecord, err, ok } from './toolRegistry.js';
+import type { Tool } from './toolRegistry.js';
+
+export const giveItemTool: Tool = {
+  name: 'give_item',
+  description:
+    "Add an item to the character's inventory or update an existing one. " +
+    'Creates the item if it does not exist; updates fields if it does.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      id: {
+        type: 'string',
+        description: 'Unique item identifier (e.g. "torch", "longsword").',
+        minLength: 1,
+      },
+      name: {
+        type: 'string',
+        description: 'Display name for the item.',
+        minLength: 1,
+      },
+      quantity: {
+        type: 'integer',
+        description: 'How many of this item. Defaults to 1.',
+        minimum: 0,
+      },
+      location: {
+        type: 'string',
+        description: 'Where the item is stored (e.g. "backpack", "worn").',
+      },
+      properties: {
+        type: 'object',
+        description: 'Arbitrary key-value properties for the item.',
+      },
+    },
+    required: ['id', 'name'],
+    additionalProperties: false,
+  },
+  run(args, ctx) {
+    const a = asRecord(args);
+    if (
+      a === undefined ||
+      typeof a.id !== 'string' ||
+      typeof a.name !== 'string'
+    ) {
+      return err('invalid_args', 'give_item requires { id, name }');
+    }
+    try {
+      giveItem(
+        ctx.db,
+        {
+          id: a.id,
+          name: a.name,
+          quantity: typeof a.quantity === 'number' ? a.quantity : undefined,
+          location: typeof a.location === 'string' ? a.location : undefined,
+          properties:
+            typeof a.properties === 'object' &&
+            a.properties !== null &&
+            !Array.isArray(a.properties)
+              ? (a.properties as Record<string, unknown>)
+              : undefined,
+        },
+        {
+          provenance: `model:${ctx.turnId}`,
+          sessionId: ctx.sessionId,
+          at: ctx.at,
+        },
+      );
+      return ok({ applied: true, id: a.id, name: a.name });
+    } catch (e) {
+      if (e instanceof MutateStateError) {
+        return err('mutate_error', e.message);
+      }
+      throw e;
+    }
+  },
+};

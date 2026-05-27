@@ -19,8 +19,8 @@ describe('DM system prompt', () => {
     // Prompt should be system-neutral.
     expect(prompt).not.toContain('lookup_srd');
     expect(prompt).not.toContain('SRD');
-    // state changes must go through mutate_state, not narration.
-    expect(prompt).toContain('mutate_state');
+    // state changes must go through domain mutation tools, not narration.
+    expect(prompt).toContain('adjust_hp');
   });
 
   it('lists the available tools and the tool-call protocol', () => {

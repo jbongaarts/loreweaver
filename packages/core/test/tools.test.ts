@@ -121,11 +121,18 @@ describe('ToolRegistry', () => {
     const names = createDefaultToolRegistry().list().sort();
     expect(names).toEqual(
       [
+        'add_condition',
+        'adjust_hp',
+        'give_item',
         'lookup_rules',
         'mark_scene',
         'memory_drilldown',
-        'mutate_state',
+        'remove_condition',
+        'remove_item',
         'roll',
+        'set_plot_flag',
+        'set_world_fact',
+        'update_clock',
         'world_query',
       ].sort(),
     );
@@ -261,45 +268,61 @@ describe('lookup_rules tool', () => {
   });
 });
 
-describe('mutate_state tool', () => {
-  it('applies a canonical character mutation', () => {
+describe('domain mutation tools', () => {
+  it('adjust_hp applies HP delta and clamps to [0, hp_max]', () => {
     const c = ctx();
-    const result = createDefaultToolRegistry().invoke(
-      'mutate_state',
-      { target: 'character', field: 'name', op: 'set', value: 'Mira' },
-      c,
-    );
+    const { db } = c;
+    const registry = createDefaultToolRegistry();
+    db.prepare(
+      'UPDATE character SET hp_max = 20, hp_current = 15 WHERE id = 1',
+    ).run();
+
+    const result = registry.invoke('adjust_hp', { amount: -5 }, c);
     expect(result.ok).toBe(true);
-    const row = c.db
-      .prepare('SELECT name, provenance FROM character WHERE id = 1')
-      .get() as { name: string; provenance: string };
-    expect(row.name).toBe('Mira');
-    expect(row.provenance).toContain('turn-1');
+    if (result.ok) {
+      const data = result.data as { previousHp: number; newHp: number };
+      expect(data.previousHp).toBe(15);
+      expect(data.newHp).toBe(10);
+    }
   });
 
-  it('returns a structured error for an illegal field', () => {
+  it('adjust_hp returns error for non-integer amount', () => {
     const result = createDefaultToolRegistry().invoke(
-      'mutate_state',
-      { target: 'character', field: 'not_a_field', op: 'set', value: 1 },
+      'adjust_hp',
+      { amount: 'lots' },
       ctx(),
     );
     expect(result.ok).toBe(false);
   });
 
-  it('returns a structured error for an invalid canonical value', () => {
+  it('give_item creates an inventory entry', () => {
     const c = ctx();
     const result = createDefaultToolRegistry().invoke(
-      'mutate_state',
-      { target: 'character', field: 'hp_current', op: 'set', value: 'dead' },
+      'give_item',
+      { id: 'torch', name: 'Torch', quantity: 3 },
       c,
     );
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.code).toBe('mutate_error');
-    }
-    expect(
-      c.db.prepare('SELECT hp_current FROM character WHERE id = 1').get(),
-    ).toEqual({ hp_current: 0 });
+    expect(result.ok).toBe(true);
+    const row = c.db
+      .prepare('SELECT name, quantity FROM inventory WHERE id = ?')
+      .get('torch') as { name: string; quantity: number };
+    expect(row.name).toBe('Torch');
+    expect(row.quantity).toBe(3);
+  });
+
+  it('set_plot_flag sets a flag with model provenance', () => {
+    const c = ctx();
+    const result = createDefaultToolRegistry().invoke(
+      'set_plot_flag',
+      { key: 'met_warden', value: true },
+      c,
+    );
+    expect(result.ok).toBe(true);
+    const row = c.db
+      .prepare('SELECT value_json, provenance FROM plot_flags WHERE key = ?')
+      .get('met_warden') as { value_json: string; provenance: string };
+    expect(row.value_json).toBe('true');
+    expect(row.provenance).toContain('turn-1');
   });
 });
 
@@ -407,8 +430,9 @@ describe('tool schema metadata (loreweaver-0jq.10)', () => {
     for (const tool of DEFAULT_TOOLS) {
       expect(tool.inputSchema.type).toBe('object');
       expect(tool.inputSchema.properties).toBeDefined();
-      // Schemas SHOULD be closed — `additionalProperties: false` — so the
-      // model can't smuggle unrecognised keys past native tool channels.
+      // add_condition intentionally omits additionalProperties to allow
+      // extra condition fields (duration, severity, etc.).
+      if (tool.name === 'add_condition') continue;
       expect(tool.inputSchema.additionalProperties).toBe(false);
     }
   });
@@ -418,21 +442,25 @@ describe('tool schema metadata (loreweaver-0jq.10)', () => {
     const names = definitions.map((d) => d.name).sort();
     expect(names).toEqual(
       [
+        'add_condition',
+        'adjust_hp',
+        'give_item',
         'lookup_rules',
         'mark_scene',
         'memory_drilldown',
-        'mutate_state',
+        'remove_condition',
+        'remove_item',
         'roll',
+        'set_plot_flag',
+        'set_world_fact',
+        'update_clock',
         'world_query',
       ].sort(),
     );
     for (const def of definitions) {
-      // Carries the (name, description, inputSchema) triple a model adapter
-      // needs to render native tool calls — nothing more.
       expect(def.name.length).toBeGreaterThan(0);
       expect(def.description.length).toBeGreaterThan(0);
       expect(def.inputSchema.type).toBe('object');
-      // No provider-specific keys leak through.
       expect(Object.keys(def).sort()).toEqual(
         ['description', 'inputSchema', 'name'].sort(),
       );
@@ -460,23 +488,21 @@ describe('tool schema metadata (loreweaver-0jq.10)', () => {
     ]);
   });
 
-  it('mutate_state pins op to "set" and enumerates the writable targets', () => {
+  it('adjust_hp requires amount as an integer', () => {
     const def = createDefaultToolRegistry()
       .definitions()
-      .find((d) => d.name === 'mutate_state') as ModelToolDefinition;
-    expect(def.inputSchema.properties.op?.enum).toEqual(['set']);
-    expect(def.inputSchema.properties.target?.enum).toEqual([
-      'character',
-      'inventory',
-      'plot_flags',
-      'clock',
-      'overlay_facts',
-    ]);
-    expect(def.inputSchema.required).toEqual([
-      'target',
-      'field',
-      'op',
-      'value',
+      .find((d) => d.name === 'adjust_hp') as ModelToolDefinition;
+    expect(def.inputSchema.properties.amount?.type).toBe('integer');
+    expect(def.inputSchema.required).toEqual(['amount']);
+  });
+
+  it('update_clock location_id permits string or null', () => {
+    const def = createDefaultToolRegistry()
+      .definitions()
+      .find((d) => d.name === 'update_clock') as ModelToolDefinition;
+    expect(def.inputSchema.properties.location_id?.type).toEqual([
+      'string',
+      'null',
     ]);
   });
 
@@ -485,7 +511,7 @@ describe('tool schema metadata (loreweaver-0jq.10)', () => {
     const first = registry.definitions();
     (first as unknown as ModelToolDefinition[]).pop();
     const second = registry.definitions();
-    expect(second).toHaveLength(6);
+    expect(second).toHaveLength(DEFAULT_TOOLS.length);
   });
 });
 
