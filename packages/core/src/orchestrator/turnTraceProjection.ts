@@ -65,8 +65,18 @@ export function deriveTraceFields(
         call.result.ok ? (call.result.data as TraceJsonValue) : null,
       );
 
+  const STATE_TOOLS = new Set([
+    'adjust_hp',
+    'add_condition',
+    'remove_condition',
+    'give_item',
+    'remove_item',
+    'update_clock',
+    'set_plot_flag',
+    'set_world_fact',
+  ]);
   const acceptedStateDelta = toolCalls
-    .filter((call) => call.tool === 'mutate_state' && call.result.ok)
+    .filter((call) => STATE_TOOLS.has(call.tool) && call.result.ok)
     .map(argsOf);
 
   const rejectedCandidates = toolCalls

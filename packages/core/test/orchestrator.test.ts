@@ -122,16 +122,14 @@ describe('orchestrator turn loop', () => {
     db.close();
   });
 
-  it('mutates canon when the model uses the mutate_state tool', async () => {
+  it('mutates canon when the model uses a domain mutation tool', async () => {
     const db = freshDbWithSession();
     withOpenScene(db);
+    db.prepare(
+      'UPDATE character SET hp_max = 20, hp_current = 15 WHERE id = 1',
+    ).run();
     const model = new ScriptedModel([
-      toolCall('mutate_state', {
-        target: 'character',
-        field: 'hp_current',
-        op: 'set',
-        value: 12,
-      }),
+      toolCall('adjust_hp', { amount: -3 }),
       'You bandage your wounds and feel steadier.',
     ]);
 
@@ -152,12 +150,7 @@ describe('orchestrator turn loop', () => {
     const db = freshDbWithSession();
     withOpenScene(db);
     const model = new ScriptedModel([
-      toolCall('mutate_state', {
-        target: 'character',
-        field: 'not_a_field',
-        op: 'set',
-        value: 1,
-      }),
+      toolCall('adjust_hp', { amount: 'not_a_number' }),
       'You reconsider and simply step forward.',
     ]);
 
@@ -210,6 +203,9 @@ describe('orchestrator turn loop', () => {
   it('rolls back tool mutations applied before a later-round model failure', async () => {
     const db = freshDbWithSession();
     withOpenScene(db);
+    db.prepare(
+      'UPDATE character SET hp_max = 20, hp_current = 10 WHERE id = 1',
+    ).run();
 
     // Round 1 applies a mutation, round 2 throws.
     let call = 0;
@@ -218,12 +214,7 @@ describe('orchestrator turn loop', () => {
         call += 1;
         if (call === 1) {
           return Promise.resolve({
-            text: toolCall('mutate_state', {
-              target: 'character',
-              field: 'hp_current',
-              op: 'set',
-              value: 99,
-            }),
+            text: toolCall('adjust_hp', { amount: 5 }),
           });
         }
         return Promise.reject(new Error('model crashed mid-turn'));
@@ -239,7 +230,7 @@ describe('orchestrator turn loop', () => {
     const row = db
       .prepare('SELECT hp_current FROM character WHERE id = 1')
       .get() as { hp_current: number };
-    expect(row.hp_current).toBe(0); // schema default — mutation rolled back
+    expect(row.hp_current).toBe(10); // pre-turn state — mutation rolled back
     db.close();
   });
 
@@ -284,17 +275,15 @@ describe('orchestrator turn loop', () => {
     db.close();
   });
 
-  it('records structured trace fields for a turn with roll and mutate_state', async () => {
+  it('records structured trace fields for a turn with roll and domain mutation', async () => {
     const db = freshDbWithSession();
     withOpenScene(db);
+    db.prepare(
+      'UPDATE character SET hp_max = 20, hp_current = 15 WHERE id = 1',
+    ).run();
     const model = new ScriptedModel([
       toolCall('roll', { dice: '1d20+2', reason: 'perception' }),
-      toolCall('mutate_state', {
-        target: 'character',
-        field: 'hp_current',
-        op: 'set',
-        value: 9,
-      }),
+      toolCall('adjust_hp', { amount: -6 }),
       'You steady yourself and take in the room.',
     ]);
 
@@ -308,20 +297,13 @@ describe('orchestrator turn loop', () => {
       sessionId: SESSION,
       turnId: 'turn-1',
     });
-    // The accepted mutation is recorded, not left as a placeholder.
     expect(trace?.acceptedStateDelta).toHaveLength(1);
-    expect(trace?.acceptedStateDelta[0]).toMatchObject({
-      target: 'character',
-      field: 'hp_current',
-      value: 9,
-    });
-    // The dice roll is recorded as a rules resolution.
+    expect(trace?.acceptedStateDelta[0]).toMatchObject({ amount: -6 });
     const rules = trace?.rulesResolution as {
       rolls: unknown[];
       rulesLookups: unknown[];
     };
     expect(rules.rolls).toHaveLength(1);
-    // A clean turn rejects nothing and raises no quality flags.
     expect(trace?.rejectedCandidates).toEqual([]);
     expect(trace?.qualityFlags).toEqual([]);
     db.close();
@@ -331,12 +313,7 @@ describe('orchestrator turn loop', () => {
     const db = freshDbWithSession();
     withOpenScene(db);
     const model = new ScriptedModel([
-      toolCall('mutate_state', {
-        target: 'character',
-        field: 'not_a_real_field',
-        op: 'set',
-        value: 1,
-      }),
+      toolCall('adjust_hp', { amount: 'not_a_number' }),
       'The attempt comes to nothing.',
     ]);
 
@@ -353,7 +330,7 @@ describe('orchestrator turn loop', () => {
     expect(trace?.acceptedStateDelta).toEqual([]);
     expect(trace?.rejectedCandidates).toHaveLength(1);
     expect(trace?.rejectedCandidates[0]).toMatchObject({
-      tool: 'mutate_state',
+      tool: 'adjust_hp',
     });
     expect(trace?.qualityFlags).toContain('tool_error');
     db.close();

@@ -100,6 +100,28 @@ export type {
   StateProvenanceRecord,
 } from './state/mutateState.js';
 
+// Domain-level state mutations (higher-level wrappers over mutateState).
+export {
+  addCondition,
+  adjustHp,
+  giveItem,
+  removeCondition,
+  removeItem,
+  setPlotFlag,
+  setWorldFact,
+  updateClock,
+} from './state/domainMutations.js';
+export type {
+  AddConditionInput,
+  AddConditionResult,
+  AdjustHpResult,
+  DomainMutationContext,
+  GiveItemInput,
+  RemoveConditionResult,
+  RemoveItemResult,
+  UpdateClockInput,
+} from './state/domainMutations.js';
+
 // Live-state JSON schema validators (internal — no stability promise).
 export {
   LiveStateSchemaError,
