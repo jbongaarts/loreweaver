@@ -2,7 +2,6 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
-  DND5E_SRD_RULES_PACK,
   type Db,
   DoltRepo,
   EMBERFALL_HOLLOW,
@@ -26,6 +25,7 @@ import {
 } from '@loreweaver/core';
 import {
   DEFAULT_MEMORY_CONFIG,
+  DND5E_SRD_RULES_PACK,
   appendSceneLog,
   assembleContext,
   getClosedSessionsInOpenArc,
