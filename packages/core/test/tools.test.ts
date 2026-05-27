@@ -496,6 +496,16 @@ describe('tool schema metadata (loreweaver-0jq.10)', () => {
     expect(def.inputSchema.required).toEqual(['amount']);
   });
 
+  it('update_clock location_id permits string or null', () => {
+    const def = createDefaultToolRegistry()
+      .definitions()
+      .find((d) => d.name === 'update_clock') as ModelToolDefinition;
+    expect(def.inputSchema.properties.location_id?.type).toEqual([
+      'string',
+      'null',
+    ]);
+  });
+
   it('definitions are a snapshot — mutating the array does not affect later reads', () => {
     const registry = createDefaultToolRegistry();
     const first = registry.definitions();

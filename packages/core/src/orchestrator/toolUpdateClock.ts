@@ -15,7 +15,7 @@ export const updateClockTool: Tool = {
         description: 'New in-game time (e.g. "Day 3, late afternoon").',
       },
       location_id: {
-        type: 'string',
+        type: ['string', 'null'],
         description:
           'Location identifier to move the character to. Set to null to clear.',
       },
