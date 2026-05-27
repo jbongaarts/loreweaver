@@ -192,9 +192,11 @@ export type {
   PackType,
 } from './world/types.js';
 
-// Built-in rules packs + the campaign rules-binding read/write API.
-export { DND5E_SRD_RULES_PACK } from './rules/dnd5eSrd.js';
-export { PATHFINDER2E_REMASTER_RULES_PACK } from './rules/pathfinder2eRemaster.js';
+// Campaign rules-binding read/write API.
+// Note: the built-in pack objects (DND5E_SRD_RULES_PACK, PATHFINDER2E_REMASTER_RULES_PACK) are
+// intentionally NOT exported here. They are pre-importer generated-data blobs that will be
+// superseded by the 0m9 deterministic importer outputs. Access them via @loreweaver/core/internal
+// for in-repo use only until stable, consumer-facing packs exist.
 export {
   DEFAULT_DND5E_SRD_BINDING,
   readCampaignRulesBinding,

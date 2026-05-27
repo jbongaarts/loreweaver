@@ -327,6 +327,11 @@ export type {
   WorldTargetType,
 } from './world/types.js';
 
+// Built-in rules pack objects (pre-importer; superseded by 0m9 deterministic importer outputs).
+// Not on the stable public surface — use @loreweaver/core for consumer-facing API.
+export { DND5E_SRD_RULES_PACK } from './rules/dnd5eSrd.js';
+export { PATHFINDER2E_REMASTER_RULES_PACK } from './rules/pathfinder2eRemaster.js';
+
 // Rules engine internals (pack validation, license policy, stack resolution,
 // record lookup, record-shape types).
 export { validateRulesPack } from './rules/validate.js';
