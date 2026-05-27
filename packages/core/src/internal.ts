@@ -276,6 +276,7 @@ export {
   managedDoltDir,
   resolveDoltBinary,
 } from './persistence/checkpoint/doltBinary.js';
+export { DoltCli, sqlLiteral } from './persistence/checkpoint/doltCli.js';
 export type { ResolveDoltOptions } from './persistence/checkpoint/doltBinary.js';
 export {
   DOLT_PINNED_VERSION,
