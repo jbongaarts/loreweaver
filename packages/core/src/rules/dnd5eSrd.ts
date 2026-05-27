@@ -1,9 +1,9 @@
-import { SRD_CATALOG, SRD_LICENSE } from '../srd/data.js';
+import { SRD_CATALOG, SRD_LICENSE } from './srd/data.js';
 import type {
   SrdClassRecord,
   SrdMonsterRecord,
   SrdSpellRecord,
-} from '../srd/types.js';
+} from './srd/types.js';
 import type {
   RecordProvenance,
   RulesPack,

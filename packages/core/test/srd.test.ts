@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import * as core from '../src/internal.js';
-import { SRD_CATALOG, SRD_LICENSE } from '../src/srd/data.js';
-import { lookupSrdRecord } from '../src/srd/store.js';
+import { SRD_CATALOG, SRD_LICENSE } from '../src/rules/srd/data.js';
+import { lookupSrdRecord } from '../src/rules/srd/store.js';
 
 describe('SRD catalog', () => {
   it('records SRD 5.1 CC-BY-4.0 license metadata', () => {
