@@ -359,8 +359,8 @@ export {
 } from './rules/packLoader.js';
 
 // SRD raw catalog data and lookup index.
-export { SRD_CATALOG, SRD_LICENSE } from './srd/data.js';
-export { buildSrdIndex, lookupSrdRecord } from './srd/store.js';
+export { SRD_CATALOG, SRD_LICENSE } from './rules/srd/data.js';
+export { buildSrdIndex, lookupSrdRecord } from './rules/srd/store.js';
 export type {
   SrdBaseRecord,
   SrdCatalog,
@@ -372,7 +372,7 @@ export type {
   SrdMonsterRecord,
   SrdRecord,
   SrdSpellRecord,
-} from './srd/types.js';
+} from './rules/srd/types.js';
 
 // Character-creation low-level helpers + Pathfinder-specific draft validator
 // (the high-level `completeCharacterCreation` is the stable entrypoint).

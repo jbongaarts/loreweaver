@@ -12,14 +12,14 @@ import {
   DEFAULT_DND5E_SRD_BINDING,
   readCampaignRulesBinding,
 } from './rules/binding.js';
-import { SRD_CATALOG } from './srd/data.js';
-import { lookupSrdRecord } from './srd/store.js';
+import { SRD_CATALOG } from './rules/srd/data.js';
+import { lookupSrdRecord } from './rules/srd/store.js';
 import type {
   SrdCatalog,
   SrdClassRecord,
   SrdRecord,
   SrdSpellRecord,
-} from './srd/types.js';
+} from './rules/srd/types.js';
 import {
   ensureCharacterRow,
   setActiveCharacterId,
