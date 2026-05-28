@@ -12,9 +12,11 @@
  * - A section ends at the first line after `startHeading` that matches
  *   `endHeading`. The end-heading line is excluded from the returned content.
  * - If `endHeading` is unmatched the section continues to the end of the
- *   PDF. If `startHeading` is unmatched the function throws
- *   `SectionNotFoundError` — failing closed is the whole point of this
- *   module: better to refuse to run than silently parse the wrong content.
+ *   PDF UNLESS `requireEndHeading` is true, in which case the function
+ *   throws `SectionNotFoundError`. If `startHeading` is unmatched the
+ *   function always throws `SectionNotFoundError` — failing closed is the
+ *   whole point of this module: better to refuse to run than silently parse
+ *   the wrong content.
  *
  * The default anchors target the SRD 5.1 PDF's chapter headings. They are
  * exported so callers can override them when (a) a tuned anchor proves
@@ -33,9 +35,21 @@ export interface SectionAnchorOptions {
   /**
    * Regex that matches the chapter / section heading line that immediately
    * follows the section. The slice ends just before this line. If undefined
-   * or unmatched, the section runs to the end of the PDF.
+   * or unmatched, behavior depends on `requireEndHeading`.
    */
   readonly endHeading?: RegExp;
+  /**
+   * If true and `endHeading` is set but does not match any line after
+   * `startHeading`, `sliceSection` throws `SectionNotFoundError('end', ...)`
+   * instead of silently slicing to EOF. Use this for sections where
+   * misidentifying the boundary would let later chapters bleed into a kind
+   * parser (e.g. the spell-descriptions section, where a missing "Monsters"
+   * end heading would feed monster stat blocks to `parseSpells`).
+   *
+   * Default: false (preserves the slice-to-EOF fallback for sections that
+   * legitimately run to the end of the document).
+   */
+  readonly requireEndHeading?: boolean;
 }
 
 export class SectionNotFoundError extends Error {
@@ -82,7 +96,8 @@ function findFirstMatch(
  * Slice the section delimited by `anchors`. Throws `SectionNotFoundError` if
  * `startHeading` doesn't match; never silently returns the whole input.
  * `endHeading` may be unmatched — in that case the section runs to the end
- * of the input.
+ * of the input, UNLESS `requireEndHeading` is true, in which case the
+ * unmatched end also throws `SectionNotFoundError`.
  */
 export function sliceSection(
   pages: readonly PageText[],
@@ -96,6 +111,13 @@ export function sliceSection(
     anchors.endHeading === undefined
       ? null
       : findFirstMatch(pages, anchors.endHeading, start);
+  if (
+    anchors.endHeading !== undefined &&
+    anchors.requireEndHeading === true &&
+    end === null
+  ) {
+    throw new SectionNotFoundError('end', anchors.endHeading);
+  }
   return buildSlice(pages, start, end);
 }
 
@@ -134,10 +156,12 @@ export const SRD_5_1_DEFAULT_SECTION_ANCHORS = {
   spellLists: {
     startHeading: /^Spell Lists$/,
     endHeading: /^Spells$|^Spell Descriptions$/,
+    requireEndHeading: true,
   },
   spellDescriptions: {
     startHeading: /^Spells$|^Spell Descriptions$/,
     endHeading: /^(Monsters|Magic Items|Creatures|NPCs|Treasure|Appendix)$/,
+    requireEndHeading: true,
   },
 } as const satisfies Record<string, SectionAnchorOptions>;
 

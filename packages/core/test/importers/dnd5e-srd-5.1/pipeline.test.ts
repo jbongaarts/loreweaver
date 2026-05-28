@@ -258,4 +258,19 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       /heading not found/,
     );
   });
+
+  it('fails closed when the spell-descriptions end heading (e.g. "Monsters") is missing', async () => {
+    const workDir = makeTmpDir();
+    const pdfPath = join(workDir, 'fixture.pdf');
+    const outDir = join(workDir, 'pack');
+    // Spell Lists and Spells start headings are present (so spellLists slice
+    // succeeds and spellDescriptions start is found), but the chapter after
+    // Spells is missing — pre-fix this would have silently sliced the spell
+    // descriptions to EOF and let any later content bleed in. With
+    // requireEndHeading: true, the importer must refuse to run.
+    await writeFixturePdf(pdfPath, [SPELL_LISTS_PAGE, SPELLS_PAGE]);
+    await expect(runImporter({ pdfPath, outDir })).rejects.toThrow(
+      /end heading not found/,
+    );
+  });
 });

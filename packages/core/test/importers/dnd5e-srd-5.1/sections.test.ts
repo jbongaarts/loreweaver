@@ -123,6 +123,57 @@ describe('sliceSection — fail-closed behavior', () => {
     });
     expect(sliced[0].lines).toEqual(['Acid Splash']);
   });
+
+  it('throws SectionNotFoundError when requireEndHeading is true and endHeading does not match', () => {
+    const pages: PageText[] = [
+      page(1, ['Spells', 'Acid Splash', 'Conjuration cantrip']),
+    ];
+    expect(() =>
+      sliceSection(pages, {
+        startHeading: /^Spells$/,
+        endHeading: /^Monsters$/,
+        requireEndHeading: true,
+      }),
+    ).toThrow(SectionNotFoundError);
+  });
+
+  it('end-required error names the unmatched end pattern', () => {
+    const pages: PageText[] = [page(1, ['Spells', 'Acid Splash'])];
+    expect(() =>
+      sliceSection(pages, {
+        startHeading: /^Spells$/,
+        endHeading: /^Monsters$/,
+        requireEndHeading: true,
+      }),
+    ).toThrow(/end heading not found.*\/\^Monsters\$\//);
+  });
+
+  it('preserves slice-to-EOF fallback when requireEndHeading is false and endHeading is unmatched', () => {
+    const pages: PageText[] = [
+      page(1, ['Spells', 'Acid Splash']),
+      page(2, ['Magic Missile']),
+    ];
+    const sliced = sliceSection(pages, {
+      startHeading: /^Spells$/,
+      endHeading: /^Monsters$/,
+      requireEndHeading: false,
+    });
+    const allLines = sliced.flatMap((p) => p.lines);
+    expect(allLines).toEqual(['Acid Splash', 'Magic Missile']);
+  });
+
+  it('preserves slice-to-EOF fallback when requireEndHeading is omitted', () => {
+    const pages: PageText[] = [
+      page(1, ['Spells', 'Acid Splash']),
+      page(2, ['Magic Missile']),
+    ];
+    const sliced = sliceSection(pages, {
+      startHeading: /^Spells$/,
+      endHeading: /^Monsters$/,
+    });
+    const allLines = sliced.flatMap((p) => p.lines);
+    expect(allLines).toEqual(['Acid Splash', 'Magic Missile']);
+  });
 });
 
 describe('SRD_5_1_DEFAULT_SECTION_ANCHORS — sanity', () => {
@@ -146,5 +197,14 @@ describe('SRD_5_1_DEFAULT_SECTION_ANCHORS — sanity', () => {
       expect(anchor.endHeading.test('Spells')).toBe(true);
       expect(anchor.endHeading.test('Spell Descriptions')).toBe(true);
     }
+  });
+
+  it('both default anchors require an end heading (fail-closed on missing chapter boundary)', () => {
+    expect(SRD_5_1_DEFAULT_SECTION_ANCHORS.spellLists.requireEndHeading).toBe(
+      true,
+    );
+    expect(
+      SRD_5_1_DEFAULT_SECTION_ANCHORS.spellDescriptions.requireEndHeading,
+    ).toBe(true);
   });
 });
