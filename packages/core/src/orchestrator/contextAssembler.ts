@@ -7,7 +7,10 @@ import type {
 } from '../memory/summary.js';
 import type { Db } from '../persistence/db.js';
 import { jsonColumn } from '../persistence/jsonColumn.js';
-import { resolveCharacterId } from '../state/activeCharacter.js';
+import {
+  CharacterResolutionError,
+  resolveCharacterId,
+} from '../state/activeCharacter.js';
 import type { AbilityScores } from '../state/liveStateSchema.js';
 import {
   validateAbilityScoresJson,
@@ -162,7 +165,12 @@ export function readStateSnapshot(
               ability_scores_json, conditions_json, role
        FROM character WHERE id = ?`,
     )
-    .get(charId) as CharacterRow;
+    .get(charId) as CharacterRow | undefined;
+  if (character === undefined) {
+    throw new CharacterResolutionError(
+      `active character '${charId}' has no character row`,
+    );
+  }
 
   const inventoryRows = db
     .prepare(

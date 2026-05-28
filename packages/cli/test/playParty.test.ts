@@ -130,6 +130,47 @@ describe('switchActiveCharacter', () => {
     switchActiveCharacter(io, db, '');
     expect(lines.join('\n')).toContain('Usage:');
   });
+
+  it('refuses to switch to a non-PC party member and leaves the active PC unchanged', () => {
+    const db = freshDb();
+    setName(db, 'pc-1', 'Aldric');
+    setActiveCharacterId(db, 'pc-1');
+    ensureCharacterRow(db, 'comp-1', 'test', 'session-1', AT);
+    db.prepare(
+      "UPDATE character SET role = 'companion', name = 'Wolf' WHERE id = ?",
+    ).run('comp-1');
+
+    const { io, lines } = capture();
+    switchActiveCharacter(io, db, 'Wolf');
+
+    expect(
+      (
+        db
+          .prepare("SELECT value FROM meta WHERE key = 'active_character_id'")
+          .get() as { value: string }
+      ).value,
+    ).toBe('pc-1');
+    expect(lines.join('\n')).toContain('not a player character');
+  });
+
+  it('still switches to a second player character', () => {
+    const db = freshDb();
+    setName(db, 'pc-1', 'Aldric');
+    setActiveCharacterId(db, 'pc-1');
+    ensureCharacterRow(db, 'pc-2', 'test', 'session-1', AT);
+    setName(db, 'pc-2', 'Brielle');
+
+    const { io } = capture();
+    switchActiveCharacter(io, db, 'pc-2');
+
+    expect(
+      (
+        db
+          .prepare("SELECT value FROM meta WHERE key = 'active_character_id'")
+          .get() as { value: string }
+      ).value,
+    ).toBe('pc-2');
+  });
 });
 
 describe('createAdditionalCharacter', () => {

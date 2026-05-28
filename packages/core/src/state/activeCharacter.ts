@@ -9,6 +9,13 @@ export class NoActiveCharacterError extends Error {
   }
 }
 
+export class CharacterResolutionError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'CharacterResolutionError';
+  }
+}
+
 export function getActiveCharacterId(db: Db): string {
   const row = db
     .prepare('SELECT value FROM meta WHERE key = ?')
@@ -26,7 +33,27 @@ export function tryGetActiveCharacterId(db: Db): string | undefined {
   return row?.value;
 }
 
+/**
+ * Set the active character. The active/acting unit must be an existing
+ * player-character row (`role = 'pc'`); companions, familiars, and hirelings
+ * are party members but are never the active PC. Rejects a missing or non-PC
+ * id with `CharacterResolutionError` rather than silently storing a dangling
+ * reference that would later fault the context assembler.
+ */
 export function setActiveCharacterId(db: Db, characterId: string): void {
+  const row = db
+    .prepare('SELECT role FROM character WHERE id = ?')
+    .get(characterId) as { role: string } | undefined;
+  if (row === undefined) {
+    throw new CharacterResolutionError(
+      `cannot set active character: no character '${characterId}'`,
+    );
+  }
+  if (row.role !== 'pc') {
+    throw new CharacterResolutionError(
+      `cannot set active character: '${characterId}' is a ${row.role}, not a player character`,
+    );
+  }
   db.prepare('INSERT OR REPLACE INTO meta(key, value) VALUES (?, ?)').run(
     ACTIVE_CHARACTER_KEY,
     characterId,
@@ -38,13 +65,6 @@ export function resolveCharacterId(db: Db, explicitId?: string): string {
     return explicitId;
   }
   return getActiveCharacterId(db);
-}
-
-export class CharacterResolutionError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'CharacterResolutionError';
-  }
 }
 
 /**

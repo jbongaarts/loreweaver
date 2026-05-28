@@ -15,7 +15,10 @@ of early scope (no auth layer; consistent with ADR 0003 local-CLI-first).
 ## What the foundation already provides
 
 The party-oriented data refactor (`loreweaver-0jq.8`, schema **v9**) already did
-the schema-breaking work, so this epic needs **no further schema migration**:
+the schema-breaking work, so the **party model itself needs no migration**. The
+only schema change this epic adds is one additive, nullable
+`turn_trace.acting_character_id` column (**v9→v10**) for per-PC memory
+attribution (§4):
 
 - `character` is multi-row: `TEXT` primary key, `role` column (`'pc'` default),
   singleton `CHECK (id = 1)` removed.
@@ -120,10 +123,12 @@ No schema change. Two read/write refinements:
 
 ### 6. Migration & backward compatibility
 
-Covered by v9 already. A legacy single-PC DB is a one-member party (`pc-1`,
-active). No new migration is introduced by this epic. The stale singleton
-framing in `docs/game-state.md` and `docs/character-creation.md` is updated to
-the party model as part of the work.
+The party model is covered by v9 already: a legacy single-PC DB is a one-member
+party (`pc-1`, active). The one migration this epic introduces is **v9→v10**, an
+additive nullable `turn_trace.acting_character_id` column used for per-PC memory
+attribution (§4). It rewrites no data — pre-v10 traces read back with an
+undefined acting PC. The stale singleton framing in `docs/game-state.md` and
+`docs/character-creation.md` is updated to the party model as part of the work.
 
 ## Out of scope (this epic)
 

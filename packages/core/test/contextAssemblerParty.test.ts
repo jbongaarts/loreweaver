@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  CharacterResolutionError,
   assembleContext,
   ensureCharacterRow,
   giveItem,
@@ -109,6 +110,34 @@ describe('context assembler party support', () => {
       }),
     );
     expect(text).toMatch(/Brielle.*\[acting\]/);
+    db.close();
+  });
+});
+
+describe('context assembler stale/invalid active character', () => {
+  it('throws a controlled error for a stale active_character_id', () => {
+    const db = freshDbWithSession();
+    // Point the active id at a row that does not exist (e.g. a deleted PC).
+    db.prepare(
+      "UPDATE meta SET value = 'pc-gone' WHERE key = 'active_character_id'",
+    ).run();
+
+    expect(() => assemble(db)).toThrow(CharacterResolutionError);
+    db.close();
+  });
+
+  it('throws a controlled error for an invalid explicit acting character', () => {
+    const db = freshDbWithSession();
+
+    expect(() =>
+      assembleContext({
+        db,
+        campaignId: CAMPAIGN,
+        sessionId: SESSION,
+        playerInput: 'continue',
+        actingCharacterId: 'pc-missing',
+      }),
+    ).toThrow(CharacterResolutionError);
     db.close();
   });
 });
