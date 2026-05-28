@@ -198,6 +198,93 @@ describe('parseSpells — output ordering', () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// Body-slicing regression: the final spell with no following marker must
+// preserve its full body, including its last real content line. The previous
+// implementation chopped off the last line under the assumption that it was
+// the next spell's name — which is wrong when there is no next spell.
+// ---------------------------------------------------------------------------
+
+describe('parseSpells — final-spell body preservation (regression)', () => {
+  it('keeps the final line of the final spell when no next-marker exists', () => {
+    const lonely = page(257, [
+      'Magic Missile',
+      '1st-level evocation',
+      'Casting Time: 1 action',
+      'Range: 120 feet',
+      'Components: V, S',
+      'Duration: Instantaneous',
+      'You create three glowing darts of magical force.',
+      'FINAL_BODY_LINE_THAT_MUST_NOT_BE_DROPPED.',
+    ]);
+    const [spell] = parseSpells([lonely]);
+    expect(spell).toBeDefined();
+    // The final body line must appear somewhere in the spell's textual output
+    // (description or higherLevels) — never silently dropped.
+    const allText = `${spell.description}\n${spell.higherLevels ?? ''}`;
+    expect(allText).toMatch(/FINAL_BODY_LINE_THAT_MUST_NOT_BE_DROPPED\./);
+  });
+
+  it('does not drop a body line when the next spell has multiple blank lines before its name', () => {
+    const merged = page(211, [
+      'Acid Splash',
+      'Conjuration cantrip',
+      'Casting Time: 1 action',
+      'Range: 60 feet',
+      'Components: V, S',
+      'Duration: Instantaneous',
+      'You hurl a bubble of acid.',
+      'ACID_LAST_LINE.',
+      '',
+      '',
+      '',
+      'Magic Missile',
+      '1st-level evocation',
+      'Casting Time: 1 action',
+      'Range: 120 feet',
+      'Components: V, S',
+      'Duration: Instantaneous',
+      'You create three glowing darts of magical force.',
+    ]);
+    const [acid] = parseSpells([merged]);
+    expect(acid.description).toMatch(/ACID_LAST_LINE/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Class-list bleed regression: text that appears AFTER the spell-descriptions
+// section (class spell lists, monster stat blocks, etc.) must not be absorbed
+// into the final spell's body. The parser only guarantees this when it is
+// given the spell-descriptions slice, but historically a bug let the final
+// spell absorb everything following it. Keep a regression test that exercises
+// the wrong-input behavior so a future re-introduction is caught.
+// ---------------------------------------------------------------------------
+
+describe('parseSpells — class-list bleed (regression)', () => {
+  it('does not absorb class-list headers into the final spell body when followed by class lists in the same input', () => {
+    const merged = page(257, [
+      ...MAGIC_MISSILE_PAGE.lines,
+      '',
+      // Hostile follow-on content that pre-fix would have been absorbed:
+      'Wizard Spells',
+      'Cantrips (0 Level)',
+      'Acid Splash',
+      'Fire Bolt',
+      '',
+      '1st Level',
+      'Burning Hands',
+      'Charm Person',
+    ]);
+    const [spell] = parseSpells([merged]);
+    const haystack = `${spell.description}\n${spell.higherLevels ?? ''}`;
+    expect(haystack).not.toMatch(/Wizard Spells/);
+    expect(haystack).not.toMatch(/Cantrips \(0 Level\)/);
+    // "Acid Splash" appears as a name in the class list; verify it didn't
+    // bleed into the spell's text.
+    expect(haystack).not.toMatch(/Acid Splash/);
+  });
+});
+
 describe('parseSpellClassLists', () => {
   it('extracts spell names per caster class', () => {
     const classListPage: PageText = page(289, [

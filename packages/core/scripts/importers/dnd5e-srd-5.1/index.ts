@@ -2,9 +2,16 @@
  * Programmatic API for the D&D 5e SRD 5.1 importer.
  *
  * `runImporter` is the single entry point: reads the vendored PDF, extracts
- * text, parses spells (and spell-class lists), builds a validated
+ * text, slices the SRD's spell-descriptions and spell-lists sections using
+ * deterministic anchor headings (see `sections.ts`), parses spells (and
+ * spell-class lists) against those narrowed slices, builds a validated
  * `RulesPack`, and writes `manifest.json` + `records.json` to the requested
  * output directory.
+ *
+ * Failing-closed design: if the section anchors don't match the input PDF,
+ * the importer throws `SectionNotFoundError`. It never silently runs the
+ * spell parser over the whole PDF (which would let class-list text and
+ * unrelated chapters bleed into the last spell's body).
  *
  * Scope today: spells only. Other SRD record kinds are tracked under
  * `loreweaver-0m9.5` child issues; until those parsers ship the importer
@@ -17,6 +24,11 @@ import { readFileSync } from 'node:fs';
 import { buildPack, writePackToDirectory } from './emit.js';
 import { extractPdfText } from './extract.js';
 import { parseSpellClassLists, parseSpells } from './parseSpells.js';
+import {
+  SRD_5_1_DEFAULT_SECTION_ANCHORS,
+  type Srd51SectionAnchors,
+  sliceSection,
+} from './sections.js';
 import type { ImporterRunResult } from './types.js';
 
 export interface RunImporterInput {
@@ -24,6 +36,12 @@ export interface RunImporterInput {
   readonly pdfPath: string;
   /** Output directory; receives manifest.json + records.json. */
   readonly outDir: string;
+  /**
+   * Override the default section anchors. Useful when the vendored PDF uses
+   * variant chapter headings, or for tests that supply a fixture PDF whose
+   * heading text differs.
+   */
+  readonly sectionAnchors?: Srd51SectionAnchors;
 }
 
 export async function runImporter(
@@ -32,8 +50,14 @@ export async function runImporter(
   const pdfBytes = readFileSync(input.pdfPath);
   const sourceHash = sha256Hex(pdfBytes);
   const pages = await extractPdfText(new Uint8Array(pdfBytes));
-  const spells = parseSpells(pages);
-  const classIndex = parseSpellClassLists(pages);
+
+  const anchors = input.sectionAnchors ?? SRD_5_1_DEFAULT_SECTION_ANCHORS;
+  // Throws SectionNotFoundError if either anchor doesn't match.
+  const spellDescriptionPages = sliceSection(pages, anchors.spellDescriptions);
+  const spellListPages = sliceSection(pages, anchors.spellLists);
+
+  const spells = parseSpells(spellDescriptionPages);
+  const classIndex = parseSpellClassLists(spellListPages);
   const pack = buildPack({ spells, classIndex, sourceHash });
   writePackToDirectory(pack, { outDir: input.outDir });
   return {

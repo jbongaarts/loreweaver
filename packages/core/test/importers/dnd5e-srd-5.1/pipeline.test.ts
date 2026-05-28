@@ -82,29 +82,13 @@ async function writeFixturePdf(
   });
 }
 
-const SPELLS_PAGE: FixturePage = {
+// The fixture deliberately mirrors the SRD 5.1 chapter ordering: spell-lists
+// chapter precedes spell-descriptions chapter. Default section anchors
+// (`SRD_5_1_DEFAULT_SECTION_ANCHORS`) discriminate the two by exact heading
+// match.
+const SPELL_LISTS_PAGE: FixturePage = {
   lines: [
-    'Acid Splash',
-    'Conjuration cantrip',
-    'Casting Time: 1 action',
-    'Range: 60 feet',
-    'Components: V, S',
-    'Duration: Instantaneous',
-    'You hurl a bubble of acid. Choose one creature you can see within range.',
-    '',
-    'Magic Missile',
-    '1st-level evocation',
-    'Casting Time: 1 action',
-    'Range: 120 feet',
-    'Components: V, S',
-    'Duration: Instantaneous',
-    'You create three glowing darts of magical force.',
-    'At Higher Levels. When you cast this spell using a spell slot of 2nd level or higher, the spell creates one more dart for each slot level above 1st.',
-  ],
-};
-
-const CLASS_LISTS_PAGE: FixturePage = {
-  lines: [
+    'Spell Lists',
     'Wizard Spells',
     'Cantrips (0 Level)',
     'Acid Splash',
@@ -121,12 +105,44 @@ const CLASS_LISTS_PAGE: FixturePage = {
   ],
 };
 
+const SPELLS_PAGE: FixturePage = {
+  lines: [
+    'Spells',
+    'Acid Splash',
+    'Conjuration cantrip',
+    'Casting Time: 1 action',
+    'Range: 60 feet',
+    'Components: V, S',
+    'Duration: Instantaneous',
+    'You hurl a bubble of acid. Choose one creature you can see within range.',
+    '',
+    'Magic Missile',
+    '1st-level evocation',
+    'Casting Time: 1 action',
+    'Range: 120 feet',
+    'Components: V, S',
+    'Duration: Instantaneous',
+    'You create three glowing darts of magical force.',
+    'At Higher Levels. When you cast this spell using a spell slot of 2nd level or higher, the spell creates one more dart for each slot level above 1st.',
+    'MAGIC_MISSILE_FINAL_LINE_THAT_MUST_NOT_BE_DROPPED.',
+  ],
+};
+
+// Closing chapter so the spell-descriptions anchor has an end heading to find.
+const MONSTERS_PAGE: FixturePage = {
+  lines: ['Monsters', 'Goblin', 'Small humanoid (goblinoid), neutral evil.'],
+};
+
 describe('runImporter — end-to-end against a fixture PDF', () => {
   it('extracts spells and writes a pack that loads back through loadRulesPackFromDirectory', async () => {
     const workDir = makeTmpDir();
     const pdfPath = join(workDir, 'fixture.pdf');
     const outDir = join(workDir, 'pack');
-    await writeFixturePdf(pdfPath, [SPELLS_PAGE, CLASS_LISTS_PAGE]);
+    await writeFixturePdf(pdfPath, [
+      SPELL_LISTS_PAGE,
+      SPELLS_PAGE,
+      MONSTERS_PAGE,
+    ]);
 
     const result = await runImporter({ pdfPath, outDir });
     expect(result.counts.spells).toBe(2);
@@ -155,7 +171,11 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     const pdfPath = join(workDir, 'fixture.pdf');
     const outA = join(workDir, 'a');
     const outB = join(workDir, 'b');
-    await writeFixturePdf(pdfPath, [SPELLS_PAGE, CLASS_LISTS_PAGE]);
+    await writeFixturePdf(pdfPath, [
+      SPELL_LISTS_PAGE,
+      SPELLS_PAGE,
+      MONSTERS_PAGE,
+    ]);
 
     await runImporter({ pdfPath, outDir: outA });
     await runImporter({ pdfPath, outDir: outB });
@@ -165,6 +185,77 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     );
     expect(readFileSync(join(outA, 'records.json'), 'utf8')).toBe(
       readFileSync(join(outB, 'records.json'), 'utf8'),
+    );
+  });
+
+  it('preserves the final line of the final spell (body-slicing regression)', async () => {
+    const workDir = makeTmpDir();
+    const pdfPath = join(workDir, 'fixture.pdf');
+    const outDir = join(workDir, 'pack');
+    await writeFixturePdf(pdfPath, [
+      SPELL_LISTS_PAGE,
+      SPELLS_PAGE,
+      MONSTERS_PAGE,
+    ]);
+
+    await runImporter({ pdfPath, outDir });
+    const pack = loadRulesPackFromDirectory(outDir);
+    const mm = pack.records.find((r) => r.key === 'spell:magic-missile');
+    const mmData = mm?.data as Record<string, unknown>;
+    const haystack = `${mmData.description ?? ''}\n${mmData.higherLevels ?? ''}`;
+    expect(haystack).toMatch(
+      /MAGIC_MISSILE_FINAL_LINE_THAT_MUST_NOT_BE_DROPPED/,
+    );
+  });
+
+  it("does not bleed class-list or monster text into the final spell's body", async () => {
+    const workDir = makeTmpDir();
+    const pdfPath = join(workDir, 'fixture.pdf');
+    const outDir = join(workDir, 'pack');
+    await writeFixturePdf(pdfPath, [
+      SPELL_LISTS_PAGE,
+      SPELLS_PAGE,
+      MONSTERS_PAGE,
+    ]);
+
+    await runImporter({ pdfPath, outDir });
+    const pack = loadRulesPackFromDirectory(outDir);
+
+    for (const record of pack.records) {
+      const data = record.data as Record<string, unknown>;
+      const haystack = [
+        data.description,
+        data.higherLevels,
+        data.componentMaterials,
+      ]
+        .filter((v): v is string => typeof v === 'string')
+        .join('\n');
+      // Class-list section headers / content must not appear inside any
+      // spell's textual fields.
+      expect(haystack).not.toMatch(/Wizard Spells/);
+      expect(haystack).not.toMatch(/Sorcerer Spells/);
+      expect(haystack).not.toMatch(/Cantrips \(0 Level\)/);
+      expect(haystack).not.toMatch(/^Acid Splash$/m);
+      // Following-chapter (monsters) content must not appear either.
+      expect(haystack).not.toMatch(/Monsters/);
+      expect(haystack).not.toMatch(/Goblin/);
+      expect(haystack).not.toMatch(/Small humanoid/);
+    }
+  });
+
+  it('fails closed when the spell-descriptions anchor cannot be found', async () => {
+    const workDir = makeTmpDir();
+    const pdfPath = join(workDir, 'fixture.pdf');
+    const outDir = join(workDir, 'pack');
+    // Fixture with neither a "Spells" nor a "Spell Lists" heading — the
+    // importer must refuse to run rather than silently feed the whole PDF
+    // to the parser.
+    const orphan: FixturePage = {
+      lines: ['Acid Splash', 'Conjuration cantrip'],
+    };
+    await writeFixturePdf(pdfPath, [orphan]);
+    await expect(runImporter({ pdfPath, outDir })).rejects.toThrow(
+      /heading not found/,
     );
   });
 });

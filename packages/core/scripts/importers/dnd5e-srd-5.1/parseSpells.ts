@@ -282,40 +282,97 @@ function isLikelySpellName(line: string): boolean {
   return /^[A-Z][A-Za-z0-9 ,'’\-:/()]*$/.test(line);
 }
 
+/**
+ * A confirmed spell entry: a level-school marker with a valid spell-name
+ * predecessor. Used to delimit spell-body slices in two passes — the body of
+ * entry N ends at entry N+1's `nameIdx` (exclusive), or at `flat.length` for
+ * the last entry.
+ */
+interface SpellEntry {
+  readonly markerIdx: number;
+  readonly nameIdx: number;
+  readonly name: string;
+}
+
+/**
+ * Defense-in-depth: even if the caller passes content that wasn't sliced to
+ * the spell-descriptions section, body collection stops at the first line
+ * matching one of these patterns. Primary safety is the orchestrator in
+ * `index.ts` which uses `sliceSection` (see `sections.ts`); these patterns
+ * exist so a single-layer failure doesn't silently produce contaminated
+ * spell records.
+ */
+const SPELL_BODY_STOP_PATTERNS: readonly RegExp[] = [
+  new RegExp(`^(${CASTER_CLASSES.join('|')}) Spells$`),
+  /^Spell Lists$/,
+];
+
+function findBodyEnd(
+  flat: readonly FlatLine[],
+  startInclusive: number,
+  endExclusive: number,
+): number {
+  for (let i = startInclusive; i < endExclusive; i++) {
+    const line = flat[i].line.trim();
+    if (SPELL_BODY_STOP_PATTERNS.some((p) => p.test(line))) {
+      return i;
+    }
+  }
+  return endExclusive;
+}
+
+function findPrecedingNameIdx(
+  flat: readonly FlatLine[],
+  markerIdx: number,
+): number | null {
+  let i = markerIdx - 1;
+  while (i >= 0 && flat[i].line.length === 0) {
+    i--;
+  }
+  if (i < 0) return null;
+  const candidate = flat[i].line.trim();
+  if (isLikelySpellName(candidate) === false) return null;
+  return i;
+}
+
 export function parseSpells(pages: readonly PageText[]): SpellExtraction[] {
   const flat = flatten(pages);
-  const markers: number[] = [];
+
+  // First pass: confirm each level-school marker has a valid spell-name line
+  // immediately preceding it (skipping blanks). Markers without a valid name
+  // are silently skipped — they may be markers inside body prose ("...a 3rd-
+  // level evocation spell...") rather than headings.
+  const entries: SpellEntry[] = [];
   flat.forEach((entry, i) => {
-    if (isLevelSchoolMarker(entry.line)) markers.push(i);
+    if (isLevelSchoolMarker(entry.line) === false) return;
+    const nameIdx = findPrecedingNameIdx(flat, i);
+    if (nameIdx === null) return;
+    entries.push({ markerIdx: i, nameIdx, name: flat[nameIdx].line.trim() });
   });
 
+  // Second pass: each spell's body runs from (markerIdx + 1) up to (but not
+  // including) the next entry's `nameIdx`. For the last entry, the body runs
+  // through `flat.length`. This correctly preserves the final spell's last
+  // line and handles any number of blank lines between one spell's body and
+  // the next spell's name.
   const out: SpellExtraction[] = [];
-  for (let mi = 0; mi < markers.length; mi++) {
-    const markerIdx = markers[mi];
-    const nextMarkerIdx = markers[mi + 1] ?? flat.length;
-    // Spell name = nearest preceding non-blank line that looks like a name.
-    let nameIdx = markerIdx - 1;
-    while (nameIdx >= 0 && flat[nameIdx].line.length === 0) {
-      nameIdx--;
-    }
-    if (nameIdx < 0) continue;
-    const candidate = flat[nameIdx].line.trim();
-    if (isLikelySpellName(candidate) === false) continue;
+  for (let i = 0; i < entries.length; i++) {
+    const entry = entries[i];
+    const next = entries[i + 1];
+    const bodyEnd = findBodyEnd(
+      flat,
+      entry.markerIdx + 1,
+      next?.nameIdx ?? flat.length,
+    );
+    const body = flat.slice(entry.markerIdx + 1, bodyEnd).map((e) => e.line);
 
-    const marker = parseLevelSchoolMarker(flat[markerIdx].line);
-    const body = flat
-      .slice(markerIdx + 1, nextMarkerIdx)
-      // Stop body collection at the name line of the next spell, identified
-      // as the line directly preceding the next marker.
-      .slice(0, Math.max(0, nextMarkerIdx - markerIdx - 2))
-      .map((e) => e.line);
-
+    const marker = parseLevelSchoolMarker(flat[entry.markerIdx].line);
     let metadata: MetadataParse;
     try {
       metadata = parseMetadataAndBody(body);
     } catch (err) {
       throw new Error(
-        `failed to parse spell "${candidate}" at page ${flat[markerIdx].page}: ${(err as Error).message}`,
+        `failed to parse spell "${entry.name}" at page ${flat[entry.markerIdx].page}: ${(err as Error).message}`,
       );
     }
 
@@ -323,7 +380,7 @@ export function parseSpells(pages: readonly PageText[]): SpellExtraction[] {
     const { core, higherLevels } = splitHigherLevels(description);
 
     out.push({
-      name: candidate,
+      name: entry.name,
       level: marker.level,
       school: marker.school,
       ritual: marker.ritual,
@@ -336,7 +393,7 @@ export function parseSpells(pages: readonly PageText[]): SpellExtraction[] {
       duration: metadata.duration,
       description: core,
       ...(higherLevels === undefined ? {} : { higherLevels }),
-      sourcePage: flat[markerIdx].page,
+      sourcePage: flat[entry.markerIdx].page,
     });
   }
 
