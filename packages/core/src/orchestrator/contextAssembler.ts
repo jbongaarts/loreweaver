@@ -18,6 +18,8 @@ import type {
   CharacterConditionEntry,
   InventoryItemProperties,
 } from '../state/liveStateSchema.js';
+import { listParty } from '../state/party.js';
+import type { PartyMember } from '../state/party.js';
 import { countSceneLog, getOpenScene, listSceneLogWindow } from './scene.js';
 import type { SceneLogRecord } from './scene.js';
 
@@ -103,6 +105,8 @@ export interface AssembledSceneRef {
 export interface AssembledContext {
   campaignId: string;
   sessionId: string;
+  /** Compact status of every party member (PCs first, then companions). */
+  party: PartyMember[];
   campaignBible: CampaignBibleRecord | undefined;
   /** All closed arc summaries in sequence_no ASC order. */
   arcSummaries: ArcSummaryRecord[];
@@ -164,7 +168,7 @@ export function readStateSnapshot(
     .prepare(
       `SELECT id, name, quantity, location, properties_json
        FROM inventory
-       WHERE character_id = ? OR character_id IS NULL
+       WHERE character_id = ?
        ORDER BY id`,
     )
     .all(charId) as InventoryRow[];
@@ -275,6 +279,7 @@ export function assembleContext(input: ContextAssemblyInput): AssembledContext {
   return {
     campaignId: input.campaignId,
     sessionId: input.sessionId,
+    party: listParty(input.db),
     campaignBible: alwaysOn.campaignBible,
     arcSummaries,
     recentSessionRecaps: alwaysOn.recentSessionRecaps.filter(
@@ -292,6 +297,31 @@ export function assembleContext(input: ContextAssemblyInput): AssembledContext {
     sceneTranscriptOmittedCount,
     playerInput: input.playerInput,
   };
+}
+
+function renderParty(party: PartyMember[], actingId: string): string {
+  return party
+    .map((m) => {
+      const who = m.name ?? m.id;
+      const descriptor = [m.ancestry, m.className].filter(Boolean).join(' ');
+      const identity = descriptor.length > 0 ? `${who} (${descriptor})` : who;
+      const tags: string[] = [];
+      if (m.role !== 'pc') {
+        tags.push(m.role);
+      }
+      if (m.id === actingId) {
+        tags.push('acting');
+      } else if (m.isActive) {
+        tags.push('active');
+      }
+      const tagText = tags.length > 0 ? ` [${tags.join(', ')}]` : '';
+      const conditions =
+        m.conditions.length > 0
+          ? `, conditions: ${m.conditions.map((c) => c.id).join(', ')}`
+          : '';
+      return `- ${identity} — L${m.level}, HP ${m.hpCurrent}/${m.hpMax}${conditions}${tagText}`;
+    })
+    .join('\n');
 }
 
 function renderState(state: StateSnapshot): string {
@@ -359,6 +389,12 @@ export function renderContextMessage(ctx: AssembledContext): string {
   if (ctx.drilldownAvailable) {
     sections.push(
       `_${ctx.omittedSessionCount} older session(s) omitted — use memory_drilldown to retrieve them._`,
+    );
+  }
+
+  if (ctx.party.length > 1) {
+    sections.push(
+      `## Party\n${renderParty(ctx.party, ctx.state.character.id)}`,
     );
   }
 
