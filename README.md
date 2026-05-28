@@ -62,8 +62,8 @@ strategy,
 for the product/model/content decision record, and
 [docs/adr/0002-hosted-web-pwa-byok-deployment-path.md](docs/adr/0002-hosted-web-pwa-byok-deployment-path.md)
 for the CLI-to-hosted deployment path, and
-[docs/adr/0003-local-cli-first-release-storage.md](docs/adr/0003-local-cli-first-release-storage.md)
-for the first-release storage decision. The local CLI release plan is in
+[docs/adr/0004-config-file-and-campaign-registry.md](docs/adr/0004-config-file-and-campaign-registry.md)
+for the managed local storage decision. The local CLI release plan is in
 [docs/cli-distribution.md](docs/cli-distribution.md).
 
 ## Repository Layout
@@ -116,15 +116,14 @@ report "up to date" after `dist/` was deleted if `.tsbuildinfo` remains.
 
 ## Configuration
 
-The CLI reads configuration from environment variables. `.env.example` is a
-template, but the CLI does not currently load `.env` files by itself.
+The CLI reads provider credentials and model overrides from environment
+variables. Campaigns normally live under Loreweaver's per-user data root and
+are selected through the managed registry. `.env.example` is a template, but
+the CLI does not currently load `.env` files by itself.
 
-Required:
-
-- `LOREWEAVER_DB_PATH` - SQLite database file for the active local campaign.
-
-Provider authentication — set exactly one. If both are present `ANTHROPIC_API_KEY`
-wins, mirroring Claude Code's credential precedence. See
+Provider authentication: set exactly one before running model-backed play. If
+both are present, `ANTHROPIC_API_KEY` wins, mirroring Claude Code's credential
+precedence. See
 [docs/agent-sdk-auth.md](docs/agent-sdk-auth.md):
 
 - `ANTHROPIC_API_KEY` - an Anthropic Console API key.
@@ -133,6 +132,8 @@ wins, mirroring Claude Code's credential precedence. See
 
 Optional:
 
+- `LOREWEAVER_HOME` - explicit data-root directory for config, the campaign
+  registry, managed campaign databases, rules packs, and the managed Dolt cache.
 - `LOREWEAVER_MODEL` - legacy flat override for the primary-DM model id. When
   set it still takes precedence over the profile registry.
 - `LOREWEAVER_PROFILE_*_PROVIDER` / `LOREWEAVER_PROFILE_*_MODEL` - per-profile
@@ -143,13 +144,17 @@ Optional:
   `anthropic` — the only adapter the CLI ships today.
 - `LOREWEAVER_DOLT_BIN` - explicit path to a Dolt binary for checkpoints.
 - `LOREWEAVER_DOLT_HOME` - managed Dolt cache directory used by
-  `loreweaver dolt install`; defaults to `~/.loreweaver/dolt`.
+  `loreweaver dolt install`; defaults to `<data-root>/dolt`.
+- `LOREWEAVER_DB_PATH` - advanced override for an explicit, unmanaged SQLite
+  campaign database. When set, `loreweaver play` opens that file directly and
+  bypasses the managed campaign registry.
 
 Installed CLI PowerShell example:
 
 ```powershell
-$env:LOREWEAVER_DB_PATH = ".\campaigns\dev.db"
 $env:ANTHROPIC_API_KEY = "sk-ant-..."
+loreweaver new "Emberfall Hollow"
+loreweaver campaigns list
 loreweaver play
 ```
 
@@ -166,13 +171,24 @@ This prints the core version and resolved config.
 Start or resume a campaign:
 
 ```bash
+loreweaver new "Emberfall Hollow"
+loreweaver campaigns list
 loreweaver play
 ```
 
-`play` opens or creates the SQLite database at `LOREWEAVER_DB_PATH`, forks the
-bundled `EMBERFALL_HOLLOW` module into a new campaign when needed, starts or
-resumes a session, and sends each player input through the core turn
-orchestrator. Type `/quit` or `/exit` to close and recap the session.
+`new` creates a managed SQLite campaign database under the data root, forks the
+bundled `EMBERFALL_HOLLOW` module into it, and records it in the registry.
+`campaigns list` shows registered campaigns. `play` opens the only registered
+campaign, prompts you to choose when several exist, or offers to create the
+first one when the registry is empty. You can also pass a campaign id:
+`loreweaver play <id>`.
+
+During play, each player input goes through the core turn orchestrator. Type
+`/quit` or `/exit` to close and recap the session.
+
+For scripted, CI, synced-folder, or other explicit-path workflows, set
+`LOREWEAVER_DB_PATH`. In that mode `play` opens exactly that SQLite file as an
+unmanaged campaign and bypasses the registry.
 
 Install Dolt into the managed cache when you want local checkpoints and Dolt is
 not already on `PATH`:
@@ -191,20 +207,28 @@ run `npm run build` and invoke the built entrypoint with
 
 ## Storage Model
 
-First-release local CLI storage is explicit and file-based. See
-[docs/storage.md](docs/storage.md) and
-[ADR 0003](docs/adr/0003-local-cli-first-release-storage.md) for the full
+Local CLI storage is managed through a per-user data root and campaign
+registry. See [docs/storage.md](docs/storage.md) and
+[ADR 0004](docs/adr/0004-config-file-and-campaign-registry.md) for the full
 user-facing storage boundary.
 
 - **Static bundled content** lives in the package source/build output,
   including `EMBERFALL_HOLLOW` sample module data, SRD catalog data, and
   bundled rules packs (`DND5E_SRD_RULES_PACK`, `PATHFINDER2E_REMASTER_RULES_PACK`).
-- **Live campaign state** lives in the SQLite file named by
-  `LOREWEAVER_DB_PATH`. SQLite sidecar files such as `-wal`, `-shm`, or
-  `-journal` may appear beside it while the database is open.
-- **Dolt checkpoints** live beside that database in `<dbPath>.checkpoints` when
-  Dolt is available. Restore/fork commands materialize checkpoints into a new
-  SQLite database path chosen by the caller.
+- **Managed user data** lives under the data root: `LOREWEAVER_HOME` when set,
+  otherwise `%LOCALAPPDATA%\Loreweaver` on Windows and `~/.loreweaver` on
+  macOS/Linux. The registry is `registry.json`; managed campaign databases live
+  under `campaigns/`.
+- **Live campaign state** lives in the SQLite file selected by the registry.
+  `loreweaver new` creates managed databases under `<root>/campaigns/`, while
+  `loreweaver campaigns add <path>` registers an existing external database.
+  SQLite sidecar files such as `-wal`, `-shm`, or `-journal` may appear beside
+  the database while it is open.
+- **Explicit unmanaged campaigns** use `LOREWEAVER_DB_PATH`. When set, the CLI
+  opens exactly that SQLite file and does not consult or update the registry.
+- **Dolt checkpoints** live beside the selected database in
+  `<dbPath>.checkpoints` when Dolt is available. Restore/fork commands
+  materialize checkpoints into a new SQLite database path chosen by the caller.
 - **Beads tracker data** is separate from campaign checkpoints. Checkpoint code
   guards against reusing the beads Dolt ref/remote.
 - **Provider secrets** come from the local environment in the CLI release. They
@@ -212,10 +236,8 @@ user-facing storage boundary.
   `turn_trace`, exports, or logs. Hosted BYOK secret handling is governed by
   ADR 0002.
 
-No implicit per-platform campaign directory is used for the first release:
-`LOREWEAVER_DB_PATH` remains required. The managed Dolt binary cache defaults to
-`~/.loreweaver/dolt`, and bundled static content lives in the npm package build
-output.
+The managed Dolt binary cache defaults inside the data root, and bundled static
+content lives in the npm package build output.
 
 ## Contributing
 

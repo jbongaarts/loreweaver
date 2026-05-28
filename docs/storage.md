@@ -157,6 +157,9 @@ When Dolt is available, graceful session close writes a Dolt repo beside the
 campaign database, at `<dbPath>.checkpoints`. For example, a campaign database
 `dev.db` checkpoints into `dev.db.checkpoints`.
 
+`<dbPath>` is the campaign database selected for the run: a registry entry for
+managed campaigns, or `LOREWEAVER_DB_PATH` for an explicit unmanaged campaign.
+
 Checkpoint restore and fork operations materialize a checkpoint into a new
 SQLite database path chosen by the command or caller. Restore refuses to
 overwrite an existing destination and builds through a temporary sibling file
