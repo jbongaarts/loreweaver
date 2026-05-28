@@ -68,6 +68,34 @@ export function resolveCharacterId(db: Db, explicitId?: string): string {
 }
 
 /**
+ * Resolve the acting player character for a turn: the explicit id when given,
+ * otherwise the active character. The acting unit must be an existing row with
+ * `role = 'pc'` — companions, familiars, and hirelings may be tool targets but
+ * never the acting PC. Rejects a missing or non-PC id with
+ * `CharacterResolutionError` so callers fail in a controlled way instead of
+ * dereferencing a dangling reference. This is the single gate every
+ * acting-character path (context assembly, runTurn trace, tool context) routes
+ * through; broader by-id/by-name targeting stays in `resolveCharacterRef`.
+ */
+export function resolveActingCharacterId(db: Db, explicitId?: string): string {
+  const id = resolveCharacterId(db, explicitId);
+  const row = db.prepare('SELECT role FROM character WHERE id = ?').get(id) as
+    | { role: string }
+    | undefined;
+  if (row === undefined) {
+    throw new CharacterResolutionError(
+      `acting character '${id}' has no character row`,
+    );
+  }
+  if (row.role !== 'pc') {
+    throw new CharacterResolutionError(
+      `acting character '${id}' is a ${row.role}, not a player character`,
+    );
+  }
+  return id;
+}
+
+/**
  * Resolve a player-or-model supplied character reference (an exact row id or a
  * character name) to a concrete `character.id`. Names match case-insensitively.
  * Throws `CharacterResolutionError` when the ref matches no member or more than

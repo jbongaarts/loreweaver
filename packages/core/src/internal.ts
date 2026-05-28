@@ -89,6 +89,7 @@ export {
   NoActiveCharacterError,
   ensureCharacterRow,
   getActiveCharacterId,
+  resolveActingCharacterId,
   resolveCharacterId,
   resolveCharacterRef,
   setActiveCharacterId,

@@ -140,4 +140,23 @@ describe('context assembler stale/invalid active character', () => {
     ).toThrow(CharacterResolutionError);
     db.close();
   });
+
+  it('rejects an explicit acting character that is not a PC', () => {
+    const db = freshDbWithSession();
+    addPc(db, 'comp-1', 'Wolf');
+    db.prepare("UPDATE character SET role = 'companion' WHERE id = ?").run(
+      'comp-1',
+    );
+
+    expect(() =>
+      assembleContext({
+        db,
+        campaignId: CAMPAIGN,
+        sessionId: SESSION,
+        playerInput: 'continue',
+        actingCharacterId: 'comp-1',
+      }),
+    ).toThrow(CharacterResolutionError);
+    db.close();
+  });
 });

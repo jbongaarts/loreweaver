@@ -9,7 +9,7 @@ import type { Db } from '../persistence/db.js';
 import { jsonColumn } from '../persistence/jsonColumn.js';
 import {
   CharacterResolutionError,
-  resolveCharacterId,
+  resolveActingCharacterId,
 } from '../state/activeCharacter.js';
 import type { AbilityScores } from '../state/liveStateSchema.js';
 import {
@@ -158,7 +158,7 @@ export function readStateSnapshot(
   db: Db,
   activeCharacterId?: string,
 ): StateSnapshot {
-  const charId = resolveCharacterId(db, activeCharacterId);
+  const charId = resolveActingCharacterId(db, activeCharacterId);
   const character = db
     .prepare(
       `SELECT id, name, ancestry, class_name, level, hp_current, hp_max,

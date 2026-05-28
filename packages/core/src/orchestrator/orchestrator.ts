@@ -5,7 +5,7 @@ import type {
 import { recordTurnTrace } from '../memory/turnTrace.js';
 import type { ModelClient } from '../model/client.js';
 import type { Db } from '../persistence/db.js';
-import { resolveCharacterId } from '../state/activeCharacter.js';
+import { resolveActingCharacterId } from '../state/activeCharacter.js';
 import { assembleContext, renderContextMessage } from './contextAssembler.js';
 import { buildSystemPrompt } from './protocol.js';
 import { createSeededRng } from './rng.js';
@@ -97,7 +97,6 @@ export async function runTurn(
     sessionId: input.sessionId,
     turnId: input.turnId,
     at: input.at,
-    actingCharacterId: input.actingCharacterId,
   };
 
   // Tracked here (not inside runModelLoop) so the failure path can still
@@ -106,13 +105,22 @@ export async function runTurn(
 
   db.exec(`SAVEPOINT ${TURN_SAVEPOINT}`);
   try {
+    // Resolve and validate the acting PC before any context assembly, tool
+    // execution, or trace write. A non-PC or missing actingCharacterId throws
+    // here, so the turn rolls back as ok:false with nothing persisted.
+    const actingCharacterId = resolveActingCharacterId(
+      db,
+      input.actingCharacterId,
+    );
+    toolCtx.actingCharacterId = actingCharacterId;
+
     const assembled = assembleContext({
       db,
       campaignId: input.campaignId,
       sessionId: input.sessionId,
       playerInput: input.playerInput,
       recentSessionLimit: input.recentSessionLimit,
-      actingCharacterId: input.actingCharacterId,
+      actingCharacterId,
     });
 
     const { narration, toolCalls } = await runModelLoop({
@@ -157,7 +165,7 @@ export async function runTurn(
       turnId: input.turnId,
       consentScope: input.consentScope ?? 'private',
       playerInput: input.playerInput,
-      actingCharacterId: resolveCharacterId(db, input.actingCharacterId),
+      actingCharacterId,
       retrievedContext: [renderContextMessage(assembled)],
       promptProfile: input.promptProfile ?? 'default',
       modelOutput: narration,

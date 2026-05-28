@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   createDefaultToolRegistry,
+  ensureCharacterRow,
   getTurnTrace,
   listSceneLog,
   mutateState,
@@ -397,5 +398,73 @@ describe('orchestrator turn loop', () => {
       return result.toolCalls[0].result;
     };
     expect(await run()).toEqual(await run());
+  });
+
+  it('rejects a non-PC actingCharacterId without writing a trace or mutating canon', async () => {
+    const db = freshDbWithSession();
+    withOpenScene(db);
+    db.prepare(
+      "UPDATE character SET hp_max = 20, hp_current = 20 WHERE id = 'pc-1'",
+    ).run();
+    ensureCharacterRow(
+      db,
+      'comp-1',
+      'test',
+      SESSION,
+      '2026-05-20T09:00:00.000Z',
+    );
+    db.prepare(
+      "UPDATE character SET role = 'companion' WHERE id = 'comp-1'",
+    ).run();
+
+    // The model would damage the acting PC — but the turn must fail before any
+    // tool runs because comp-1 is not a player character.
+    const model = new ScriptedModel([
+      toolCall('adjust_hp', { amount: -5 }),
+      'The companion is hurt.',
+    ]);
+
+    const result = await runTurn(
+      { db, model, registry: createDefaultToolRegistry() },
+      baseInput({ actingCharacterId: 'comp-1' }),
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain('not a player character');
+    // Model never invoked, no trace written, HP unchanged.
+    expect(model.seen).toHaveLength(0);
+    expect(
+      getTurnTrace(db, {
+        campaignId: CAMPAIGN,
+        sessionId: SESSION,
+        turnId: 'turn-1',
+      }),
+    ).toBeUndefined();
+    const hp = db
+      .prepare("SELECT hp_current FROM character WHERE id = 'pc-1'")
+      .get() as { hp_current: number };
+    expect(hp.hp_current).toBe(20);
+    db.close();
+  });
+
+  it('accepts a valid non-active PC as the acting character', async () => {
+    const db = freshDbWithSession();
+    withOpenScene(db);
+    ensureCharacterRow(db, 'pc-2', 'test', SESSION, '2026-05-20T09:00:00.000Z');
+    const model = new ScriptedModel(['You step forward, blade ready.']);
+
+    const result = await runTurn(
+      { db, model, registry: createDefaultToolRegistry() },
+      baseInput({ actingCharacterId: 'pc-2' }),
+    );
+
+    expect(result.ok).toBe(true);
+    const trace = getTurnTrace(db, {
+      campaignId: CAMPAIGN,
+      sessionId: SESSION,
+      turnId: 'turn-1',
+    });
+    expect(trace?.actingCharacterId).toBe('pc-2');
+    db.close();
   });
 });
