@@ -26,14 +26,14 @@ session; remaining kinds are child issues).
 
 The importer does **not** emit empty stubs for unimplemented kinds. Per the
 ADR 0007 ingestion policy and the `loreweaver-0m9.5` scope rule, a generated
-pack that omits a kind reflects "the parser doesn't cover that yet" — not "the
+pack that omits a kind reflects "the parser doesn't cover that yet" -- not "the
 SRD doesn't contain those records". The generated manifest's `description`
 field lists the included kinds explicitly so downstream callers can tell.
 
 ## How to regenerate
 
 1. Vendor the SRD 5.1 PDF at `packages/core/sources/dnd5e-srd-5.1/SRD_CC_v5.1.pdf`
-   — see that directory's `README.md` for the source URL and license posture.
+   -- see that directory's `README.md` for the source URL and license posture.
 2. From the repo root:
 
    ```bash
@@ -63,40 +63,40 @@ future runs can detect a swapped artifact.
 
 ```
 sources/dnd5e-srd-5.1/SRD_CC_v5.1.pdf
-        │
-        ▼  extract.ts (pdfjs-dist)
+        |
+        v  extract.ts (pdfjs-dist)
    PageText[]
-        │
-        ▼  sections.ts (sliceSection)
+        |
+        v  sections.ts (sliceSection)
    PageText[] narrowed per kind (e.g. spell-descriptions, spell-lists)
-        │
-        ▼  parseSpells.ts
+        |
+        v  parseSpells.ts
    SpellExtraction[]  +  SpellClassIndex
-        │
-        ▼  emit.ts
+        |
+        v  emit.ts
    RulesPack  (validated by validateRulesPack)
-        │
-        ▼
+        |
+        v
    manifest.json + records.json
 ```
 
-- `extract.ts` — PDF → per-page text via `pdfjs-dist`. Groups text items by
+- `extract.ts` -- PDF -> per-page text via `pdfjs-dist`. Groups text items by
   y-coordinate (with rounding) and sorts each line left-to-right. Pure
   function over the PDF buffer.
-- `sections.ts` — `PageText[]` → per-kind `PageText[]` slice via deterministic
+- `sections.ts` -- `PageText[]` -> per-kind `PageText[]` slice via deterministic
   chapter-heading anchors. Fails closed: an unmatched anchor throws
   `SectionNotFoundError` rather than silently feeding the whole PDF to a kind
   parser. See "Section-anchor table" below.
-- `parseSpells.ts` — narrowed text → `SpellExtraction[]` by scanning for
+- `parseSpells.ts` -- narrowed text -> `SpellExtraction[]` by scanning for
   level-school marker lines, then walking backward for the name and forward
   for keyed metadata + description. Class lists are a second pass over the
   spell-lists slice.
-- `emit.ts` — `SpellExtraction[]` + class index → validated `RulesPack`,
+- `emit.ts` -- `SpellExtraction[]` + class index -> validated `RulesPack`,
   written deterministically (records sorted by key, fixed field order,
   2-space indent, trailing newline).
-- `index.ts` — programmatic API + orchestrator: `runImporter({ pdfPath, outDir })`.
+- `index.ts` -- programmatic API + orchestrator: `runImporter({ pdfPath, outDir })`.
   Dispatches each per-kind slice to its parser.
-- `cli.ts` — command-line wrapper.
+- `cli.ts` -- command-line wrapper.
 
 ## Section-anchor table
 
@@ -122,7 +122,7 @@ orchestrator. Today it covers two slices:
 Anchors are deliberately tight (`^...$`) so a body-prose mention of a chapter
 title can't false-positive. Tests in `test/importers/dnd5e-srd-5.1/sections.test.ts`
 cover both the happy paths and the fail-closed behavior. Callers can override
-the live table via the `sectionAnchors` option on `runImporter` — useful if a
+the live table via the `sectionAnchors` option on `runImporter` -- useful if a
 future vendored PDF uses variant heading text.
 
 ## Adding a new record kind
@@ -132,10 +132,10 @@ To add a parser for a new kind (e.g. creatures, classes, conditions):
 1. **Add a new anchor entry** to `SRD_5_1_DEFAULT_SECTION_ANCHORS` in
    `sections.ts` (and to `Srd51SectionAnchors`). Pick regexes that match the
    exact chapter heading text observed in the vendored PDF. Default to
-   `requireEndHeading: true` unless the section legitimately runs to EOF —
+   `requireEndHeading: true` unless the section legitimately runs to EOF --
    failing closed is the whole point of the slicer.
 2. **Write the kind parser** under `scripts/importers/dnd5e-srd-5.1/` (e.g.
-   `parseCreatures.ts`). It must accept a narrowed `readonly PageText[]` —
+   `parseCreatures.ts`). It must accept a narrowed `readonly PageText[]` --
    never re-slice the full PDF. The parser is responsible only for its
    chapter's grammar; the orchestrator guarantees the input doesn't span
    adjacent chapters.
@@ -153,7 +153,7 @@ To add a parser for a new kind (e.g. creatures, classes, conditions):
 6. **Update the "Scope today" table** above when the new kind ships.
 
 Per the `loreweaver-0m9.5` scope rule, the importer must not emit empty stubs
-for kinds it does not yet cover — landing a stub parser without real
+for kinds it does not yet cover -- landing a stub parser without real
 extraction would let the generated pack pose as more complete than it is.
 
 ## Determinism
@@ -170,13 +170,13 @@ The importer is deterministic in two senses:
 
 ## Testing
 
-- `packages/core/test/importers/dnd5e-srd-5.1/parseSpells.test.ts` — unit
+- `packages/core/test/importers/dnd5e-srd-5.1/parseSpells.test.ts` -- unit
   tests for the spell parser against inline real SRD 5.1 spell text excerpts
   (used under CC-BY-4.0; attribution preserved in the test file header).
-- `packages/core/test/importers/dnd5e-srd-5.1/emit.test.ts` — emitter
+- `packages/core/test/importers/dnd5e-srd-5.1/emit.test.ts` -- emitter
   determinism: two passes over the same input produce byte-identical files;
   output passes `validateRulesPack`.
-- `packages/core/test/importers/dnd5e-srd-5.1/pipeline.test.ts` — end-to-end
+- `packages/core/test/importers/dnd5e-srd-5.1/pipeline.test.ts` -- end-to-end
   test against a small fixture PDF generated at test time via `pdfkit`, to
-  exercise the full extract → parse → emit pipeline without requiring the
+  exercise the full extract -> parse -> emit pipeline without requiring the
   full SRD PDF to be present.
