@@ -252,6 +252,31 @@ const CORE_RULES_PAGE_TWO: FixturePage = {
   ],
 };
 
+const CORE_RULES_TABLES_PAGE: FixturePage = {
+  lines: [
+    'Difficulty Classes',
+    'Task Difficulty',
+    'DC',
+    'Very easy 5',
+    'Easy 10',
+    'Medium 15',
+    'Hard 20',
+    'Very hard 25',
+    'Nearly impossible 30',
+    '',
+    'XP Thresholds by Character Level',
+    'Character Level',
+    'Easy',
+    'Medium',
+    'Hard',
+    'Deadly',
+    '1st 25 50 75 100',
+    '2nd 50 100 150 200',
+    '3rd 75 150 225 400',
+    '4th 125 250 375 500',
+  ],
+};
+
 // Conditions fixture: mirrors "Appendix A: Conditions" with two representative
 // conditions (Blinded for a flat-effect case, Prone for a single-effect case).
 const CONDITIONS_PAGE: FixturePage = {
@@ -275,6 +300,7 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     await writeFixturePdf(pdfPath, [
       CORE_RULES_PAGE_ONE,
       CORE_RULES_PAGE_TWO,
+      CORE_RULES_TABLES_PAGE,
       SPELL_LISTS_PAGE,
       SPELLS_PAGE,
       MONSTERS_PAGE,
@@ -292,10 +318,11 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(result.counts.hazards).toBe(1);
     expect(result.counts.actions).toBe(10);
     expect(result.counts.rules).toBe(2);
+    expect(result.counts.tables).toBe(2);
     expect(result.sourceHash).toMatch(/^[0-9a-f]{64}$/);
 
     const pack = loadRulesPackFromDirectory(outDir);
-    expect(pack.records).toHaveLength(18);
+    expect(pack.records).toHaveLength(20);
     const keys = pack.records.map((r) => r.key).sort();
     expect(keys).toContain('action:attack');
     expect(keys).toContain('action:cast-a-spell');
@@ -314,6 +341,8 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(keys).toContain('feat:grappler');
     expect(keys).toContain('rule:cover');
     expect(keys).toContain('rule:resting');
+    expect(keys).toContain('table:difficulty-classes');
+    expect(keys).toContain('table:xp-thresholds-by-character-level');
     // Assert the feat set is exactly Grappler — no bogus chapter headings
     // promoted as feat names by the heuristic.
     const featKeys = keys.filter((k) => k.startsWith('feat:'));
@@ -336,6 +365,11 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     ]);
     const ruleKeys = keys.filter((k) => k.startsWith('rule:'));
     expect(ruleKeys).toEqual(['rule:cover', 'rule:resting']);
+    const tableKeys = keys.filter((k) => k.startsWith('table:'));
+    expect(tableKeys).toEqual([
+      'table:difficulty-classes',
+      'table:xp-thresholds-by-character-level',
+    ]);
 
     const acid = pack.records.find((r) => r.key === 'spell:acid-splash');
     expect(acid?.name).toBe('Acid Splash');
@@ -377,6 +411,35 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(typeof coverData.text).toBe('string');
     expect((coverData.text as string).length).toBeGreaterThan(0);
     expect(coverData.text).toMatch(/provide cover during combat/i);
+
+    const difficultyTable = pack.records.find(
+      (r) => r.key === 'table:difficulty-classes',
+    );
+    expect((difficultyTable?.data as Record<string, unknown>).columns).toEqual([
+      'Task Difficulty',
+      'DC',
+    ]);
+    expect((difficultyTable?.data as Record<string, unknown>).rows).toEqual([
+      ['Very easy', 5],
+      ['Easy', 10],
+      ['Medium', 15],
+      ['Hard', 20],
+      ['Very hard', 25],
+      ['Nearly impossible', 30],
+    ]);
+
+    const xpThresholdTable = pack.records.find(
+      (r) => r.key === 'table:xp-thresholds-by-character-level',
+    );
+    expect((xpThresholdTable?.data as Record<string, unknown>).columns).toEqual(
+      ['Character Level', 'Easy', 'Medium', 'Hard', 'Deadly'],
+    );
+    expect((xpThresholdTable?.data as Record<string, unknown>).rows).toEqual([
+      ['1st', 25, 50, 75, 100],
+      ['2nd', 50, 100, 150, 200],
+      ['3rd', 75, 150, 225, 400],
+      ['4th', 125, 250, 375, 500],
+    ]);
   });
 
   it('produces a byte-identical pack across two runs over the same PDF', async () => {

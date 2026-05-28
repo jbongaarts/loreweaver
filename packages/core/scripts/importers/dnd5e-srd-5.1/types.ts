@@ -124,6 +124,19 @@ export interface ActionExtraction {
   readonly sourcePage: number;
 }
 
+/**
+ * A freestanding reference table as extracted from the SRD source, before
+ * conversion to a `RulesRecord`. Rows intentionally allow mixed scalar cell
+ * values because SRD tables commonly combine labels with numeric thresholds.
+ */
+export interface TableExtraction {
+  readonly name: string;
+  readonly columns: readonly string[];
+  readonly rows: readonly (readonly unknown[])[];
+  /** 1-based page in the source PDF where the table anchor appears. */
+  readonly sourcePage: number;
+}
+
 export interface ImporterCounts {
   readonly spells: number;
   readonly conditions: number;
@@ -131,6 +144,7 @@ export interface ImporterCounts {
   readonly hazards: number;
   readonly actions: number;
   readonly rules: number;
+  readonly tables: number;
 }
 
 export interface ImporterRunResult {
