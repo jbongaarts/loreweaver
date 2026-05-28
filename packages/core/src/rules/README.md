@@ -26,8 +26,12 @@ These fixtures are **temporary**. They will be replaced by deterministic
 importers tracked in epic `loreweaver-0m9`:
 
 - `dnd5eSrd.ts` — targeted for replacement by the 0m9.5 D&D 5e SRD importer.
-  Until then it wraps the legacy SRD catalog in `srd/` (see below) to produce
-  its `RulesPack`.
+  The importer foundation + spell parser ship under `loreweaver-0m9.5`; see
+  `packages/core/scripts/importers/dnd5e-srd-5.1/` and that directory's
+  `README.md` for the current parser coverage and regeneration procedure.
+  Until parser coverage is broad enough to be reference-complete, the
+  importer writes to a scratch path by default and `dnd5eSrd.ts` continues to
+  wrap the legacy SRD catalog in `srd/` (see below).
 - `pathfinder2eRemaster.ts` — targeted for replacement by the 0m9.8
   Pathfinder 2e Remaster importer.
 
