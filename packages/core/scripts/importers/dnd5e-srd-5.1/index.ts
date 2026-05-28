@@ -30,7 +30,7 @@ import {
   type Srd51SectionAnchors,
   sliceSection,
 } from './sections.js';
-import type { ImporterRunResult, PageText } from './types.js';
+import type { ImporterRunResult } from './types.js';
 
 export interface RunImporterInput {
   /** Absolute path to the vendored SRD 5.1 PDF. */
@@ -57,13 +57,10 @@ export async function runImporter(
   const spellDescriptionPages = sliceSection(pages, anchors.spellDescriptions);
   const spellListPages = sliceSection(pages, anchors.spellLists);
 
-  // Conditions section may be absent in test fixtures; fall back to empty.
-  let conditionPages: readonly PageText[];
-  try {
-    conditionPages = sliceSection(pages, anchors.conditions);
-  } catch {
-    conditionPages = [];
-  }
+  // Throws SectionNotFoundError if the conditions anchor doesn't match.
+  // Conditions is an implemented kind; the importer must fail closed rather
+  // than silently emit a pack that omits conditions because the PDF changed.
+  const conditionPages = sliceSection(pages, anchors.conditions);
 
   const spells = parseSpells(spellDescriptionPages);
   const classIndex = parseSpellClassLists(spellListPages);

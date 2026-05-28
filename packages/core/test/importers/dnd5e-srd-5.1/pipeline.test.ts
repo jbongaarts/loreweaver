@@ -288,6 +288,23 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     );
   });
 
+  it('fails closed when the conditions heading is missing', async () => {
+    const workDir = makeTmpDir();
+    const pdfPath = join(workDir, 'fixture.pdf');
+    const outDir = join(workDir, 'pack');
+    // Spell Lists, Spells, and Monsters are present so the spell pipeline
+    // succeeds, but there is no conditions chapter. The importer must refuse
+    // to run rather than silently emit a pack without conditions.
+    await writeFixturePdf(pdfPath, [
+      SPELL_LISTS_PAGE,
+      SPELLS_PAGE,
+      MONSTERS_PAGE,
+    ]);
+    await expect(runImporter({ pdfPath, outDir })).rejects.toThrow(
+      /heading not found/,
+    );
+  });
+
   it('fails closed when the spell-descriptions end heading (e.g. "Monsters") is missing', async () => {
     const workDir = makeTmpDir();
     const pdfPath = join(workDir, 'fixture.pdf');

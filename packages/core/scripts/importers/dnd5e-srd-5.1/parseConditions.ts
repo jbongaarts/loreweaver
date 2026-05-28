@@ -11,9 +11,13 @@
  * caller is responsible for narrowing the input to the conditions section.
  *
  * Bullet-point effects use any of the common PDF-extraction bullet markers
- * (•, -, *) followed by whitespace. Lines that start with a bullet are
- * collected into `effects[]` with the marker stripped. Non-bullet, non-blank
- * lines and blank-line-separated paragraphs form the `description` text.
+ * (•, -, *) followed by whitespace. Lines that start with a bullet begin a
+ * new effect. Non-blank, non-heading lines that immediately follow a bullet
+ * (with no blank-line separator) are appended to the preceding effect — this
+ * handles the wrapped-line artifact common in pdfjs-dist output. A blank line
+ * always closes the current effect and switches back to prose mode. Non-bullet
+ * lines that appear before the first bullet, or after a blank line that closed
+ * an effect, are treated as prose.
  *
  * Exhaustion decision: exhaustion is modeled as a single condition record
  * (not a paired `kind=table` record) whose `data.levels` carries the
@@ -126,6 +130,16 @@ function joinParagraphs(lines: readonly string[]): string {
  * Parse the body lines for a single condition. Returns the structured
  * extraction: effects (bullets), description (prose), and for exhaustion, the
  * level table.
+ *
+ * State machine:
+ *   - `inTable`: parsing the exhaustion level table.
+ *   - `currentEffect`: the effect string currently being accumulated; a
+ *     defined value means the last meaningful line was a bullet or its
+ *     continuation. `undefined` means we are in prose mode.
+ *
+ * Blank lines close `currentEffect` and switch to prose mode. Non-blank,
+ * non-bullet, non-header lines that follow a bullet (i.e. `currentEffect` is
+ * defined) are appended to `currentEffect` rather than treated as prose.
  */
 function parseConditionBody(
   name: ConditionName,
@@ -136,29 +150,24 @@ function parseConditionBody(
   const proseLines: string[] = [];
   const levels: ExhaustionLevel[] = [];
 
-  let inLevelTable = false;
+  let inTable = false;
   let pendingLevel: number | undefined;
-  let i = 0;
+  let currentEffect: string | undefined;
 
-  while (i < bodyLines.length) {
-    const raw = bodyLines[i];
+  function closeEffect(): void {
+    if (currentEffect !== undefined) {
+      effects.push(currentEffect);
+      currentEffect = undefined;
+    }
+  }
+
+  for (const raw of bodyLines) {
     const trimmed = raw.trim();
-    i++;
 
-    if (trimmed.length === 0) {
-      if (!inLevelTable) {
-        proseLines.push('');
-      }
-      continue;
-    }
+    if (inTable) {
+      // Blank lines inside the table area are skipped.
+      if (trimmed.length === 0) continue;
 
-    // Level-table header: switch into table mode.
-    if (LEVEL_HEADER_RE.test(trimmed)) {
-      inLevelTable = true;
-      continue;
-    }
-
-    if (inLevelTable) {
       // Combined row: "1 Disadvantage on ability checks"
       const combined = LEVEL_ROW_RE.exec(trimmed);
       if (combined !== null) {
@@ -169,52 +178,68 @@ function parseConditionBody(
         pendingLevel = undefined;
         continue;
       }
-      // Level number alone (two-column PDF extraction artifact)
+      // Level number alone (two-column PDF extraction artifact).
       const digitOnly = LEVEL_DIGIT_RE.exec(trimmed);
       if (digitOnly !== null) {
         pendingLevel = Number.parseInt(digitOnly[1], 10);
         continue;
       }
-      // Pending level: this line is the effect text for the previous digit
+      // Effect for a pending split-column level digit.
       if (pendingLevel !== undefined) {
         levels.push({ level: pendingLevel, effect: trimmed });
         pendingLevel = undefined;
         continue;
       }
-      // If we've collected all 6 levels, exit table mode.
-      if (levels.length === 6) {
-        inLevelTable = false;
-        proseLines.push(trimmed);
-      }
-      // Otherwise keep consuming; may be a header or noise row.
+      // Not a recognized table pattern — exit table mode and fall through
+      // to prose handling for this line.
+      inTable = false;
+    }
+
+    // Blank line: close any open effect and mark paragraph boundary.
+    if (trimmed.length === 0) {
+      closeEffect();
+      proseLines.push('');
       continue;
     }
 
-    // Bullet-point effect.
+    // Level-table header: begin exhaustion level table.
+    if (LEVEL_HEADER_RE.test(trimmed)) {
+      closeEffect();
+      inTable = true;
+      continue;
+    }
+
+    // Bullet-point: start a new effect.
     if (isBulletLine(trimmed)) {
-      effects.push(stripBullet(trimmed));
+      closeEffect();
+      currentEffect = stripBullet(trimmed);
       continue;
     }
 
-    // Plain prose.
+    // Continuation of current effect: a non-blank, non-bullet, non-header
+    // line that immediately follows a bullet (or a previous continuation).
+    if (currentEffect !== undefined) {
+      currentEffect = `${currentEffect} ${trimmed}`;
+      continue;
+    }
+
+    // Otherwise: plain prose line.
     proseLines.push(trimmed);
   }
 
-  // Build description: prose paragraphs + bullet effects (if any).
-  // For bullet-only conditions the prose section is empty; the description
-  // becomes the joined bullet text so the record always has a non-empty description.
+  closeEffect();
+
+  // Build description: prose paragraphs take priority. For bullet-only
+  // conditions (no prose), fall back to joining effects so the record always
+  // carries a non-empty description.
   let description: string;
-  if (proseLines.filter((l) => l.length > 0).length > 0) {
+  if (proseLines.some((l) => l.length > 0)) {
     description = joinParagraphs(proseLines);
-    if (effects.length > 0 && description.length === 0) {
-      description = effects.join(' ');
-    }
   } else {
     description = effects.join(' ');
   }
 
-  // Fallback: if description is somehow still empty, use name as placeholder
-  // (should never happen with valid SRD input).
+  // Fallback — should not happen with valid SRD input.
   if (description.length === 0) {
     description = name;
   }

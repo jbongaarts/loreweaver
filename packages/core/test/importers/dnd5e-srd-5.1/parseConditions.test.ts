@@ -37,13 +37,28 @@ describe('parseConditions — flat-effect condition (Blinded)', () => {
 
   it('captures the bullet-point effects with markers stripped', () => {
     expect(blinded.effects).toHaveLength(2);
-    expect(blinded.effects[0]).toMatch(/^A blinded creature can't see/);
-    expect(blinded.effects[1]).toMatch(/^Attack rolls against the creature/);
+  });
+
+  it('joins wrapped continuation lines into the preceding effect — full text', () => {
+    expect(blinded.effects[0]).toBe(
+      "A blinded creature can't see and automatically fails any ability check that requires sight.",
+    );
+    expect(blinded.effects[1]).toBe(
+      "Attack rolls against the creature have advantage, and the creature's attack rolls have disadvantage.",
+    );
   });
 
   it('builds a non-empty description', () => {
     expect(blinded.description.length).toBeGreaterThan(0);
     expect(typeof blinded.description).toBe('string');
+  });
+
+  it('continuation lines do not appear separately in description (regression)', () => {
+    // "that requires sight." is the continuation of effect 1; it must not
+    // appear as a standalone sentence fragment in description.
+    expect(blinded.description).not.toMatch(/^that requires sight/m);
+    // "attack rolls have disadvantage." is the continuation of effect 2.
+    expect(blinded.description).not.toMatch(/^attack rolls have disadvantage/m);
   });
 
   it('leaves levels undefined for a flat condition', () => {
@@ -83,6 +98,18 @@ describe('parseConditions — conditional-effects condition (Unconscious)', () =
     expect(unconscious.effects).toHaveLength(5);
   });
 
+  it('wraps the first effect continuation into a single string', () => {
+    expect(unconscious.effects[0]).toBe(
+      "An unconscious creature is incapacitated, can't move or speak, and is unaware of its surroundings.",
+    );
+  });
+
+  it('wraps the last effect continuation into a single string', () => {
+    expect(unconscious.effects[4]).toBe(
+      'Any attack that hits the creature is a critical hit if the attacker is within 5 feet of the creature.',
+    );
+  });
+
   it('captures the auto-fail saving-throw effect', () => {
     const saveEffect = unconscious.effects.find((e) =>
       /Strength and Dexterity saving throws/.test(e),
@@ -95,13 +122,6 @@ describe('parseConditions — conditional-effects condition (Unconscious)', () =
       /attack rolls against the creature have advantage/i.test(e),
     );
     expect(advEffect).toBeDefined();
-  });
-
-  it('captures the critical-hit-within-5-feet effect', () => {
-    const critEffect = unconscious.effects.find((e) =>
-      /critical hit if the attacker is/.test(e),
-    );
-    expect(critEffect).toBeDefined();
   });
 
   it('leaves levels undefined', () => {
@@ -282,5 +302,81 @@ describe('parseConditions — empty input', () => {
   it('returns an empty array when no condition names are found', () => {
     const p = page(1, ['This is not a condition.', 'Some other text.']);
     expect(parseConditions([p])).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Completeness guard: all 15 canonical SRD 5.1 condition names must be
+// recognised.  Any silent partial extraction is caught here.
+// ---------------------------------------------------------------------------
+
+describe('parseConditions — completeness guard (all 15 canonical conditions)', () => {
+  // Build a minimal fixture that names all 15 conditions with a single
+  // one-line bullet effect each.
+  const allLines: string[] = [
+    'Blinded',
+    '• Blinded effect.',
+    'Charmed',
+    '• Charmed effect.',
+    'Deafened',
+    '• Deafened effect.',
+    'Exhaustion',
+    '• Exhaustion effect.',
+    'Frightened',
+    '• Frightened effect.',
+    'Grappled',
+    '• Grappled effect.',
+    'Incapacitated',
+    '• Incapacitated effect.',
+    'Invisible',
+    '• Invisible effect.',
+    'Paralyzed',
+    '• Paralyzed effect.',
+    'Petrified',
+    '• Petrified effect.',
+    'Poisoned',
+    '• Poisoned effect.',
+    'Prone',
+    '• Prone effect.',
+    'Restrained',
+    '• Restrained effect.',
+    'Stunned',
+    '• Stunned effect.',
+    'Unconscious',
+    '• Unconscious effect.',
+  ];
+
+  const results = parseConditions([page(1, allLines)]);
+  const names = results.map((c) => c.name);
+
+  it('extracts exactly 15 conditions', () => {
+    expect(results).toHaveLength(15);
+  });
+
+  it('includes every canonical condition name', () => {
+    const expected = [
+      'Blinded',
+      'Charmed',
+      'Deafened',
+      'Exhaustion',
+      'Frightened',
+      'Grappled',
+      'Incapacitated',
+      'Invisible',
+      'Paralyzed',
+      'Petrified',
+      'Poisoned',
+      'Prone',
+      'Restrained',
+      'Stunned',
+      'Unconscious',
+    ];
+    for (const name of expected) {
+      expect(names).toContain(name);
+    }
+  });
+
+  it('returns all conditions sorted alphabetically', () => {
+    expect(names).toEqual([...names].sort());
   });
 });
