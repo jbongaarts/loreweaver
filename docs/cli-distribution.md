@@ -159,15 +159,17 @@ Then smoke the configured CLI:
 mkdir loreweaver-smoke
 cd loreweaver-smoke
 export LOREWEAVER_HOME="$PWD/.loreweaver"
-export ANTHROPIC_API_KEY="<test key or live smoke key>"
+export ANTHROPIC_API_KEY="<real test key or live smoke key>"
 loreweaver
 loreweaver new "Smoke Campaign"
 loreweaver campaigns list
 ```
 
-Expected: the banner prints the resolved data root and model, `new` creates a
-managed database under `$LOREWEAVER_HOME/campaigns/`, and `campaigns list`
-shows the registered campaign.
+Expected: with a real provider credential, the banner prints the resolved data
+root and model, `new` creates a managed database under
+`$LOREWEAVER_HOME/campaigns/`, and `campaigns list` shows the registered
+campaign. An empty `ANTHROPIC_API_KEY` is treated as unset; use
+`CLAUDE_CODE_OAUTH_TOKEN` instead when smoking subscription-token auth.
 
 Optional explicit-path smoke:
 
