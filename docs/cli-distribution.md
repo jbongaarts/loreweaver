@@ -3,8 +3,8 @@
 This is the initial post-MVP distribution plan for the local Loreweaver CLI.
 It covers the pre-1.0 CLI release path; hosted web/PWA distribution remains
 governed by ADR 0002.
-First-release local storage remains explicit via `LOREWEAVER_DB_PATH`; see
-[ADR 0003](adr/0003-local-cli-first-release-storage.md) and
+Local storage uses the managed per-user data root and campaign registry; see
+[ADR 0004](adr/0004-config-file-and-campaign-registry.md) and
 [Local Storage](storage.md).
 
 ## Decision
@@ -117,12 +117,12 @@ For checkpoints, users can either:
   cache
 
 `LOREWEAVER_DOLT_HOME` controls the managed cache root and defaults to
-`~/.loreweaver/dolt`. Managed install requires interactive consent; CI and
+`<data-root>/dolt`. Managed install requires interactive consent; CI and
 non-interactive shells decline automatically.
 
-Campaign checkpoints live in `<LOREWEAVER_DB_PATH>.checkpoints`; see
-[Local Storage](storage.md) for the storage boundary and beads separation
-rules.
+Campaign checkpoints live beside the selected SQLite database as
+`<dbPath>.checkpoints`; see [Local Storage](storage.md) for the storage
+boundary and beads separation rules.
 
 ## Fresh Install Smoke Test
 
@@ -158,14 +158,26 @@ Then smoke the configured CLI:
 ```bash
 mkdir loreweaver-smoke
 cd loreweaver-smoke
-export LOREWEAVER_DB_PATH="$PWD/dev.db"
+export LOREWEAVER_HOME="$PWD/.loreweaver"
 export ANTHROPIC_API_KEY="<test key or live smoke key>"
+loreweaver
+loreweaver new "Smoke Campaign"
+loreweaver campaigns list
+```
+
+Expected: the banner prints the resolved data root and model, `new` creates a
+managed database under `$LOREWEAVER_HOME/campaigns/`, and `campaigns list`
+shows the registered campaign.
+
+Optional explicit-path smoke:
+
+```bash
+export LOREWEAVER_DB_PATH="$PWD/dev.db"
 loreweaver
 ```
 
-Expected: the banner prints the resolved database path and model. (With
-`LOREWEAVER_DB_PATH` unset, the CLI instead manages campaigns through the data
-root registry — see [Local Storage](storage.md).)
+Expected: the banner also prints the explicit database path. This bypasses the
+managed registry and is intended for scripted, CI, and power-user workflows.
 
 Optional Dolt smoke:
 
@@ -182,10 +194,10 @@ Live play smoke:
 loreweaver play
 ```
 
-Expected: a new campaign is created from `EMBERFALL_HOLLOW`, one player input
-can complete a model-backed turn, and `/quit` closes the session. If Dolt is
-available, the close reports a checkpoint id and creates
-`$LOREWEAVER_DB_PATH.checkpoints`; otherwise it closes without a checkpoint.
+Expected: the registered managed campaign opens, one player input can complete
+a model-backed turn, and `/quit` closes the session. If Dolt is available, the
+close reports a checkpoint id and creates `<dbPath>.checkpoints` beside the
+campaign database; otherwise it closes without a checkpoint.
 
 ## Release Blockers Before First Publish
 

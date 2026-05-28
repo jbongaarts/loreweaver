@@ -219,7 +219,7 @@ export async function runPlaySubcommand(campaignArg?: string): Promise<number> {
     let dbPath: string;
     if (config.cfg.campaignDbPath !== undefined) {
       // LOREWEAVER_DB_PATH set: an explicit, unmanaged campaign database
-      // (ADR 0003). The registry and picker are bypassed entirely.
+      // (ADR 0004). The registry and picker are bypassed entirely.
       dbPath = config.cfg.campaignDbPath;
     } else {
       const target = await resolvePlayCampaign(
