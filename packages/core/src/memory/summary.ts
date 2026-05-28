@@ -3,8 +3,13 @@ import type { SceneLogRecord } from '../orchestrator/scene.js';
 import type { Db } from '../persistence/db.js';
 import { withTransaction } from '../persistence/db.js';
 import { jsonColumn } from '../persistence/jsonColumn.js';
+import {
+  CharacterResolutionError,
+  resolveCharacterRef,
+} from '../state/activeCharacter.js';
 import type { MutateStateTarget } from '../state/mutateState.js';
 import { requireNonEmpty } from '../validation.js';
+import { listTurnTraces } from './turnTrace.js';
 import type { TraceJsonValue } from './turnTrace.js';
 
 export interface MemoryRef {
@@ -229,16 +234,95 @@ export function summarizeSceneFromLog(
     .map((entry) => entry.content);
   const summary =
     dmLines.length > 0 ? dmLines.join(' ') : '(scene closed with no narration)';
+  const sourceTurnIds = [...new Set(log.map((entry) => entry.turnId))];
   recordSceneSummary(db, {
     campaignId: key.campaignId,
     sessionId: key.sessionId,
     sceneId: key.sceneId,
     summary,
-    salientRefs: [],
-    sourceTurnIds: [...new Set(log.map((entry) => entry.turnId))],
+    salientRefs: deriveCharacterSalientRefs(db, key, sourceTurnIds),
+    sourceTurnIds,
     createdAt: at,
     updatedAt: at,
   });
+}
+
+/**
+ * Per-PC salient references for a scene (loreweaver-d4d.6). Walks the recorded
+ * turn traces for the scene's turns and emits one `{ target: 'character', id,
+ * field }` ref per party member whose state a character-scoped tool changed,
+ * so an individual PC's important facts (HP swings, conditions, items) survive
+ * the party-level prose roll-up. The acting PC of the turn is the target when a
+ * tool call did not name an explicit `character`.
+ */
+const CHARACTER_TOOL_FIELDS: Readonly<Record<string, string>> = {
+  adjust_hp: 'hp_current',
+  add_condition: 'conditions_json',
+  remove_condition: 'conditions_json',
+  give_item: 'inventory',
+  remove_item: 'inventory',
+};
+
+function deriveCharacterSalientRefs(
+  db: Db,
+  key: { campaignId: string; sessionId: string },
+  sourceTurnIds: readonly string[],
+): MemoryRef[] {
+  const turnIds = new Set(sourceTurnIds);
+  const traces = listTurnTraces(db, {
+    campaignId: key.campaignId,
+    sessionId: key.sessionId,
+  }).filter((trace) => turnIds.has(trace.turnId));
+
+  const seen = new Set<string>();
+  const refs: MemoryRef[] = [];
+  for (const trace of traces) {
+    for (const call of trace.toolCalls) {
+      if (typeof call !== 'object' || call === null || Array.isArray(call)) {
+        continue;
+      }
+      const record = call as Record<string, TraceJsonValue>;
+      const tool = typeof record.tool === 'string' ? record.tool : undefined;
+      const field =
+        tool === undefined ? undefined : CHARACTER_TOOL_FIELDS[tool];
+      if (field === undefined) {
+        continue;
+      }
+      const pcId = resolveSalientCharacterId(db, record.args, trace);
+      if (pcId === undefined) {
+        continue;
+      }
+      const dedupeKey = `${pcId}:${field}`;
+      if (seen.has(dedupeKey)) {
+        continue;
+      }
+      seen.add(dedupeKey);
+      refs.push({ target: 'character', id: pcId, field });
+    }
+  }
+  return refs;
+}
+
+function resolveSalientCharacterId(
+  db: Db,
+  args: TraceJsonValue | undefined,
+  trace: { actingCharacterId?: string },
+): string | undefined {
+  const charRef =
+    typeof args === 'object' && args !== null && !Array.isArray(args)
+      ? (args as Record<string, TraceJsonValue>).character
+      : undefined;
+  if (typeof charRef === 'string' && charRef.length > 0) {
+    try {
+      return resolveCharacterRef(db, charRef);
+    } catch (e) {
+      if (e instanceof CharacterResolutionError) {
+        return undefined;
+      }
+      throw e;
+    }
+  }
+  return trace.actingCharacterId;
 }
 
 export function listSceneSummaries(

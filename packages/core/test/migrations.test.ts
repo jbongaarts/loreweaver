@@ -241,4 +241,30 @@ describe('migrations', () => {
 
     db.close();
   });
+
+  it('v9→v10 adds acting_character_id to an existing turn_trace', () => {
+    const db = openDatabase(':memory:');
+    db.exec(`
+      CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+      INSERT INTO meta VALUES ('schema_version', '9');
+      CREATE TABLE turn_trace (
+        campaign_id TEXT NOT NULL,
+        session_id  TEXT NOT NULL,
+        turn_id     TEXT NOT NULL,
+        PRIMARY KEY (campaign_id, session_id, turn_id)
+      );
+    `);
+
+    migrateSchema(db, 9, 10);
+
+    const cols = db.prepare('PRAGMA table_info(turn_trace)').all() as {
+      name: string;
+    }[];
+    expect(cols.map((c) => c.name)).toContain('acting_character_id');
+    const versionRow = db
+      .prepare('SELECT value FROM meta WHERE key = ?')
+      .get('schema_version') as { value: string } | undefined;
+    expect(versionRow?.value).toBe('10');
+    db.close();
+  });
 });

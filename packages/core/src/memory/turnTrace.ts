@@ -18,6 +18,8 @@ export interface TurnTraceRecord {
   turnId: string;
   consentScope: TurnTraceConsentScope;
   playerInput: string;
+  /** Concrete id of the PC acting on this turn (resolved at turn time). */
+  actingCharacterId?: string;
   retrievedContext: TraceJsonValue[];
   promptProfile: string;
   modelOutput: string;
@@ -74,6 +76,7 @@ export function recordTurnTrace(db: Db, trace: TurnTraceRecord): void {
            turn_id,
            consent_scope,
            player_input,
+           acting_character_id,
            retrieved_context_json,
            prompt_profile,
            model_output,
@@ -87,10 +90,11 @@ export function recordTurnTrace(db: Db, trace: TurnTraceRecord): void {
            quality_flags_json,
            created_at
          )
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(campaign_id, session_id, turn_id) DO UPDATE SET
            consent_scope = excluded.consent_scope,
            player_input = excluded.player_input,
+           acting_character_id = excluded.acting_character_id,
            retrieved_context_json = excluded.retrieved_context_json,
            prompt_profile = excluded.prompt_profile,
            model_output = excluded.model_output,
@@ -110,6 +114,7 @@ export function recordTurnTrace(db: Db, trace: TurnTraceRecord): void {
         trace.turnId,
         trace.consentScope,
         trace.playerInput,
+        trace.actingCharacterId ?? null,
         traceColumns.retrievedContext.encode(trace.retrievedContext),
         trace.promptProfile,
         trace.modelOutput,
@@ -138,6 +143,7 @@ export function getTurnTrace(
          turn_id,
          consent_scope,
          player_input,
+         acting_character_id,
          retrieved_context_json,
          prompt_profile,
          model_output,
@@ -178,6 +184,7 @@ export function listTurnTraces(
          turn_id,
          consent_scope,
          player_input,
+         acting_character_id,
          retrieved_context_json,
          prompt_profile,
          model_output,
@@ -205,6 +212,7 @@ function turnTraceFromRow(row: TurnTraceRow): TurnTraceRecord {
     turnId: row.turn_id,
     consentScope: row.consent_scope as TurnTraceConsentScope,
     playerInput: row.player_input,
+    actingCharacterId: row.acting_character_id ?? undefined,
     retrievedContext: traceColumns.retrievedContext.decode(
       row.retrieved_context_json,
     ),
@@ -253,6 +261,7 @@ interface TurnTraceRow {
   turn_id: string;
   consent_scope: string;
   player_input: string;
+  acting_character_id: string | null;
   retrieved_context_json: string;
   prompt_profile: string;
   model_output: string;

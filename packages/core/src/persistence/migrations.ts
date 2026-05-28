@@ -114,9 +114,30 @@ const v8_to_v9: Migration = (db) => {
   );
 };
 
+// v9 → v10: record the acting player character on each turn trace so scene
+// rollup can attribute state changes to the PC that caused them.
+const v9_to_v10: Migration = (db) => {
+  const hasTurnTrace =
+    db
+      .prepare(
+        "SELECT 1 AS present FROM sqlite_master WHERE type = 'table' AND name = 'turn_trace'",
+      )
+      .get() !== undefined;
+  if (!hasTurnTrace) {
+    return;
+  }
+  const cols = db.prepare('PRAGMA table_info(turn_trace)').all() as {
+    name: string;
+  }[];
+  if (!cols.some((c) => c.name === 'acting_character_id')) {
+    db.exec('ALTER TABLE turn_trace ADD COLUMN acting_character_id TEXT');
+  }
+};
+
 export const MIGRATIONS: Readonly<Record<number, Migration>> = {
   8: v7_to_v8,
   9: v8_to_v9,
+  10: v9_to_v10,
 };
 
 /**

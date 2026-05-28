@@ -5,6 +5,7 @@ import type {
 import { recordTurnTrace } from '../memory/turnTrace.js';
 import type { ModelClient } from '../model/client.js';
 import type { Db } from '../persistence/db.js';
+import { resolveCharacterId } from '../state/activeCharacter.js';
 import { assembleContext, renderContextMessage } from './contextAssembler.js';
 import { buildSystemPrompt } from './protocol.js';
 import { createSeededRng } from './rng.js';
@@ -156,6 +157,7 @@ export async function runTurn(
       turnId: input.turnId,
       consentScope: input.consentScope ?? 'private',
       playerInput: input.playerInput,
+      actingCharacterId: resolveCharacterId(db, input.actingCharacterId),
       retrievedContext: [renderContextMessage(assembled)],
       promptProfile: input.promptProfile ?? 'default',
       modelOutput: narration,
