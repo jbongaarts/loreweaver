@@ -214,6 +214,11 @@ function validateDnd5eFeat(record: RulesRecord, path: string): void {
   optStr(data, 'prerequisites', `${path}.data`);
 }
 
+function validateDnd5eHazard(record: RulesRecord, path: string): void {
+  const data = dataObj(record, path);
+  reqStr(data, 'description', `${path}.data`);
+}
+
 function validatePf2eAncestry(record: RulesRecord, path: string): void {
   const data = dataObj(record, path);
   reqInt(data, 'hitPoints', `${path}.data`, 1);
@@ -295,6 +300,7 @@ const SYSTEM_KIND_VALIDATORS: Record<
     class: validateDnd5eClass,
     condition: validateDnd5eCondition,
     feat: validateDnd5eFeat,
+    hazard: validateDnd5eHazard,
   },
   'pathfinder2e-remaster': {
     ancestry: validatePf2eAncestry,

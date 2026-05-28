@@ -207,4 +207,10 @@ describe('SRD_5_1_DEFAULT_SECTION_ANCHORS — sanity', () => {
       SRD_5_1_DEFAULT_SECTION_ANCHORS.spellDescriptions.requireEndHeading,
     ).toBe(true);
   });
+
+  it('the hazards anchor also requires an end heading (fail-closed on missing dungeon-hazards boundary)', () => {
+    expect(SRD_5_1_DEFAULT_SECTION_ANCHORS.hazards.requireEndHeading).toBe(
+      true,
+    );
+  });
 });

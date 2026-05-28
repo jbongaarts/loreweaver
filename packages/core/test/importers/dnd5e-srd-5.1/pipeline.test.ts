@@ -18,6 +18,7 @@ import { join } from 'node:path';
 import PDFDocument from 'pdfkit';
 import { afterEach, describe, expect, it } from 'vitest';
 import { runImporter } from '../../../scripts/importers/dnd5e-srd-5.1/index.js';
+import { SectionNotFoundError } from '../../../scripts/importers/dnd5e-srd-5.1/sections.js';
 import { loadRulesPackFromDirectory } from '../../../src/internal.js';
 
 const tmpDirs: string[] = [];
@@ -133,6 +134,33 @@ const MONSTERS_PAGE: FixturePage = {
   lines: ['Monsters', 'Goblin', 'Small humanoid (goblinoid), neutral evil.'],
 };
 
+// Hazards fixture: mirrors the SRD "Dungeon Hazards" section (Brown Mold only
+// here; 4 hazards in the real SRD). The heading "Dungeon Hazards" matches the
+// hazards startHeading anchor; "Traps" below acts as the end heading.
+const HAZARDS_PAGE: FixturePage = {
+  lines: [
+    'Dungeon Hazards',
+    'Brown Mold',
+    'Brown mold feeds on warmth, draining heat from everything nearby.',
+    '',
+    'Traps',
+    'A trap can be either mechanical or magical in nature.',
+  ],
+};
+
+// Hazards fixture without the end heading. This reproduces the bug where the
+// importer would otherwise run hazards to EOF and absorb later text.
+const HAZARDS_PAGE_MISSING_END: FixturePage = {
+  lines: [
+    'Dungeon Hazards',
+    'Brown Mold',
+    'Brown mold feeds on warmth, draining heat from everything nearby.',
+    '',
+    'Later DM tools prose',
+    'This text should not be included in the hazards section.',
+  ],
+};
+
 // Feats fixture: mirrors the SRD "Feats" section (only Grappler in SRD 5.1).
 const FEATS_PAGE: FixturePage = {
   lines: [
@@ -160,7 +188,7 @@ const CONDITIONS_PAGE: FixturePage = {
 };
 
 describe('runImporter — end-to-end against a fixture PDF', () => {
-  it('extracts spells, conditions, and feats — writes a pack that loads through loadRulesPackFromDirectory', async () => {
+  it('extracts spells, conditions, feats, and hazards — writes a pack that loads through loadRulesPackFromDirectory', async () => {
     const workDir = makeTmpDir();
     const pdfPath = join(workDir, 'fixture.pdf');
     const outDir = join(workDir, 'pack');
@@ -168,6 +196,7 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       SPELL_LISTS_PAGE,
       SPELLS_PAGE,
       MONSTERS_PAGE,
+      HAZARDS_PAGE,
       FEATS_PAGE,
       CONDITIONS_PAGE,
     ]);
@@ -176,10 +205,11 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(result.counts.spells).toBe(2);
     expect(result.counts.conditions).toBe(2);
     expect(result.counts.feats).toBe(1);
+    expect(result.counts.hazards).toBe(1);
     expect(result.sourceHash).toMatch(/^[0-9a-f]{64}$/);
 
     const pack = loadRulesPackFromDirectory(outDir);
-    expect(pack.records).toHaveLength(5);
+    expect(pack.records).toHaveLength(6);
     const keys = pack.records.map((r) => r.key).sort();
     expect(keys).toContain('spell:acid-splash');
     expect(keys).toContain('spell:magic-missile');
@@ -190,6 +220,9 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     // promoted as feat names by the heuristic.
     const featKeys = keys.filter((k) => k.startsWith('feat:'));
     expect(featKeys).toEqual(['feat:grappler']);
+    // Assert the hazard set is exactly Brown Mold.
+    const hazardKeys = keys.filter((k) => k.startsWith('hazard:'));
+    expect(hazardKeys).toEqual(['hazard:brown-mold']);
 
     const acid = pack.records.find((r) => r.key === 'spell:acid-splash');
     expect(acid?.name).toBe('Acid Splash');
@@ -197,6 +230,15 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(acidData.level).toBe(0);
     expect(acidData.school).toBe('conjuration');
     expect(acidData.classes).toEqual(['Sorcerer', 'Wizard']);
+
+    const hazardRecords = pack.records.filter((r) => r.kind === 'hazard');
+    expect(hazardRecords.map((r) => r.key)).toEqual(['hazard:brown-mold']);
+    expect(hazardRecords.map((r) => r.name)).toEqual(['Brown Mold']);
+    const brown = hazardRecords[0];
+    const brownData = brown?.data as Record<string, unknown>;
+    expect(brownData.description).not.toMatch(
+      /A trap can be either mechanical or magical in nature\./,
+    );
 
     const mm = pack.records.find((r) => r.key === 'spell:magic-missile');
     const mmData = mm?.data as Record<string, unknown>;
@@ -226,6 +268,7 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       SPELL_LISTS_PAGE,
       SPELLS_PAGE,
       MONSTERS_PAGE,
+      HAZARDS_PAGE,
       FEATS_PAGE,
       CONDITIONS_PAGE,
     ]);
@@ -249,6 +292,7 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       SPELL_LISTS_PAGE,
       SPELLS_PAGE,
       MONSTERS_PAGE,
+      HAZARDS_PAGE,
       FEATS_PAGE,
       CONDITIONS_PAGE,
     ]);
@@ -271,6 +315,7 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       SPELL_LISTS_PAGE,
       SPELLS_PAGE,
       MONSTERS_PAGE,
+      HAZARDS_PAGE,
       FEATS_PAGE,
       CONDITIONS_PAGE,
     ]);
@@ -367,6 +412,24 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     ]);
     await expect(runImporter({ pdfPath, outDir })).rejects.toThrow(
       /end heading not found/,
+    );
+  });
+
+  it('fails closed when the hazards end heading is missing', async () => {
+    const workDir = makeTmpDir();
+    const pdfPath = join(workDir, 'fixture.pdf');
+    const outDir = join(workDir, 'pack');
+    await writeFixturePdf(pdfPath, [
+      SPELL_LISTS_PAGE,
+      SPELLS_PAGE,
+      MONSTERS_PAGE,
+      HAZARDS_PAGE_MISSING_END,
+      FEATS_PAGE,
+      CONDITIONS_PAGE,
+    ]);
+
+    await expect(runImporter({ pdfPath, outDir })).rejects.toThrow(
+      SectionNotFoundError,
     );
   });
 });

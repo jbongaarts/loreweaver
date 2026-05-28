@@ -186,6 +186,16 @@ export const SRD_5_1_DEFAULT_SECTION_ANCHORS = {
       /^(Using Ability Scores|Adventuring|Combat|Equipment|Monsters|Magic Items|Running the Game|Chapter \d+|Spell Lists?)$|^Appendix\b/i,
     requireEndHeading: true,
   },
+  // SRD 5.1 places hazards in "Dungeon Hazards" within the DM tools / running
+  // the game section. Hazards is an implemented kind, so the importer must
+  // fail closed if the next section heading is missing instead of letting the
+  // slice run to EOF and absorb later prose into the final hazard.
+  hazards: {
+    startHeading: /^Dungeon Hazards$|^Hazards$/,
+    endHeading:
+      /^(Traps|Sample Traps|Wilderness Hazards|Monsters|Magic Items|Appendix|Chapter \d+|Open Game License|Legal Information)$/i,
+    requireEndHeading: true,
+  },
 } as const satisfies Record<string, SectionAnchorOptions>;
 
 export type Srd51SectionAnchors = {
@@ -193,4 +203,5 @@ export type Srd51SectionAnchors = {
   readonly spellDescriptions: SectionAnchorOptions;
   readonly conditions: SectionAnchorOptions;
   readonly feats: SectionAnchorOptions;
+  readonly hazards: SectionAnchorOptions;
 };
