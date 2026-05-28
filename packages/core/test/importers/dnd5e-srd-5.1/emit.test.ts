@@ -19,6 +19,7 @@ import {
   writePackToDirectory,
 } from '../../../scripts/importers/dnd5e-srd-5.1/emit.js';
 import type {
+  RuleExtraction,
   SpellCasterClass,
   SpellExtraction,
 } from '../../../scripts/importers/dnd5e-srd-5.1/types.js';
@@ -81,6 +82,12 @@ const AID: SpellExtraction = {
   sourcePage: 211,
 };
 
+const COVER_RULE: RuleExtraction = {
+  name: 'Cover',
+  text: 'Walls, trees, creatures, and other obstacles can provide cover during combat.',
+  sourcePage: 196,
+};
+
 function makeIndex(
   entries: ReadonlyArray<[string, SpellCasterClass[]]>,
 ): Map<string, Set<SpellCasterClass>> {
@@ -137,6 +144,27 @@ describe('buildPack — validation', () => {
       sourceHash: FAKE_HASH,
     });
     expect(pack.meta.description).toMatch(/Included record kinds: spell\b/);
+  });
+
+  it('includes rule records and names both kinds in the included-kinds description', () => {
+    const pack = buildPack({
+      spells: [ACID_SPLASH],
+      classIndex: makeIndex([]),
+      conditions: [],
+      rules: [COVER_RULE],
+      sourceHash: FAKE_HASH,
+    });
+    const ruleKeys = pack.records
+      .filter((r) => r.kind === 'rule')
+      .map((r) => r.key);
+    expect(ruleKeys).toEqual(['rule:cover']);
+    const cover = pack.records.find((r) => r.key === 'rule:cover');
+    expect((cover?.data as Record<string, unknown>).text).toMatch(
+      /provide cover during combat/i,
+    );
+    expect(pack.meta.description).toMatch(
+      /Included record kinds: .*rule.*spell|Included record kinds: .*spell.*rule/,
+    );
   });
 });
 

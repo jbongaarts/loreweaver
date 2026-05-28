@@ -28,6 +28,7 @@ import type {
   ConditionExtraction,
   FeatExtraction,
   HazardExtraction,
+  RuleExtraction,
   SpellCasterClass,
   SpellClassIndex,
   SpellExtraction,
@@ -179,6 +180,10 @@ function hazardKey(name: string): string {
   return `hazard:${slug(name)}`;
 }
 
+function ruleKey(name: string): string {
+  return `rule:${slug(name)}`;
+}
+
 export function conditionExtractionsToRecords(
   conditions: readonly ConditionExtraction[],
 ): RulesRecord[] {
@@ -260,12 +265,36 @@ export function hazardExtractionsToRecords(
   return out;
 }
 
+export function ruleExtractionsToRecords(
+  rules: readonly RuleExtraction[],
+): RulesRecord[] {
+  const out: RulesRecord[] = rules.map((rule) => {
+    const data: Record<string, unknown> = {
+      text: rule.text,
+    };
+    const record: RulesRecord = {
+      systemId: SYSTEM_ID,
+      kind: 'rule',
+      key: ruleKey(rule.name),
+      name: rule.name,
+      data,
+      source: sourceLabelFor(rule.sourcePage),
+      license: SRD_5_1_LICENSE,
+      provenance: provenanceFor(rule.sourcePage),
+    };
+    return record;
+  });
+  out.sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+  return out;
+}
+
 export interface BuildPackInput {
   readonly spells: readonly SpellExtraction[];
   readonly classIndex: SpellClassIndex;
   readonly conditions: readonly ConditionExtraction[];
   readonly feats?: readonly FeatExtraction[];
   readonly hazards?: readonly HazardExtraction[];
+  readonly rules?: readonly RuleExtraction[];
   readonly sourceHash: string;
 }
 
@@ -282,11 +311,13 @@ export function buildPack(input: BuildPackInput): RulesPack {
   const conditionRecords = conditionExtractionsToRecords(input.conditions);
   const featRecords = featExtractionsToRecords(input.feats ?? []);
   const hazardRecords = hazardExtractionsToRecords(input.hazards ?? []);
+  const ruleRecords = ruleExtractionsToRecords(input.rules ?? []);
   const records = [
     ...spellRecords,
     ...conditionRecords,
     ...featRecords,
     ...hazardRecords,
+    ...ruleRecords,
   ].sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
   const includedKinds = uniqueKindsOf(records);
   const pack: RulesPack = {

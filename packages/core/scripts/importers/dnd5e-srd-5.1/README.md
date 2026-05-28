@@ -22,7 +22,7 @@ session; remaining kinds are child issues).
 | `condition` | Implemented. Parser extracts all 15 SRD conditions (blinded, charmed, deafened, exhaustion, frightened, grappled, incapacitated, invisible, paralyzed, petrified, poisoned, prone, restrained, stunned, unconscious). Exhaustion carries a structured `levels` array (6 entries). Section anchor: `conditions` (`startHeading: /^Appendix A: Conditions$|^Conditions$/`). |
 | `hazard`    | Implemented. Parser extracts the 4 SRD 5.1 environmental hazards by exact name match (Brown Mold, Green Slime, Webs, Yellow Mold). Each record carries a `description` field with re-flowed prose. Section anchor: `hazards` (`startHeading: /^Dungeon Hazards$\|^Hazards$/`, `requireEndHeading: true`). |
 | `table`     | Not implemented. Child of `loreweaver-0m9.5`. |
-| `rule`      | Not implemented. Child of `loreweaver-0m9.5`. |
+| `rule`      | Implemented. Parser extracts labeled rule-text sections from the SRD core-rules chapters (e.g., Cover, Resting) and stores full body text in `data.text`. Section anchor: `coreRules` (`startHeading: /^Using Ability Scores$/`, `endHeading: /^Spell Lists$/`, `requireEndHeading: true`). |
 
 The importer does **not** emit empty stubs for unimplemented kinds. Per the
 ADR 0007 ingestion policy and the `loreweaver-0m9.5` scope rule, a generated
@@ -97,9 +97,13 @@ sources/dnd5e-srd-5.1/SRD_CC_v5.1.pdf
 - `parseHazards.ts` -- narrowed text -> `HazardExtraction[]` by exact match
   against the 4 known SRD 5.1 hazard names (Brown Mold, Green Slime, Webs,
   Yellow Mold). Body is re-flowed prose paragraphs.
-- `emit.ts` -- `SpellExtraction[]` + class index + `ConditionExtraction[]` + `HazardExtraction[]` -> validated `RulesPack`,
-  written deterministically (records sorted by key, fixed field order,
-  2-space indent, trailing newline).
+- `parseRules.ts` -- narrowed core-rules text -> `RuleExtraction[]` by
+  heading-style section labels (e.g. Cover, Resting). Body is re-flowed prose
+  in `text`.
+- `emit.ts` -- `SpellExtraction[]` + class index + `ConditionExtraction[]` +
+  `HazardExtraction[]` + `RuleExtraction[]` -> validated `RulesPack`, written
+  deterministically (records sorted by key, fixed field order, 2-space indent,
+  trailing newline).
 - `index.ts` -- programmatic API + orchestrator: `runImporter({ pdfPath, outDir })`.
   Dispatches each per-kind slice to its parser.
 - `cli.ts` -- command-line wrapper.
@@ -118,10 +122,11 @@ dispatch. Each entry is a `SectionAnchorOptions` value:
 | `requireEndHeading`  | If `true`, an unmatched `endHeading` throws `SectionNotFoundError('end')` instead of slicing to EOF.   |
 
 `SRD_5_1_DEFAULT_SECTION_ANCHORS` is the live table consumed by the
-orchestrator. Today it covers five slices:
+orchestrator. Today it covers six slices:
 
 | Anchor key           | `startHeading`                                 | `endHeading`                                                | `requireEndHeading` |
 |----------------------|------------------------------------------------|-------------------------------------------------------------|---------------------|
+| `coreRules`          | `/^Using Ability Scores$/`                     | `/^Spell Lists$/`                                           | `true`              |
 | `spellLists`         | `/^Spell Lists$/`                              | `/^Spells$\|^Spell Descriptions$/`                          | `true`              |
 | `spellDescriptions`  | `/^Spells$\|^Spell Descriptions$/`             | `/^(Monsters\|Magic Items\|Creatures\|NPCs\|Treasure\|Appendix)$/` | `true`              |
 | `conditions`         | `/^Appendix A: Conditions$\|^Conditions$/`     | `/^Appendix [B-Z]:\|^Open Game License\|^Legal Information\|^Monster (Statistics\|Lists?)$/i` | false (may run to EOF) |
