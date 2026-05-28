@@ -5,6 +5,7 @@ import type {
 import { recordTurnTrace } from '../memory/turnTrace.js';
 import type { ModelClient } from '../model/client.js';
 import type { Db } from '../persistence/db.js';
+import { resolveActingCharacterId } from '../state/activeCharacter.js';
 import { assembleContext, renderContextMessage } from './contextAssembler.js';
 import { buildSystemPrompt } from './protocol.js';
 import { createSeededRng } from './rng.js';
@@ -56,6 +57,12 @@ export interface RunTurnInput {
   sessionId: string;
   turnId: string;
   playerInput: string;
+  /**
+   * PC acting on this turn. Character-scoped tools target this PC by default
+   * and its sheet is the rendered turn subject. Defaults to the active
+   * character (`meta.active_character_id`) when omitted.
+   */
+  actingCharacterId?: string;
   /** Seed for this turn's code-owned RNG — makes the turn reproducible. */
   seed: number;
   /** ISO timestamp stamped on every write this turn. */
@@ -98,12 +105,22 @@ export async function runTurn(
 
   db.exec(`SAVEPOINT ${TURN_SAVEPOINT}`);
   try {
+    // Resolve and validate the acting PC before any context assembly, tool
+    // execution, or trace write. A non-PC or missing actingCharacterId throws
+    // here, so the turn rolls back as ok:false with nothing persisted.
+    const actingCharacterId = resolveActingCharacterId(
+      db,
+      input.actingCharacterId,
+    );
+    toolCtx.actingCharacterId = actingCharacterId;
+
     const assembled = assembleContext({
       db,
       campaignId: input.campaignId,
       sessionId: input.sessionId,
       playerInput: input.playerInput,
       recentSessionLimit: input.recentSessionLimit,
+      actingCharacterId,
     });
 
     const { narration, toolCalls } = await runModelLoop({
@@ -148,6 +165,7 @@ export async function runTurn(
       turnId: input.turnId,
       consentScope: input.consentScope ?? 'private',
       playerInput: input.playerInput,
+      actingCharacterId,
       retrievedContext: [renderContextMessage(assembled)],
       promptProfile: input.promptProfile ?? 'default',
       modelOutput: narration,

@@ -54,12 +54,12 @@ describe('persistence', () => {
   });
 
   it('throws SchemaMigrationError without partial mutation when no migration covers the database version', () => {
-    // v6 has no registered migration (MIGRATIONS only covers v7→v8), so
-    // initSchema must fail clearly without altering the database.
+    // Version 1 has no registered migration path (MIGRATIONS starts at v8), so
+    // the pre-flight check must fail clearly without altering the database.
     const db = openDatabase(':memory:');
     db.exec(`
       CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
-      INSERT INTO meta(key, value) VALUES ('schema_version', '${SCHEMA_VERSION - 2}');
+      INSERT INTO meta(key, value) VALUES ('schema_version', '1');
     `);
 
     expect(() => initSchema(db)).toThrow(SchemaMigrationError);
@@ -73,7 +73,7 @@ describe('persistence', () => {
     const row = db
       .prepare('SELECT value FROM meta WHERE key = ?')
       .get('schema_version') as { value: string } | undefined;
-    expect(row?.value).toBe(String(SCHEMA_VERSION - 2));
+    expect(row?.value).toBe('1');
     db.close();
   });
 
@@ -131,8 +131,8 @@ describe('persistence', () => {
     db.close();
   });
 
-  it('exports SCHEMA_VERSION 9', () => {
-    expect(SCHEMA_VERSION).toBe(9);
+  it('exports SCHEMA_VERSION 10', () => {
+    expect(SCHEMA_VERSION).toBe(10);
   });
 
   it('creates the campaign_arc table with the one-open partial index', () => {

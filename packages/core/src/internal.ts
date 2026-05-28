@@ -85,13 +85,20 @@ export type {
 
 // Active character resolution.
 export {
+  CharacterResolutionError,
   NoActiveCharacterError,
   ensureCharacterRow,
   getActiveCharacterId,
+  resolveActingCharacterId,
   resolveCharacterId,
+  resolveCharacterRef,
   setActiveCharacterId,
   tryGetActiveCharacterId,
 } from './state/activeCharacter.js';
+
+// Party roster reads.
+export { listParty } from './state/party.js';
+export type { PartyMember } from './state/party.js';
 
 // State mutation primitives.
 export {

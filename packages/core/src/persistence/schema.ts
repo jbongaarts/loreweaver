@@ -27,7 +27,7 @@ import { migrateSchema } from './migrations.js';
  * validated by the pack importer at load time — not by mutateState or the
  * context assembler.
  */
-export const SCHEMA_VERSION = 9;
+export const SCHEMA_VERSION = 10;
 
 export class SchemaCompatibilityError extends Error {
   constructor(message: string) {
@@ -152,6 +152,7 @@ export function initSchema(db: Db): void {
       turn_id TEXT NOT NULL,
       consent_scope TEXT NOT NULL,
       player_input TEXT NOT NULL,
+      acting_character_id TEXT,
       retrieved_context_json TEXT NOT NULL,
       prompt_profile TEXT NOT NULL,
       model_output TEXT NOT NULL,

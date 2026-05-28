@@ -1,12 +1,18 @@
 import { giveItem } from '../state/domainMutations.js';
 import { MutateStateError } from '../state/mutateState.js';
-import { asRecord, err, ok } from './toolRegistry.js';
+import {
+  CHARACTER_TARGET_SCHEMA,
+  asRecord,
+  err,
+  ok,
+  resolveTargetCharacterId,
+} from './toolRegistry.js';
 import type { Tool } from './toolRegistry.js';
 
 export const giveItemTool: Tool = {
   name: 'give_item',
   description:
-    "Add an item to the character's inventory or update an existing one. " +
+    "Add an item to a character's inventory or update an existing one. " +
     'Creates the item if it does not exist; updates fields if it does.',
   inputSchema: {
     type: 'object',
@@ -34,6 +40,7 @@ export const giveItemTool: Tool = {
         type: 'object',
         description: 'Arbitrary key-value properties for the item.',
       },
+      character: CHARACTER_TARGET_SCHEMA,
     },
     required: ['id', 'name'],
     additionalProperties: false,
@@ -46,6 +53,10 @@ export const giveItemTool: Tool = {
       typeof a.name !== 'string'
     ) {
       return err('invalid_args', 'give_item requires { id, name }');
+    }
+    const target = resolveTargetCharacterId(a.character, ctx);
+    if ('ok' in target) {
+      return target;
     }
     try {
       giveItem(
@@ -66,6 +77,7 @@ export const giveItemTool: Tool = {
           provenance: `model:${ctx.turnId}`,
           sessionId: ctx.sessionId,
           at: ctx.at,
+          characterId: target.id,
         },
       );
       return ok({ applied: true, id: a.id, name: a.name });

@@ -4,11 +4,14 @@ Character creation is the only MVP path for producing a player character. The
 flow is agent-guided, but final legality is enforced by deterministic core
 validation before any canonical state write is accepted.
 
-The accepted output is the E3 canonical `character` singleton plus related
-canonical tables such as `inventory` when starting equipment is added. Character
-creation does not own a second sheet model. It emits `mutate_state`-compatible
-writes so the same persistence and provenance rules apply to created characters,
-DM-authored corrections, and future import output.
+The accepted output is a canonical `character` row plus related canonical tables
+such as `inventory` when starting equipment is added. `completeCharacterCreation`
+takes an optional `characterId` (defaulting to `pc-1`) so a campaign can hold
+more than one player character, and it sets the created PC as the active
+character. Character creation does not own a second sheet model. It emits
+`mutate_state`-compatible writes so the same persistence and provenance rules
+apply to created characters, DM-authored corrections, and future import output.
+See `docs/multi-pc-design.md` for the party model.
 
 ## MVP Creation Contract
 
@@ -36,7 +39,7 @@ by `base.systemId`. The bundled validators cover:
 
 When validation succeeds, the flow writes the accepted sheet into canonical
 state through `mutate_state`. Both validators project into the same canonical
-`character` singleton (`name`, `ancestry`, `class_name`, `level`, `hp_current`,
+`character` row (`name`, `ancestry`, `class_name`, `level`, `hp_current`,
 `hp_max`, `ability_scores_json`) — system-specific detail (e.g. Pathfinder
 background, feats, equipment) is summarized in the completion prompt for now.
 If validation fails, the flow returns the validation errors to the agent for a

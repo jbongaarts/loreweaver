@@ -1,12 +1,18 @@
 import { addCondition } from '../state/domainMutations.js';
 import { MutateStateError } from '../state/mutateState.js';
-import { asRecord, err, ok } from './toolRegistry.js';
+import {
+  CHARACTER_TARGET_SCHEMA,
+  asRecord,
+  err,
+  ok,
+  resolveTargetCharacterId,
+} from './toolRegistry.js';
 import type { Tool } from './toolRegistry.js';
 
 export const addConditionTool: Tool = {
   name: 'add_condition',
   description:
-    'Add a condition to the character. No-op if a condition with the same id already exists. ' +
+    'Add a condition to a character. No-op if a condition with the same id already exists. ' +
     'Extra fields (duration, severity, etc.) are preserved.',
   inputSchema: {
     type: 'object',
@@ -17,6 +23,7 @@ export const addConditionTool: Tool = {
           'Unique condition identifier (e.g. "poisoned", "frightened").',
         minLength: 1,
       },
+      character: CHARACTER_TARGET_SCHEMA,
     },
     required: ['id'],
   },
@@ -25,14 +32,21 @@ export const addConditionTool: Tool = {
     if (a === undefined || typeof a.id !== 'string') {
       return err('invalid_args', 'add_condition requires { id: string }');
     }
+    const target = resolveTargetCharacterId(a.character, ctx);
+    if ('ok' in target) {
+      return target;
+    }
+    // `character` targets a PC; it is not part of the stored condition entry.
+    const { character: _character, ...condition } = a;
     try {
       const result = addCondition(
         ctx.db,
-        a as { id: string; [key: string]: unknown },
+        condition as { id: string; [key: string]: unknown },
         {
           provenance: `model:${ctx.turnId}`,
           sessionId: ctx.sessionId,
           at: ctx.at,
+          characterId: target.id,
         },
       );
       return ok(result);

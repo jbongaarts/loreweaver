@@ -7,6 +7,10 @@ import type {
   ModelToolDefinition,
   ToolInputSchema,
 } from '../model/toolSchema.js';
+import {
+  CharacterResolutionError,
+  resolveCharacterRef,
+} from '../state/activeCharacter.js';
 
 export type ToolResult =
   | { ok: true; data: unknown }
@@ -20,6 +24,13 @@ export interface ToolContext {
   turnId: string;
   /** ISO timestamp stamped on every write this turn. */
   at: string;
+  /**
+   * The party member acting on this turn. Character-scoped tools target this
+   * PC by default; when undefined they fall back to the active character
+   * (`meta.active_character_id`). An explicit per-call `character` argument
+   * (where a tool supports one) overrides both.
+   */
+  actingCharacterId?: string;
 }
 
 export interface Tool {
@@ -48,6 +59,43 @@ export function asRecord(args: unknown): Record<string, unknown> | undefined {
   return typeof args === 'object' && args !== null && !Array.isArray(args)
     ? (args as Record<string, unknown>)
     : undefined;
+}
+
+/** Shared JSON-schema fragment for the optional `character` targeting arg. */
+export const CHARACTER_TARGET_SCHEMA = {
+  type: 'string',
+  description:
+    'Party member to target by id or name. Defaults to the acting character.',
+  minLength: 1,
+} as const;
+
+/**
+ * Resolve an optional `character` tool argument to a target character id.
+ * Returns `{ id }` (where `id` is undefined to mean "the acting/active PC")
+ * on success, or an error `ToolResult` when the ref is malformed, unknown, or
+ * ambiguous so the tool can hand the correction back to the model.
+ */
+export function resolveTargetCharacterId(
+  character: unknown,
+  ctx: ToolContext,
+): { id: string | undefined } | ToolResult {
+  if (character === undefined || character === null) {
+    return { id: ctx.actingCharacterId };
+  }
+  if (typeof character !== 'string' || character.length === 0) {
+    return err(
+      'invalid_args',
+      'character must be a non-empty string id or name',
+    );
+  }
+  try {
+    return { id: resolveCharacterRef(ctx.db, character) };
+  } catch (e) {
+    if (e instanceof CharacterResolutionError) {
+      return err('invalid_target', e.message);
+    }
+    throw e;
+  }
 }
 
 export class ToolRegistry {

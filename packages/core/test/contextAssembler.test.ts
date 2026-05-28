@@ -177,6 +177,11 @@ describe('Context Assembler', () => {
       sessionId: SESSION,
       at: '2026-05-20T10:00:00.000Z',
     });
+    // Inventory is owner-scoped: associate the item with the active PC the way
+    // give_item does, otherwise the strict character_id read excludes it.
+    db.prepare("UPDATE inventory SET character_id = 'pc-1' WHERE id = ?").run(
+      'sword-1',
+    );
     mutateState(db, {
       target: 'plot_flags',
       field: 'met_barkeep',

@@ -1,10 +1,43 @@
 import type { Db } from '@loreweaver/core';
 import { getDemoTurnBudget } from '@loreweaver/core';
+import { createAdditionalCharacter } from './playCharacter.js';
 import { gracefulClose } from './playClose.js';
+import { showParty, switchActiveCharacter } from './playParty.js';
 import type { PlayDeps } from './playTypes.js';
 
 /** Inputs that end the turn loop and trigger a graceful close. */
 const QUIT_COMMANDS = new Set(['/quit', '/exit']);
+
+/**
+ * Handle a party-management slash command. Returns true if `input` was a
+ * recognized command (and was handled), so the caller skips the turn.
+ * Unrecognized slash inputs return false and fall through to a normal turn.
+ */
+async function handlePartyCommand(
+  deps: PlayDeps,
+  db: Db,
+  input: string,
+): Promise<boolean> {
+  const spaceIndex = input.indexOf(' ');
+  const command = (
+    spaceIndex === -1 ? input : input.slice(0, spaceIndex)
+  ).toLowerCase();
+  const arg = spaceIndex === -1 ? '' : input.slice(spaceIndex + 1).trim();
+
+  switch (command) {
+    case '/party':
+      showParty(deps.io, db);
+      return true;
+    case '/switch':
+      switchActiveCharacter(deps.io, db, arg);
+      return true;
+    case '/addpc':
+      await createAdditionalCharacter(deps, db);
+      return true;
+    default:
+      return false;
+  }
+}
 
 /**
  * Read player input and play turns until the player quits or input ends, then
@@ -35,6 +68,9 @@ export async function turnLoop(
       break;
     }
     if (input.length === 0) {
+      continue;
+    }
+    if (input.startsWith('/') && (await handlePartyCommand(deps, db, input))) {
       continue;
     }
 

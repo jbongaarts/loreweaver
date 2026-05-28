@@ -1,6 +1,12 @@
 import { removeItem } from '../state/domainMutations.js';
 import { MutateStateError } from '../state/mutateState.js';
-import { asRecord, err, ok } from './toolRegistry.js';
+import {
+  CHARACTER_TARGET_SCHEMA,
+  asRecord,
+  err,
+  ok,
+  resolveTargetCharacterId,
+} from './toolRegistry.js';
 import type { Tool } from './toolRegistry.js';
 
 export const removeItemTool: Tool = {
@@ -21,6 +27,7 @@ export const removeItemTool: Tool = {
         description: 'How many to remove. Omit to remove the item entirely.',
         minimum: 1,
       },
+      character: CHARACTER_TARGET_SCHEMA,
     },
     required: ['id'],
     additionalProperties: false,
@@ -29,6 +36,10 @@ export const removeItemTool: Tool = {
     const a = asRecord(args);
     if (a === undefined || typeof a.id !== 'string') {
       return err('invalid_args', 'remove_item requires { id }');
+    }
+    const target = resolveTargetCharacterId(a.character, ctx);
+    if ('ok' in target) {
+      return target;
     }
     try {
       const result = removeItem(
@@ -39,6 +50,7 @@ export const removeItemTool: Tool = {
           provenance: `model:${ctx.turnId}`,
           sessionId: ctx.sessionId,
           at: ctx.at,
+          characterId: target.id,
         },
       );
       return ok(result);
