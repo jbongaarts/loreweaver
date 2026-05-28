@@ -85,10 +85,12 @@ export type {
 
 // Active character resolution.
 export {
+  CharacterResolutionError,
   NoActiveCharacterError,
   ensureCharacterRow,
   getActiveCharacterId,
   resolveCharacterId,
+  resolveCharacterRef,
   setActiveCharacterId,
   tryGetActiveCharacterId,
 } from './state/activeCharacter.js';

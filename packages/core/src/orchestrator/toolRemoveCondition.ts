@@ -1,12 +1,18 @@
 import { removeCondition } from '../state/domainMutations.js';
 import { MutateStateError } from '../state/mutateState.js';
-import { asRecord, err, ok } from './toolRegistry.js';
+import {
+  CHARACTER_TARGET_SCHEMA,
+  asRecord,
+  err,
+  ok,
+  resolveTargetCharacterId,
+} from './toolRegistry.js';
 import type { Tool } from './toolRegistry.js';
 
 export const removeConditionTool: Tool = {
   name: 'remove_condition',
   description:
-    'Remove a condition from the character by id. No-op if the condition is not present.',
+    'Remove a condition from a character by id. No-op if the condition is not present.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -15,6 +21,7 @@ export const removeConditionTool: Tool = {
         description: 'The condition id to remove.',
         minLength: 1,
       },
+      character: CHARACTER_TARGET_SCHEMA,
     },
     required: ['id'],
     additionalProperties: false,
@@ -24,12 +31,16 @@ export const removeConditionTool: Tool = {
     if (a === undefined || typeof a.id !== 'string') {
       return err('invalid_args', 'remove_condition requires { id: string }');
     }
+    const target = resolveTargetCharacterId(a.character, ctx);
+    if ('ok' in target) {
+      return target;
+    }
     try {
       const result = removeCondition(ctx.db, a.id, {
         provenance: `model:${ctx.turnId}`,
         sessionId: ctx.sessionId,
         at: ctx.at,
-        characterId: ctx.actingCharacterId,
+        characterId: target.id,
       });
       return ok(result);
     } catch (e) {

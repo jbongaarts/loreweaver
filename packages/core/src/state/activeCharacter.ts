@@ -40,6 +40,42 @@ export function resolveCharacterId(db: Db, explicitId?: string): string {
   return getActiveCharacterId(db);
 }
 
+export class CharacterResolutionError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'CharacterResolutionError';
+  }
+}
+
+/**
+ * Resolve a player-or-model supplied character reference (an exact row id or a
+ * character name) to a concrete `character.id`. Names match case-insensitively.
+ * Throws `CharacterResolutionError` when the ref matches no member or more than
+ * one — the caller turns that into a tool correction rather than a hard error.
+ */
+export function resolveCharacterRef(db: Db, ref: string): string {
+  const byId = db.prepare('SELECT id FROM character WHERE id = ?').get(ref) as
+    | { id: string }
+    | undefined;
+  if (byId !== undefined) {
+    return byId.id;
+  }
+
+  const byName = db
+    .prepare('SELECT id FROM character WHERE name = ? COLLATE NOCASE')
+    .all(ref) as { id: string }[];
+  const firstMatch = byName[0];
+  if (byName.length === 1 && firstMatch !== undefined) {
+    return firstMatch.id;
+  }
+  if (byName.length === 0) {
+    throw new CharacterResolutionError(`unknown character: ${ref}`);
+  }
+  throw new CharacterResolutionError(
+    `ambiguous character reference '${ref}' matches ${byName.length} party members; use the character id`,
+  );
+}
+
 const DEFAULT_ABILITY_SCORES =
   '{"strength":0,"dexterity":0,"constitution":0,"intelligence":0,"wisdom":0,"charisma":0}';
 

@@ -1,12 +1,18 @@
 import { adjustHp } from '../state/domainMutations.js';
 import { MutateStateError } from '../state/mutateState.js';
-import { asRecord, err, ok } from './toolRegistry.js';
+import {
+  CHARACTER_TARGET_SCHEMA,
+  asRecord,
+  err,
+  ok,
+  resolveTargetCharacterId,
+} from './toolRegistry.js';
 import type { Tool } from './toolRegistry.js';
 
 export const adjustHpTool: Tool = {
   name: 'adjust_hp',
   description:
-    "Adjust the character's current hit points by a signed amount. " +
+    "Adjust a character's current hit points by a signed amount. " +
     'Positive heals, negative damages. Clamped to [0, hp_max].',
   inputSchema: {
     type: 'object',
@@ -15,6 +21,7 @@ export const adjustHpTool: Tool = {
         type: 'integer',
         description: 'Signed integer: positive to heal, negative to damage.',
       },
+      character: CHARACTER_TARGET_SCHEMA,
     },
     required: ['amount'],
     additionalProperties: false,
@@ -24,12 +31,16 @@ export const adjustHpTool: Tool = {
     if (a === undefined || typeof a.amount !== 'number') {
       return err('invalid_args', 'adjust_hp requires { amount: integer }');
     }
+    const target = resolveTargetCharacterId(a.character, ctx);
+    if ('ok' in target) {
+      return target;
+    }
     try {
       const result = adjustHp(ctx.db, a.amount, {
         provenance: `model:${ctx.turnId}`,
         sessionId: ctx.sessionId,
         at: ctx.at,
-        characterId: ctx.actingCharacterId,
+        characterId: target.id,
       });
       return ok(result);
     } catch (e) {
