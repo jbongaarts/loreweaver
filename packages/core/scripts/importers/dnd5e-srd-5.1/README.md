@@ -22,7 +22,7 @@ tracked as child issues).
 | `feat`      | Implemented. Parser extracts feat entries (SRD 5.1: Grappler) with optional prerequisites and description text in `data.description`. Section anchor: `feats` (`startHeading: /^Feats?$\|^Feat Descriptions?$/`, `requireEndHeading: true`). |
 | `condition` | Implemented. Parser extracts all 15 SRD conditions (blinded, charmed, deafened, exhaustion, frightened, grappled, incapacitated, invisible, paralyzed, petrified, poisoned, prone, restrained, stunned, unconscious). Exhaustion carries a structured `levels` array (6 entries). Section anchor: `conditions` (`startHeading: /^Appendix A: Conditions$\|^Conditions$/`). |
 | `hazard`    | Implemented. Parser extracts the 4 SRD 5.1 environmental hazards by exact name match (Brown Mold, Green Slime, Webs, Yellow Mold). Each record carries a `description` field with re-flowed prose. Section anchor: `hazards` (`startHeading: /^Dungeon Hazards$\|^Hazards$/`, `requireEndHeading: true`). |
-| `table`     | Not implemented. Child of `loreweaver-0m9.5`. |
+| `table`     | Implemented for simple freestanding reference tables: Difficulty Classes and XP Thresholds by Character Level. Harder/wider tables that need positional reconstruction are deferred to `loreweaver-0m9.5.13`; see "Reference-table coverage" below. |
 | `rule`      | Implemented. Parser extracts labeled rule-text sections from the SRD core-rules chapters (e.g., Cover, Resting) and stores full body text in `data.text`. Section anchor: `coreRules` (`startHeading: /^Using Ability Scores$/`, `endHeading: /^Spell Lists$/`, `requireEndHeading: true`). |
 
 The importer does **not** emit empty stubs for unimplemented kinds. Per the
@@ -104,13 +104,33 @@ sources/dnd5e-srd-5.1/SRD_CC_v5.1.pdf
 - `parseRules.ts` -- narrowed core-rules text -> `RuleExtraction[]` by
   heading-style section labels (e.g. Cover, Resting). Body is re-flowed prose
   in `text`.
+- `parseTables.ts` -- narrowed core-rules text -> `TableExtraction[]` by
+  per-table anchors plus conservative row reconstruction for simple reference
+  tables. Rows are emitted as structured arrays in `data.rows`.
 - `emit.ts` -- `SpellExtraction[]` + class index + `ConditionExtraction[]` +
-  `HazardExtraction[]` + `ActionExtraction[]` + `RuleExtraction[]` ->
-  validated `RulesPack`, written deterministically (records sorted by key,
-  fixed field order, 2-space indent, trailing newline).
+  `HazardExtraction[]` + `ActionExtraction[]` + `RuleExtraction[]` +
+  `TableExtraction[]` -> validated `RulesPack`, written deterministically
+  (records sorted by key, fixed field order, 2-space indent, trailing newline).
 - `index.ts` -- programmatic API + orchestrator: `runImporter({ pdfPath, outDir })`.
   Dispatches each per-kind slice to its parser.
 - `cli.ts` -- command-line wrapper.
+
+## Reference-table coverage
+
+The first table parser intentionally covers the simple cases whose extracted
+text has predictable row boundaries:
+
+| Table | Record key | Reason it is covered |
+|-------|------------|----------------------|
+| Difficulty Classes | `table:difficulty-classes` | Two-column label/DC rows reconstruct cleanly from line text. |
+| XP Thresholds by Character Level | `table:xp-thresholds-by-character-level` | Fixed five-column numeric threshold rows reconstruct cleanly from line text. |
+
+Tables not covered by the current parser:
+
+| Table family | Reason deferred | Follow-up |
+|--------------|-----------------|-----------|
+| Treasure and hoard tables | Wide random-result tables need positional column reconstruction; pdfjs line text alone can interleave ranges, coins, gems, and item subtables. | `loreweaver-0m9.5.13` |
+| Other wide/nested DM reference tables | These need the same smarter extractor before they can be emitted without lossy or misordered rows. | `loreweaver-0m9.5.13` |
 
 ## Section-anchor table
 
@@ -126,7 +146,8 @@ dispatch. Each entry is a `SectionAnchorOptions` value:
 | `requireEndHeading`  | If `true`, an unmatched `endHeading` throws `SectionNotFoundError('end')` instead of slicing to EOF.   |
 
 `SRD_5_1_DEFAULT_SECTION_ANCHORS` is the live table consumed by the
-orchestrator. Today it covers seven slices:
+orchestrator. Today it covers seven slices. Freestanding `table` records reuse
+the `coreRules` slice because the covered tables live there.
 
 | Anchor key           | `startHeading`                                 | `endHeading`                                                | `requireEndHeading` |
 |----------------------|------------------------------------------------|-------------------------------------------------------------|---------------------|
@@ -195,6 +216,9 @@ The importer is deterministic in two senses:
 - `packages/core/test/importers/dnd5e-srd-5.1/emit.test.ts` -- emitter
   determinism: two passes over the same input produce byte-identical files;
   output passes `validateRulesPack`.
+- `packages/core/test/importers/dnd5e-srd-5.1/parseTables.test.ts` -- unit
+  tests for the freestanding table parser, including a two-column DC table and
+  a multi-column encounter-threshold table.
 - `packages/core/test/importers/dnd5e-srd-5.1/pipeline.test.ts` -- end-to-end
   test against a small fixture PDF generated at test time via `pdfkit`, to
   exercise the full extract -> parse -> emit pipeline without requiring the

@@ -33,6 +33,7 @@ import type {
   SpellCasterClass,
   SpellClassIndex,
   SpellExtraction,
+  TableExtraction,
 } from './types.js';
 
 const SYSTEM_ID = 'dnd5e-srd';
@@ -189,6 +190,10 @@ function actionKey(name: string): string {
   return `action:${slug(name)}`;
 }
 
+function tableKey(name: string): string {
+  return `table:${slug(name)}`;
+}
+
 export function conditionExtractionsToRecords(
   conditions: readonly ConditionExtraction[],
 ): RulesRecord[] {
@@ -316,6 +321,30 @@ export function actionExtractionsToRecords(
   return out;
 }
 
+export function tableExtractionsToRecords(
+  tables: readonly TableExtraction[],
+): RulesRecord[] {
+  const out: RulesRecord[] = tables.map((table) => {
+    const data: Record<string, unknown> = {
+      columns: [...table.columns],
+      rows: table.rows.map((row) => [...row]),
+    };
+    const record: RulesRecord = {
+      systemId: SYSTEM_ID,
+      kind: 'table',
+      key: tableKey(table.name),
+      name: table.name,
+      data,
+      source: sourceLabelFor(table.sourcePage),
+      license: SRD_5_1_LICENSE,
+      provenance: provenanceFor(table.sourcePage),
+    };
+    return record;
+  });
+  out.sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+  return out;
+}
+
 export interface BuildPackInput {
   readonly spells: readonly SpellExtraction[];
   readonly classIndex: SpellClassIndex;
@@ -324,6 +353,7 @@ export interface BuildPackInput {
   readonly hazards?: readonly HazardExtraction[];
   readonly actions?: readonly ActionExtraction[];
   readonly rules?: readonly RuleExtraction[];
+  readonly tables?: readonly TableExtraction[];
   readonly sourceHash: string;
 }
 
@@ -342,6 +372,7 @@ export function buildPack(input: BuildPackInput): RulesPack {
   const hazardRecords = hazardExtractionsToRecords(input.hazards ?? []);
   const actionRecords = actionExtractionsToRecords(input.actions ?? []);
   const ruleRecords = ruleExtractionsToRecords(input.rules ?? []);
+  const tableRecords = tableExtractionsToRecords(input.tables ?? []);
   const records = [
     ...spellRecords,
     ...conditionRecords,
@@ -349,6 +380,7 @@ export function buildPack(input: BuildPackInput): RulesPack {
     ...hazardRecords,
     ...actionRecords,
     ...ruleRecords,
+    ...tableRecords,
   ].sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
   const includedKinds = uniqueKindsOf(records);
   const pack: RulesPack = {

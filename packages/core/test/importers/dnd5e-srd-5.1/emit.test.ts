@@ -17,6 +17,7 @@ import {
   actionExtractionsToRecords,
   buildPack,
   spellExtractionsToRecords,
+  tableExtractionsToRecords,
   writePackToDirectory,
 } from '../../../scripts/importers/dnd5e-srd-5.1/emit.js';
 import type {
@@ -24,6 +25,7 @@ import type {
   RuleExtraction,
   SpellCasterClass,
   SpellExtraction,
+  TableExtraction,
 } from '../../../scripts/importers/dnd5e-srd-5.1/types.js';
 
 const tmpDirs: string[] = [];
@@ -94,6 +96,18 @@ const ATTACK_ACTION: ActionExtraction = {
   name: 'Attack',
   description: 'The most common action to take in combat is the Attack action.',
   sourcePage: 92,
+};
+
+const DIFFICULTY_TABLE: TableExtraction = {
+  name: 'Difficulty Classes',
+  columns: ['Task Difficulty', 'DC'],
+  rows: [
+    ['Very easy', 5],
+    ['Easy', 10],
+    ['Medium', 15],
+    ['Hard', 20],
+  ],
+  sourcePage: 77,
 };
 
 function makeIndex(
@@ -187,6 +201,19 @@ describe('buildPack — validation', () => {
       /Included record kinds: action, spell\b/,
     );
   });
+
+  it('includes "table" in included-kinds when table records are present', () => {
+    const pack = buildPack({
+      spells: [ACID_SPLASH],
+      classIndex: makeIndex([]),
+      conditions: [],
+      tables: [DIFFICULTY_TABLE],
+      sourceHash: FAKE_HASH,
+    });
+    expect(pack.meta.description).toMatch(
+      /Included record kinds: spell, table\b/,
+    );
+  });
 });
 
 describe('spellExtractionsToRecords — record shape', () => {
@@ -240,6 +267,28 @@ describe('actionExtractionsToRecords — record shape', () => {
     expect((record.data as { description: string }).description).toMatch(
       /Attack action/,
     );
+  });
+});
+
+describe('tableExtractionsToRecords - record shape', () => {
+  it('builds table keys of the form "table:<slug>"', () => {
+    const [record] = tableExtractionsToRecords([DIFFICULTY_TABLE]);
+    expect(record.key).toBe('table:difficulty-classes');
+  });
+
+  it('stores columns and rows in the table kindSchema shape', () => {
+    const [record] = tableExtractionsToRecords([DIFFICULTY_TABLE]);
+    expect(record.kind).toBe('table');
+    expect((record.data as { columns: string[] }).columns).toEqual([
+      'Task Difficulty',
+      'DC',
+    ]);
+    expect((record.data as { rows: unknown[][] }).rows).toEqual([
+      ['Very easy', 5],
+      ['Easy', 10],
+      ['Medium', 15],
+      ['Hard', 20],
+    ]);
   });
 });
 
