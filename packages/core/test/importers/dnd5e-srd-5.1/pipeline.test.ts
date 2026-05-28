@@ -308,6 +308,41 @@ const FEATS_PAGE: FixturePage = {
   ],
 };
 
+// Equipment fixture: mirrors the SRD "Equipment" chapter with one row from each
+// of the three parsed tables (armor, weapons, adventuring gear). The trailing
+// "Mounts and Vehicles" line is the chapter subsection that closes the gear
+// table and matches the equipment endHeading anchor.
+const EQUIPMENT_PAGE: FixturePage = {
+  lines: [
+    'Equipment',
+    'Armor',
+    'Armor Cost Armor Class (AC) Strength Stealth Weight',
+    'Light Armor',
+    'Leather 10 gp 11 + Dex modifier 10 lb.',
+    'Weapons',
+    'Name Cost Damage Weight Properties',
+    'Simple Melee Weapons',
+    'Dagger 2 gp 1d4 piercing 1 lb. Finesse, light, thrown (range 20/60)',
+    'Adventuring Gear',
+    'Item Cost Weight',
+    'Rope, hempen (50 feet) 1 gp 10 lb.',
+    'Mounts and Vehicles',
+  ],
+};
+
+// Equipment fixture without the chapter subsection that ends the section. With
+// requireEndHeading: true on the equipment anchor, the importer must fail
+// closed rather than slice to EOF.
+const EQUIPMENT_PAGE_MISSING_END: FixturePage = {
+  lines: [
+    'Equipment',
+    'Weapons',
+    'Name Cost Damage Weight Properties',
+    'Simple Melee Weapons',
+    'Dagger 2 gp 1d4 piercing 1 lb. Finesse, light, thrown (range 20/60)',
+  ],
+};
+
 // Core-rules fixture: mirrors "Using Ability Scores" through combat/adventuring
 // subsections where rule-text entries like "Cover" and "Resting" appear.
 // The core-rules section ends at "Spell Lists" (handled by section anchors).
@@ -386,6 +421,7 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       MAKING_AN_ATTACK_PAGE,
       HAZARDS_PAGE,
       FEATS_PAGE,
+      EQUIPMENT_PAGE,
       CONDITIONS_PAGE,
     ]);
 
@@ -397,10 +433,11 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(result.counts.actions).toBe(10);
     expect(result.counts.rules).toBe(2);
     expect(result.counts.tables).toBe(4);
+    expect(result.counts.equipment).toBe(3);
     expect(result.sourceHash).toMatch(/^[0-9a-f]{64}$/);
 
     const pack = loadRulesPackFromDirectory(outDir);
-    expect(pack.records).toHaveLength(22);
+    expect(pack.records).toHaveLength(25);
     const keys = pack.records.map((r) => r.key).sort();
     expect(keys).toContain('action:attack');
     expect(keys).toContain('action:cast-a-spell');
@@ -450,6 +487,17 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       'table:treasure-hoard-challenge-0-4',
       'table:xp-thresholds-by-character-level',
     ]);
+    const equipmentKeys = keys.filter((k) => k.startsWith('equipment:'));
+    expect(equipmentKeys).toEqual([
+      'equipment:dagger',
+      'equipment:leather',
+      'equipment:rope-hempen-50-feet',
+    ]);
+
+    // The generated manifest must advertise equipment as an included kind.
+    expect(pack.meta.description).toMatch(
+      /Included record kinds:[^.]*equipment/,
+    );
 
     const acid = pack.records.find((r) => r.key === 'spell:acid-splash');
     expect(acid?.name).toBe('Acid Splash');
@@ -484,6 +532,25 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(grapplerData.prerequisites).toBe('Strength 13 or higher');
     expect(typeof grapplerData.description).toBe('string');
     expect((grapplerData.description as string).length).toBeGreaterThan(0);
+
+    const dagger = pack.records.find((r) => r.key === 'equipment:dagger');
+    expect(dagger?.name).toBe('Dagger');
+    const daggerData = dagger?.data as Record<string, unknown>;
+    expect(daggerData.category).toBe('weapon');
+    expect(daggerData.damageDie).toBe('1d4');
+    expect(daggerData.damageType).toBe('piercing');
+    expect(daggerData.properties).toEqual([
+      'Finesse',
+      'light',
+      'thrown (range 20/60)',
+    ]);
+
+    const leather = pack.records.find((r) => r.key === 'equipment:leather');
+    const leatherData = leather?.data as Record<string, unknown>;
+    expect(leatherData.category).toBe('armor');
+    expect(leatherData.ac).toBe('11 + Dex modifier');
+    expect(leatherData.armorType).toBe('light');
+    expect(leatherData.stealthDisadvantage).toBe(false);
 
     const cover = pack.records.find((r) => r.key === 'rule:cover');
     expect(cover?.name).toBe('Cover');
@@ -586,6 +653,7 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       MAKING_AN_ATTACK_PAGE,
       HAZARDS_PAGE,
       FEATS_PAGE,
+      EQUIPMENT_PAGE,
       CONDITIONS_PAGE,
     ]);
 
@@ -616,6 +684,7 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       MAKING_AN_ATTACK_PAGE,
       HAZARDS_PAGE,
       FEATS_PAGE,
+      EQUIPMENT_PAGE,
       CONDITIONS_PAGE,
     ]);
 
@@ -645,6 +714,7 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       MAKING_AN_ATTACK_PAGE,
       HAZARDS_PAGE,
       FEATS_PAGE,
+      EQUIPMENT_PAGE,
       CONDITIONS_PAGE,
     ]);
 
@@ -793,6 +863,32 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       MAKING_AN_ATTACK_PAGE,
       HAZARDS_PAGE,
       FEATS_PAGE,
+      EQUIPMENT_PAGE,
+      CONDITIONS_PAGE,
+    ]);
+
+    await expect(runImporter({ pdfPath, outDir })).rejects.toThrow(
+      SectionNotFoundError,
+    );
+  });
+
+  it('fails closed when the equipment end heading is missing', async () => {
+    const workDir = makeTmpDir();
+    const pdfPath = join(workDir, 'fixture.pdf');
+    const outDir = join(workDir, 'pack');
+    await writeFixturePdf(pdfPath, [
+      CORE_RULES_PAGE_ONE,
+      CORE_RULES_PAGE_TWO,
+      SPELL_LISTS_PAGE,
+      SPELLS_PAGE,
+      MONSTERS_PAGE,
+      TREASURE_TABLES_PAGE,
+      MAGIC_ITEMS_PAGE,
+      COMBAT_ACTIONS_PAGE,
+      MAKING_AN_ATTACK_PAGE,
+      HAZARDS_PAGE,
+      FEATS_PAGE,
+      EQUIPMENT_PAGE_MISSING_END,
       CONDITIONS_PAGE,
     ]);
 
@@ -814,6 +910,7 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       COMBAT_ACTIONS_PAGE_MISSING_END,
       HAZARDS_PAGE,
       FEATS_PAGE,
+      EQUIPMENT_PAGE,
       CONDITIONS_PAGE,
     ]);
 

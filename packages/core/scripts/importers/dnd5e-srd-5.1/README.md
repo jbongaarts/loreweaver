@@ -18,7 +18,7 @@ tracked as child issues).
 | `class`     | Not implemented. Child of `loreweaver-0m9.5`. |
 | `background`| SRD 5.1 does not publish backgrounds; see ADR 0005. |
 | `ancestry`  | SRD 5.1 publishes races, not species. Tracked as a child kind under `loreweaver-0m9.5`. |
-| `equipment` | Not implemented. Child of `loreweaver-0m9.5`. |
+| `equipment` | Implemented. Parser projects the Equipment chapter's three tables into per-item `kind=equipment` records: weapons (`damageDie`, `damageType`, `properties[]`), armor (`ac`, `armorType`, `stealthDisadvantage`, optional `strengthRequirement`), and adventuring gear. All carry `category` plus verbatim `cost`/`weight`. Section anchor: `equipment` (`startHeading: /^Equipment$/`, `requireEndHeading: true`). Assumes row-major table extraction; see `parseEquipment.ts`. |
 | `feat`      | Implemented. Parser extracts feat entries (SRD 5.1: Grappler) with optional prerequisites and description text in `data.description`. Section anchor: `feats` (`startHeading: /^Feats?$\|^Feat Descriptions?$/`, `requireEndHeading: true`). |
 | `condition` | Implemented. Parser extracts all 15 SRD conditions (blinded, charmed, deafened, exhaustion, frightened, grappled, incapacitated, invisible, paralyzed, petrified, poisoned, prone, restrained, stunned, unconscious). Exhaustion carries a structured `levels` array (6 entries). Section anchor: `conditions` (`startHeading: /^Appendix A: Conditions$\|^Conditions$/`). |
 | `hazard`    | Implemented. Parser extracts the 4 SRD 5.1 environmental hazards by exact name match (Brown Mold, Green Slime, Webs, Yellow Mold). Each record carries a `description` field with re-flowed prose. Section anchor: `hazards` (`startHeading: /^Dungeon Hazards$\|^Hazards$/`, `requireEndHeading: true`). |
@@ -109,10 +109,16 @@ sources/dnd5e-srd-5.1/SRD_CC_v5.1.pdf
   reconstruction for simple reference tables and column-block reconstruction
   for SRD treasure tables. Rows are emitted as structured arrays in
   `data.rows`.
+- `parseEquipment.ts` -- narrowed Equipment-chapter text ->
+  `EquipmentExtraction[]` via a state machine keyed on the three table titles
+  (Weapons, Armor, Adventuring Gear) and their sub-headers. Each row is
+  projected into a per-item record with category-specific structured fields.
+  Assumes row-major table extraction (one line per item row).
 - `emit.ts` -- `SpellExtraction[]` + class index + `ConditionExtraction[]` +
   `HazardExtraction[]` + `ActionExtraction[]` + `RuleExtraction[]` +
-  `TableExtraction[]` -> validated `RulesPack`, written deterministically
-  (records sorted by key, fixed field order, 2-space indent, trailing newline).
+  `TableExtraction[]` + `EquipmentExtraction[]` -> validated `RulesPack`,
+  written deterministically (records sorted by key, fixed field order, 2-space
+  indent, trailing newline).
 - `index.ts` -- programmatic API + orchestrator: `runImporter({ pdfPath, outDir })`.
   Dispatches each per-kind slice to its parser.
 - `cli.ts` -- command-line wrapper.
@@ -149,7 +155,7 @@ dispatch. Each entry is a `SectionAnchorOptions` value:
 | `requireEndHeading`  | If `true`, an unmatched `endHeading` throws `SectionNotFoundError('end')` instead of slicing to EOF.   |
 
 `SRD_5_1_DEFAULT_SECTION_ANCHORS` is the live table consumed by the
-orchestrator. Today it covers eight slices. Freestanding `table` records use
+orchestrator. Today it covers nine slices. Freestanding `table` records use
 the `coreRules` slice for simple reference tables and the `treasureTables`
 slice for treasure challenge tables.
 
@@ -162,6 +168,7 @@ slice for treasure challenge tables.
 | `conditions`         | `/^Appendix A: Conditions$\|^Conditions$/`     | `/^Appendix [B-Z]:\|^Open Game License\|^Legal Information\|^Monster (Statistics\|Lists?)$/i` | false (may run to EOF) |
 | `feats`              | `/^Feats?$\|^Feat Descriptions?$/`             | `/^(Using Ability Scores\|Adventuring\|Combat\|Equipment\|Monsters\|Magic Items\|Running the Game\|Chapter \d+\|Spell Lists?)$\|^Appendix\b/i` | `true` |
 | `hazards`            | `/^Dungeon Hazards$\|^Hazards$/`               | `/^(Traps\|Sample Traps\|Wilderness Hazards\|Monsters\|Magic Items\|Appendix\|Chapter \d+\|Open Game License\|Legal Information)$/i` | `true` |
+| `equipment`          | `/^Equipment$/`                                | `/^(Mounts and Vehicles\|Trade Goods\|Expenses\|Trinkets\|Multiclassing\|Spellcasting\|Using Ability Scores\|Adventuring\|Combat\|Monsters\|Magic Items\|Chapter \d+)$/i` | `true` |
 | `treasureTables`     | `/^Treasure$/`                                 | `/^Using (a )?Magic Items?$/i`                          | `true`              |
 
 Anchors are deliberately tight (`^...$`) so a body-prose mention of a chapter

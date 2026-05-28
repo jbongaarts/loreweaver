@@ -214,6 +214,19 @@ export const SRD_5_1_DEFAULT_SECTION_ANCHORS = {
       /^(Traps|Sample Traps|Wilderness Hazards|Monsters|Magic Items|Appendix|Chapter \d+|Open Game License|Legal Information)$/i,
     requireEndHeading: true,
   },
+  // SRD 5.1 places weapons, armor, and adventuring gear in the "Equipment"
+  // chapter. requireEndHeading is true because equipment is an implemented
+  // kind: if the next-section boundary is missing, fail closed rather than let
+  // the slice run to EOF and feed later chapters to the equipment parser. The
+  // end alternation covers the subsections that follow the Adventuring Gear
+  // table (Mounts and Vehicles, Trade Goods, ...) and the chapters that follow
+  // the Equipment chapter (Multiclassing, Spellcasting, ...).
+  equipment: {
+    startHeading: /^Equipment$/,
+    endHeading:
+      /^(Mounts and Vehicles|Trade Goods|Expenses|Trinkets|Multiclassing|Spellcasting|Using Ability Scores|Adventuring|Combat|Monsters|Magic Items|Chapter \d+)$/i,
+    requireEndHeading: true,
+  },
   // SRD 5.1 treasure tables live in the "Treasure" section, before the
   // following magic-item rules. Use the first rules heading inside that next
   // section as the end boundary instead of "Magic Items" itself because
@@ -233,5 +246,6 @@ export type Srd51SectionAnchors = {
   readonly conditions: SectionAnchorOptions;
   readonly feats: SectionAnchorOptions;
   readonly hazards: SectionAnchorOptions;
+  readonly equipment: SectionAnchorOptions;
   readonly treasureTables: SectionAnchorOptions;
 };

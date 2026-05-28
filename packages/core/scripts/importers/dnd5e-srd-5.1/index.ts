@@ -13,7 +13,8 @@
  * spell parser over the whole PDF (which would let class-list text and
  * unrelated chapters bleed into the last spell's body).
  *
- * Scope today: spells, conditions, feats, hazards, actions, rules, and tables.
+ * Scope today: spells, conditions, feats, hazards, actions, rules, tables, and
+ * equipment.
  * Other SRD record kinds are tracked under `loreweaver-0m9.5` child issues;
  * until those parsers ship the importer deliberately omits them so the
  * generated pack does not claim coverage it does not have. See `README.md`
@@ -26,6 +27,7 @@ import { buildPack, writePackToDirectory } from './emit.js';
 import { extractPdfText } from './extract.js';
 import { parseActions } from './parseActions.js';
 import { parseConditions } from './parseConditions.js';
+import { parseEquipment } from './parseEquipment.js';
 import { parseFeats } from './parseFeats.js';
 import { parseHazards } from './parseHazards.js';
 import { parseRules } from './parseRules.js';
@@ -78,6 +80,8 @@ export async function runImporter(
   const feats = parseFeats(featPages);
   const hazardPages = sliceSection(pages, anchors.hazards);
   const hazards = parseHazards(hazardPages);
+  const equipmentPages = sliceSection(pages, anchors.equipment);
+  const equipment = parseEquipment(equipmentPages);
   const treasureTablePages = sliceSection(pages, anchors.treasureTables);
   const rules = parseRules(coreRulePages);
   const tables = parseTables([...coreRulePages, ...treasureTablePages]);
@@ -90,6 +94,7 @@ export async function runImporter(
     actions,
     rules,
     tables,
+    equipment,
     sourceHash,
   });
   writePackToDirectory(pack, { outDir: input.outDir });
@@ -104,6 +109,7 @@ export async function runImporter(
       actions: actions.length,
       rules: rules.length,
       tables: tables.length,
+      equipment: equipment.length,
     },
   };
 }

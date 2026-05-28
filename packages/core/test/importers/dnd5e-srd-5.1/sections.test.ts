@@ -226,6 +226,15 @@ describe('SRD_5_1_DEFAULT_SECTION_ANCHORS — sanity', () => {
     expect(anchor.requireEndHeading).toBe(true);
   });
 
+  it('equipment anchor matches "Equipment", bounds at the next subsection, and requires an end heading', () => {
+    const anchor = SRD_5_1_DEFAULT_SECTION_ANCHORS.equipment;
+    expect(anchor.startHeading.test('Equipment')).toBe(true);
+    expect(anchor.endHeading?.test('Mounts and Vehicles')).toBe(true);
+    expect(anchor.endHeading?.test('Multiclassing')).toBe(true);
+    expect(anchor.endHeading?.test('Adventuring Gear')).toBe(false);
+    expect(anchor.requireEndHeading).toBe(true);
+  });
+
   it('treasure-tables anchor matches "Treasure" and requires a magic-item boundary', () => {
     const anchor = SRD_5_1_DEFAULT_SECTION_ANCHORS.treasureTables;
     expect(anchor.startHeading.test('Treasure')).toBe(true);
