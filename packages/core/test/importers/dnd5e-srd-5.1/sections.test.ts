@@ -219,4 +219,10 @@ describe('SRD_5_1_DEFAULT_SECTION_ANCHORS — sanity', () => {
     expect(anchor.startHeading.test('Using Ability Scores')).toBe(true);
     expect(anchor.requireEndHeading).toBe(true);
   });
+
+  it('combat-actions anchor matches "Actions in Combat" and requires an end heading', () => {
+    const anchor = SRD_5_1_DEFAULT_SECTION_ANCHORS.combatActions;
+    expect(anchor.startHeading.test('Actions in Combat')).toBe(true);
+    expect(anchor.requireEndHeading).toBe(true);
+  });
 });

@@ -113,11 +113,23 @@ export interface RuleExtraction {
   readonly sourcePage: number;
 }
 
+/**
+ * A combat action entry as extracted from the SRD source, before conversion
+ * to a `RulesRecord`. The body is captured as prose in `description`.
+ */
+export interface ActionExtraction {
+  readonly name: string;
+  readonly description: string;
+  /** 1-based page in the source PDF where the action entry begins. */
+  readonly sourcePage: number;
+}
+
 export interface ImporterCounts {
   readonly spells: number;
   readonly conditions: number;
   readonly feats: number;
   readonly hazards: number;
+  readonly actions: number;
   readonly rules: number;
 }
 

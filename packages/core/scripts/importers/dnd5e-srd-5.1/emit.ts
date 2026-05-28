@@ -25,6 +25,7 @@ import type {
 } from '../../../src/rules/types.js';
 import { validateRulesPack } from '../../../src/rules/validate.js';
 import type {
+  ActionExtraction,
   ConditionExtraction,
   FeatExtraction,
   HazardExtraction,
@@ -184,6 +185,10 @@ function ruleKey(name: string): string {
   return `rule:${slug(name)}`;
 }
 
+function actionKey(name: string): string {
+  return `action:${slug(name)}`;
+}
+
 export function conditionExtractionsToRecords(
   conditions: readonly ConditionExtraction[],
 ): RulesRecord[] {
@@ -288,12 +293,36 @@ export function ruleExtractionsToRecords(
   return out;
 }
 
+export function actionExtractionsToRecords(
+  actions: readonly ActionExtraction[],
+): RulesRecord[] {
+  const out: RulesRecord[] = actions.map((action) => {
+    const data: Record<string, unknown> = {
+      description: action.description,
+    };
+    const record: RulesRecord = {
+      systemId: SYSTEM_ID,
+      kind: 'action',
+      key: actionKey(action.name),
+      name: action.name,
+      data,
+      source: sourceLabelFor(action.sourcePage),
+      license: SRD_5_1_LICENSE,
+      provenance: provenanceFor(action.sourcePage),
+    };
+    return record;
+  });
+  out.sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+  return out;
+}
+
 export interface BuildPackInput {
   readonly spells: readonly SpellExtraction[];
   readonly classIndex: SpellClassIndex;
   readonly conditions: readonly ConditionExtraction[];
   readonly feats?: readonly FeatExtraction[];
   readonly hazards?: readonly HazardExtraction[];
+  readonly actions?: readonly ActionExtraction[];
   readonly rules?: readonly RuleExtraction[];
   readonly sourceHash: string;
 }
@@ -311,12 +340,14 @@ export function buildPack(input: BuildPackInput): RulesPack {
   const conditionRecords = conditionExtractionsToRecords(input.conditions);
   const featRecords = featExtractionsToRecords(input.feats ?? []);
   const hazardRecords = hazardExtractionsToRecords(input.hazards ?? []);
+  const actionRecords = actionExtractionsToRecords(input.actions ?? []);
   const ruleRecords = ruleExtractionsToRecords(input.rules ?? []);
   const records = [
     ...spellRecords,
     ...conditionRecords,
     ...featRecords,
     ...hazardRecords,
+    ...actionRecords,
     ...ruleRecords,
   ].sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
   const includedKinds = uniqueKindsOf(records);

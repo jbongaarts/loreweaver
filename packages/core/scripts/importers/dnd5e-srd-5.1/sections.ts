@@ -171,6 +171,16 @@ export const SRD_5_1_DEFAULT_SECTION_ANCHORS = {
     endHeading: /^(Monsters|Magic Items|Creatures|NPCs|Treasure|Appendix)$/,
     requireEndHeading: true,
   },
+  // SRD 5.1 "Actions in Combat" section. `requireEndHeading` is true because
+  // actions is an implemented kind: if the next-heading boundary is missing,
+  // fail closed rather than letting the slice run to EOF and absorb later
+  // combat chapter text into the final action description.
+  combatActions: {
+    startHeading: /^Actions in Combat$/,
+    endHeading:
+      /^(Making an Attack|Movement and Position|Reactions?|Bonus Actions?|Mounted Combat|Underwater Combat|Contests in Combat|Cover)$/i,
+    requireEndHeading: true,
+  },
   // SRD 5.1 puts conditions in "Appendix A: Conditions" near the end of the
   // document. The end heading is optional (the section may run to EOF in some
   // PDF layouts), so requireEndHeading is not set.
@@ -210,6 +220,7 @@ export type Srd51SectionAnchors = {
   readonly coreRules: SectionAnchorOptions;
   readonly spellLists: SectionAnchorOptions;
   readonly spellDescriptions: SectionAnchorOptions;
+  readonly combatActions: SectionAnchorOptions;
   readonly conditions: SectionAnchorOptions;
   readonly feats: SectionAnchorOptions;
   readonly hazards: SectionAnchorOptions;
