@@ -27,6 +27,7 @@ import { validateRulesPack } from '../../../src/rules/validate.js';
 import type {
   ConditionExtraction,
   FeatExtraction,
+  HazardExtraction,
   SpellCasterClass,
   SpellClassIndex,
   SpellExtraction,
@@ -174,6 +175,10 @@ function featKey(name: string): string {
   return `feat:${slug(name)}`;
 }
 
+function hazardKey(name: string): string {
+  return `hazard:${slug(name)}`;
+}
+
 export function conditionExtractionsToRecords(
   conditions: readonly ConditionExtraction[],
 ): RulesRecord[] {
@@ -232,11 +237,35 @@ export function featExtractionsToRecords(
   return out;
 }
 
+export function hazardExtractionsToRecords(
+  hazards: readonly HazardExtraction[],
+): RulesRecord[] {
+  const out: RulesRecord[] = hazards.map((hazard) => {
+    const data: Record<string, unknown> = {
+      description: hazard.description,
+    };
+    const record: RulesRecord = {
+      systemId: SYSTEM_ID,
+      kind: 'hazard',
+      key: hazardKey(hazard.name),
+      name: hazard.name,
+      data,
+      source: sourceLabelFor(hazard.sourcePage),
+      license: SRD_5_1_LICENSE,
+      provenance: provenanceFor(hazard.sourcePage),
+    };
+    return record;
+  });
+  out.sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+  return out;
+}
+
 export interface BuildPackInput {
   readonly spells: readonly SpellExtraction[];
   readonly classIndex: SpellClassIndex;
   readonly conditions: readonly ConditionExtraction[];
   readonly feats?: readonly FeatExtraction[];
+  readonly hazards?: readonly HazardExtraction[];
   readonly sourceHash: string;
 }
 
@@ -252,9 +281,13 @@ export function buildPack(input: BuildPackInput): RulesPack {
   const spellRecords = spellExtractionsToRecords(input.spells, classByName);
   const conditionRecords = conditionExtractionsToRecords(input.conditions);
   const featRecords = featExtractionsToRecords(input.feats ?? []);
-  const records = [...spellRecords, ...conditionRecords, ...featRecords].sort(
-    (a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0),
-  );
+  const hazardRecords = hazardExtractionsToRecords(input.hazards ?? []);
+  const records = [
+    ...spellRecords,
+    ...conditionRecords,
+    ...featRecords,
+    ...hazardRecords,
+  ].sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
   const includedKinds = uniqueKindsOf(records);
   const pack: RulesPack = {
     meta: buildMeta(input.sourceHash, includedKinds),

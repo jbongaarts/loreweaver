@@ -20,7 +20,7 @@ session; remaining kinds are child issues).
 | `equipment` | Not implemented. Child of `loreweaver-0m9.5`. |
 | `feat`      | Not implemented. Child of `loreweaver-0m9.5`. |
 | `condition` | Implemented. Parser extracts all 15 SRD conditions (blinded, charmed, deafened, exhaustion, frightened, grappled, incapacitated, invisible, paralyzed, petrified, poisoned, prone, restrained, stunned, unconscious). Exhaustion carries a structured `levels` array (6 entries). Section anchor: `conditions` (`startHeading: /^Appendix A: Conditions$|^Conditions$/`). |
-| `hazard`    | Not implemented. Child of `loreweaver-0m9.5`. |
+| `hazard`    | Implemented. Parser extracts the 4 SRD 5.1 environmental hazards by exact name match (Brown Mold, Green Slime, Webs, Yellow Mold). Each record carries a `description` field with re-flowed prose. Section anchor: `hazards` (`startHeading: /^Dungeon Hazards$\|^Hazards$/`, `requireEndHeading: false`). |
 | `table`     | Not implemented. Child of `loreweaver-0m9.5`. |
 | `rule`      | Not implemented. Child of `loreweaver-0m9.5`. |
 
@@ -94,7 +94,10 @@ sources/dnd5e-srd-5.1/SRD_CC_v5.1.pdf
 - `parseConditions.ts` -- narrowed text -> `ConditionExtraction[]` by exact
   match against the 15 known condition names. Bullet-point lines become
   `effects[]`; exhaustion's level table becomes a structured `levels[]` array.
-- `emit.ts` -- `SpellExtraction[]` + class index + `ConditionExtraction[]` -> validated `RulesPack`,
+- `parseHazards.ts` -- narrowed text -> `HazardExtraction[]` by exact match
+  against the 4 known SRD 5.1 hazard names (Brown Mold, Green Slime, Webs,
+  Yellow Mold). Body is re-flowed prose paragraphs.
+- `emit.ts` -- `SpellExtraction[]` + class index + `ConditionExtraction[]` + `HazardExtraction[]` -> validated `RulesPack`,
   written deterministically (records sorted by key, fixed field order,
   2-space indent, trailing newline).
 - `index.ts` -- programmatic API + orchestrator: `runImporter({ pdfPath, outDir })`.
@@ -115,13 +118,15 @@ dispatch. Each entry is a `SectionAnchorOptions` value:
 | `requireEndHeading`  | If `true`, an unmatched `endHeading` throws `SectionNotFoundError('end')` instead of slicing to EOF.   |
 
 `SRD_5_1_DEFAULT_SECTION_ANCHORS` is the live table consumed by the
-orchestrator. Today it covers two slices:
+orchestrator. Today it covers five slices:
 
 | Anchor key           | `startHeading`                                 | `endHeading`                                                | `requireEndHeading` |
 |----------------------|------------------------------------------------|-------------------------------------------------------------|---------------------|
 | `spellLists`         | `/^Spell Lists$/`                              | `/^Spells$\|^Spell Descriptions$/`                          | `true`              |
 | `spellDescriptions`  | `/^Spells$\|^Spell Descriptions$/`             | `/^(Monsters\|Magic Items\|Creatures\|NPCs\|Treasure\|Appendix)$/` | `true`              |
 | `conditions`         | `/^Appendix A: Conditions$\|^Conditions$/`     | `/^Appendix [B-Z]:\|^Open Game License\|^Legal Information\|^Monster (Statistics\|Lists?)$/i` | false (may run to EOF) |
+| `feats`              | `/^Feats?$\|^Feat Descriptions?$/`             | `/^(Using Ability Scores\|Adventuring\|Combat\|Equipment\|Monsters\|Magic Items\|Running the Game\|Chapter \d+\|Spell Lists?)$\|^Appendix\b/i` | `true` |
+| `hazards`            | `/^Dungeon Hazards$\|^Hazards$/`               | `/^(Traps\|Sample Traps\|Wilderness Hazards\|Monsters\|Magic Items\|Appendix\|Chapter \d+\|Open Game License\|Legal Information)$/i` | false (safe: exact-name matching prevents bleed) |
 
 Anchors are deliberately tight (`^...$`) so a body-prose mention of a chapter
 title can't false-positive. Tests in `test/importers/dnd5e-srd-5.1/sections.test.ts`

@@ -186,6 +186,18 @@ export const SRD_5_1_DEFAULT_SECTION_ANCHORS = {
       /^(Using Ability Scores|Adventuring|Combat|Equipment|Monsters|Magic Items|Running the Game|Chapter \d+|Spell Lists?)$|^Appendix\b/i,
     requireEndHeading: true,
   },
+  // SRD 5.1 places hazards in "Dungeon Hazards" within the DM tools / running
+  // the game section. requireEndHeading is false because the section boundary
+  // after hazards varies across PDF layouts (may be "Traps", another DM-tools
+  // subsection, or a major chapter heading). The parser uses exact-name matching
+  // against the 4 known SRD 5.1 hazard names, so bleeding from adjacent
+  // sections is harmless — only lines matching a known hazard name are promoted.
+  hazards: {
+    startHeading: /^Dungeon Hazards$|^Hazards$/,
+    endHeading:
+      /^(Traps|Sample Traps|Wilderness Hazards|Monsters|Magic Items|Appendix|Chapter \d+|Open Game License|Legal Information)$/i,
+    requireEndHeading: false,
+  },
 } as const satisfies Record<string, SectionAnchorOptions>;
 
 export type Srd51SectionAnchors = {
@@ -193,4 +205,5 @@ export type Srd51SectionAnchors = {
   readonly spellDescriptions: SectionAnchorOptions;
   readonly conditions: SectionAnchorOptions;
   readonly feats: SectionAnchorOptions;
+  readonly hazards: SectionAnchorOptions;
 };

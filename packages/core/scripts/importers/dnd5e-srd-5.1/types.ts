@@ -88,10 +88,24 @@ export interface FeatExtraction {
   readonly sourcePage: number;
 }
 
+/**
+ * A hazard entry as extracted from the SRD source, before conversion to a
+ * `RulesRecord`. SRD 5.1 hazards use plain prose paragraphs; description is
+ * the full body text, re-flowed.
+ */
+export interface HazardExtraction {
+  readonly name: string;
+  /** Full body text, re-flowed into paragraphs. */
+  readonly description: string;
+  /** 1-based page in the source PDF where the hazard entry begins. */
+  readonly sourcePage: number;
+}
+
 export interface ImporterCounts {
   readonly spells: number;
   readonly conditions: number;
   readonly feats: number;
+  readonly hazards: number;
 }
 
 export interface ImporterRunResult {

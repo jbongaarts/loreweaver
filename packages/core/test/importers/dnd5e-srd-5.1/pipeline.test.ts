@@ -133,6 +133,20 @@ const MONSTERS_PAGE: FixturePage = {
   lines: ['Monsters', 'Goblin', 'Small humanoid (goblinoid), neutral evil.'],
 };
 
+// Hazards fixture: mirrors the SRD "Dungeon Hazards" section (Brown Mold only
+// here; 4 hazards in the real SRD). The heading "Dungeon Hazards" matches the
+// hazards startHeading anchor; "Traps" below acts as the end heading.
+const HAZARDS_PAGE: FixturePage = {
+  lines: [
+    'Dungeon Hazards',
+    'Brown Mold',
+    'Brown mold feeds on warmth, draining heat from everything nearby.',
+    '',
+    'Traps',
+    'A trap can be either mechanical or magical in nature.',
+  ],
+};
+
 // Feats fixture: mirrors the SRD "Feats" section (only Grappler in SRD 5.1).
 const FEATS_PAGE: FixturePage = {
   lines: [
@@ -160,7 +174,7 @@ const CONDITIONS_PAGE: FixturePage = {
 };
 
 describe('runImporter — end-to-end against a fixture PDF', () => {
-  it('extracts spells, conditions, and feats — writes a pack that loads through loadRulesPackFromDirectory', async () => {
+  it('extracts spells, conditions, feats, and hazards — writes a pack that loads through loadRulesPackFromDirectory', async () => {
     const workDir = makeTmpDir();
     const pdfPath = join(workDir, 'fixture.pdf');
     const outDir = join(workDir, 'pack');
@@ -168,6 +182,7 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       SPELL_LISTS_PAGE,
       SPELLS_PAGE,
       MONSTERS_PAGE,
+      HAZARDS_PAGE,
       FEATS_PAGE,
       CONDITIONS_PAGE,
     ]);
@@ -176,20 +191,25 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(result.counts.spells).toBe(2);
     expect(result.counts.conditions).toBe(2);
     expect(result.counts.feats).toBe(1);
+    expect(result.counts.hazards).toBe(1);
     expect(result.sourceHash).toMatch(/^[0-9a-f]{64}$/);
 
     const pack = loadRulesPackFromDirectory(outDir);
-    expect(pack.records).toHaveLength(5);
+    expect(pack.records).toHaveLength(6);
     const keys = pack.records.map((r) => r.key).sort();
     expect(keys).toContain('spell:acid-splash');
     expect(keys).toContain('spell:magic-missile');
     expect(keys).toContain('condition:blinded');
     expect(keys).toContain('condition:prone');
     expect(keys).toContain('feat:grappler');
+    expect(keys).toContain('hazard:brown-mold');
     // Assert the feat set is exactly Grappler — no bogus chapter headings
     // promoted as feat names by the heuristic.
     const featKeys = keys.filter((k) => k.startsWith('feat:'));
     expect(featKeys).toEqual(['feat:grappler']);
+    // Assert the hazard set is exactly Brown Mold.
+    const hazardKeys = keys.filter((k) => k.startsWith('hazard:'));
+    expect(hazardKeys).toEqual(['hazard:brown-mold']);
 
     const acid = pack.records.find((r) => r.key === 'spell:acid-splash');
     expect(acid?.name).toBe('Acid Splash');
@@ -226,6 +246,7 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       SPELL_LISTS_PAGE,
       SPELLS_PAGE,
       MONSTERS_PAGE,
+      HAZARDS_PAGE,
       FEATS_PAGE,
       CONDITIONS_PAGE,
     ]);
@@ -249,6 +270,7 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       SPELL_LISTS_PAGE,
       SPELLS_PAGE,
       MONSTERS_PAGE,
+      HAZARDS_PAGE,
       FEATS_PAGE,
       CONDITIONS_PAGE,
     ]);
@@ -271,6 +293,7 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       SPELL_LISTS_PAGE,
       SPELLS_PAGE,
       MONSTERS_PAGE,
+      HAZARDS_PAGE,
       FEATS_PAGE,
       CONDITIONS_PAGE,
     ]);
