@@ -20,7 +20,7 @@ session; remaining kinds are child issues).
 | `equipment` | Not implemented. Child of `loreweaver-0m9.5`. |
 | `feat`      | Not implemented. Child of `loreweaver-0m9.5`. |
 | `condition` | Implemented. Parser extracts all 15 SRD conditions (blinded, charmed, deafened, exhaustion, frightened, grappled, incapacitated, invisible, paralyzed, petrified, poisoned, prone, restrained, stunned, unconscious). Exhaustion carries a structured `levels` array (6 entries). Section anchor: `conditions` (`startHeading: /^Appendix A: Conditions$|^Conditions$/`). |
-| `hazard`    | Implemented. Parser extracts the 4 SRD 5.1 environmental hazards by exact name match (Brown Mold, Green Slime, Webs, Yellow Mold). Each record carries a `description` field with re-flowed prose. Section anchor: `hazards` (`startHeading: /^Dungeon Hazards$\|^Hazards$/`, `requireEndHeading: false`). |
+| `hazard`    | Implemented. Parser extracts the 4 SRD 5.1 environmental hazards by exact name match (Brown Mold, Green Slime, Webs, Yellow Mold). Each record carries a `description` field with re-flowed prose. Section anchor: `hazards` (`startHeading: /^Dungeon Hazards$\|^Hazards$/`, `requireEndHeading: true`). |
 | `table`     | Not implemented. Child of `loreweaver-0m9.5`. |
 | `rule`      | Not implemented. Child of `loreweaver-0m9.5`. |
 
@@ -126,7 +126,7 @@ orchestrator. Today it covers five slices:
 | `spellDescriptions`  | `/^Spells$\|^Spell Descriptions$/`             | `/^(Monsters\|Magic Items\|Creatures\|NPCs\|Treasure\|Appendix)$/` | `true`              |
 | `conditions`         | `/^Appendix A: Conditions$\|^Conditions$/`     | `/^Appendix [B-Z]:\|^Open Game License\|^Legal Information\|^Monster (Statistics\|Lists?)$/i` | false (may run to EOF) |
 | `feats`              | `/^Feats?$\|^Feat Descriptions?$/`             | `/^(Using Ability Scores\|Adventuring\|Combat\|Equipment\|Monsters\|Magic Items\|Running the Game\|Chapter \d+\|Spell Lists?)$\|^Appendix\b/i` | `true` |
-| `hazards`            | `/^Dungeon Hazards$\|^Hazards$/`               | `/^(Traps\|Sample Traps\|Wilderness Hazards\|Monsters\|Magic Items\|Appendix\|Chapter \d+\|Open Game License\|Legal Information)$/i` | false (safe: exact-name matching prevents bleed) |
+| `hazards`            | `/^Dungeon Hazards$\|^Hazards$/`               | `/^(Traps\|Sample Traps\|Wilderness Hazards\|Monsters\|Magic Items\|Appendix\|Chapter \d+\|Open Game License\|Legal Information)$/i` | `true` |
 
 Anchors are deliberately tight (`^...$`) so a body-prose mention of a chapter
 title can't false-positive. Tests in `test/importers/dnd5e-srd-5.1/sections.test.ts`

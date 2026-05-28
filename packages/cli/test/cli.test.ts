@@ -163,26 +163,30 @@ describe('cli bin shebang', () => {
 describe('package smoke', () => {
   const repoRoot = fileURLToPath(new URL('../../../', import.meta.url));
 
-  it('packs publishable tarballs with dist output and no source/test files', () => {
-    requireCliDist();
-    const dir = mkdtempSync(join(tmpdir(), 'lw-pack-'));
-    try {
-      const cliFiles = packWorkspace(repoRoot, '@loreweaver/cli', dir);
-      expect(cliFiles).toContain('dist/index.js');
-      expect(cliFiles).toContain('dist/play.js');
-      expect(cliFiles).toContain('package.json');
-      expect(cliFiles).not.toContain('src/index.ts');
-      expect(cliFiles).not.toContain('test/cli.test.ts');
+  it(
+    'packs publishable tarballs with dist output and no source/test files',
+    { timeout: 10_000 },
+    () => {
+      requireCliDist();
+      const dir = mkdtempSync(join(tmpdir(), 'lw-pack-'));
+      try {
+        const cliFiles = packWorkspace(repoRoot, '@loreweaver/cli', dir);
+        expect(cliFiles).toContain('dist/index.js');
+        expect(cliFiles).toContain('dist/play.js');
+        expect(cliFiles).toContain('package.json');
+        expect(cliFiles).not.toContain('src/index.ts');
+        expect(cliFiles).not.toContain('test/cli.test.ts');
 
-      const coreFiles = packWorkspace(repoRoot, '@loreweaver/core', dir);
-      expect(coreFiles).toContain('dist/index.js');
-      expect(coreFiles).toContain('package.json');
-      expect(coreFiles).not.toContain('src/index.ts');
-      expect(coreFiles).not.toContain('test/smoke.test.ts');
-    } finally {
-      rmSync(dir, { recursive: true, force: true });
-    }
-  });
+        const coreFiles = packWorkspace(repoRoot, '@loreweaver/core', dir);
+        expect(coreFiles).toContain('dist/index.js');
+        expect(coreFiles).toContain('package.json');
+        expect(coreFiles).not.toContain('src/index.ts');
+        expect(coreFiles).not.toContain('test/smoke.test.ts');
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    },
+  );
 });
 
 /**

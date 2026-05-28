@@ -187,16 +187,14 @@ export const SRD_5_1_DEFAULT_SECTION_ANCHORS = {
     requireEndHeading: true,
   },
   // SRD 5.1 places hazards in "Dungeon Hazards" within the DM tools / running
-  // the game section. requireEndHeading is false because the section boundary
-  // after hazards varies across PDF layouts (may be "Traps", another DM-tools
-  // subsection, or a major chapter heading). The parser uses exact-name matching
-  // against the 4 known SRD 5.1 hazard names, so bleeding from adjacent
-  // sections is harmless — only lines matching a known hazard name are promoted.
+  // the game section. Hazards is an implemented kind, so the importer must
+  // fail closed if the next section heading is missing instead of letting the
+  // slice run to EOF and absorb later prose into the final hazard.
   hazards: {
     startHeading: /^Dungeon Hazards$|^Hazards$/,
     endHeading:
       /^(Traps|Sample Traps|Wilderness Hazards|Monsters|Magic Items|Appendix|Chapter \d+|Open Game License|Legal Information)$/i,
-    requireEndHeading: false,
+    requireEndHeading: true,
   },
 } as const satisfies Record<string, SectionAnchorOptions>;
 
