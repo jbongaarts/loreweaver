@@ -22,7 +22,7 @@ tracked as child issues).
 | `feat`      | Implemented. Parser extracts feat entries (SRD 5.1: Grappler) with optional prerequisites and description text in `data.description`. Section anchor: `feats` (`startHeading: /^Feats?$\|^Feat Descriptions?$/`, `requireEndHeading: true`). |
 | `condition` | Implemented. Parser extracts all 15 SRD conditions (blinded, charmed, deafened, exhaustion, frightened, grappled, incapacitated, invisible, paralyzed, petrified, poisoned, prone, restrained, stunned, unconscious). Exhaustion carries a structured `levels` array (6 entries). Section anchor: `conditions` (`startHeading: /^Appendix A: Conditions$\|^Conditions$/`). |
 | `hazard`    | Implemented. Parser extracts the 4 SRD 5.1 environmental hazards by exact name match (Brown Mold, Green Slime, Webs, Yellow Mold). Each record carries a `description` field with re-flowed prose. Section anchor: `hazards` (`startHeading: /^Dungeon Hazards$\|^Hazards$/`, `requireEndHeading: true`). |
-| `table`     | Implemented for simple freestanding reference tables: Difficulty Classes and XP Thresholds by Character Level. Harder/wider tables that need positional reconstruction are deferred to `loreweaver-0m9.5.13`; see "Reference-table coverage" below. |
+| `table`     | Implemented for simple freestanding reference tables (Difficulty Classes, XP Thresholds by Character Level) and treasure tables emitted as interleaved column blocks. Tables whose extracted text needs true x/y positional reconstruction beyond column-block order need a future coverage pass against the vendored source PDF. |
 | `rule`      | Implemented. Parser extracts labeled rule-text sections from the SRD core-rules chapters (e.g., Cover, Resting) and stores full body text in `data.text`. Section anchor: `coreRules` (`startHeading: /^Using Ability Scores$/`, `endHeading: /^Spell Lists$/`, `requireEndHeading: true`). |
 
 The importer does **not** emit empty stubs for unimplemented kinds. Per the
@@ -106,7 +106,8 @@ sources/dnd5e-srd-5.1/SRD_CC_v5.1.pdf
   in `text`.
 - `parseTables.ts` -- narrowed core-rules text -> `TableExtraction[]` by
   per-table anchors plus conservative row reconstruction for simple reference
-  tables. Rows are emitted as structured arrays in `data.rows`.
+  tables and column-block reconstruction for SRD treasure tables. Rows are
+  emitted as structured arrays in `data.rows`.
 - `emit.ts` -- `SpellExtraction[]` + class index + `ConditionExtraction[]` +
   `HazardExtraction[]` + `ActionExtraction[]` + `RuleExtraction[]` +
   `TableExtraction[]` -> validated `RulesPack`, written deterministically
@@ -117,20 +118,21 @@ sources/dnd5e-srd-5.1/SRD_CC_v5.1.pdf
 
 ## Reference-table coverage
 
-The first table parser intentionally covers the simple cases whose extracted
-text has predictable row boundaries:
+The table parser intentionally covers cases whose extracted text has
+deterministic reconstruction rules:
 
 | Table | Record key | Reason it is covered |
 |-------|------------|----------------------|
 | Difficulty Classes | `table:difficulty-classes` | Two-column label/DC rows reconstruct cleanly from line text. |
 | XP Thresholds by Character Level | `table:xp-thresholds-by-character-level` | Fixed five-column numeric threshold rows reconstruct cleanly from line text. |
+| Individual Treasure challenge tables | `table:individual-treasure-challenge-<range>` | The d100 ranges form a leading block and each currency column forms an equal-length block that can be pivoted into rows. |
+| Treasure Hoard challenge tables | `table:treasure-hoard-challenge-<range>` | The d100 ranges, coin columns, gems/art-object column, and magic-item column can be reconstructed from equal-length column blocks. Empty dash cells are stored as `null`. |
 
 Tables not covered by the current parser:
 
 | Table family | Reason deferred | Follow-up |
 |--------------|-----------------|-----------|
-| Treasure and hoard tables | Wide random-result tables need positional column reconstruction; pdfjs line text alone can interleave ranges, coins, gems, and item subtables. | `loreweaver-0m9.5.13` |
-| Other wide/nested DM reference tables | These need the same smarter extractor before they can be emitted without lossy or misordered rows. | `loreweaver-0m9.5.13` |
+| Other wide/nested DM reference tables | Add a dedicated anchor and reconstruction rule before emitting them; tables whose text wraps within cells may need raw pdfjs x/y positions rather than `PageText.lines` alone. | Create a follow-up from the full-PDF coverage audit with the exact table fixture. |
 
 ## Section-anchor table
 
