@@ -1,11 +1,9 @@
 /**
  * Reference-table parser for the D&D 5e SRD 5.1 importer.
  *
- * PDF text extraction does not preserve table semantics, so this parser uses
- * deliberately narrow per-table anchors plus row reconstruction heuristics for
- * the freestanding tables covered today. Some SRD treasure tables are emitted
- * as interleaved column blocks, so those use a separate column-block
- * reconstruction pass.
+ * PDF text extraction does not preserve table semantics, so this parser stays
+ * deliberately narrow: row-regex reconstruction for covered reference tables
+ * and column-block reconstruction for covered SRD treasure tables.
  */
 
 import type { PageText, TableExtraction } from './types.js';
@@ -132,6 +130,7 @@ function parseXpThresholds(
 
 const TREASURE_TABLE_ANCHOR =
   /^(Individual Treasure|Treasure Hoard): Challenge\s+.+$/i;
+const TREASURE_TABLE_END_HEADING = /^Using (a )?Magic Items?$/i;
 const D100_RANGE = /^\d{2,3}\s*[-\u2013\u2014]\s*\d{1,3}$/;
 const EMPTY_TREASURE_CELL = /^[-\u2013\u2014]+$/;
 
@@ -211,7 +210,10 @@ function collectTreasureTableLines(
     if (line.length === 0) {
       continue;
     }
-    if (TREASURE_TABLE_ANCHOR.test(line)) {
+    if (
+      TREASURE_TABLE_ANCHOR.test(line) ||
+      TREASURE_TABLE_END_HEADING.test(line)
+    ) {
       break;
     }
     lines.push(line);

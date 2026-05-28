@@ -101,6 +101,20 @@ const INTERLEAVED_TREASURE_PAGE = page(136, [
   'Table A',
 ]);
 
+const INCOMPLETE_TREASURE_PAGE = page(137, [
+  'Individual Treasure: Challenge 0-4',
+  'd100',
+  'CP',
+  'SP',
+  '01-50',
+  '51-100',
+  '5d6 (17)',
+  '4d6 (14)',
+  '3d6 (10)',
+  'Using Magic Items',
+  'A magic item is a rare and precious thing.',
+]);
+
 describe('parseTables', () => {
   it('extracts the two-column ability-check DC table', () => {
     const tables = parseTables([DIFFICULTY_CLASSES_PAGE]);
@@ -190,6 +204,10 @@ describe('parseTables', () => {
         sourcePage: 136,
       },
     ]);
+  });
+
+  it('rejects incomplete treasure column blocks instead of consuming later headings as cells', () => {
+    expect(parseTables([INCOMPLETE_TREASURE_PAGE])).toEqual([]);
   });
 
   it('sorts tables by name for stable downstream emission', () => {

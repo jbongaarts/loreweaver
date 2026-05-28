@@ -22,7 +22,7 @@ tracked as child issues).
 | `feat`      | Implemented. Parser extracts feat entries (SRD 5.1: Grappler) with optional prerequisites and description text in `data.description`. Section anchor: `feats` (`startHeading: /^Feats?$\|^Feat Descriptions?$/`, `requireEndHeading: true`). |
 | `condition` | Implemented. Parser extracts all 15 SRD conditions (blinded, charmed, deafened, exhaustion, frightened, grappled, incapacitated, invisible, paralyzed, petrified, poisoned, prone, restrained, stunned, unconscious). Exhaustion carries a structured `levels` array (6 entries). Section anchor: `conditions` (`startHeading: /^Appendix A: Conditions$\|^Conditions$/`). |
 | `hazard`    | Implemented. Parser extracts the 4 SRD 5.1 environmental hazards by exact name match (Brown Mold, Green Slime, Webs, Yellow Mold). Each record carries a `description` field with re-flowed prose. Section anchor: `hazards` (`startHeading: /^Dungeon Hazards$\|^Hazards$/`, `requireEndHeading: true`). |
-| `table`     | Implemented for simple freestanding reference tables (Difficulty Classes, XP Thresholds by Character Level) and treasure tables emitted as interleaved column blocks. Tables whose extracted text needs true x/y positional reconstruction beyond column-block order need a future coverage pass against the vendored source PDF. |
+| `table`     | Implemented for Difficulty Classes, XP Thresholds by Character Level, and SRD treasure challenge tables emitted as interleaved column blocks. `loreweaver-0m9.5.13` wires those treasure tables through `runImporter`; broader table completeness remains the responsibility of the full-PDF coverage audit. |
 | `rule`      | Implemented. Parser extracts labeled rule-text sections from the SRD core-rules chapters (e.g., Cover, Resting) and stores full body text in `data.text`. Section anchor: `coreRules` (`startHeading: /^Using Ability Scores$/`, `endHeading: /^Spell Lists$/`, `requireEndHeading: true`). |
 
 The importer does **not** emit empty stubs for unimplemented kinds. Per the
@@ -104,10 +104,11 @@ sources/dnd5e-srd-5.1/SRD_CC_v5.1.pdf
 - `parseRules.ts` -- narrowed core-rules text -> `RuleExtraction[]` by
   heading-style section labels (e.g. Cover, Resting). Body is re-flowed prose
   in `text`.
-- `parseTables.ts` -- narrowed core-rules text -> `TableExtraction[]` by
-  per-table anchors plus conservative row reconstruction for simple reference
-  tables and column-block reconstruction for SRD treasure tables. Rows are
-  emitted as structured arrays in `data.rows`.
+- `parseTables.ts` -- narrowed core-rules and treasure-table text ->
+  `TableExtraction[]` by per-table anchors plus conservative row
+  reconstruction for simple reference tables and column-block reconstruction
+  for SRD treasure tables. Rows are emitted as structured arrays in
+  `data.rows`.
 - `emit.ts` -- `SpellExtraction[]` + class index + `ConditionExtraction[]` +
   `HazardExtraction[]` + `ActionExtraction[]` + `RuleExtraction[]` +
   `TableExtraction[]` -> validated `RulesPack`, written deterministically
@@ -118,21 +119,21 @@ sources/dnd5e-srd-5.1/SRD_CC_v5.1.pdf
 
 ## Reference-table coverage
 
-The table parser intentionally covers cases whose extracted text has
-deterministic reconstruction rules:
+The table parser intentionally covers only cases whose extracted text has a
+reviewed deterministic reconstruction rule:
 
 | Table | Record key | Reason it is covered |
 |-------|------------|----------------------|
 | Difficulty Classes | `table:difficulty-classes` | Two-column label/DC rows reconstruct cleanly from line text. |
 | XP Thresholds by Character Level | `table:xp-thresholds-by-character-level` | Fixed five-column numeric threshold rows reconstruct cleanly from line text. |
-| Individual Treasure challenge tables | `table:individual-treasure-challenge-<range>` | The d100 ranges form a leading block and each currency column forms an equal-length block that can be pivoted into rows. |
-| Treasure Hoard challenge tables | `table:treasure-hoard-challenge-<range>` | The d100 ranges, coin columns, gems/art-object column, and magic-item column can be reconstructed from equal-length column blocks. Empty dash cells are stored as `null`. |
+| Individual Treasure challenge tables | `table:individual-treasure-challenge-<range>` | The `treasureTables` slice is wired through `runImporter`; d100 ranges form a leading block and each currency column forms an equal-length block that can be pivoted into rows. |
+| Treasure Hoard challenge tables | `table:treasure-hoard-challenge-<range>` | The `treasureTables` slice is wired through `runImporter`; d100 ranges, coin columns, gems/art-object column, and magic-item column can be reconstructed from equal-length column blocks. Empty dash cells are stored as `null`. |
 
 Tables not covered by the current parser:
 
 | Table family | Reason deferred | Follow-up |
 |--------------|-----------------|-----------|
-| Other wide/nested DM reference tables | Add a dedicated anchor and reconstruction rule before emitting them; tables whose text wraps within cells may need raw pdfjs x/y positions rather than `PageText.lines` alone. | Create a follow-up from the full-PDF coverage audit with the exact table fixture. |
+| Other wide/nested DM reference tables | `loreweaver-0m9.5.13` does not claim all SRD tables. Add a dedicated anchor and reconstruction rule before emitting each additional table family; tables whose text wraps within cells may need raw pdfjs x/y positions rather than `PageText.lines` alone. | Create a follow-up from the full-PDF coverage audit with the exact table fixture. |
 
 ## Section-anchor table
 
@@ -148,8 +149,9 @@ dispatch. Each entry is a `SectionAnchorOptions` value:
 | `requireEndHeading`  | If `true`, an unmatched `endHeading` throws `SectionNotFoundError('end')` instead of slicing to EOF.   |
 
 `SRD_5_1_DEFAULT_SECTION_ANCHORS` is the live table consumed by the
-orchestrator. Today it covers seven slices. Freestanding `table` records reuse
-the `coreRules` slice because the covered tables live there.
+orchestrator. Today it covers eight slices. Freestanding `table` records use
+the `coreRules` slice for simple reference tables and the `treasureTables`
+slice for treasure challenge tables.
 
 | Anchor key           | `startHeading`                                 | `endHeading`                                                | `requireEndHeading` |
 |----------------------|------------------------------------------------|-------------------------------------------------------------|---------------------|
@@ -160,6 +162,7 @@ the `coreRules` slice because the covered tables live there.
 | `conditions`         | `/^Appendix A: Conditions$\|^Conditions$/`     | `/^Appendix [B-Z]:\|^Open Game License\|^Legal Information\|^Monster (Statistics\|Lists?)$/i` | false (may run to EOF) |
 | `feats`              | `/^Feats?$\|^Feat Descriptions?$/`             | `/^(Using Ability Scores\|Adventuring\|Combat\|Equipment\|Monsters\|Magic Items\|Running the Game\|Chapter \d+\|Spell Lists?)$\|^Appendix\b/i` | `true` |
 | `hazards`            | `/^Dungeon Hazards$\|^Hazards$/`               | `/^(Traps\|Sample Traps\|Wilderness Hazards\|Monsters\|Magic Items\|Appendix\|Chapter \d+\|Open Game License\|Legal Information)$/i` | `true` |
+| `treasureTables`     | `/^Treasure$/`                                 | `/^Using (a )?Magic Items?$/i`                          | `true`              |
 
 Anchors are deliberately tight (`^...$`) so a body-prose mention of a chapter
 title can't false-positive. Tests in `test/importers/dnd5e-srd-5.1/sections.test.ts`
@@ -220,8 +223,12 @@ The importer is deterministic in two senses:
   output passes `validateRulesPack`.
 - `packages/core/test/importers/dnd5e-srd-5.1/parseTables.test.ts` -- unit
   tests for the freestanding table parser, including a two-column DC table and
-  a multi-column encounter-threshold table.
+  a multi-column encounter-threshold table, treasure column-block
+  reconstruction, and malformed treasure blocks that must not consume later
+  headings as cells.
 - `packages/core/test/importers/dnd5e-srd-5.1/pipeline.test.ts` -- end-to-end
   test against a small fixture PDF generated at test time via `pdfkit`, to
   exercise the full extract -> parse -> emit pipeline without requiring the
-  full SRD PDF to be present.
+  full SRD PDF to be present. The fixture includes a bounded treasure section
+  so `runImporter` must emit both individual-treasure and treasure-hoard table
+  records.

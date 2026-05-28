@@ -214,6 +214,15 @@ export const SRD_5_1_DEFAULT_SECTION_ANCHORS = {
       /^(Traps|Sample Traps|Wilderness Hazards|Monsters|Magic Items|Appendix|Chapter \d+|Open Game License|Legal Information)$/i,
     requireEndHeading: true,
   },
+  // SRD 5.1 treasure tables live in the "Treasure" section, before the
+  // following magic-item rules. Use the first rules heading inside that next
+  // section as the end boundary instead of "Magic Items" itself because
+  // "Magic Items" is also a treasure-hoard table column header.
+  treasureTables: {
+    startHeading: /^Treasure$/,
+    endHeading: /^Using (a )?Magic Items?$/i,
+    requireEndHeading: true,
+  },
 } as const satisfies Record<string, SectionAnchorOptions>;
 
 export type Srd51SectionAnchors = {
@@ -224,4 +233,5 @@ export type Srd51SectionAnchors = {
   readonly conditions: SectionAnchorOptions;
   readonly feats: SectionAnchorOptions;
   readonly hazards: SectionAnchorOptions;
+  readonly treasureTables: SectionAnchorOptions;
 };

@@ -225,4 +225,13 @@ describe('SRD_5_1_DEFAULT_SECTION_ANCHORS — sanity', () => {
     expect(anchor.startHeading.test('Actions in Combat')).toBe(true);
     expect(anchor.requireEndHeading).toBe(true);
   });
+
+  it('treasure-tables anchor matches "Treasure" and requires a magic-item boundary', () => {
+    const anchor = SRD_5_1_DEFAULT_SECTION_ANCHORS.treasureTables;
+    expect(anchor.startHeading.test('Treasure')).toBe(true);
+    expect(anchor.endHeading?.test('Using Magic Items')).toBe(true);
+    expect(anchor.endHeading?.test('Using a Magic Item')).toBe(true);
+    expect(anchor.endHeading?.test('Magic Items')).toBe(false);
+    expect(anchor.requireEndHeading).toBe(true);
+  });
 });
