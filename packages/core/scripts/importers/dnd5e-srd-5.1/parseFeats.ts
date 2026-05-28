@@ -43,10 +43,10 @@ function isPrereqLine(line: string): RegExpExecArray | null {
 }
 
 /**
- * Heuristic: a feat name is a short (≤ 60 chars), title-case line whose first
+ * Heuristic: a feat name is a short (<= 60 chars), title-case line whose first
  * character is an uppercase letter. It must not look like a "Prerequisite:"
  * line, a bullet line, or obvious body prose (which starts with "You", "While",
- * "When", "If", "As", etc. — common benefit-text sentence starters).
+ * "When", "If", "As", etc. - common benefit-text sentence starters).
  */
 function isFeatName(line: string): boolean {
   const t = line.trim();

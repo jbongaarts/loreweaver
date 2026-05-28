@@ -186,6 +186,10 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(keys).toContain('condition:blinded');
     expect(keys).toContain('condition:prone');
     expect(keys).toContain('feat:grappler');
+    // Assert the feat set is exactly Grappler — no bogus chapter headings
+    // promoted as feat names by the heuristic.
+    const featKeys = keys.filter((k) => k.startsWith('feat:'));
+    expect(featKeys).toEqual(['feat:grappler']);
 
     const acid = pack.records.find((r) => r.key === 'spell:acid-splash');
     expect(acid?.name).toBe('Acid Splash');
@@ -340,6 +344,27 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     // descriptions to EOF and let any later content bleed in. With
     // requireEndHeading: true, the importer must refuse to run.
     await writeFixturePdf(pdfPath, [SPELL_LISTS_PAGE, SPELLS_PAGE]);
+    await expect(runImporter({ pdfPath, outDir })).rejects.toThrow(
+      /end heading not found/,
+    );
+  });
+
+  it('fails closed when the feats end heading is missing', async () => {
+    const workDir = makeTmpDir();
+    const pdfPath = join(workDir, 'fixture.pdf');
+    const outDir = join(workDir, 'pack');
+    // All sections except the feats end heading are present. FEATS_PAGE is
+    // placed last so no subsequent heading matches the feats endHeading pattern.
+    // With requireEndHeading: true on the feats anchor, the importer must
+    // throw SectionNotFoundError rather than silently slice to EOF (which would
+    // let later chapter headings be promoted as bogus feat records).
+    await writeFixturePdf(pdfPath, [
+      SPELL_LISTS_PAGE,
+      SPELLS_PAGE,
+      MONSTERS_PAGE,
+      CONDITIONS_PAGE,
+      FEATS_PAGE,
+    ]);
     await expect(runImporter({ pdfPath, outDir })).rejects.toThrow(
       /end heading not found/,
     );
