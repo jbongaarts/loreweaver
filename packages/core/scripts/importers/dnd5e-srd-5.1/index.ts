@@ -13,7 +13,7 @@
  * spell parser over the whole PDF (which would let class-list text and
  * unrelated chapters bleed into the last spell's body).
  *
- * Scope today: spells + conditions + feats + hazards + actions + rules.
+ * Scope today: spells, conditions, feats, hazards, actions, and rules.
  * Other SRD record kinds are tracked under `loreweaver-0m9.5` child issues;
  * until those parsers ship the importer deliberately omits them so the
  * generated pack does not claim coverage it does not have. See `README.md`

@@ -1,12 +1,11 @@
 // Kind-specific schema validation for rules records.
 //
 // Every record kind has a baseline validator that all systems share. Where a
-// system supplies structured data for a given kind (today: `dnd5e-srd` for
-// spell/creature/class, `pathfinder2e-remaster` for ancestry/background/
-// class/feat/equipment/spell), a system-specific validator layers additional
+// system supplies structured data for a given kind (today: `dnd5e-srd` and
+// `pathfinder2e-remaster`), a system-specific validator layers additional
 // shape checks on top. Unregistered (system, kind) pairs fall through to the
-// baseline check, so a new importer can ship records before its deeper
-// schemas exist.
+// baseline check, so a new importer can ship records before its deeper schemas
+// exist.
 
 import type { RulesRecord, RulesRecordKind } from './types.js';
 import { RulesPackError } from './types.js';
@@ -219,6 +218,11 @@ function validateDnd5eHazard(record: RulesRecord, path: string): void {
   reqStr(data, 'description', `${path}.data`);
 }
 
+function validateDnd5eAction(record: RulesRecord, path: string): void {
+  const data = dataObj(record, path);
+  reqStr(data, 'description', `${path}.data`);
+}
+
 function validatePf2eAncestry(record: RulesRecord, path: string): void {
   const data = dataObj(record, path);
   reqInt(data, 'hitPoints', `${path}.data`, 1);
@@ -301,6 +305,7 @@ const SYSTEM_KIND_VALIDATORS: Record<
     condition: validateDnd5eCondition,
     feat: validateDnd5eFeat,
     hazard: validateDnd5eHazard,
+    action: validateDnd5eAction,
   },
   'pathfinder2e-remaster': {
     ancestry: validatePf2eAncestry,

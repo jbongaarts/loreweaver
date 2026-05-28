@@ -350,6 +350,20 @@ describe('rules pack validation', () => {
     expect(pack.records[0].kind).toBe('spell');
   });
 
+  it('rejects dnd5e action records missing a description', () => {
+    const pack = validRulesPack({
+      records: [
+        record('action:attack', {
+          kind: 'action',
+          name: 'Attack',
+          data: {},
+        }),
+      ],
+    });
+    expect(() => validateRulesPack(pack)).toThrow(RulesPackError);
+    expect(() => validateRulesPack(pack)).toThrow(/data\.description/);
+  });
+
   it('rejects rule records without a text body', () => {
     const pack = validRulesPack({
       records: [
