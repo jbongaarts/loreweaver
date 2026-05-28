@@ -140,6 +140,13 @@ export function parseRules(pages: readonly PageText[]): RuleExtraction[] {
     const trimmed = line.trim();
     if (trimmed.length === 0 || isRuleHeading(trimmed) === false) continue;
 
+    const previous = flat[i - 1]?.line.trim();
+    const atSliceStart = i === 0;
+    const atPageStart = i > 0 && flat[i - 1]?.page !== flat[i].page;
+    const afterBlank = previous === undefined || previous.length === 0;
+    if (atSliceStart === false && atPageStart === false && afterBlank === false)
+      continue;
+
     // If the next non-blank line is also a heading, treat this as a chapter/
     // section wrapper rather than an extractable rule body.
     const next = nextNonBlankLine(flat, i);

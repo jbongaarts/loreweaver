@@ -43,6 +43,27 @@ const ADVANTAGE_AND_UNDERWATER = page(78, [
   'javelin, shortsword, spear, or trident.',
 ]);
 
+const NON_BOUNDARY_TITLE_CASE = page(79, [
+  'Cover',
+  'Walls and trees can provide cover during combat.',
+  'This paragraph includes Special Cases',
+  'that are still prose and not a new section heading.',
+  '',
+  'Resting',
+  'A short rest is at least 1 hour long.',
+]);
+
+const DIFFICULTY_CLASSES_TABLE = page(80, [
+  'Difficulty Classes',
+  'Use the Difficulty Classes table when a task has no explicit DC.',
+  '',
+  'Task Difficulty',
+  'DC',
+  'Very easy 5',
+  'Easy 10',
+  'Medium 15',
+]);
+
 describe('parseRules', () => {
   it('extracts labeled rules and sorts by name', () => {
     const rules = parseRules([COVER_AND_RESTING, ADVANTAGE_AND_UNDERWATER]);
@@ -81,6 +102,21 @@ describe('parseRules', () => {
     const underwater = rules.find((r) => r.name === 'Underwater Combat');
     expect(cover?.sourcePage).toBe(77);
     expect(underwater?.sourcePage).toBe(78);
+  });
+
+  it('does not promote title-case prose lines that are not at a boundary', () => {
+    const rules = parseRules([NON_BOUNDARY_TITLE_CASE]);
+    const names = rules.map((r) => r.name);
+    expect(names).toEqual(['Cover', 'Resting']);
+    expect(names).not.toContain('Special Cases');
+  });
+
+  it('does not promote table labels or short headers into rule entries', () => {
+    const rules = parseRules([DIFFICULTY_CLASSES_TABLE]);
+    const names = rules.map((r) => r.name);
+    expect(names).toContain('Difficulty Classes');
+    expect(names).not.toContain('Task Difficulty');
+    expect(names).not.toContain('DC');
   });
 
   it('returns an empty array for empty input', () => {

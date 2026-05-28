@@ -5,8 +5,8 @@ Deterministic extractor for the D&D 5th Edition System Reference Document 5.1
 writes a `manifest.json` + `records.json` pair compatible with
 `loadRulesPackFromDirectory`.
 
-Tracked work: beads `loreweaver-0m9.5` (foundation + spell parser this
-session; remaining kinds are child issues).
+Tracked work: beads `loreweaver-0m9.5` (remaining unimplemented kinds are
+tracked as child issues).
 
 ## Scope today
 
@@ -18,7 +18,7 @@ session; remaining kinds are child issues).
 | `background`| SRD 5.1 does not publish backgrounds; see ADR 0005. |
 | `ancestry`  | SRD 5.1 publishes races, not species. Tracked as a child kind under `loreweaver-0m9.5`. |
 | `equipment` | Not implemented. Child of `loreweaver-0m9.5`. |
-| `feat`      | Not implemented. Child of `loreweaver-0m9.5`. |
+| `feat`      | Implemented. Parser extracts feat entries (SRD 5.1: Grappler) with optional prerequisites and description text in `data.description`. Section anchor: `feats` (`startHeading: /^Feats?$\|^Feat Descriptions?$/`, `requireEndHeading: true`). |
 | `condition` | Implemented. Parser extracts all 15 SRD conditions (blinded, charmed, deafened, exhaustion, frightened, grappled, incapacitated, invisible, paralyzed, petrified, poisoned, prone, restrained, stunned, unconscious). Exhaustion carries a structured `levels` array (6 entries). Section anchor: `conditions` (`startHeading: /^Appendix A: Conditions$|^Conditions$/`). |
 | `hazard`    | Implemented. Parser extracts the 4 SRD 5.1 environmental hazards by exact name match (Brown Mold, Green Slime, Webs, Yellow Mold). Each record carries a `description` field with re-flowed prose. Section anchor: `hazards` (`startHeading: /^Dungeon Hazards$\|^Hazards$/`, `requireEndHeading: true`). |
 | `table`     | Not implemented. Child of `loreweaver-0m9.5`. |
