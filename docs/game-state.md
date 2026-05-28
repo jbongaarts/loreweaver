@@ -6,15 +6,21 @@ through deterministic state tools.
 
 ## Tables
 
-`character` is a singleton row (`id = 1`) for the active character sheet. It is
-the convergence target for character creation and future import flows. The
-initial schema tracks identity, class, level, hit points, ability scores, and
-conditions. See `docs/character-creation.md` for the creation flow contract and
-the deferred importer mandate.
+`character` holds one row per party member, keyed by a `TEXT` id (e.g. `pc-1`,
+`pc-2`). A `role` column distinguishes player characters (`role = 'pc'`) from
+companions, familiars, and hirelings. Each row tracks identity, class, level,
+hit points, ability scores, and conditions. The party-wide active character is
+tracked in `meta.active_character_id`; deterministic mutations resolve their
+target by id, defaulting to the acting/active character. Solo play is simply a
+one-member party. See `docs/character-creation.md` for the creation flow and
+`docs/multi-pc-design.md` for the multi-PC model. It is the convergence target
+for character creation and future import flows.
 
-`inventory` stores one row per item stack or unique carried object. Each row has
-an application-level `id`, display `name`, quantity, optional location, and JSON
-properties for item-specific metadata.
+`inventory` stores one row per item stack or unique carried object, owned by a
+party member via the `character_id` foreign key. Each row has an
+application-level `id`, display `name`, quantity, optional location, and JSON
+properties for item-specific metadata. Reads are scoped strictly to the owning
+character, so items never bleed across party members.
 
 `plot_flags` stores keyed canonical story facts. Values are encoded as JSON so
 booleans, strings, numbers, arrays, and small objects can be stored without
