@@ -26,6 +26,7 @@ import type {
 import { validateRulesPack } from '../../../src/rules/validate.js';
 import type {
   ConditionExtraction,
+  FeatExtraction,
   SpellCasterClass,
   SpellClassIndex,
   SpellExtraction,
@@ -169,6 +170,10 @@ function conditionKey(name: string): string {
   return `condition:${slug(name)}`;
 }
 
+function featKey(name: string): string {
+  return `feat:${slug(name)}`;
+}
+
 export function conditionExtractionsToRecords(
   conditions: readonly ConditionExtraction[],
 ): RulesRecord[] {
@@ -201,10 +206,37 @@ export function conditionExtractionsToRecords(
   return out;
 }
 
+export function featExtractionsToRecords(
+  feats: readonly FeatExtraction[],
+): RulesRecord[] {
+  const out: RulesRecord[] = feats.map((feat) => {
+    const data: Record<string, unknown> = {
+      description: feat.description,
+    };
+    if (feat.prerequisites !== undefined) {
+      data.prerequisites = feat.prerequisites;
+    }
+    const record: RulesRecord = {
+      systemId: SYSTEM_ID,
+      kind: 'feat',
+      key: featKey(feat.name),
+      name: feat.name,
+      data,
+      source: sourceLabelFor(feat.sourcePage),
+      license: SRD_5_1_LICENSE,
+      provenance: provenanceFor(feat.sourcePage),
+    };
+    return record;
+  });
+  out.sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+  return out;
+}
+
 export interface BuildPackInput {
   readonly spells: readonly SpellExtraction[];
   readonly classIndex: SpellClassIndex;
   readonly conditions: readonly ConditionExtraction[];
+  readonly feats?: readonly FeatExtraction[];
   readonly sourceHash: string;
 }
 
@@ -219,8 +251,9 @@ export function buildPack(input: BuildPackInput): RulesPack {
   }
   const spellRecords = spellExtractionsToRecords(input.spells, classByName);
   const conditionRecords = conditionExtractionsToRecords(input.conditions);
-  const records = [...spellRecords, ...conditionRecords].sort((a, b) =>
-    a.key < b.key ? -1 : a.key > b.key ? 1 : 0,
+  const featRecords = featExtractionsToRecords(input.feats ?? []);
+  const records = [...spellRecords, ...conditionRecords, ...featRecords].sort(
+    (a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0),
   );
   const includedKinds = uniqueKindsOf(records);
   const pack: RulesPack = {
