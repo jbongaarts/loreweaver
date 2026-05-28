@@ -134,6 +134,82 @@ const MONSTERS_PAGE: FixturePage = {
   lines: ['Monsters', 'Goblin', 'Small humanoid (goblinoid), neutral evil.'],
 };
 
+const TREASURE_TABLES_PAGE: FixturePage = {
+  lines: [
+    'Treasure',
+    'Individual Treasure: Challenge 0-4',
+    'd100',
+    'CP',
+    'SP',
+    'EP',
+    'GP',
+    'PP',
+    '01-30',
+    '31-60',
+    '61-70',
+    '5d6 (17)',
+    '-',
+    '-',
+    '-',
+    '4d6 (14)',
+    '-',
+    '-',
+    '-',
+    '3d6 (10)',
+    '-',
+    '-',
+    '-',
+    '-',
+    '-',
+    '-',
+    '',
+    'Treasure Hoard: Challenge 0-4',
+    'd100',
+    'CP',
+    'SP',
+    'GP',
+    'Gems or Art Objects',
+    'Magic Items',
+    '01-06',
+    '07-16',
+    '17-26',
+    '6d6 x 100 (2,100)',
+    '6d6 x 100 (2,100)',
+    '6d6 x 100 (2,100)',
+    '3d6 x 100 (1,050)',
+    '3d6 x 100 (1,050)',
+    '3d6 x 100 (1,050)',
+    '2d6 x 10 (70)',
+    '2d6 x 10 (70)',
+    '2d6 x 10 (70)',
+    '-',
+    '2d6 (7) 10 gp gems',
+    '2d4 (5) 25 gp art objects',
+    '-',
+    '-',
+    'Table A',
+  ],
+};
+
+const TREASURE_TABLES_PAGE_MISSING_END: FixturePage = {
+  lines: [
+    'Treasure',
+    'Individual Treasure: Challenge 0-4',
+    'd100',
+    'CP',
+    '01-30',
+    '5d6 (17)',
+  ],
+};
+
+const MAGIC_ITEMS_PAGE: FixturePage = {
+  lines: [
+    'Magic Items',
+    'Using Magic Items',
+    'Magic items are gleaned from the hoards of conquered monsters.',
+  ],
+};
+
 const COMBAT_ACTIONS_PAGE: FixturePage = {
   lines: [
     'Actions in Combat',
@@ -304,6 +380,8 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       SPELL_LISTS_PAGE,
       SPELLS_PAGE,
       MONSTERS_PAGE,
+      TREASURE_TABLES_PAGE,
+      MAGIC_ITEMS_PAGE,
       COMBAT_ACTIONS_PAGE,
       MAKING_AN_ATTACK_PAGE,
       HAZARDS_PAGE,
@@ -318,11 +396,11 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(result.counts.hazards).toBe(1);
     expect(result.counts.actions).toBe(10);
     expect(result.counts.rules).toBe(2);
-    expect(result.counts.tables).toBe(2);
+    expect(result.counts.tables).toBe(4);
     expect(result.sourceHash).toMatch(/^[0-9a-f]{64}$/);
 
     const pack = loadRulesPackFromDirectory(outDir);
-    expect(pack.records).toHaveLength(20);
+    expect(pack.records).toHaveLength(22);
     const keys = pack.records.map((r) => r.key).sort();
     expect(keys).toContain('action:attack');
     expect(keys).toContain('action:cast-a-spell');
@@ -368,6 +446,8 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     const tableKeys = keys.filter((k) => k.startsWith('table:'));
     expect(tableKeys).toEqual([
       'table:difficulty-classes',
+      'table:individual-treasure-challenge-0-4',
+      'table:treasure-hoard-challenge-0-4',
       'table:xp-thresholds-by-character-level',
     ]);
 
@@ -440,6 +520,53 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       ['3rd', 75, 150, 225, 400],
       ['4th', 125, 250, 375, 500],
     ]);
+
+    const individualTreasureTable = pack.records.find(
+      (r) => r.key === 'table:individual-treasure-challenge-0-4',
+    );
+    expect(
+      (individualTreasureTable?.data as Record<string, unknown>).columns,
+    ).toEqual(['d100', 'CP', 'SP', 'EP', 'GP', 'PP']);
+    expect(
+      (individualTreasureTable?.data as Record<string, unknown>).rows,
+    ).toEqual([
+      ['01-30', '5d6 (17)', null, null, null, null],
+      ['31-60', null, '4d6 (14)', null, null, null],
+      ['61-70', null, null, '3d6 (10)', null, null],
+    ]);
+
+    const treasureHoardTable = pack.records.find(
+      (r) => r.key === 'table:treasure-hoard-challenge-0-4',
+    );
+    expect(
+      (treasureHoardTable?.data as Record<string, unknown>).columns,
+    ).toEqual(['d100', 'CP', 'SP', 'GP', 'Gems or Art Objects', 'Magic Items']);
+    expect((treasureHoardTable?.data as Record<string, unknown>).rows).toEqual([
+      [
+        '01-06',
+        '6d6 x 100 (2,100)',
+        '3d6 x 100 (1,050)',
+        '2d6 x 10 (70)',
+        null,
+        null,
+      ],
+      [
+        '07-16',
+        '6d6 x 100 (2,100)',
+        '3d6 x 100 (1,050)',
+        '2d6 x 10 (70)',
+        '2d6 (7) 10 gp gems',
+        null,
+      ],
+      [
+        '17-26',
+        '6d6 x 100 (2,100)',
+        '3d6 x 100 (1,050)',
+        '2d6 x 10 (70)',
+        '2d4 (5) 25 gp art objects',
+        'Table A',
+      ],
+    ]);
   });
 
   it('produces a byte-identical pack across two runs over the same PDF', async () => {
@@ -453,6 +580,8 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       SPELL_LISTS_PAGE,
       SPELLS_PAGE,
       MONSTERS_PAGE,
+      TREASURE_TABLES_PAGE,
+      MAGIC_ITEMS_PAGE,
       COMBAT_ACTIONS_PAGE,
       MAKING_AN_ATTACK_PAGE,
       HAZARDS_PAGE,
@@ -481,6 +610,8 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       SPELL_LISTS_PAGE,
       SPELLS_PAGE,
       MONSTERS_PAGE,
+      TREASURE_TABLES_PAGE,
+      MAGIC_ITEMS_PAGE,
       COMBAT_ACTIONS_PAGE,
       MAKING_AN_ATTACK_PAGE,
       HAZARDS_PAGE,
@@ -508,6 +639,8 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       SPELL_LISTS_PAGE,
       SPELLS_PAGE,
       MONSTERS_PAGE,
+      TREASURE_TABLES_PAGE,
+      MAGIC_ITEMS_PAGE,
       COMBAT_ACTIONS_PAGE,
       MAKING_AN_ATTACK_PAGE,
       HAZARDS_PAGE,
@@ -636,6 +769,29 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       COMBAT_ACTIONS_PAGE,
       MAKING_AN_ATTACK_PAGE,
       HAZARDS_PAGE_MISSING_END,
+      FEATS_PAGE,
+      CONDITIONS_PAGE,
+    ]);
+
+    await expect(runImporter({ pdfPath, outDir })).rejects.toThrow(
+      SectionNotFoundError,
+    );
+  });
+
+  it('fails closed when the treasure-table end heading is missing', async () => {
+    const workDir = makeTmpDir();
+    const pdfPath = join(workDir, 'fixture.pdf');
+    const outDir = join(workDir, 'pack');
+    await writeFixturePdf(pdfPath, [
+      CORE_RULES_PAGE_ONE,
+      CORE_RULES_PAGE_TWO,
+      SPELL_LISTS_PAGE,
+      SPELLS_PAGE,
+      MONSTERS_PAGE,
+      TREASURE_TABLES_PAGE_MISSING_END,
+      COMBAT_ACTIONS_PAGE,
+      MAKING_AN_ATTACK_PAGE,
+      HAZARDS_PAGE,
       FEATS_PAGE,
       CONDITIONS_PAGE,
     ]);

@@ -1,9 +1,9 @@
 /**
  * Reference-table parser for the D&D 5e SRD 5.1 importer.
  *
- * PDF text extraction does not preserve table semantics, so this parser uses
- * deliberately narrow per-table anchors plus row reconstruction heuristics for
- * the simple freestanding tables covered today.
+ * PDF text extraction does not preserve table semantics, so this parser stays
+ * deliberately narrow: row-regex reconstruction for covered reference tables
+ * and column-block reconstruction for covered SRD treasure tables.
  */
 
 import type { PageText, TableExtraction } from './types.js';
@@ -128,11 +128,170 @@ function parseXpThresholds(
   };
 }
 
+const TREASURE_TABLE_ANCHOR =
+  /^(Individual Treasure|Treasure Hoard): Challenge\s+.+$/i;
+const TREASURE_TABLE_END_HEADING = /^Using (a )?Magic Items?$/i;
+const D100_RANGE = /^\d{2,3}\s*[-\u2013\u2014]\s*\d{1,3}$/;
+const EMPTY_TREASURE_CELL = /^[-\u2013\u2014]+$/;
+
+function parseTreasureTables(flat: readonly FlatLine[]): TableExtraction[] {
+  const tables: TableExtraction[] = [];
+  for (let i = 0; i < flat.length; i++) {
+    const line = flat[i].line.trim();
+    if (TREASURE_TABLE_ANCHOR.test(line) === false) {
+      continue;
+    }
+    const table = parseTreasureColumnBlockTable(flat, {
+      idx: i,
+      page: flat[i].page,
+    });
+    if (table !== undefined) {
+      tables.push(table);
+    }
+  }
+  return tables;
+}
+
+function parseTreasureColumnBlockTable(
+  flat: readonly FlatLine[],
+  anchor: Anchor,
+): TableExtraction | undefined {
+  const scanLines = collectTreasureTableLines(flat, anchor.idx + 1);
+  const firstRangeIdx = scanLines.findIndex(isD100Range);
+  if (firstRangeIdx <= 0) {
+    return undefined;
+  }
+
+  const columns = normalizeTreasureColumns(scanLines.slice(0, firstRangeIdx));
+  if (columns.length < 2 || columns[0].toLowerCase() !== 'd100') {
+    return undefined;
+  }
+
+  const rowCount = countLeadingD100Ranges(scanLines, firstRangeIdx);
+  if (rowCount === 0) {
+    return undefined;
+  }
+  const ranges = scanLines.slice(firstRangeIdx, firstRangeIdx + rowCount);
+  const cellStartIdx = firstRangeIdx + rowCount;
+  const requiredCellCount = rowCount * (columns.length - 1);
+  const cellLines = scanLines.slice(
+    cellStartIdx,
+    cellStartIdx + requiredCellCount,
+  );
+  if (cellLines.length < requiredCellCount) {
+    return undefined;
+  }
+
+  const rows = ranges.slice(0, rowCount).map((range, rowIdx) => {
+    const row: unknown[] = [normalizeRangeCell(range)];
+    for (let columnIdx = 1; columnIdx < columns.length; columnIdx++) {
+      const cellIdx = (columnIdx - 1) * rowCount + rowIdx;
+      row.push(normalizeTreasureCell(cellLines[cellIdx]));
+    }
+    return row;
+  });
+
+  return {
+    name: normalizeTreasureTableName(flat[anchor.idx].line),
+    columns,
+    rows,
+    sourcePage: anchor.page,
+  };
+}
+
+function collectTreasureTableLines(
+  flat: readonly FlatLine[],
+  startIdx: number,
+): string[] {
+  const lines: string[] = [];
+  const end = Math.min(flat.length, startIdx + MAX_TABLE_SCAN_LINES);
+  for (let i = startIdx; i < end; i++) {
+    const line = flat[i].line.trim();
+    if (line.length === 0) {
+      continue;
+    }
+    if (
+      TREASURE_TABLE_ANCHOR.test(line) ||
+      TREASURE_TABLE_END_HEADING.test(line)
+    ) {
+      break;
+    }
+    lines.push(line);
+  }
+  return lines;
+}
+
+function countLeadingD100Ranges(
+  lines: readonly string[],
+  startIdx: number,
+): number {
+  let count = 0;
+  for (let i = startIdx; i < lines.length; i++) {
+    if (isD100Range(lines[i]) === false) {
+      break;
+    }
+    count++;
+  }
+  return count;
+}
+
+function isD100Range(line: string): boolean {
+  return D100_RANGE.test(line.trim());
+}
+
+function normalizeTreasureColumns(lines: readonly string[]): string[] {
+  const columns: string[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = normalizeWhitespace(lines[i]);
+    const next =
+      lines[i + 1] === undefined
+        ? undefined
+        : normalizeWhitespace(lines[i + 1]);
+    if (
+      /^Gems or$/i.test(line) &&
+      next !== undefined &&
+      /^Art Objects$/i.test(next)
+    ) {
+      columns.push('Gems or Art Objects');
+      i++;
+      continue;
+    }
+    columns.push(line);
+  }
+  return columns;
+}
+
+function normalizeTreasureTableName(line: string): string {
+  return normalizeWhitespace(line)
+    .replace(/[\u2013\u2014]/g, '-')
+    .replace(/\s*-\s*/g, '-');
+}
+
+function normalizeRangeCell(line: string): string {
+  return normalizeTreasureTableName(line).replace(/\s*-\s*/g, '-');
+}
+
+function normalizeTreasureCell(line: string): string | null {
+  const normalized = normalizeWhitespace(line)
+    .replace(/\u00d7/g, 'x')
+    .replace(/[\u2013\u2014]/g, '-');
+  if (EMPTY_TREASURE_CELL.test(normalized)) {
+    return null;
+  }
+  return normalized;
+}
+
+function normalizeWhitespace(line: string): string {
+  return line.replace(/\s+/g, ' ').trim();
+}
+
 export function parseTables(pages: readonly PageText[]): TableExtraction[] {
   const flat = flatten(pages);
-  const tables = [parseDifficultyClasses(flat), parseXpThresholds(flat)].filter(
-    (table): table is TableExtraction => table !== undefined,
-  );
+  const tables = [
+    parseDifficultyClasses(flat),
+    parseXpThresholds(flat),
+    ...parseTreasureTables(flat),
+  ].filter((table): table is TableExtraction => table !== undefined);
   tables.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
   return tables;
 }

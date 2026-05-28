@@ -78,8 +78,9 @@ export async function runImporter(
   const feats = parseFeats(featPages);
   const hazardPages = sliceSection(pages, anchors.hazards);
   const hazards = parseHazards(hazardPages);
+  const treasureTablePages = sliceSection(pages, anchors.treasureTables);
   const rules = parseRules(coreRulePages);
-  const tables = parseTables(coreRulePages);
+  const tables = parseTables([...coreRulePages, ...treasureTablePages]);
   const pack = buildPack({
     spells,
     classIndex,
