@@ -14,11 +14,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
+  actionExtractionsToRecords,
   buildPack,
   spellExtractionsToRecords,
   writePackToDirectory,
 } from '../../../scripts/importers/dnd5e-srd-5.1/emit.js';
 import type {
+  ActionExtraction,
   RuleExtraction,
   SpellCasterClass,
   SpellExtraction,
@@ -86,6 +88,12 @@ const COVER_RULE: RuleExtraction = {
   name: 'Cover',
   text: 'Walls, trees, creatures, and other obstacles can provide cover during combat.',
   sourcePage: 196,
+};
+
+const ATTACK_ACTION: ActionExtraction = {
+  name: 'Attack',
+  description: 'The most common action to take in combat is the Attack action.',
+  sourcePage: 92,
 };
 
 function makeIndex(
@@ -166,6 +174,19 @@ describe('buildPack — validation', () => {
       /Included record kinds: .*rule.*spell|Included record kinds: .*spell.*rule/,
     );
   });
+
+  it('includes "action" in included-kinds when action records are present', () => {
+    const pack = buildPack({
+      spells: [ACID_SPLASH],
+      classIndex: makeIndex([]),
+      conditions: [],
+      actions: [ATTACK_ACTION],
+      sourceHash: FAKE_HASH,
+    });
+    expect(pack.meta.description).toMatch(
+      /Included record kinds: action, spell\b/,
+    );
+  });
 });
 
 describe('spellExtractionsToRecords — record shape', () => {
@@ -205,6 +226,20 @@ describe('spellExtractionsToRecords — record shape', () => {
       'https://dnd.wizards.com/resources/systems-reference-document',
     );
     expect(record.provenance.locator).toBe('p. 211');
+  });
+});
+
+describe('actionExtractionsToRecords — record shape', () => {
+  it('builds action keys of the form "action:<slug>"', () => {
+    const [record] = actionExtractionsToRecords([ATTACK_ACTION]);
+    expect(record.key).toBe('action:attack');
+  });
+
+  it('stores action description in data.description', () => {
+    const [record] = actionExtractionsToRecords([ATTACK_ACTION]);
+    expect((record.data as { description: string }).description).toMatch(
+      /Attack action/,
+    );
   });
 });
 

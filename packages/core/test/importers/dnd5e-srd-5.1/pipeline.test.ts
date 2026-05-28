@@ -134,6 +134,66 @@ const MONSTERS_PAGE: FixturePage = {
   lines: ['Monsters', 'Goblin', 'Small humanoid (goblinoid), neutral evil.'],
 };
 
+const COMBAT_ACTIONS_PAGE: FixturePage = {
+  lines: [
+    'Actions in Combat',
+    'Attack',
+    'The most common action to take in combat is the Attack action.',
+    '',
+    'Cast a Spell',
+    'Spellcasters can use their action to cast a spell with a casting time of 1 action.',
+    '',
+    'Dash',
+    'When you take the Dash action, you gain extra movement for the current turn.',
+    '',
+    'Disengage',
+    "If you take the Disengage action, your movement doesn't provoke opportunity attacks.",
+    '',
+    'Dodge',
+    'When you take the Dodge action, you focus entirely on avoiding attacks.',
+    '',
+    'Help',
+    'You can lend your aid to another creature in the completion of a task.',
+    '',
+    'Hide',
+    'You make a Dexterity (Stealth) check in an attempt to hide.',
+    '',
+    'Ready',
+    'First, you decide what perceivable circumstance will trigger your reaction.',
+    '',
+    'Search',
+    'You devote your attention to finding something.',
+    '',
+    'Use an Object',
+    'You normally interact with an object while doing something else.',
+  ],
+};
+
+const MAKING_AN_ATTACK_PAGE: FixturePage = {
+  lines: [
+    'Making an Attack',
+    'Whether you are striking with a melee weapon, firing a weapon at range,',
+    'or making an attack roll as part of a spell, an attack has a simple structure.',
+  ],
+};
+
+const COMBAT_ACTIONS_PAGE_MISSING_END: FixturePage = {
+  lines: [
+    'Actions in Combat',
+    'Attack',
+    'The most common action to take in combat is the Attack action.',
+    '',
+    'Cast a Spell',
+    'Spellcasters can use their action to cast a spell with a casting time of 1 action.',
+    '',
+    'Use an Object',
+    'You normally interact with an object while doing something else.',
+    '',
+    'Later combat prose without an ending chapter heading',
+    'This line should not be consumed by the action parser to EOF.',
+  ],
+};
+
 // Hazards fixture: mirrors the SRD "Dungeon Hazards" section (Brown Mold only
 // here; 4 hazards in the real SRD). The heading "Dungeon Hazards" matches the
 // hazards startHeading anchor; "Traps" below acts as the end heading.
@@ -208,7 +268,7 @@ const CONDITIONS_PAGE: FixturePage = {
 };
 
 describe('runImporter — end-to-end against a fixture PDF', () => {
-  it('extracts spells, conditions, feats, hazards, and rules — writes a pack that loads through loadRulesPackFromDirectory', async () => {
+  it('extracts spells, conditions, feats, hazards, actions, and rules — writes a pack that loads through loadRulesPackFromDirectory', async () => {
     const workDir = makeTmpDir();
     const pdfPath = join(workDir, 'fixture.pdf');
     const outDir = join(workDir, 'pack');
@@ -218,6 +278,8 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       SPELL_LISTS_PAGE,
       SPELLS_PAGE,
       MONSTERS_PAGE,
+      COMBAT_ACTIONS_PAGE,
+      MAKING_AN_ATTACK_PAGE,
       HAZARDS_PAGE,
       FEATS_PAGE,
       CONDITIONS_PAGE,
@@ -228,12 +290,23 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(result.counts.conditions).toBe(2);
     expect(result.counts.feats).toBe(1);
     expect(result.counts.hazards).toBe(1);
+    expect(result.counts.actions).toBe(10);
     expect(result.counts.rules).toBe(2);
     expect(result.sourceHash).toMatch(/^[0-9a-f]{64}$/);
 
     const pack = loadRulesPackFromDirectory(outDir);
-    expect(pack.records).toHaveLength(8);
+    expect(pack.records).toHaveLength(18);
     const keys = pack.records.map((r) => r.key).sort();
+    expect(keys).toContain('action:attack');
+    expect(keys).toContain('action:cast-a-spell');
+    expect(keys).toContain('action:dash');
+    expect(keys).toContain('action:disengage');
+    expect(keys).toContain('action:dodge');
+    expect(keys).toContain('action:help');
+    expect(keys).toContain('action:hide');
+    expect(keys).toContain('action:ready');
+    expect(keys).toContain('action:search');
+    expect(keys).toContain('action:use-an-object');
     expect(keys).toContain('spell:acid-splash');
     expect(keys).toContain('spell:magic-missile');
     expect(keys).toContain('condition:blinded');
@@ -248,6 +321,19 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     // Assert the hazard set is exactly Brown Mold.
     const hazardKeys = keys.filter((k) => k.startsWith('hazard:'));
     expect(hazardKeys).toEqual(['hazard:brown-mold']);
+    const actionKeys = keys.filter((k) => k.startsWith('action:'));
+    expect(actionKeys).toEqual([
+      'action:attack',
+      'action:cast-a-spell',
+      'action:dash',
+      'action:disengage',
+      'action:dodge',
+      'action:help',
+      'action:hide',
+      'action:ready',
+      'action:search',
+      'action:use-an-object',
+    ]);
     const ruleKeys = keys.filter((k) => k.startsWith('rule:'));
     expect(ruleKeys).toEqual(['rule:cover', 'rule:resting']);
 
@@ -304,6 +390,8 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       SPELL_LISTS_PAGE,
       SPELLS_PAGE,
       MONSTERS_PAGE,
+      COMBAT_ACTIONS_PAGE,
+      MAKING_AN_ATTACK_PAGE,
       HAZARDS_PAGE,
       FEATS_PAGE,
       CONDITIONS_PAGE,
@@ -330,6 +418,8 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       SPELL_LISTS_PAGE,
       SPELLS_PAGE,
       MONSTERS_PAGE,
+      COMBAT_ACTIONS_PAGE,
+      MAKING_AN_ATTACK_PAGE,
       HAZARDS_PAGE,
       FEATS_PAGE,
       CONDITIONS_PAGE,
@@ -355,6 +445,8 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       SPELL_LISTS_PAGE,
       SPELLS_PAGE,
       MONSTERS_PAGE,
+      COMBAT_ACTIONS_PAGE,
+      MAKING_AN_ATTACK_PAGE,
       HAZARDS_PAGE,
       FEATS_PAGE,
       CONDITIONS_PAGE,
@@ -415,6 +507,8 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       SPELL_LISTS_PAGE,
       SPELLS_PAGE,
       MONSTERS_PAGE,
+      COMBAT_ACTIONS_PAGE,
+      MAKING_AN_ATTACK_PAGE,
     ]);
     await expect(runImporter({ pdfPath, outDir })).rejects.toThrow(
       /heading not found/,
@@ -456,6 +550,8 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       SPELL_LISTS_PAGE,
       SPELLS_PAGE,
       MONSTERS_PAGE,
+      COMBAT_ACTIONS_PAGE,
+      MAKING_AN_ATTACK_PAGE,
       CONDITIONS_PAGE,
       FEATS_PAGE,
     ]);
@@ -474,7 +570,30 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       SPELL_LISTS_PAGE,
       SPELLS_PAGE,
       MONSTERS_PAGE,
+      COMBAT_ACTIONS_PAGE,
+      MAKING_AN_ATTACK_PAGE,
       HAZARDS_PAGE_MISSING_END,
+      FEATS_PAGE,
+      CONDITIONS_PAGE,
+    ]);
+
+    await expect(runImporter({ pdfPath, outDir })).rejects.toThrow(
+      SectionNotFoundError,
+    );
+  });
+
+  it('fails closed when the combat-actions end heading is missing', async () => {
+    const workDir = makeTmpDir();
+    const pdfPath = join(workDir, 'fixture.pdf');
+    const outDir = join(workDir, 'pack');
+    await writeFixturePdf(pdfPath, [
+      CORE_RULES_PAGE_ONE,
+      CORE_RULES_PAGE_TWO,
+      SPELL_LISTS_PAGE,
+      SPELLS_PAGE,
+      MONSTERS_PAGE,
+      COMBAT_ACTIONS_PAGE_MISSING_END,
+      HAZARDS_PAGE,
       FEATS_PAGE,
       CONDITIONS_PAGE,
     ]);
