@@ -19,7 +19,7 @@ session; remaining kinds are child issues).
 | `ancestry`  | SRD 5.1 publishes races, not species. Tracked as a child kind under `loreweaver-0m9.5`. |
 | `equipment` | Not implemented. Child of `loreweaver-0m9.5`. |
 | `feat`      | Not implemented. Child of `loreweaver-0m9.5`. |
-| `condition` | Not implemented. Child of `loreweaver-0m9.5`. |
+| `condition` | Implemented. Parser extracts all 15 SRD conditions (blinded, charmed, deafened, exhaustion, frightened, grappled, incapacitated, invisible, paralyzed, petrified, poisoned, prone, restrained, stunned, unconscious). Exhaustion carries a structured `levels` array (6 entries). Section anchor: `conditions` (`startHeading: /^Appendix A: Conditions$|^Conditions$/`). |
 | `hazard`    | Not implemented. Child of `loreweaver-0m9.5`. |
 | `table`     | Not implemented. Child of `loreweaver-0m9.5`. |
 | `rule`      | Not implemented. Child of `loreweaver-0m9.5`. |
@@ -91,7 +91,10 @@ sources/dnd5e-srd-5.1/SRD_CC_v5.1.pdf
   level-school marker lines, then walking backward for the name and forward
   for keyed metadata + description. Class lists are a second pass over the
   spell-lists slice.
-- `emit.ts` -- `SpellExtraction[]` + class index -> validated `RulesPack`,
+- `parseConditions.ts` -- narrowed text -> `ConditionExtraction[]` by exact
+  match against the 15 known condition names. Bullet-point lines become
+  `effects[]`; exhaustion's level table becomes a structured `levels[]` array.
+- `emit.ts` -- `SpellExtraction[]` + class index + `ConditionExtraction[]` -> validated `RulesPack`,
   written deterministically (records sorted by key, fixed field order,
   2-space indent, trailing newline).
 - `index.ts` -- programmatic API + orchestrator: `runImporter({ pdfPath, outDir })`.
@@ -118,6 +121,7 @@ orchestrator. Today it covers two slices:
 |----------------------|------------------------------------------------|-------------------------------------------------------------|---------------------|
 | `spellLists`         | `/^Spell Lists$/`                              | `/^Spells$\|^Spell Descriptions$/`                          | `true`              |
 | `spellDescriptions`  | `/^Spells$\|^Spell Descriptions$/`             | `/^(Monsters\|Magic Items\|Creatures\|NPCs\|Treasure\|Appendix)$/` | `true`              |
+| `conditions`         | `/^Appendix A: Conditions$\|^Conditions$/`     | `/^Appendix [B-Z]:\|^Open Game License\|^Legal Information\|^Monster (Statistics\|Lists?)$/i` | false (may run to EOF) |
 
 Anchors are deliberately tight (`^...$`) so a body-prose mention of a chapter
 title can't false-positive. Tests in `test/importers/dnd5e-srd-5.1/sections.test.ts`

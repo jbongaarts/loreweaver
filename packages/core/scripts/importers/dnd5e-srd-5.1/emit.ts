@@ -25,6 +25,7 @@ import type {
 } from '../../../src/rules/types.js';
 import { validateRulesPack } from '../../../src/rules/validate.js';
 import type {
+  ConditionExtraction,
   SpellCasterClass,
   SpellClassIndex,
   SpellExtraction,
@@ -164,9 +165,46 @@ function buildSpellData(
   return base;
 }
 
+function conditionKey(name: string): string {
+  return `condition:${slug(name)}`;
+}
+
+export function conditionExtractionsToRecords(
+  conditions: readonly ConditionExtraction[],
+): RulesRecord[] {
+  const out: RulesRecord[] = conditions.map((condition) => {
+    const data: Record<string, unknown> = {
+      description: condition.description,
+    };
+    if (condition.effects.length > 0) {
+      data.effects = [...condition.effects];
+    }
+    if (condition.levels !== undefined && condition.levels.length > 0) {
+      data.levels = condition.levels.map((l) => ({
+        level: l.level,
+        effect: l.effect,
+      }));
+    }
+    const record: RulesRecord = {
+      systemId: SYSTEM_ID,
+      kind: 'condition',
+      key: conditionKey(condition.name),
+      name: condition.name,
+      data,
+      source: sourceLabelFor(condition.sourcePage),
+      license: SRD_5_1_LICENSE,
+      provenance: provenanceFor(condition.sourcePage),
+    };
+    return record;
+  });
+  out.sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+  return out;
+}
+
 export interface BuildPackInput {
   readonly spells: readonly SpellExtraction[];
   readonly classIndex: SpellClassIndex;
+  readonly conditions: readonly ConditionExtraction[];
   readonly sourceHash: string;
 }
 
@@ -179,7 +217,11 @@ export function buildPack(input: BuildPackInput): RulesPack {
       bucket ? [...bucket].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)) : [],
     );
   }
-  const records = spellExtractionsToRecords(input.spells, classByName);
+  const spellRecords = spellExtractionsToRecords(input.spells, classByName);
+  const conditionRecords = conditionExtractionsToRecords(input.conditions);
+  const records = [...spellRecords, ...conditionRecords].sort((a, b) =>
+    a.key < b.key ? -1 : a.key > b.key ? 1 : 0,
+  );
   const includedKinds = uniqueKindsOf(records);
   const pack: RulesPack = {
     meta: buildMeta(input.sourceHash, includedKinds),

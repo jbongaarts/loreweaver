@@ -13,7 +13,7 @@
  * spell parser over the whole PDF (which would let class-list text and
  * unrelated chapters bleed into the last spell's body).
  *
- * Scope today: spells only. Other SRD record kinds are tracked under
+ * Scope today: spells + conditions. Other SRD record kinds are tracked under
  * `loreweaver-0m9.5` child issues; until those parsers ship the importer
  * deliberately omits them so the generated pack does not claim coverage it
  * does not have. See `README.md` next to this file for the breakdown.
@@ -23,6 +23,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { buildPack, writePackToDirectory } from './emit.js';
 import { extractPdfText } from './extract.js';
+import { parseConditions } from './parseConditions.js';
 import { parseSpellClassLists, parseSpells } from './parseSpells.js';
 import {
   SRD_5_1_DEFAULT_SECTION_ANCHORS,
@@ -52,18 +53,24 @@ export async function runImporter(
   const pages = await extractPdfText(new Uint8Array(pdfBytes));
 
   const anchors = input.sectionAnchors ?? SRD_5_1_DEFAULT_SECTION_ANCHORS;
-  // Throws SectionNotFoundError if either anchor doesn't match.
+  // Throws SectionNotFoundError if either spell anchor doesn't match.
   const spellDescriptionPages = sliceSection(pages, anchors.spellDescriptions);
   const spellListPages = sliceSection(pages, anchors.spellLists);
 
+  // Throws SectionNotFoundError if the conditions anchor doesn't match.
+  // Conditions is an implemented kind; the importer must fail closed rather
+  // than silently emit a pack that omits conditions because the PDF changed.
+  const conditionPages = sliceSection(pages, anchors.conditions);
+
   const spells = parseSpells(spellDescriptionPages);
   const classIndex = parseSpellClassLists(spellListPages);
-  const pack = buildPack({ spells, classIndex, sourceHash });
+  const conditions = parseConditions(conditionPages);
+  const pack = buildPack({ spells, classIndex, conditions, sourceHash });
   writePackToDirectory(pack, { outDir: input.outDir });
   return {
     outDir: input.outDir,
     sourceHash,
-    counts: { spells: spells.length },
+    counts: { spells: spells.length, conditions: conditions.length },
   };
 }
 
