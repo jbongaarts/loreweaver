@@ -394,6 +394,101 @@ describe('rules pack validation', () => {
     expect(() => validateRulesPack(pack)).toThrow(/data\.rows/);
   });
 
+  it('accepts table records with non-empty columns and scalar rows', () => {
+    const pack = validateRulesPack(
+      validRulesPack({
+        records: [
+          record('table:difficulty-classes', {
+            kind: 'table',
+            name: 'Difficulty Classes',
+            systemId: 'misc-system',
+            data: {
+              columns: ['Task Difficulty', 'DC', 'Applies'],
+              rows: [
+                ['Easy', 10, true],
+                ['Special', null, false],
+              ],
+            },
+          }),
+        ],
+      }),
+    );
+    expect(pack.records[0].kind).toBe('table');
+  });
+
+  it('rejects table records with empty columns', () => {
+    const pack = validRulesPack({
+      records: [
+        record('table:empty-columns', {
+          kind: 'table',
+          name: 'Empty Columns',
+          systemId: 'misc-system',
+          data: { columns: [], rows: [] },
+        }),
+      ],
+    });
+    expect(() => validateRulesPack(pack)).toThrow(RulesPackError);
+    expect(() => validateRulesPack(pack)).toThrow(/data\.columns/);
+  });
+
+  it('rejects table rows whose length does not match columns', () => {
+    const pack = validRulesPack({
+      records: [
+        record('table:difficulty-classes', {
+          kind: 'table',
+          name: 'Difficulty Classes',
+          systemId: 'misc-system',
+          data: {
+            columns: ['Task Difficulty', 'DC'],
+            rows: [['Easy'], ['Hard', 20, 'extra']],
+          },
+        }),
+      ],
+    });
+    expect(() => validateRulesPack(pack)).toThrow(RulesPackError);
+    expect(() => validateRulesPack(pack)).toThrow(
+      /data\.rows\[0\] length must match data\.columns length/,
+    );
+  });
+
+  it('rejects table row cells that are objects or arrays', () => {
+    const objectCellPack = validRulesPack({
+      records: [
+        record('table:object-cell', {
+          kind: 'table',
+          name: 'Object Cell',
+          systemId: 'misc-system',
+          data: {
+            columns: ['Name', 'Value'],
+            rows: [['Easy', { dc: 10 }]],
+          },
+        }),
+      ],
+    });
+    expect(() => validateRulesPack(objectCellPack)).toThrow(RulesPackError);
+    expect(() => validateRulesPack(objectCellPack)).toThrow(
+      /data\.rows\[0\]\[1\]/,
+    );
+
+    const arrayCellPack = validRulesPack({
+      records: [
+        record('table:array-cell', {
+          kind: 'table',
+          name: 'Array Cell',
+          systemId: 'misc-system',
+          data: {
+            columns: ['Name', 'Values'],
+            rows: [['Easy', [10]]],
+          },
+        }),
+      ],
+    });
+    expect(() => validateRulesPack(arrayCellPack)).toThrow(RulesPackError);
+    expect(() => validateRulesPack(arrayCellPack)).toThrow(
+      /data\.rows\[0\]\[1\]/,
+    );
+  });
+
   it('falls through to the baseline data check for unregistered systems', () => {
     const pack = validateRulesPack(
       validRulesPack({

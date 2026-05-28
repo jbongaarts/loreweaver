@@ -12,6 +12,7 @@ import { RulesPackError } from './types.js';
 
 type Obj = Record<string, unknown>;
 type Validator = (record: RulesRecord, path: string) => void;
+type Scalar = string | number | boolean | null;
 
 function dataObj(record: RulesRecord, path: string): Obj {
   const value = record.data;
@@ -114,6 +115,15 @@ function optBool(parent: Obj, key: string, path: string): void {
   }
 }
 
+function isScalar(value: unknown): value is Scalar {
+  return (
+    value === null ||
+    typeof value === 'string' ||
+    typeof value === 'number' ||
+    typeof value === 'boolean'
+  );
+}
+
 // Baseline per-kind validators. Every record of the kind must satisfy these
 // minimum shape constraints. The shared rule is `data` is a non-null object
 // and `description` (if present) is a non-empty string; some kinds add a few
@@ -144,7 +154,10 @@ const BASE_KIND_VALIDATORS: Record<RulesRecordKind, Validator> = {
   table: (record, path) => {
     // Tables always carry column headers and rows.
     const data = dataObj(record, path);
-    reqStrArray(data, 'columns', `${path}.data`);
+    const columns = reqStrArray(data, 'columns', `${path}.data`);
+    if (columns.length === 0) {
+      throw new RulesPackError(`${path}.data.columns must not be empty`);
+    }
     const rows = data.rows;
     if (!Array.isArray(rows)) {
       throw new RulesPackError(`${path}.data.rows must be an array`);
@@ -153,6 +166,18 @@ const BASE_KIND_VALIDATORS: Record<RulesRecordKind, Validator> = {
       if (!Array.isArray(row)) {
         throw new RulesPackError(`${path}.data.rows[${i}] must be an array`);
       }
+      if (row.length !== columns.length) {
+        throw new RulesPackError(
+          `${path}.data.rows[${i}] length must match data.columns length`,
+        );
+      }
+      row.forEach((cell, j) => {
+        if (isScalar(cell) === false) {
+          throw new RulesPackError(
+            `${path}.data.rows[${i}][${j}] must be a string, number, boolean, or null`,
+          );
+        }
+      });
     });
   },
 };
