@@ -27,6 +27,7 @@ import { validateRulesPack } from '../../../src/rules/validate.js';
 import type {
   ActionExtraction,
   ConditionExtraction,
+  EquipmentExtraction,
   FeatExtraction,
   HazardExtraction,
   RuleExtraction,
@@ -194,6 +195,10 @@ function tableKey(name: string): string {
   return `table:${slug(name)}`;
 }
 
+function equipmentKey(name: string): string {
+  return `equipment:${slug(name)}`;
+}
+
 export function conditionExtractionsToRecords(
   conditions: readonly ConditionExtraction[],
 ): RulesRecord[] {
@@ -345,6 +350,67 @@ export function tableExtractionsToRecords(
   return out;
 }
 
+/**
+ * Build the `data` payload for one equipment record. Field insertion order is
+ * fixed (so emitted JSON is byte-stable) and category-specific fields are
+ * present only for the matching `category`. The record validates against the
+ * `equipment` baseline kindSchema (a non-null `data` object); see
+ * `kindSchemas.ts`.
+ */
+function buildEquipmentData(
+  item: EquipmentExtraction,
+): Record<string, unknown> {
+  const data: Record<string, unknown> = { category: item.category };
+  if (item.cost !== undefined) {
+    data.cost = item.cost;
+  }
+  if (item.category === 'weapon') {
+    if (item.damageDie !== undefined) {
+      data.damageDie = item.damageDie;
+    }
+    if (item.damageType !== undefined) {
+      data.damageType = item.damageType;
+    }
+    data.properties = [...(item.properties ?? [])];
+  }
+  if (item.category === 'armor') {
+    if (item.ac !== undefined) {
+      data.ac = item.ac;
+    }
+    if (item.armorType !== undefined) {
+      data.armorType = item.armorType;
+    }
+    data.stealthDisadvantage = item.stealthDisadvantage ?? false;
+    if (item.strengthRequirement !== undefined) {
+      data.strengthRequirement = item.strengthRequirement;
+    }
+  }
+  if (item.weight !== undefined) {
+    data.weight = item.weight;
+  }
+  return data;
+}
+
+export function equipmentExtractionsToRecords(
+  equipment: readonly EquipmentExtraction[],
+): RulesRecord[] {
+  const out: RulesRecord[] = equipment.map((item) => {
+    const record: RulesRecord = {
+      systemId: SYSTEM_ID,
+      kind: 'equipment',
+      key: equipmentKey(item.name),
+      name: item.name,
+      data: buildEquipmentData(item),
+      source: sourceLabelFor(item.sourcePage),
+      license: SRD_5_1_LICENSE,
+      provenance: provenanceFor(item.sourcePage),
+    };
+    return record;
+  });
+  out.sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+  return out;
+}
+
 export interface BuildPackInput {
   readonly spells: readonly SpellExtraction[];
   readonly classIndex: SpellClassIndex;
@@ -354,6 +420,7 @@ export interface BuildPackInput {
   readonly actions?: readonly ActionExtraction[];
   readonly rules?: readonly RuleExtraction[];
   readonly tables?: readonly TableExtraction[];
+  readonly equipment?: readonly EquipmentExtraction[];
   readonly sourceHash: string;
 }
 
@@ -373,6 +440,7 @@ export function buildPack(input: BuildPackInput): RulesPack {
   const actionRecords = actionExtractionsToRecords(input.actions ?? []);
   const ruleRecords = ruleExtractionsToRecords(input.rules ?? []);
   const tableRecords = tableExtractionsToRecords(input.tables ?? []);
+  const equipmentRecords = equipmentExtractionsToRecords(input.equipment ?? []);
   const records = [
     ...spellRecords,
     ...conditionRecords,
@@ -381,6 +449,7 @@ export function buildPack(input: BuildPackInput): RulesPack {
     ...actionRecords,
     ...ruleRecords,
     ...tableRecords,
+    ...equipmentRecords,
   ].sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
   const includedKinds = uniqueKindsOf(records);
   const pack: RulesPack = {

@@ -137,6 +137,43 @@ export interface TableExtraction {
   readonly sourcePage: number;
 }
 
+/** Which Equipment-chapter table an extraction came from. */
+export type EquipmentCategory = 'weapon' | 'armor' | 'gear';
+
+/**
+ * An equipment entry as extracted from the SRD source, before conversion to a
+ * `RulesRecord`. SRD 5.1 presents equipment as tables, so the shared fields
+ * (`cost`, `weight`) are verbatim cell text; category-specific structured
+ * fields are present only for the matching `category`:
+ *   - weapons carry `damageDie`, `damageType`, and `properties`;
+ *   - armor carries `ac`, `armorType`, `stealthDisadvantage`, and (when the
+ *     table lists one) `strengthRequirement`.
+ */
+export interface EquipmentExtraction {
+  readonly name: string;
+  readonly category: EquipmentCategory;
+  /** Verbatim cost cell, e.g. "2 gp". Absent when the table lists none. */
+  readonly cost?: string;
+  /** Verbatim weight cell, e.g. "1 lb.". Absent when the table lists none. */
+  readonly weight?: string;
+  /** Weapon damage die, e.g. "1d4". */
+  readonly damageDie?: string;
+  /** Weapon damage type, lowercased: "bludgeoning" | "piercing" | "slashing". */
+  readonly damageType?: string;
+  /** Weapon properties, e.g. ["Finesse", "light", "thrown (range 20/60)"]. */
+  readonly properties?: readonly string[];
+  /** Armor class text, e.g. "11 + Dex modifier" or "18". */
+  readonly ac?: string;
+  /** Armor weight class: "light" | "medium" | "heavy" | "shield". */
+  readonly armorType?: string;
+  /** Armor stealth-check disadvantage flag. */
+  readonly stealthDisadvantage?: boolean;
+  /** Minimum Strength score the armor requires, e.g. 15 for plate. */
+  readonly strengthRequirement?: number;
+  /** 1-based page in the source PDF where the entry's row appears. */
+  readonly sourcePage: number;
+}
+
 export interface ImporterCounts {
   readonly spells: number;
   readonly conditions: number;
@@ -145,6 +182,7 @@ export interface ImporterCounts {
   readonly actions: number;
   readonly rules: number;
   readonly tables: number;
+  readonly equipment: number;
 }
 
 export interface ImporterRunResult {
