@@ -73,9 +73,25 @@ export interface ConditionExtraction {
   readonly sourcePage: number;
 }
 
+/**
+ * A feat entry as extracted from the SRD source, before conversion to a
+ * `RulesRecord`. `prerequisites` is the raw prerequisite text (e.g.
+ * "Strength 13 or higher"); `description` is the benefit body, re-flowed.
+ */
+export interface FeatExtraction {
+  readonly name: string;
+  /** Raw prerequisite text, absent when the feat has none. */
+  readonly prerequisites?: string;
+  /** Benefit text, re-flowed into paragraphs. */
+  readonly description: string;
+  /** 1-based page in the source PDF where the feat entry begins. */
+  readonly sourcePage: number;
+}
+
 export interface ImporterCounts {
   readonly spells: number;
   readonly conditions: number;
+  readonly feats: number;
 }
 
 export interface ImporterRunResult {

@@ -171,10 +171,26 @@ export const SRD_5_1_DEFAULT_SECTION_ANCHORS = {
     endHeading:
       /^Appendix [B-Z]:|^Open Game License|^Legal Information|^Monster (Statistics|Lists?)$/i,
   },
+  // SRD 5.1 places feats under "Feats" in Chapter 6 (Customization Options).
+  // requireEndHeading is true because feats is an implemented kind: if the PDF
+  // changes such that the end anchor is not found, the importer must fail closed
+  // rather than silently run parseFeats over subsequent chapters (which could
+  // promote chapter headings as bogus feat records).
+  // Two alternatives cover different PDF layouts:
+  //   - The main alternation matches common chapter headings (full-line match).
+  //   - The ^Appendix\b alternative matches any "Appendix X: ..." heading
+  //     (which the $ anchor would prevent if written inside the group).
+  feats: {
+    startHeading: /^Feats?$|^Feat Descriptions?$/,
+    endHeading:
+      /^(Using Ability Scores|Adventuring|Combat|Equipment|Monsters|Magic Items|Running the Game|Chapter \d+|Spell Lists?)$|^Appendix\b/i,
+    requireEndHeading: true,
+  },
 } as const satisfies Record<string, SectionAnchorOptions>;
 
 export type Srd51SectionAnchors = {
   readonly spellLists: SectionAnchorOptions;
   readonly spellDescriptions: SectionAnchorOptions;
   readonly conditions: SectionAnchorOptions;
+  readonly feats: SectionAnchorOptions;
 };

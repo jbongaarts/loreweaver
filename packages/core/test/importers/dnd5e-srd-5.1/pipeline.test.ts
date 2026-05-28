@@ -133,6 +133,17 @@ const MONSTERS_PAGE: FixturePage = {
   lines: ['Monsters', 'Goblin', 'Small humanoid (goblinoid), neutral evil.'],
 };
 
+// Feats fixture: mirrors the SRD "Feats" section (only Grappler in SRD 5.1).
+const FEATS_PAGE: FixturePage = {
+  lines: [
+    'Feats',
+    'Grappler',
+    'Prerequisite: Strength 13 or higher',
+    "You've developed the skills necessary to hold your own in close-quarters grappling.",
+    '• You have advantage on attack rolls against a creature you are grappling.',
+  ],
+};
+
 // Conditions fixture: mirrors "Appendix A: Conditions" with two representative
 // conditions (Blinded for a flat-effect case, Prone for a single-effect case).
 const CONDITIONS_PAGE: FixturePage = {
@@ -149,7 +160,7 @@ const CONDITIONS_PAGE: FixturePage = {
 };
 
 describe('runImporter — end-to-end against a fixture PDF', () => {
-  it('extracts spells and conditions, writes a pack that loads through loadRulesPackFromDirectory', async () => {
+  it('extracts spells, conditions, and feats — writes a pack that loads through loadRulesPackFromDirectory', async () => {
     const workDir = makeTmpDir();
     const pdfPath = join(workDir, 'fixture.pdf');
     const outDir = join(workDir, 'pack');
@@ -157,21 +168,28 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       SPELL_LISTS_PAGE,
       SPELLS_PAGE,
       MONSTERS_PAGE,
+      FEATS_PAGE,
       CONDITIONS_PAGE,
     ]);
 
     const result = await runImporter({ pdfPath, outDir });
     expect(result.counts.spells).toBe(2);
     expect(result.counts.conditions).toBe(2);
+    expect(result.counts.feats).toBe(1);
     expect(result.sourceHash).toMatch(/^[0-9a-f]{64}$/);
 
     const pack = loadRulesPackFromDirectory(outDir);
-    expect(pack.records).toHaveLength(4);
+    expect(pack.records).toHaveLength(5);
     const keys = pack.records.map((r) => r.key).sort();
     expect(keys).toContain('spell:acid-splash');
     expect(keys).toContain('spell:magic-missile');
     expect(keys).toContain('condition:blinded');
     expect(keys).toContain('condition:prone');
+    expect(keys).toContain('feat:grappler');
+    // Assert the feat set is exactly Grappler — no bogus chapter headings
+    // promoted as feat names by the heuristic.
+    const featKeys = keys.filter((k) => k.startsWith('feat:'));
+    expect(featKeys).toEqual(['feat:grappler']);
 
     const acid = pack.records.find((r) => r.key === 'spell:acid-splash');
     expect(acid?.name).toBe('Acid Splash');
@@ -190,6 +208,13 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     const blindedData = blinded?.data as Record<string, unknown>;
     expect(typeof blindedData.description).toBe('string');
     expect((blindedData.description as string).length).toBeGreaterThan(0);
+
+    const grappler = pack.records.find((r) => r.key === 'feat:grappler');
+    expect(grappler?.name).toBe('Grappler');
+    const grapplerData = grappler?.data as Record<string, unknown>;
+    expect(grapplerData.prerequisites).toBe('Strength 13 or higher');
+    expect(typeof grapplerData.description).toBe('string');
+    expect((grapplerData.description as string).length).toBeGreaterThan(0);
   });
 
   it('produces a byte-identical pack across two runs over the same PDF', async () => {
@@ -201,6 +226,7 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       SPELL_LISTS_PAGE,
       SPELLS_PAGE,
       MONSTERS_PAGE,
+      FEATS_PAGE,
       CONDITIONS_PAGE,
     ]);
 
@@ -223,6 +249,7 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       SPELL_LISTS_PAGE,
       SPELLS_PAGE,
       MONSTERS_PAGE,
+      FEATS_PAGE,
       CONDITIONS_PAGE,
     ]);
 
@@ -244,6 +271,7 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       SPELL_LISTS_PAGE,
       SPELLS_PAGE,
       MONSTERS_PAGE,
+      FEATS_PAGE,
       CONDITIONS_PAGE,
     ]);
 
@@ -292,10 +320,11 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     const workDir = makeTmpDir();
     const pdfPath = join(workDir, 'fixture.pdf');
     const outDir = join(workDir, 'pack');
-    // Spell Lists, Spells, and Monsters are present so the spell pipeline
-    // succeeds, but there is no conditions chapter. The importer must refuse
+    // Spell Lists, Spells, Monsters, and Feats are present so those pipelines
+    // succeed, but there is no conditions chapter. The importer must refuse
     // to run rather than silently emit a pack without conditions.
     await writeFixturePdf(pdfPath, [
+      FEATS_PAGE,
       SPELL_LISTS_PAGE,
       SPELLS_PAGE,
       MONSTERS_PAGE,
@@ -315,6 +344,27 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     // descriptions to EOF and let any later content bleed in. With
     // requireEndHeading: true, the importer must refuse to run.
     await writeFixturePdf(pdfPath, [SPELL_LISTS_PAGE, SPELLS_PAGE]);
+    await expect(runImporter({ pdfPath, outDir })).rejects.toThrow(
+      /end heading not found/,
+    );
+  });
+
+  it('fails closed when the feats end heading is missing', async () => {
+    const workDir = makeTmpDir();
+    const pdfPath = join(workDir, 'fixture.pdf');
+    const outDir = join(workDir, 'pack');
+    // All sections except the feats end heading are present. FEATS_PAGE is
+    // placed last so no subsequent heading matches the feats endHeading pattern.
+    // With requireEndHeading: true on the feats anchor, the importer must
+    // throw SectionNotFoundError rather than silently slice to EOF (which would
+    // let later chapter headings be promoted as bogus feat records).
+    await writeFixturePdf(pdfPath, [
+      SPELL_LISTS_PAGE,
+      SPELLS_PAGE,
+      MONSTERS_PAGE,
+      CONDITIONS_PAGE,
+      FEATS_PAGE,
+    ]);
     await expect(runImporter({ pdfPath, outDir })).rejects.toThrow(
       /end heading not found/,
     );
