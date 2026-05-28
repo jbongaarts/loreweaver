@@ -14,7 +14,7 @@
  * is the explicit "regenerate the canonical pack" path; it overwrites the
  * existing seed pack and should only be done once the importer's parser
  * coverage is broad enough that the result is reference-complete (today it
- * is not — only spells are extracted).
+ * is not).
  */
 
 import { dirname, isAbsolute, resolve } from 'node:path';
@@ -87,7 +87,9 @@ function printHelpAndExit(code: number): never {
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
   const result = await runImporter({ pdfPath: args.pdf, outDir: args.out });
-  console.log(`Imported ${result.counts.spells} spells.`);
+  console.log(
+    `Imported ${result.counts.spells} spells, ${result.counts.conditions} conditions, ${result.counts.feats} feats, ${result.counts.hazards} hazards, and ${result.counts.rules} rules.`,
+  );
   console.log(`Source PDF SHA-256: ${result.sourceHash}`);
   console.log(`Output written to: ${result.outDir}`);
 }

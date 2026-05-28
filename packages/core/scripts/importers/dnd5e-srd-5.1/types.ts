@@ -101,11 +101,24 @@ export interface HazardExtraction {
   readonly sourcePage: number;
 }
 
+/**
+ * A rule-text entry as extracted from the SRD source, before conversion to a
+ * `RulesRecord`. `text` is the full rule body, re-flowed into paragraphs.
+ */
+export interface RuleExtraction {
+  readonly name: string;
+  /** Full rule body text, re-flowed into paragraphs. */
+  readonly text: string;
+  /** 1-based page in the source PDF where the rule heading begins. */
+  readonly sourcePage: number;
+}
+
 export interface ImporterCounts {
   readonly spells: number;
   readonly conditions: number;
   readonly feats: number;
   readonly hazards: number;
+  readonly rules: number;
 }
 
 export interface ImporterRunResult {

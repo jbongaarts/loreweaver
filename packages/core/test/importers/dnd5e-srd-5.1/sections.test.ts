@@ -213,4 +213,10 @@ describe('SRD_5_1_DEFAULT_SECTION_ANCHORS — sanity', () => {
       true,
     );
   });
+
+  it('core-rules anchor starts at "Using Ability Scores" and requires an end heading', () => {
+    const anchor = SRD_5_1_DEFAULT_SECTION_ANCHORS.coreRules;
+    expect(anchor.startHeading.test('Using Ability Scores')).toBe(true);
+    expect(anchor.requireEndHeading).toBe(true);
+  });
 });

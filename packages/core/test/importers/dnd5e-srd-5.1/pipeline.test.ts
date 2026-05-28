@@ -172,6 +172,26 @@ const FEATS_PAGE: FixturePage = {
   ],
 };
 
+// Core-rules fixture: mirrors "Using Ability Scores" through combat/adventuring
+// subsections where rule-text entries like "Cover" and "Resting" appear.
+// The core-rules section ends at "Spell Lists" (handled by section anchors).
+const CORE_RULES_PAGE_ONE: FixturePage = {
+  lines: [
+    'Using Ability Scores',
+    'Cover',
+    'Walls, trees, creatures, and other obstacles can provide cover during combat.',
+    'A target with half cover has a +2 bonus to AC and Dexterity saving throws.',
+  ],
+};
+
+const CORE_RULES_PAGE_TWO: FixturePage = {
+  lines: [
+    'Resting',
+    'Adventurers can take short rests and long rests to recover from wounds.',
+    'A short rest is at least 1 hour long, and a long rest is at least 8 hours.',
+  ],
+};
+
 // Conditions fixture: mirrors "Appendix A: Conditions" with two representative
 // conditions (Blinded for a flat-effect case, Prone for a single-effect case).
 const CONDITIONS_PAGE: FixturePage = {
@@ -188,11 +208,13 @@ const CONDITIONS_PAGE: FixturePage = {
 };
 
 describe('runImporter — end-to-end against a fixture PDF', () => {
-  it('extracts spells, conditions, feats, and hazards — writes a pack that loads through loadRulesPackFromDirectory', async () => {
+  it('extracts spells, conditions, feats, hazards, and rules — writes a pack that loads through loadRulesPackFromDirectory', async () => {
     const workDir = makeTmpDir();
     const pdfPath = join(workDir, 'fixture.pdf');
     const outDir = join(workDir, 'pack');
     await writeFixturePdf(pdfPath, [
+      CORE_RULES_PAGE_ONE,
+      CORE_RULES_PAGE_TWO,
       SPELL_LISTS_PAGE,
       SPELLS_PAGE,
       MONSTERS_PAGE,
@@ -206,16 +228,19 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(result.counts.conditions).toBe(2);
     expect(result.counts.feats).toBe(1);
     expect(result.counts.hazards).toBe(1);
+    expect(result.counts.rules).toBe(2);
     expect(result.sourceHash).toMatch(/^[0-9a-f]{64}$/);
 
     const pack = loadRulesPackFromDirectory(outDir);
-    expect(pack.records).toHaveLength(6);
+    expect(pack.records).toHaveLength(8);
     const keys = pack.records.map((r) => r.key).sort();
     expect(keys).toContain('spell:acid-splash');
     expect(keys).toContain('spell:magic-missile');
     expect(keys).toContain('condition:blinded');
     expect(keys).toContain('condition:prone');
     expect(keys).toContain('feat:grappler');
+    expect(keys).toContain('rule:cover');
+    expect(keys).toContain('rule:resting');
     // Assert the feat set is exactly Grappler — no bogus chapter headings
     // promoted as feat names by the heuristic.
     const featKeys = keys.filter((k) => k.startsWith('feat:'));
@@ -223,6 +248,8 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     // Assert the hazard set is exactly Brown Mold.
     const hazardKeys = keys.filter((k) => k.startsWith('hazard:'));
     expect(hazardKeys).toEqual(['hazard:brown-mold']);
+    const ruleKeys = keys.filter((k) => k.startsWith('rule:'));
+    expect(ruleKeys).toEqual(['rule:cover', 'rule:resting']);
 
     const acid = pack.records.find((r) => r.key === 'spell:acid-splash');
     expect(acid?.name).toBe('Acid Splash');
@@ -257,6 +284,13 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(grapplerData.prerequisites).toBe('Strength 13 or higher');
     expect(typeof grapplerData.description).toBe('string');
     expect((grapplerData.description as string).length).toBeGreaterThan(0);
+
+    const cover = pack.records.find((r) => r.key === 'rule:cover');
+    expect(cover?.name).toBe('Cover');
+    const coverData = cover?.data as Record<string, unknown>;
+    expect(typeof coverData.text).toBe('string');
+    expect((coverData.text as string).length).toBeGreaterThan(0);
+    expect(coverData.text).toMatch(/provide cover during combat/i);
   });
 
   it('produces a byte-identical pack across two runs over the same PDF', async () => {
@@ -265,6 +299,8 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     const outA = join(workDir, 'a');
     const outB = join(workDir, 'b');
     await writeFixturePdf(pdfPath, [
+      CORE_RULES_PAGE_ONE,
+      CORE_RULES_PAGE_TWO,
       SPELL_LISTS_PAGE,
       SPELLS_PAGE,
       MONSTERS_PAGE,
@@ -289,6 +325,8 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     const pdfPath = join(workDir, 'fixture.pdf');
     const outDir = join(workDir, 'pack');
     await writeFixturePdf(pdfPath, [
+      CORE_RULES_PAGE_ONE,
+      CORE_RULES_PAGE_TWO,
       SPELL_LISTS_PAGE,
       SPELLS_PAGE,
       MONSTERS_PAGE,
@@ -312,6 +350,8 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     const pdfPath = join(workDir, 'fixture.pdf');
     const outDir = join(workDir, 'pack');
     await writeFixturePdf(pdfPath, [
+      CORE_RULES_PAGE_ONE,
+      CORE_RULES_PAGE_TWO,
       SPELL_LISTS_PAGE,
       SPELLS_PAGE,
       MONSTERS_PAGE,
@@ -369,6 +409,8 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     // succeed, but there is no conditions chapter. The importer must refuse
     // to run rather than silently emit a pack without conditions.
     await writeFixturePdf(pdfPath, [
+      CORE_RULES_PAGE_ONE,
+      CORE_RULES_PAGE_TWO,
       FEATS_PAGE,
       SPELL_LISTS_PAGE,
       SPELLS_PAGE,
@@ -388,7 +430,12 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     // Spells is missing — pre-fix this would have silently sliced the spell
     // descriptions to EOF and let any later content bleed in. With
     // requireEndHeading: true, the importer must refuse to run.
-    await writeFixturePdf(pdfPath, [SPELL_LISTS_PAGE, SPELLS_PAGE]);
+    await writeFixturePdf(pdfPath, [
+      CORE_RULES_PAGE_ONE,
+      CORE_RULES_PAGE_TWO,
+      SPELL_LISTS_PAGE,
+      SPELLS_PAGE,
+    ]);
     await expect(runImporter({ pdfPath, outDir })).rejects.toThrow(
       /end heading not found/,
     );
@@ -404,6 +451,8 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     // throw SectionNotFoundError rather than silently slice to EOF (which would
     // let later chapter headings be promoted as bogus feat records).
     await writeFixturePdf(pdfPath, [
+      CORE_RULES_PAGE_ONE,
+      CORE_RULES_PAGE_TWO,
       SPELL_LISTS_PAGE,
       SPELLS_PAGE,
       MONSTERS_PAGE,
@@ -420,6 +469,8 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     const pdfPath = join(workDir, 'fixture.pdf');
     const outDir = join(workDir, 'pack');
     await writeFixturePdf(pdfPath, [
+      CORE_RULES_PAGE_ONE,
+      CORE_RULES_PAGE_TWO,
       SPELL_LISTS_PAGE,
       SPELLS_PAGE,
       MONSTERS_PAGE,

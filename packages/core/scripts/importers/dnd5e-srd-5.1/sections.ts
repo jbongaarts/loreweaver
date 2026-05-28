@@ -153,6 +153,14 @@ function buildSlice(
  * via the `sectionAnchors` option on `runImporter`.
  */
 export const SRD_5_1_DEFAULT_SECTION_ANCHORS = {
+  // Core-rules chapters (ability checks, adventuring, combat, etc.) begin at
+  // "Using Ability Scores" and run up to (but not including) "Spell Lists".
+  // This slice feeds the generic rule-text parser.
+  coreRules: {
+    startHeading: /^Using Ability Scores$/,
+    endHeading: /^Spell Lists$/,
+    requireEndHeading: true,
+  },
   spellLists: {
     startHeading: /^Spell Lists$/,
     endHeading: /^Spells$|^Spell Descriptions$/,
@@ -199,6 +207,7 @@ export const SRD_5_1_DEFAULT_SECTION_ANCHORS = {
 } as const satisfies Record<string, SectionAnchorOptions>;
 
 export type Srd51SectionAnchors = {
+  readonly coreRules: SectionAnchorOptions;
   readonly spellLists: SectionAnchorOptions;
   readonly spellDescriptions: SectionAnchorOptions;
   readonly conditions: SectionAnchorOptions;
