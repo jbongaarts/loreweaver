@@ -1,25 +1,15 @@
 import type { CharacterCreationDraft, Db } from '@loreweaver/core';
 import { completeCharacterCreation } from '@loreweaver/core';
+import { listParty } from '@loreweaver/core/internal';
 import type { CliIO, PlayDeps } from './playTypes.js';
 
-function hasCanonicalCharacter(db: Db): boolean {
-  const activeId = (
-    db
-      .prepare("SELECT value FROM meta WHERE key = 'active_character_id'")
-      .get() as { value: string } | undefined
-  )?.value;
-  if (activeId === undefined) {
-    return false;
-  }
-  const row = db
-    .prepare(
-      `SELECT name, class_name, hp_max
-       FROM character
-       WHERE id = ?`,
-    )
-    .get(activeId) as
-    | { name: string | null; class_name: string | null; hp_max: number }
-    | undefined;
+interface CharacterCanonRow {
+  name: string | null;
+  class_name: string | null;
+  hp_max: number;
+}
+
+function isCanonical(row: CharacterCanonRow | undefined): boolean {
   return (
     row !== undefined &&
     row.name !== null &&
@@ -28,6 +18,33 @@ function hasCanonicalCharacter(db: Db): boolean {
     row.class_name.trim().length > 0 &&
     row.hp_max > 0
   );
+}
+
+/** True once at least one player character has been fully created. */
+function hasCanonicalCharacter(db: Db): boolean {
+  return listParty(db)
+    .filter((m) => m.role === 'pc')
+    .some((m) =>
+      isCanonical(
+        db
+          .prepare(
+            'SELECT name, class_name, hp_max FROM character WHERE id = ?',
+          )
+          .get(m.id) as CharacterCanonRow | undefined,
+      ),
+    );
+}
+
+/** Allocate the next free `pc-<n>` id given the current party. */
+function nextPlayerCharacterId(db: Db): string {
+  let max = 0;
+  for (const member of listParty(db)) {
+    const match = /^pc-(\d+)$/.exec(member.id);
+    if (match !== null) {
+      max = Math.max(max, Number.parseInt(match[1] ?? '0', 10));
+    }
+  }
+  return `pc-${max + 1}`;
 }
 
 async function promptCharacterDraft(
@@ -130,4 +147,27 @@ export async function ensureCharacterReady(
       return true;
     }
   }
+}
+
+/**
+ * Prompt for and create an additional player character, allocating the next
+ * free `pc-<n>` id. On success the new PC becomes the active character (the
+ * player can `/switch` back). Used by the `/addpc` session command.
+ */
+export async function createAdditionalCharacter(
+  deps: Pick<PlayDeps, 'io' | 'now'>,
+  db: Db,
+): Promise<void> {
+  const draft = await promptCharacterDraft(deps.io);
+  if (draft === 'defer' || draft === undefined) {
+    deps.io.write('Character creation cancelled.');
+    return;
+  }
+  const result = completeCharacterCreation(db, {
+    draft,
+    sessionId: 'character-creation',
+    at: deps.now(),
+    characterId: nextPlayerCharacterId(db),
+  });
+  deps.io.write(result.prompt);
 }
