@@ -56,6 +56,12 @@ export interface RunTurnInput {
   sessionId: string;
   turnId: string;
   playerInput: string;
+  /**
+   * PC acting on this turn. Character-scoped tools target this PC by default
+   * and its sheet is the rendered turn subject. Defaults to the active
+   * character (`meta.active_character_id`) when omitted.
+   */
+  actingCharacterId?: string;
   /** Seed for this turn's code-owned RNG — makes the turn reproducible. */
   seed: number;
   /** ISO timestamp stamped on every write this turn. */
@@ -90,6 +96,7 @@ export async function runTurn(
     sessionId: input.sessionId,
     turnId: input.turnId,
     at: input.at,
+    actingCharacterId: input.actingCharacterId,
   };
 
   // Tracked here (not inside runModelLoop) so the failure path can still
@@ -104,6 +111,7 @@ export async function runTurn(
       sessionId: input.sessionId,
       playerInput: input.playerInput,
       recentSessionLimit: input.recentSessionLimit,
+      actingCharacterId: input.actingCharacterId,
     });
 
     const { narration, toolCalls } = await runModelLoop({

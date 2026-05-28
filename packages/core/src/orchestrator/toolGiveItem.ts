@@ -66,6 +66,7 @@ export const giveItemTool: Tool = {
           provenance: `model:${ctx.turnId}`,
           sessionId: ctx.sessionId,
           at: ctx.at,
+          characterId: ctx.actingCharacterId,
         },
       );
       return ok({ applied: true, id: a.id, name: a.name });

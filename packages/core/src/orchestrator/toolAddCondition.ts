@@ -33,6 +33,7 @@ export const addConditionTool: Tool = {
           provenance: `model:${ctx.turnId}`,
           sessionId: ctx.sessionId,
           at: ctx.at,
+          characterId: ctx.actingCharacterId,
         },
       );
       return ok(result);

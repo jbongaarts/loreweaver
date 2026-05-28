@@ -55,6 +55,11 @@ export interface ContextAssemblyInput {
   recentSessionLimit?: number;
   /** How many current-scene transcript entries to inline. Default 12. */
   sceneTranscriptLimit?: number;
+  /**
+   * PC whose sheet is rendered as the turn subject. Defaults to the active
+   * character (`meta.active_character_id`) when omitted.
+   */
+  actingCharacterId?: string;
 }
 
 export interface CharacterSnapshot {
@@ -278,7 +283,7 @@ export function assembleContext(input: ContextAssemblyInput): AssembledContext {
     omittedSessionCount: alwaysOn.omittedSessionCount,
     drilldownAvailable:
       alwaysOn.drilldownAvailable || sceneTranscriptOmittedCount > 0,
-    state: readStateSnapshot(input.db),
+    state: readStateSnapshot(input.db, input.actingCharacterId),
     scene:
       openScene === undefined
         ? undefined

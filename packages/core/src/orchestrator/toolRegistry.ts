@@ -20,6 +20,13 @@ export interface ToolContext {
   turnId: string;
   /** ISO timestamp stamped on every write this turn. */
   at: string;
+  /**
+   * The party member acting on this turn. Character-scoped tools target this
+   * PC by default; when undefined they fall back to the active character
+   * (`meta.active_character_id`). An explicit per-call `character` argument
+   * (where a tool supports one) overrides both.
+   */
+  actingCharacterId?: string;
 }
 
 export interface Tool {
