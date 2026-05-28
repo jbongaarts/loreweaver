@@ -56,6 +56,12 @@ const COST_ANCHORED = new RegExp(`\\b(${COST.source})`, 'i');
 // A weight cell, e.g. "1 lb.", "1/4 lb.", "3 lb". Fractions appear for light
 // gear (sling bullets, etc.).
 const WEIGHT = /\d+(?:\/\d+)?(?:\.\d+)?\s*lb\.?/i;
+// A standalone dash cell, used by the SRD as a "no value" weight marker (e.g.
+// the Sling's weight column). Only a hyphen / en-dash / em-dash flanked by
+// whitespace or string boundaries counts — this deliberately does NOT match a
+// within-word hyphen like "two-handed" in a property cell. Capture group 1 is
+// the leading boundary so the dash position can be recovered.
+const STANDALONE_DASH = /(^|\s)[—–-](?=\s|$)/;
 
 // Table titles switch the parser into the matching mode.
 const WEAPONS_TITLE = /^Weapons$/i;
@@ -114,21 +120,36 @@ function normalizeWeight(weight: string): string {
   return weight.replace(/\s+/g, ' ').trim();
 }
 
-/** Pull the (first) weight cell out of `rest`, returning the surrounding text. */
+/**
+ * Pull the weight cell out of `rest`, returning the surrounding text. A real
+ * "N lb." weight wins; failing that, a standalone dash is treated as the
+ * (empty) weight cell so any following property text is still split off rather
+ * than swallowed into `before`. A dash-marked weight carries no measurable
+ * value, so `weight` is left undefined — matching the convention that omits a
+ * missing weight rather than storing the dash verbatim.
+ */
 function splitWeight(rest: string): {
   before: string;
   weight?: string;
   after: string;
 } {
   const match = WEIGHT.exec(rest);
-  if (match === null) {
-    return { before: rest.trim(), after: '' };
+  if (match !== null) {
+    return {
+      before: rest.slice(0, match.index).trim(),
+      weight: normalizeWeight(match[0]),
+      after: rest.slice(match.index + match[0].length).trim(),
+    };
   }
-  return {
-    before: rest.slice(0, match.index).trim(),
-    weight: normalizeWeight(match[0]),
-    after: rest.slice(match.index + match[0].length).trim(),
-  };
+  const dash = STANDALONE_DASH.exec(rest);
+  if (dash !== null) {
+    const dashIdx = dash.index + dash[1].length;
+    return {
+      before: rest.slice(0, dashIdx).trim(),
+      after: rest.slice(dashIdx + 1).trim(),
+    };
+  }
+  return { before: rest.trim(), after: '' };
 }
 
 function parseWeaponRow(

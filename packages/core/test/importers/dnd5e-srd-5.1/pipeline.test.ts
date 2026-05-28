@@ -308,10 +308,13 @@ const FEATS_PAGE: FixturePage = {
   ],
 };
 
-// Equipment fixture: mirrors the SRD "Equipment" chapter with one row from each
-// of the three parsed tables (armor, weapons, adventuring gear). The trailing
-// "Mounts and Vehicles" line is the chapter subsection that closes the gear
-// table and matches the equipment endHeading anchor.
+// Equipment fixture: mirrors the SRD "Equipment" chapter with rows from each of
+// the three parsed tables (armor, weapons, adventuring gear). The Sling row is
+// the canonical em-dash-weight case (its Weight column is a dash, not "N lb.")
+// — kept here so the property-preservation fix is protected end-to-end through
+// the full extract → parse → emit pipeline. The trailing "Mounts and Vehicles"
+// line is the chapter subsection that closes the gear table and matches the
+// equipment endHeading anchor.
 const EQUIPMENT_PAGE: FixturePage = {
   lines: [
     'Equipment',
@@ -323,6 +326,8 @@ const EQUIPMENT_PAGE: FixturePage = {
     'Name Cost Damage Weight Properties',
     'Simple Melee Weapons',
     'Dagger 2 gp 1d4 piercing 1 lb. Finesse, light, thrown (range 20/60)',
+    'Simple Ranged Weapons',
+    'Sling 1 sp 1d4 bludgeoning — Ammunition (range 30/120)',
     'Adventuring Gear',
     'Item Cost Weight',
     'Rope, hempen (50 feet) 1 gp 10 lb.',
@@ -433,11 +438,11 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(result.counts.actions).toBe(10);
     expect(result.counts.rules).toBe(2);
     expect(result.counts.tables).toBe(4);
-    expect(result.counts.equipment).toBe(3);
+    expect(result.counts.equipment).toBe(4);
     expect(result.sourceHash).toMatch(/^[0-9a-f]{64}$/);
 
     const pack = loadRulesPackFromDirectory(outDir);
-    expect(pack.records).toHaveLength(25);
+    expect(pack.records).toHaveLength(26);
     const keys = pack.records.map((r) => r.key).sort();
     expect(keys).toContain('action:attack');
     expect(keys).toContain('action:cast-a-spell');
@@ -492,6 +497,7 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       'equipment:dagger',
       'equipment:leather',
       'equipment:rope-hempen-50-feet',
+      'equipment:sling',
     ]);
 
     // The generated manifest must advertise equipment as an included kind.
@@ -551,6 +557,16 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(leatherData.ac).toBe('11 + Dex modifier');
     expect(leatherData.armorType).toBe('light');
     expect(leatherData.stealthDisadvantage).toBe(false);
+
+    // Canonical em-dash-weight weapon: its properties must survive the full
+    // pipeline (regression guard for the dropped-properties bug).
+    const sling = pack.records.find((r) => r.key === 'equipment:sling');
+    const slingData = sling?.data as Record<string, unknown>;
+    expect(slingData.category).toBe('weapon');
+    expect(slingData.damageDie).toBe('1d4');
+    expect(slingData.damageType).toBe('bludgeoning');
+    expect(slingData.properties).toEqual(['Ammunition (range 30/120)']);
+    expect(slingData.weight).toBeUndefined();
 
     const cover = pack.records.find((r) => r.key === 'rule:cover');
     expect(cover?.name).toBe('Cover');

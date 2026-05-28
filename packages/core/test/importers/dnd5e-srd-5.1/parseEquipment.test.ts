@@ -130,6 +130,48 @@ describe('parseEquipment — weapons', () => {
     ]);
     expect(byName(items2, 'Mace')?.properties).toEqual([]);
   });
+
+  // Regression: a weapon whose Weight column is a standalone em dash (the SRD's
+  // "no weight" marker, e.g. Sling) must still keep the property text that
+  // follows the dash. The dash is the weight-cell separator — without treating
+  // it as one, the trailing properties were swallowed and lost.
+  it('parses weapon properties when the weight cell is an em dash', () => {
+    const [sling] = parseEquipment([
+      page(64, [
+        'Weapons',
+        'Name Cost Damage Weight Properties',
+        'Simple Ranged Weapons',
+        'Sling 1 sp 1d4 bludgeoning — Ammunition (range 30/120)',
+      ]),
+    ]);
+    expect(sling).toMatchObject({
+      name: 'Sling',
+      category: 'weapon',
+      cost: '1 sp',
+      damageDie: '1d4',
+      damageType: 'bludgeoning',
+      properties: ['Ammunition (range 30/120)'],
+    });
+    // A dash weight carries no value, so the field is omitted (not stored).
+    expect(sling.weight).toBeUndefined();
+  });
+
+  it('does not split on within-word hyphens in property text', () => {
+    const [pick] = parseEquipment([
+      page(64, [
+        'Weapons',
+        'Name Cost Damage Weight Properties',
+        'Martial Melee Weapons',
+        'War pick 5 gp 1d8 piercing — Two-handed, special',
+      ]),
+    ]);
+    expect(pick).toMatchObject({
+      name: 'War pick',
+      damageDie: '1d8',
+      damageType: 'piercing',
+      properties: ['Two-handed', 'special'],
+    });
+  });
 });
 
 // ---------------------------------------------------------------------------
