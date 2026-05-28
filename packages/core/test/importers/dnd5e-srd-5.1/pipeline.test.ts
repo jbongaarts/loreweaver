@@ -133,8 +133,23 @@ const MONSTERS_PAGE: FixturePage = {
   lines: ['Monsters', 'Goblin', 'Small humanoid (goblinoid), neutral evil.'],
 };
 
+// Conditions fixture: mirrors "Appendix A: Conditions" with two representative
+// conditions (Blinded for a flat-effect case, Prone for a single-effect case).
+const CONDITIONS_PAGE: FixturePage = {
+  lines: [
+    'Appendix A: Conditions',
+    'Blinded',
+    "• A blinded creature can't see and automatically fails any ability check that requires sight.",
+    "• Attack rolls against the creature have advantage, and the creature's attack rolls have disadvantage.",
+    '',
+    'Prone',
+    '• A prone creature has disadvantage on attack rolls.',
+    '• An attack roll against the creature has advantage if the attacker is within 5 feet.',
+  ],
+};
+
 describe('runImporter — end-to-end against a fixture PDF', () => {
-  it('extracts spells and writes a pack that loads back through loadRulesPackFromDirectory', async () => {
+  it('extracts spells and conditions, writes a pack that loads through loadRulesPackFromDirectory', async () => {
     const workDir = makeTmpDir();
     const pdfPath = join(workDir, 'fixture.pdf');
     const outDir = join(workDir, 'pack');
@@ -142,16 +157,21 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       SPELL_LISTS_PAGE,
       SPELLS_PAGE,
       MONSTERS_PAGE,
+      CONDITIONS_PAGE,
     ]);
 
     const result = await runImporter({ pdfPath, outDir });
     expect(result.counts.spells).toBe(2);
+    expect(result.counts.conditions).toBe(2);
     expect(result.sourceHash).toMatch(/^[0-9a-f]{64}$/);
 
     const pack = loadRulesPackFromDirectory(outDir);
-    expect(pack.records).toHaveLength(2);
+    expect(pack.records).toHaveLength(4);
     const keys = pack.records.map((r) => r.key).sort();
-    expect(keys).toEqual(['spell:acid-splash', 'spell:magic-missile']);
+    expect(keys).toContain('spell:acid-splash');
+    expect(keys).toContain('spell:magic-missile');
+    expect(keys).toContain('condition:blinded');
+    expect(keys).toContain('condition:prone');
 
     const acid = pack.records.find((r) => r.key === 'spell:acid-splash');
     expect(acid?.name).toBe('Acid Splash');
@@ -164,6 +184,12 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     const mmData = mm?.data as Record<string, unknown>;
     expect(mmData.level).toBe(1);
     expect(mmData.higherLevels).toMatch(/^When you cast this spell/);
+
+    const blinded = pack.records.find((r) => r.key === 'condition:blinded');
+    expect(blinded?.name).toBe('Blinded');
+    const blindedData = blinded?.data as Record<string, unknown>;
+    expect(typeof blindedData.description).toBe('string');
+    expect((blindedData.description as string).length).toBeGreaterThan(0);
   });
 
   it('produces a byte-identical pack across two runs over the same PDF', async () => {
@@ -175,6 +201,7 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       SPELL_LISTS_PAGE,
       SPELLS_PAGE,
       MONSTERS_PAGE,
+      CONDITIONS_PAGE,
     ]);
 
     await runImporter({ pdfPath, outDir: outA });
@@ -196,6 +223,7 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       SPELL_LISTS_PAGE,
       SPELLS_PAGE,
       MONSTERS_PAGE,
+      CONDITIONS_PAGE,
     ]);
 
     await runImporter({ pdfPath, outDir });
@@ -216,6 +244,7 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       SPELL_LISTS_PAGE,
       SPELLS_PAGE,
       MONSTERS_PAGE,
+      CONDITIONS_PAGE,
     ]);
 
     await runImporter({ pdfPath, outDir });

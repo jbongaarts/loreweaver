@@ -49,8 +49,33 @@ export type SpellClassIndex = ReadonlyMap<
   ReadonlySet<SpellCasterClass>
 >;
 
+/** One level of the exhaustion condition (levels 1–6). */
+export interface ExhaustionLevel {
+  readonly level: number;
+  readonly effect: string;
+}
+
+/**
+ * A condition entry as extracted from the SRD source, before conversion to a
+ * `RulesRecord`. `effects` holds the individual bullet-point rules. `levels`
+ * is only present for exhaustion — see the exhaustion decision note in
+ * `parseConditions.ts`.
+ */
+export interface ConditionExtraction {
+  readonly name: string;
+  /** Full body text (re-flowed paragraphs, bullet markers stripped). */
+  readonly description: string;
+  /** Individual bullet-point effects with the marker stripped. */
+  readonly effects: readonly string[];
+  /** Exhaustion only: the six cumulative effect levels. */
+  readonly levels?: readonly ExhaustionLevel[];
+  /** 1-based page in the source PDF where the condition entry begins. */
+  readonly sourcePage: number;
+}
+
 export interface ImporterCounts {
   readonly spells: number;
+  readonly conditions: number;
 }
 
 export interface ImporterRunResult {

@@ -101,6 +101,7 @@ describe('buildPack — validation', () => {
         ['Acid Splash', ['Sorcerer', 'Wizard']],
         ['Magic Missile', ['Sorcerer', 'Wizard']],
       ]),
+      conditions: [],
       sourceHash: FAKE_HASH,
     });
     expect(pack.meta.packId).toBe('rules:dnd5e-srd-5.1');
@@ -111,6 +112,7 @@ describe('buildPack — validation', () => {
     const pack = buildPack({
       spells: [MAGIC_MISSILE, ACID_SPLASH, AID],
       classIndex: makeIndex([]),
+      conditions: [],
       sourceHash: FAKE_HASH,
     });
     const keys = pack.records.map((r) => r.key);
@@ -121,6 +123,7 @@ describe('buildPack — validation', () => {
     const pack = buildPack({
       spells: [ACID_SPLASH],
       classIndex: makeIndex([]),
+      conditions: [],
       sourceHash: FAKE_HASH,
     });
     expect(pack.meta.source.sourceHash).toBe(FAKE_HASH);
@@ -130,6 +133,7 @@ describe('buildPack — validation', () => {
     const pack = buildPack({
       spells: [ACID_SPLASH],
       classIndex: makeIndex([]),
+      conditions: [],
       sourceHash: FAKE_HASH,
     });
     expect(pack.meta.description).toMatch(/Included record kinds: spell\b/);
@@ -187,6 +191,7 @@ describe('writePackToDirectory — determinism', () => {
         ['Aid', ['Cleric', 'Paladin']],
         ['Magic Missile', ['Sorcerer', 'Wizard']],
       ]),
+      conditions: [],
       sourceHash: FAKE_HASH,
     };
     writePackToDirectory(buildPack(input), { outDir: dirA });
@@ -206,6 +211,7 @@ describe('writePackToDirectory — determinism', () => {
       buildPack({
         spells: [ACID_SPLASH, AID, MAGIC_MISSILE],
         classIndex: makeIndex([]),
+        conditions: [],
         sourceHash: FAKE_HASH,
       }),
       { outDir: dirA },
@@ -214,6 +220,7 @@ describe('writePackToDirectory — determinism', () => {
       buildPack({
         spells: [MAGIC_MISSILE, ACID_SPLASH, AID],
         classIndex: makeIndex([]),
+        conditions: [],
         sourceHash: FAKE_HASH,
       }),
       { outDir: dirB },
@@ -230,6 +237,7 @@ describe('writePackToDirectory — determinism', () => {
       buildPack({
         spells: [ACID_SPLASH],
         classIndex: makeIndex([['Acid Splash', ['Wizard', 'Sorcerer']]]),
+        conditions: [],
         sourceHash: FAKE_HASH,
       }),
       { outDir: dirA },
@@ -238,6 +246,7 @@ describe('writePackToDirectory — determinism', () => {
       buildPack({
         spells: [ACID_SPLASH],
         classIndex: makeIndex([['Acid Splash', ['Sorcerer', 'Wizard']]]),
+        conditions: [],
         sourceHash: FAKE_HASH,
       }),
       { outDir: dirB },
@@ -253,6 +262,7 @@ describe('writePackToDirectory — determinism', () => {
       buildPack({
         spells: [ACID_SPLASH],
         classIndex: makeIndex([]),
+        conditions: [],
         sourceHash: FAKE_HASH,
       }),
       { outDir: dir },

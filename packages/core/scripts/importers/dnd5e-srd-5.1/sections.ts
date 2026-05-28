@@ -163,9 +163,18 @@ export const SRD_5_1_DEFAULT_SECTION_ANCHORS = {
     endHeading: /^(Monsters|Magic Items|Creatures|NPCs|Treasure|Appendix)$/,
     requireEndHeading: true,
   },
+  // SRD 5.1 puts conditions in "Appendix A: Conditions" near the end of the
+  // document. The end heading is optional (the section may run to EOF in some
+  // PDF layouts), so requireEndHeading is not set.
+  conditions: {
+    startHeading: /^Appendix A: Conditions$|^Conditions$/,
+    endHeading:
+      /^Appendix [B-Z]:|^Open Game License|^Legal Information|^Monster (Statistics|Lists?)$/i,
+  },
 } as const satisfies Record<string, SectionAnchorOptions>;
 
 export type Srd51SectionAnchors = {
   readonly spellLists: SectionAnchorOptions;
   readonly spellDescriptions: SectionAnchorOptions;
+  readonly conditions: SectionAnchorOptions;
 };
