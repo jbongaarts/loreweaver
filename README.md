@@ -79,9 +79,12 @@ Monorepo using npm workspaces:
 
 ### Prerequisites
 
-- **Node.js 22 LTS recommended.** CI pins Node 22 for the native
-  `better-sqlite3` dependency. Local Node 24 may work when a compatible native
-  binding is available, but Node 22 is the supported baseline.
+- **Node.js 22 LTS is the supported runtime.** The package engines intentionally
+  use `>=22 <23` while the native `better-sqlite3` dependency remains on 11.x.
+  Local Node 24 installs may work when a compatible native binding is available
+  or the machine can compile one, but Node 24 is outside support until the
+  native dependency is deliberately upgraded. See
+  [ADR 0008](docs/adr/0008-node-runtime-and-native-sqlite-support.md).
 - **Anthropic API key.** The only concrete model adapter today is the Claude
   Agent SDK adapter.
 - **Dolt optional.** Dolt is used only for local campaign checkpoints on

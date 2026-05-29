@@ -84,16 +84,18 @@ Initial automation can be manual plus CI-verified:
 
 ## Runtime Policy
 
-Node 22 LTS is the supported runtime for the first CLI release. It is the same
+Node 22 LTS is the supported runtime for the first CLI release. This follows
+[ADR 0008](adr/0008-node-runtime-and-native-sqlite-support.md). It is the same
 runtime CI uses and has a prebuilt `better-sqlite3` binary for the pinned 11.x
 line.
 
 Node 24 is not the first-release support target while `better-sqlite3` remains
-on 11.x. Local Node 24 can work when a native binding is available or the user
-has a C++ toolchain, but a distributed CLI should not depend on source
-compilation during install. Moving the support target to Node 24 requires
-upgrading to a `better-sqlite3` version with Node 24 prebuilds and proving a
-clean install with `npm_config_build_from_source=false`.
+on 11.x and the package engines remain `>=22 <23`. Local Node 24 can work when a
+native binding is available or the user has a C++ toolchain, but a distributed
+CLI should not depend on source compilation during install. Moving the support
+target to Node 24 requires upgrading to a `better-sqlite3` version with Node 24
+prebuilds, updating the package engines, and proving a clean install with
+`npm_config_build_from_source=false`.
 
 The release workflow must keep:
 
