@@ -140,10 +140,10 @@ export async function runImporter(
 
   const spells = parseSpells(spellDescriptionPages);
   const classIndex = parseSpellClassLists(spellListPages);
-  // Throws SectionNotFoundError if the monsters start anchor doesn't match —
-  // creature is an implemented kind, so fail closed rather than emit a pack
-  // without creatures. The section may run to EOF (no requireEndHeading); see
-  // the anchor comment in sections.ts.
+  // Throws SectionNotFoundError if the monsters start OR end anchor doesn't
+  // match — creature is an implemented kind, so fail closed rather than emit a
+  // pack without creatures or let trailing content bleed in (the monsters
+  // anchor sets requireEndHeading: true); see the anchor comment in sections.ts.
   const monsterPages = sliceSection(pages, anchors.monsters);
   const creatures = parseCreatures(monsterPages);
   // Fail closed before any output is written if creature extraction is empty
