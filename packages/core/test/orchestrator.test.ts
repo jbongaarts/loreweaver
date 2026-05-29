@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   createDefaultToolRegistry,
   ensureCharacterRow,
+  getTurnFailureDiagnostic,
   getTurnTrace,
   listSceneLog,
   mutateState,
@@ -34,8 +35,9 @@ class ScriptedModel implements ModelClient {
 
 /** A ModelClient that always throws — simulates an SDK/model failure. */
 class FailingModel implements ModelClient {
+  constructor(private readonly error = new Error('model unavailable')) {}
   complete(): Promise<ModelCompleteResult> {
-    return Promise.reject(new Error('model unavailable'));
+    return Promise.reject(this.error);
   }
 }
 
@@ -200,6 +202,59 @@ describe('orchestrator turn loop', () => {
         sceneId: 'scene-0',
       }),
     ).toEqual([]);
+    db.close();
+  });
+
+  it('records a non-canon diagnostic when model failure rolls back turn writes', async () => {
+    const db = freshDbWithSession();
+    withOpenScene(db);
+    const error = new Error('model unavailable api_key=sk-provider-secret');
+
+    const result = await runTurn(
+      {
+        db,
+        model: new FailingModel(error),
+        registry: createDefaultToolRegistry(),
+      },
+      baseInput({ turnId: 'turn-model-failure' }),
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain('model unavailable');
+    expect(result.error).toContain('[redacted]');
+    expect(result.error).not.toContain('sk-provider-secret');
+    expect(
+      listSceneLog(db, {
+        campaignId: CAMPAIGN,
+        sessionId: SESSION,
+        sceneId: 'scene-0',
+      }),
+    ).toEqual([]);
+    expect(
+      getTurnTrace(db, {
+        campaignId: CAMPAIGN,
+        sessionId: SESSION,
+        turnId: 'turn-model-failure',
+      }),
+    ).toBeUndefined();
+
+    const diagnostic = getTurnFailureDiagnostic(db, {
+      campaignId: CAMPAIGN,
+      sessionId: SESSION,
+      turnId: 'turn-model-failure',
+    });
+    expect(diagnostic).toMatchObject({
+      campaignId: CAMPAIGN,
+      sessionId: SESSION,
+      turnId: 'turn-model-failure',
+      createdAt: '2026-05-20T10:00:00.000Z',
+      phase: 'model_loop',
+      errorName: 'Error',
+      modelRounds: 1,
+    });
+    expect(diagnostic?.errorMessage).toContain('model unavailable');
+    expect(diagnostic?.errorMessage).toContain('[redacted]');
+    expect(diagnostic?.errorMessage).not.toContain('sk-provider-secret');
     db.close();
   });
 
@@ -379,6 +434,53 @@ describe('orchestrator turn loop', () => {
     );
 
     expect(result.ok).toBe(false);
+    db.close();
+  });
+
+  it('records a protocol diagnostic while rolling back tool mutations', async () => {
+    const db = freshDbWithSession();
+    withOpenScene(db);
+    db.prepare(
+      `UPDATE character SET hp_max = 20, hp_current = 10 WHERE id = 'pc-1'`,
+    ).run();
+    const model: ModelClient = {
+      complete: () =>
+        Promise.resolve({
+          text: toolCall('adjust_hp', { amount: 5 }),
+        }),
+    };
+
+    const result = await runTurn(
+      { db, model, registry: createDefaultToolRegistry() },
+      baseInput({ maxToolRounds: 1, turnId: 'turn-protocol-failure' }),
+    );
+
+    expect(result.ok).toBe(false);
+    const hp = db
+      .prepare(`SELECT hp_current FROM character WHERE id = 'pc-1'`)
+      .get() as { hp_current: number };
+    expect(hp.hp_current).toBe(10);
+    expect(
+      getTurnTrace(db, {
+        campaignId: CAMPAIGN,
+        sessionId: SESSION,
+        turnId: 'turn-protocol-failure',
+      }),
+    ).toBeUndefined();
+
+    const diagnostic = getTurnFailureDiagnostic(db, {
+      campaignId: CAMPAIGN,
+      sessionId: SESSION,
+      turnId: 'turn-protocol-failure',
+    });
+    expect(diagnostic).toMatchObject({
+      phase: 'model_loop',
+      errorName: 'OrchestratorError',
+      modelRounds: 1,
+    });
+    expect(diagnostic?.errorMessage).toContain(
+      'turn exceeded 1 tool rounds without final narration',
+    );
     db.close();
   });
 

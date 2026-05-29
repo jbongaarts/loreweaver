@@ -267,4 +267,26 @@ describe('migrations', () => {
     expect(versionRow?.value).toBe('10');
     db.close();
   });
+
+  it('v10→v11 creates the non-canon turn failure diagnostic table', () => {
+    const db = openDatabase(':memory:');
+    db.exec(`
+      CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+      INSERT INTO meta VALUES ('schema_version', '10');
+    `);
+
+    migrateSchema(db, 10, 11);
+
+    const tables = db
+      .prepare(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='turn_failure_diagnostic'",
+      )
+      .all();
+    expect(tables).toHaveLength(1);
+    const versionRow = db
+      .prepare('SELECT value FROM meta WHERE key = ?')
+      .get('schema_version') as { value: string } | undefined;
+    expect(versionRow?.value).toBe('11');
+    db.close();
+  });
 });
