@@ -220,6 +220,9 @@ describe('orchestrator turn loop', () => {
     );
 
     expect(result.ok).toBe(false);
+    expect(result.error).toContain('model unavailable');
+    expect(result.error).toContain('[redacted]');
+    expect(result.error).not.toContain('sk-provider-secret');
     expect(
       listSceneLog(db, {
         campaignId: CAMPAIGN,

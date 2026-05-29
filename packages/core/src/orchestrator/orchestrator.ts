@@ -1,4 +1,7 @@
-import { recordTurnFailureDiagnostic } from '../memory/turnFailureDiagnostic.js';
+import {
+  recordTurnFailureDiagnostic,
+  sanitizeDiagnosticMessage,
+} from '../memory/turnFailureDiagnostic.js';
 import type {
   TraceJsonValue,
   TurnTraceConsentScope,
@@ -202,6 +205,9 @@ export async function runTurn(
   } catch (e) {
     db.exec(`ROLLBACK TO ${TURN_SAVEPOINT}`);
     db.exec(`RELEASE ${TURN_SAVEPOINT}`);
+    const error = sanitizeDiagnosticMessage(
+      e instanceof Error ? e.message : String(e),
+    );
     try {
       recordTurnFailureDiagnostic(db, {
         campaignId: input.campaignId,
@@ -222,7 +228,7 @@ export async function runTurn(
       toolCalls: [],
       sceneId: undefined,
       modelRounds: rounds,
-      error: e instanceof Error ? e.message : String(e),
+      error,
     };
   }
 }
