@@ -15,6 +15,7 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   actionExtractionsToRecords,
+  ancestryExtractionsToRecords,
   buildPack,
   spellExtractionsToRecords,
   tableExtractionsToRecords,
@@ -22,6 +23,7 @@ import {
 } from '../../../scripts/importers/dnd5e-srd-5.1/emit.js';
 import type {
   ActionExtraction,
+  AncestryExtraction,
   RuleExtraction,
   SpellCasterClass,
   SpellExtraction,
@@ -96,6 +98,44 @@ const ATTACK_ACTION: ActionExtraction = {
   name: 'Attack',
   description: 'The most common action to take in combat is the Attack action.',
   sourcePage: 92,
+};
+
+const DWARF_ANCESTRY: AncestryExtraction = {
+  name: 'Dwarf',
+  description: 'Bold and hardy, dwarves are known as skilled warriors.',
+  traits: [
+    {
+      name: 'Ability Score Increase',
+      text: 'Your Constitution score increases by 2.',
+    },
+    { name: 'Size', text: 'Your size is Medium.' },
+    { name: 'Speed', text: 'Your base walking speed is 25 feet.' },
+  ],
+  size: 'Medium',
+  speed: 25,
+  subraces: ['Hill Dwarf'],
+  sourcePage: 18,
+};
+
+const HILL_DWARF_ANCESTRY: AncestryExtraction = {
+  name: 'Hill Dwarf',
+  description: 'As a hill dwarf, you have keen senses.',
+  traits: [
+    {
+      name: 'Ability Score Increase',
+      text: 'Your Constitution score increases by 2. Your Wisdom score increases by 1.',
+    },
+    { name: 'Size', text: 'Your size is Medium.' },
+    { name: 'Speed', text: 'Your base walking speed is 25 feet.' },
+    {
+      name: 'Dwarven Toughness',
+      text: 'Your hit point maximum increases by 1.',
+    },
+  ],
+  size: 'Medium',
+  speed: 25,
+  subraceOf: 'Dwarf',
+  sourcePage: 18,
 };
 
 const DIFFICULTY_TABLE: TableExtraction = {
@@ -214,6 +254,19 @@ describe('buildPack — validation', () => {
       /Included record kinds: spell, table\b/,
     );
   });
+
+  it('includes "ancestry" in included-kinds when ancestry records are present', () => {
+    const pack = buildPack({
+      spells: [ACID_SPLASH],
+      classIndex: makeIndex([]),
+      conditions: [],
+      ancestries: [DWARF_ANCESTRY, HILL_DWARF_ANCESTRY],
+      sourceHash: FAKE_HASH,
+    });
+    expect(pack.meta.description).toMatch(
+      /Included record kinds: ancestry, spell\b/,
+    );
+  });
 });
 
 describe('spellExtractionsToRecords — record shape', () => {
@@ -289,6 +342,49 @@ describe('tableExtractionsToRecords - record shape', () => {
       ['Medium', 15],
       ['Hard', 20],
     ]);
+  });
+});
+
+describe('ancestryExtractionsToRecords — record shape', () => {
+  it('builds ancestry keys of the form "ancestry:<slug>"', () => {
+    const [record] = ancestryExtractionsToRecords([DWARF_ANCESTRY]);
+    expect(record.key).toBe('ancestry:dwarf');
+    expect(record.kind).toBe('ancestry');
+  });
+
+  it('preserves the source "race" term in data.source (ADR 0005)', () => {
+    const [record] = ancestryExtractionsToRecords([DWARF_ANCESTRY]);
+    expect((record.data as { source: string }).source).toBe('race');
+  });
+
+  it('references subraces by key on the parent record', () => {
+    const [record] = ancestryExtractionsToRecords([DWARF_ANCESTRY]);
+    expect((record.data as { subraces: string[] }).subraces).toEqual([
+      'ancestry:hill-dwarf',
+    ]);
+    expect((record.data as Record<string, unknown>).subraceOf).toBeUndefined();
+  });
+
+  it('references the parent by key on a subrace record', () => {
+    const [record] = ancestryExtractionsToRecords([HILL_DWARF_ANCESTRY]);
+    expect((record.data as { subraceOf: string }).subraceOf).toBe(
+      'ancestry:dwarf',
+    );
+    expect((record.data as Record<string, unknown>).subraces).toBeUndefined();
+  });
+
+  it('emits size and speed convenience fields when present', () => {
+    const [record] = ancestryExtractionsToRecords([DWARF_ANCESTRY]);
+    expect((record.data as { size: string }).size).toBe('Medium');
+    expect((record.data as { speed: number }).speed).toBe(25);
+  });
+
+  it('carries the trait list through into data.traits', () => {
+    const [record] = ancestryExtractionsToRecords([HILL_DWARF_ANCESTRY]);
+    const names = (
+      record.data as { traits: Array<{ name: string }> }
+    ).traits.map((t) => t.name);
+    expect(names).toContain('Dwarven Toughness');
   });
 });
 

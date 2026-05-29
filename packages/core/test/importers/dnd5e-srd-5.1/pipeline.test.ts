@@ -408,12 +408,53 @@ const CONDITIONS_PAGE: FixturePage = {
   ],
 };
 
+// Races fixture: mirrors the SRD "Races" chapter. Dwarf (with the Hill Dwarf
+// subrace) exercises the parent+subrace flattening; Human exercises a race with
+// no subraces. "Classes" below acts as the races section's end heading.
+const RACES_PAGE: FixturePage = {
+  lines: [
+    'Races',
+    'Dwarf',
+    'Bold and hardy, dwarves are known as skilled warriors, miners, and workers of stone.',
+    'Dwarf Traits',
+    'Your dwarf character has an assortment of inborn abilities.',
+    'Ability Score Increase. Your Constitution score increases by 2.',
+    'Age. Dwarves mature at the same rate as humans but live about 350 years.',
+    'Alignment. Most dwarves are lawful.',
+    'Size. Dwarves stand between 4 and 5 feet tall. Your size is Medium.',
+    'Speed. Your base walking speed is 25 feet.',
+    'Darkvision. You have superior vision in dark and dim conditions.',
+    'Languages. You can speak, read, and write Common and Dwarvish.',
+    'Subrace. Two main subraces of dwarves populate the worlds of D&D.',
+    'Hill Dwarf',
+    'As a hill dwarf, you have keen senses and remarkable resilience.',
+    'Ability Score Increase. Your Wisdom score increases by 1.',
+    'Dwarven Toughness. Your hit point maximum increases by 1.',
+    'Human',
+    'Humans are the youngest of the common races.',
+    'Human Traits',
+    'Your human character has these traits.',
+    'Ability Score Increase. Your ability scores each increase by 1.',
+    'Age. Humans reach adulthood in their late teens.',
+    'Size. Humans vary widely in height and build. Your size is Medium.',
+    'Speed. Your base walking speed is 30 feet.',
+    'Languages. You can speak, read, and write Common and one extra language.',
+  ],
+};
+
+// End heading for the races section.
+const CLASSES_PAGE: FixturePage = {
+  lines: ['Classes', 'Barbarian', 'A fierce warrior of primitive background.'],
+};
+
 describe('runImporter — end-to-end against a fixture PDF', () => {
   it('extracts spells, conditions, feats, hazards, actions, and rules — writes a pack that loads through loadRulesPackFromDirectory', async () => {
     const workDir = makeTmpDir();
     const pdfPath = join(workDir, 'fixture.pdf');
     const outDir = join(workDir, 'pack');
     await writeFixturePdf(pdfPath, [
+      RACES_PAGE,
+      CLASSES_PAGE,
       CORE_RULES_PAGE_ONE,
       CORE_RULES_PAGE_TWO,
       CORE_RULES_TABLES_PAGE,
@@ -439,10 +480,11 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(result.counts.rules).toBe(2);
     expect(result.counts.tables).toBe(4);
     expect(result.counts.equipment).toBe(4);
+    expect(result.counts.ancestries).toBe(3);
     expect(result.sourceHash).toMatch(/^[0-9a-f]{64}$/);
 
     const pack = loadRulesPackFromDirectory(outDir);
-    expect(pack.records).toHaveLength(26);
+    expect(pack.records).toHaveLength(29);
     const keys = pack.records.map((r) => r.key).sort();
     expect(keys).toContain('action:attack');
     expect(keys).toContain('action:cast-a-spell');
@@ -463,6 +505,9 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(keys).toContain('rule:resting');
     expect(keys).toContain('table:difficulty-classes');
     expect(keys).toContain('table:xp-thresholds-by-character-level');
+    expect(keys).toContain('ancestry:dwarf');
+    expect(keys).toContain('ancestry:hill-dwarf');
+    expect(keys).toContain('ancestry:human');
     // Assert the feat set is exactly Grappler — no bogus chapter headings
     // promoted as feat names by the heuristic.
     const featKeys = keys.filter((k) => k.startsWith('feat:'));
@@ -504,6 +549,42 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(pack.meta.description).toMatch(
       /Included record kinds:[^.]*equipment/,
     );
+    const ancestryKeys = keys.filter((k) => k.startsWith('ancestry:'));
+    expect(ancestryKeys).toEqual([
+      'ancestry:dwarf',
+      'ancestry:hill-dwarf',
+      'ancestry:human',
+    ]);
+
+    // Parent race: preserves the source 'race' term and references its subrace.
+    const dwarf = pack.records.find((r) => r.key === 'ancestry:dwarf');
+    expect(dwarf?.kind).toBe('ancestry');
+    const dwarfData = dwarf?.data as Record<string, unknown>;
+    expect(dwarfData.source).toBe('race');
+    expect(dwarfData.size).toBe('Medium');
+    expect(dwarfData.speed).toBe(25);
+    expect(dwarfData.subraces).toEqual(['ancestry:hill-dwarf']);
+    expect(dwarfData.subraceOf).toBeUndefined();
+
+    // Subrace: flattened/self-contained, points back at the parent, inherits the
+    // parent's racial traits, and carries its own.
+    const hillDwarf = pack.records.find((r) => r.key === 'ancestry:hill-dwarf');
+    const hillData = hillDwarf?.data as Record<string, unknown>;
+    expect(hillData.source).toBe('race');
+    expect(hillData.subraceOf).toBe('ancestry:dwarf');
+    expect(hillData.subraces).toBeUndefined();
+    const hillTraitNames = (
+      hillData.traits as ReadonlyArray<{ name: string }>
+    ).map((t) => t.name);
+    expect(hillTraitNames).toContain('Darkvision');
+    expect(hillTraitNames).toContain('Dwarven Toughness');
+
+    // Race without subraces.
+    const human = pack.records.find((r) => r.key === 'ancestry:human');
+    const humanData = human?.data as Record<string, unknown>;
+    expect(humanData.subraces).toBeUndefined();
+    expect(humanData.subraceOf).toBeUndefined();
+    expect(humanData.speed).toBe(30);
 
     const acid = pack.records.find((r) => r.key === 'spell:acid-splash');
     expect(acid?.name).toBe('Acid Splash');
@@ -658,6 +739,8 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     const outA = join(workDir, 'a');
     const outB = join(workDir, 'b');
     await writeFixturePdf(pdfPath, [
+      RACES_PAGE,
+      CLASSES_PAGE,
       CORE_RULES_PAGE_ONE,
       CORE_RULES_PAGE_TWO,
       SPELL_LISTS_PAGE,
@@ -689,6 +772,8 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     const pdfPath = join(workDir, 'fixture.pdf');
     const outDir = join(workDir, 'pack');
     await writeFixturePdf(pdfPath, [
+      RACES_PAGE,
+      CLASSES_PAGE,
       CORE_RULES_PAGE_ONE,
       CORE_RULES_PAGE_TWO,
       SPELL_LISTS_PAGE,
@@ -719,6 +804,8 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     const pdfPath = join(workDir, 'fixture.pdf');
     const outDir = join(workDir, 'pack');
     await writeFixturePdf(pdfPath, [
+      RACES_PAGE,
+      CLASSES_PAGE,
       CORE_RULES_PAGE_ONE,
       CORE_RULES_PAGE_TWO,
       SPELL_LISTS_PAGE,
@@ -924,6 +1011,35 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       SPELLS_PAGE,
       MONSTERS_PAGE,
       COMBAT_ACTIONS_PAGE_MISSING_END,
+      HAZARDS_PAGE,
+      FEATS_PAGE,
+      EQUIPMENT_PAGE,
+      CONDITIONS_PAGE,
+    ]);
+
+    await expect(runImporter({ pdfPath, outDir })).rejects.toThrow(
+      SectionNotFoundError,
+    );
+  });
+
+  it('fails closed when the races section is missing', async () => {
+    const workDir = makeTmpDir();
+    const pdfPath = join(workDir, 'fixture.pdf');
+    const outDir = join(workDir, 'pack');
+    // Every other section is present so all earlier slices succeed; only the
+    // races chapter is absent. With requireEndHeading on the races anchor the
+    // importer must refuse to run rather than emit a pack without ancestries.
+    await writeFixturePdf(pdfPath, [
+      CORE_RULES_PAGE_ONE,
+      CORE_RULES_PAGE_TWO,
+      CORE_RULES_TABLES_PAGE,
+      SPELL_LISTS_PAGE,
+      SPELLS_PAGE,
+      MONSTERS_PAGE,
+      TREASURE_TABLES_PAGE,
+      MAGIC_ITEMS_PAGE,
+      COMBAT_ACTIONS_PAGE,
+      MAKING_AN_ATTACK_PAGE,
       HAZARDS_PAGE,
       FEATS_PAGE,
       EQUIPMENT_PAGE,

@@ -153,6 +153,16 @@ function buildSlice(
  * via the `sectionAnchors` option on `runImporter`.
  */
 export const SRD_5_1_DEFAULT_SECTION_ANCHORS = {
+  // SRD 5.1 opens with the "Races" chapter (Dwarf, Elf, ... Tiefling), which
+  // runs up to the "Classes" chapter. `requireEndHeading` is true because
+  // ancestry is an implemented kind: if the end boundary is missing the
+  // importer must fail closed rather than run the race parser over the class
+  // chapters (which could promote class headings as bogus ancestry records).
+  races: {
+    startHeading: /^Races$/,
+    endHeading: /^Classes$/,
+    requireEndHeading: true,
+  },
   // Core-rules chapters (ability checks, adventuring, combat, etc.) begin at
   // "Using Ability Scores" and run up to (but not including) "Spell Lists".
   // This slice feeds the generic rule-text parser.
@@ -239,6 +249,7 @@ export const SRD_5_1_DEFAULT_SECTION_ANCHORS = {
 } as const satisfies Record<string, SectionAnchorOptions>;
 
 export type Srd51SectionAnchors = {
+  readonly races: SectionAnchorOptions;
   readonly coreRules: SectionAnchorOptions;
   readonly spellLists: SectionAnchorOptions;
   readonly spellDescriptions: SectionAnchorOptions;

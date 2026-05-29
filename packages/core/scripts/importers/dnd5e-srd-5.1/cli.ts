@@ -88,7 +88,7 @@ async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
   const result = await runImporter({ pdfPath: args.pdf, outDir: args.out });
   console.log(
-    `Imported ${result.counts.spells} spells, ${result.counts.conditions} conditions, ${result.counts.feats} feats, ${result.counts.hazards} hazards, ${result.counts.actions} actions, and ${result.counts.rules} rules.`,
+    `Imported ${result.counts.spells} spells, ${result.counts.conditions} conditions, ${result.counts.feats} feats, ${result.counts.hazards} hazards, ${result.counts.actions} actions, ${result.counts.rules} rules, ${result.counts.tables} tables, and ${result.counts.ancestries} ancestries.`,
   );
   console.log(`Source PDF SHA-256: ${result.sourceHash}`);
   console.log(`Output written to: ${result.outDir}`);
