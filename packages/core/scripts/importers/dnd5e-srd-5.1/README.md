@@ -17,7 +17,7 @@ tracked as child issues).
 | `creature`  | Not implemented. Child of `loreweaver-0m9.5`. |
 | `class`     | Not implemented. Child of `loreweaver-0m9.5`. |
 | `background`| SRD 5.1 does not publish backgrounds; see ADR 0005. |
-| `ancestry`  | SRD 5.1 publishes races, not species. Tracked as a child kind under `loreweaver-0m9.5`. |
+| `ancestry`  | Implemented. Parser extracts the SRD 5.1 races and subraces by known-name match into `kind=ancestry` records (`data.source = 'race'` per ADR 0005). Parents and subraces are **separate records**; each subrace record is **flattened/self-contained** — its `data.traits` merge the parent's shared traits with the subrace's own additions, with `data.subraceOf` back-referencing the parent and the parent's `data.subraces` listing its children (no `overrides`). Section anchor: `races` (`startHeading: /^Races$/`, `endHeading: /^Classes$/`, `requireEndHeading: true`). |
 | `equipment` | Implemented. Parser projects the Equipment chapter's three tables into per-item `kind=equipment` records: weapons (`damageDie`, `damageType`, `properties[]`), armor (`ac`, `armorType`, `stealthDisadvantage`, optional `strengthRequirement`), and adventuring gear. All carry `category` plus verbatim `cost`/`weight`. Section anchor: `equipment` (`startHeading: /^Equipment$/`, `requireEndHeading: true`). Assumes row-major table extraction; see `parseEquipment.ts`. |
 | `feat`      | Implemented. Parser extracts feat entries (SRD 5.1: Grappler) with optional prerequisites and description text in `data.description`. Section anchor: `feats` (`startHeading: /^Feats?$\|^Feat Descriptions?$/`, `requireEndHeading: true`). |
 | `condition` | Implemented. Parser extracts all 15 SRD conditions (blinded, charmed, deafened, exhaustion, frightened, grappled, incapacitated, invisible, paralyzed, petrified, poisoned, prone, restrained, stunned, unconscious). Exhaustion carries a structured `levels` array (6 entries). Section anchor: `conditions` (`startHeading: /^Appendix A: Conditions$\|^Conditions$/`). |
@@ -104,6 +104,10 @@ sources/dnd5e-srd-5.1/SRD_CC_v5.1.pdf
 - `parseRules.ts` -- narrowed core-rules text -> `RuleExtraction[]` by
   heading-style section labels (e.g. Cover, Resting). Body is re-flowed prose
   in `text`.
+- `parseAncestries.ts` -- narrowed races text -> `AncestryExtraction[]` by
+  known-name race/subrace heading match plus "Label. body" trait detection.
+  Emits one entry per race and per subrace; subrace entries carry flattened
+  (parent + own) traits and a `subraceOf` back-reference.
 - `parseTables.ts` -- narrowed core-rules and treasure-table text ->
   `TableExtraction[]` by per-table anchors plus conservative row
   reconstruction for simple reference tables and column-block reconstruction
@@ -161,6 +165,7 @@ slice for treasure challenge tables.
 
 | Anchor key           | `startHeading`                                 | `endHeading`                                                | `requireEndHeading` |
 |----------------------|------------------------------------------------|-------------------------------------------------------------|---------------------|
+| `races`              | `/^Races$/`                                     | `/^Classes$/`                                               | `true`              |
 | `coreRules`          | `/^Using Ability Scores$/`                     | `/^Spell Lists$/`                                           | `true`              |
 | `spellLists`         | `/^Spell Lists$/`                              | `/^Spells$\|^Spell Descriptions$/`                          | `true`              |
 | `spellDescriptions`  | `/^Spells$\|^Spell Descriptions$/`             | `/^(Monsters\|Magic Items\|Creatures\|NPCs\|Treasure\|Appendix)$/` | `true`              |

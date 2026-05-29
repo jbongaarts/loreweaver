@@ -26,6 +26,7 @@ import type {
 import { validateRulesPack } from '../../../src/rules/validate.js';
 import type {
   ActionExtraction,
+  AncestryExtraction,
   ConditionExtraction,
   EquipmentExtraction,
   FeatExtraction,
@@ -197,6 +198,10 @@ function tableKey(name: string): string {
 
 function equipmentKey(name: string): string {
   return `equipment:${slug(name)}`;
+}
+
+function ancestryKey(name: string): string {
+  return `ancestry:${slug(name)}`;
 }
 
 export function conditionExtractionsToRecords(
@@ -411,6 +416,46 @@ export function equipmentExtractionsToRecords(
   return out;
 }
 
+export function ancestryExtractionsToRecords(
+  ancestries: readonly AncestryExtraction[],
+): RulesRecord[] {
+  const out: RulesRecord[] = ancestries.map((ancestry) => {
+    // `source: 'race'` preserves the SRD 5.1 source term while the record kind
+    // is the canonical 'ancestry' (ADR 0005). Field order is literal for
+    // byte-stable output.
+    const data: Record<string, unknown> = {
+      source: 'race',
+      description: ancestry.description,
+    };
+    if (ancestry.size !== undefined) {
+      data.size = ancestry.size;
+    }
+    if (ancestry.speed !== undefined) {
+      data.speed = ancestry.speed;
+    }
+    data.traits = ancestry.traits.map((t) => ({ name: t.name, text: t.text }));
+    if (ancestry.subraceOf !== undefined) {
+      data.subraceOf = ancestryKey(ancestry.subraceOf);
+    }
+    if (ancestry.subraces !== undefined && ancestry.subraces.length > 0) {
+      data.subraces = ancestry.subraces.map((name) => ancestryKey(name));
+    }
+    const record: RulesRecord = {
+      systemId: SYSTEM_ID,
+      kind: 'ancestry',
+      key: ancestryKey(ancestry.name),
+      name: ancestry.name,
+      data,
+      source: sourceLabelFor(ancestry.sourcePage),
+      license: SRD_5_1_LICENSE,
+      provenance: provenanceFor(ancestry.sourcePage),
+    };
+    return record;
+  });
+  out.sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+  return out;
+}
+
 export interface BuildPackInput {
   readonly spells: readonly SpellExtraction[];
   readonly classIndex: SpellClassIndex;
@@ -421,6 +466,7 @@ export interface BuildPackInput {
   readonly rules?: readonly RuleExtraction[];
   readonly tables?: readonly TableExtraction[];
   readonly equipment?: readonly EquipmentExtraction[];
+  readonly ancestries?: readonly AncestryExtraction[];
   readonly sourceHash: string;
 }
 
@@ -441,6 +487,7 @@ export function buildPack(input: BuildPackInput): RulesPack {
   const ruleRecords = ruleExtractionsToRecords(input.rules ?? []);
   const tableRecords = tableExtractionsToRecords(input.tables ?? []);
   const equipmentRecords = equipmentExtractionsToRecords(input.equipment ?? []);
+  const ancestryRecords = ancestryExtractionsToRecords(input.ancestries ?? []);
   const records = [
     ...spellRecords,
     ...conditionRecords,
@@ -450,6 +497,7 @@ export function buildPack(input: BuildPackInput): RulesPack {
     ...ruleRecords,
     ...tableRecords,
     ...equipmentRecords,
+    ...ancestryRecords,
   ].sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
   const includedKinds = uniqueKindsOf(records);
   const pack: RulesPack = {

@@ -174,6 +174,51 @@ export interface EquipmentExtraction {
   readonly sourcePage: number;
 }
 
+/**
+ * One named racial trait as extracted from the SRD source: the bold "Label."
+ * lead-in and its re-flowed body text. Trait labels in the SRD races chapter
+ * are short noun phrases (e.g. "Ability Score Increase", "Age", "Alignment",
+ * "Size", "Speed", "Languages", "Darkvision", "Dwarven Resilience").
+ */
+export interface AncestryTrait {
+  readonly name: string;
+  readonly text: string;
+}
+
+/**
+ * A race (or subrace) entry as extracted from the SRD source, before
+ * conversion to a `kind=ancestry` `RulesRecord`.
+ *
+ * SRD 5.1 uses the term "race"; the importer normalizes the record kind to
+ * `ancestry` per ADR 0005 while preserving the source term in record data.
+ *
+ * Subrace handling (decision recorded on loreweaver-0m9.5.6): parent races and
+ * subraces are emitted as **separate** ancestry records, and each subrace
+ * record is **self-contained / flattened** — its `traits` already include the
+ * parent's shared traits merged with the subrace's own additions, so a name
+ * lookup of e.g. "Hill Dwarf" resolves to a fully usable record without having
+ * to resolve the parent. `subraceOf` points back to the parent; the parent
+ * lists its children in `subraces`. The cross-pack `overrides` field is
+ * deliberately NOT used (it would hide the parent from the stack).
+ */
+export interface AncestryExtraction {
+  readonly name: string;
+  /** Intro / flavor prose for this race or subrace, re-flowed into paragraphs. */
+  readonly description: string;
+  /** Flattened trait list (parent + own for subraces). */
+  readonly traits: readonly AncestryTrait[];
+  /** Medium / Small / etc., parsed from the Size trait when present. */
+  readonly size?: string;
+  /** Base walking speed in feet, parsed from the Speed trait when present. */
+  readonly speed?: number;
+  /** Parent ancestry name (e.g. "Dwarf") when this is a subrace. */
+  readonly subraceOf?: string;
+  /** Child ancestry names (e.g. ["Hill Dwarf"]) when this is a parent. */
+  readonly subraces?: readonly string[];
+  /** 1-based page in the source PDF where the race/subrace entry begins. */
+  readonly sourcePage: number;
+}
+
 export interface ImporterCounts {
   readonly spells: number;
   readonly conditions: number;
@@ -183,6 +228,7 @@ export interface ImporterCounts {
   readonly rules: number;
   readonly tables: number;
   readonly equipment: number;
+  readonly ancestries: number;
 }
 
 export interface ImporterRunResult {
