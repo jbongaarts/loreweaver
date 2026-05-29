@@ -51,7 +51,7 @@ Before the first publish, package metadata should be tightened:
 
 ## Build And Release Commands
 
-Release builds run from a clean checkout on Node 22 LTS:
+Release builds run from a clean checkout on Node 24 LTS:
 
 ```bash
 npm ci
@@ -84,17 +84,14 @@ Initial automation can be manual plus CI-verified:
 
 ## Runtime Policy
 
-Node 22 LTS is the supported runtime for the first CLI release. This follows
+Node 24 LTS is the supported runtime for the first CLI release. This follows
 [ADR 0008](adr/0008-node-runtime-and-native-sqlite-support.md). It is the same
-runtime CI uses and has a prebuilt `better-sqlite3` binary for the pinned 11.x
+runtime CI uses and has a prebuilt `better-sqlite3` binary for the pinned 12.x
 line.
 
-Node 24 is not the first-release support target while `better-sqlite3` remains
-on 11.x and the package engines remain `>=22 <23`. Local Node 24 can work when a
-native binding is available or the user has a C++ toolchain, but a distributed
-CLI should not depend on source compilation during install. Moving the support
-target to Node 24 requires upgrading to a `better-sqlite3` version with Node 24
-prebuilds, updating the package engines, and proving a clean install with
+The package engines intentionally target `>=24 <25`. Moving the support target
+again requires updating the package engines, the CI Node version, and the
+`better-sqlite3` version together, then proving a clean install with
 `npm_config_build_from_source=false`.
 
 The release workflow must keep:
@@ -142,7 +139,7 @@ That script performs a clean TypeScript build, packs both workspaces, installs
 the local tarballs into a temporary global npm prefix, invokes the installed
 `loreweaver` command, and verifies the expected first-run config guidance.
 
-Run this on a machine or container with no repository checkout and Node 22 LTS:
+Run this on a machine or container with no repository checkout and Node 24 LTS:
 
 ```bash
 node --version

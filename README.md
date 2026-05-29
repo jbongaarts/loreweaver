@@ -79,11 +79,9 @@ Monorepo using npm workspaces:
 
 ### Prerequisites
 
-- **Node.js 22 LTS is the supported runtime.** The package engines intentionally
-  use `>=22 <23` while the native `better-sqlite3` dependency remains on 11.x.
-  Local Node 24 installs may work when a compatible native binding is available
-  or the machine can compile one, but Node 24 is outside support until the
-  native dependency is deliberately upgraded. See
+- **Node.js 24 LTS is the supported runtime.** The package engines intentionally
+  use `>=24 <25`, and the native `better-sqlite3` dependency is on 12.x for
+  Node 24 prebuilt binary support. See
   [ADR 0008](docs/adr/0008-node-runtime-and-native-sqlite-support.md).
 - **Anthropic API key.** The only concrete model adapter today is the Claude
   Agent SDK adapter.
