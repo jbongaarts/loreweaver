@@ -26,8 +26,11 @@ import { migrateSchema } from './migrations.js';
  * Module template columns (`module_*.data_json`) are read-only post-fork and
  * validated by the pack importer at load time — not by mutateState or the
  * context assembler.
+ *
+ * Operational diagnostics are non-canon debugging records, not game history:
+ *   - `turn_failure_diagnostic`
  */
-export const SCHEMA_VERSION = 10;
+export const SCHEMA_VERSION = 11;
 
 export class SchemaCompatibilityError extends Error {
   constructor(message: string) {
@@ -165,6 +168,18 @@ export function initSchema(db: Db): void {
       human_corrections_json TEXT NOT NULL,
       quality_flags_json TEXT NOT NULL,
       created_at TEXT NOT NULL,
+      PRIMARY KEY (campaign_id, session_id, turn_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS turn_failure_diagnostic (
+      campaign_id TEXT NOT NULL,
+      session_id TEXT NOT NULL,
+      turn_id TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      phase TEXT NOT NULL,
+      error_name TEXT NOT NULL,
+      error_message TEXT NOT NULL,
+      model_rounds INTEGER NOT NULL CHECK (model_rounds >= 0),
       PRIMARY KEY (campaign_id, session_id, turn_id)
     );
 

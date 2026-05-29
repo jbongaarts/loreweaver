@@ -36,6 +36,18 @@ export type {
   TurnTraceKey,
   TurnTraceRecord,
 } from './memory/turnTrace.js';
+export {
+  TurnFailureDiagnosticError,
+  getTurnFailureDiagnostic,
+  listTurnFailureDiagnostics,
+  recordTurnFailureDiagnostic,
+  sanitizeDiagnosticMessage,
+} from './memory/turnFailureDiagnostic.js';
+export type {
+  RecordTurnFailureDiagnosticInput,
+  TurnFailureDiagnosticKey,
+  TurnFailureDiagnosticRecord,
+} from './memory/turnFailureDiagnostic.js';
 
 // Memory configuration (N and K knobs for arc rollover and recap window).
 export {

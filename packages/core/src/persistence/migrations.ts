@@ -134,10 +134,29 @@ const v9_to_v10: Migration = (db) => {
   }
 };
 
+// v10 → v11: non-canon turn failure diagnostics written after rollback so
+// failed model/protocol turns remain debuggable after the process exits.
+const v10_to_v11: Migration = (db) => {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS turn_failure_diagnostic (
+      campaign_id TEXT NOT NULL,
+      session_id TEXT NOT NULL,
+      turn_id TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      phase TEXT NOT NULL,
+      error_name TEXT NOT NULL,
+      error_message TEXT NOT NULL,
+      model_rounds INTEGER NOT NULL CHECK (model_rounds >= 0),
+      PRIMARY KEY (campaign_id, session_id, turn_id)
+    );
+  `);
+};
+
 export const MIGRATIONS: Readonly<Record<number, Migration>> = {
   8: v7_to_v8,
   9: v8_to_v9,
   10: v9_to_v10,
+  11: v10_to_v11,
 };
 
 /**

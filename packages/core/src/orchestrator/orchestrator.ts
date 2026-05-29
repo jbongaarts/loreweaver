@@ -1,3 +1,4 @@
+import { recordTurnFailureDiagnostic } from '../memory/turnFailureDiagnostic.js';
 import type {
   TraceJsonValue,
   TurnTraceConsentScope,
@@ -102,6 +103,7 @@ export async function runTurn(
   // Tracked here (not inside runModelLoop) so the failure path can still
   // report the round count the turn reached before it threw.
   let rounds = 0;
+  let phase = 'resolve_acting_character';
 
   db.exec(`SAVEPOINT ${TURN_SAVEPOINT}`);
   try {
@@ -114,6 +116,7 @@ export async function runTurn(
     );
     toolCtx.actingCharacterId = actingCharacterId;
 
+    phase = 'assemble_context';
     const assembled = assembleContext({
       db,
       campaignId: input.campaignId,
@@ -123,6 +126,7 @@ export async function runTurn(
       actingCharacterId,
     });
 
+    phase = 'model_loop';
     const { narration, toolCalls } = await runModelLoop({
       model,
       registry,
@@ -140,6 +144,7 @@ export async function runTurn(
       },
     });
 
+    phase = 'scene_summary';
     const closedSceneIds = extractClosedSceneIds(toolCalls);
     summarizeClosedScenes({
       db,
@@ -149,6 +154,7 @@ export async function runTurn(
       at: input.at,
     });
 
+    phase = 'transcript';
     const activeScene = appendTurnTranscript({
       db,
       campaignId: input.campaignId,
@@ -159,6 +165,7 @@ export async function runTurn(
       at: input.at,
     });
 
+    phase = 'turn_trace';
     recordTurnTrace(db, {
       campaignId: input.campaignId,
       sessionId: input.sessionId,
@@ -195,6 +202,19 @@ export async function runTurn(
   } catch (e) {
     db.exec(`ROLLBACK TO ${TURN_SAVEPOINT}`);
     db.exec(`RELEASE ${TURN_SAVEPOINT}`);
+    try {
+      recordTurnFailureDiagnostic(db, {
+        campaignId: input.campaignId,
+        sessionId: input.sessionId,
+        turnId: input.turnId,
+        createdAt: input.at,
+        phase,
+        error: e,
+        modelRounds: rounds,
+      });
+    } catch {
+      // Keep the original failed-turn result contract even if diagnostics fail.
+    }
     return {
       ok: false,
       turnId: input.turnId,
