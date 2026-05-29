@@ -237,6 +237,20 @@ export const SRD_5_1_DEFAULT_SECTION_ANCHORS = {
       /^(Mounts and Vehicles|Trade Goods|Expenses|Trinkets|Multiclassing|Spellcasting|Using Ability Scores|Adventuring|Combat|Monsters|Magic Items|Chapter \d+)$/i,
     requireEndHeading: true,
   },
+  // SRD 5.1 presents creature stat blocks alphabetically under the "Monsters"
+  // chapter, which is effectively the last large content chapter (followed by
+  // the Nonplayer Characters appendix and the license text). `requireEndHeading`
+  // is therefore NOT set: like the conditions section, Monsters legitimately
+  // runs to the end of the document in many layouts. The creature parser keys
+  // on each stat block's structural signature (the size/type/alignment meta
+  // line plus the Armor Class / Hit Points / ability-score table), so any
+  // trailing non-creature prose absorbed by the EOF fallback is ignored rather
+  // than promoted to bogus creature records.
+  monsters: {
+    startHeading: /^Monsters$/,
+    endHeading:
+      /^(Nonplayer Characters|NPCs|Appendix|Open Game License|Legal Information)\b/i,
+  },
   // SRD 5.1 treasure tables live in the "Treasure" section, before the
   // following magic-item rules. Use the first rules heading inside that next
   // section as the end boundary instead of "Magic Items" itself because
@@ -254,6 +268,7 @@ export type Srd51SectionAnchors = {
   readonly spellLists: SectionAnchorOptions;
   readonly spellDescriptions: SectionAnchorOptions;
   readonly combatActions: SectionAnchorOptions;
+  readonly monsters: SectionAnchorOptions;
   readonly conditions: SectionAnchorOptions;
   readonly feats: SectionAnchorOptions;
   readonly hazards: SectionAnchorOptions;

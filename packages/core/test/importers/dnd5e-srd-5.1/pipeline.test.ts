@@ -129,9 +129,25 @@ const SPELLS_PAGE: FixturePage = {
   ],
 };
 
-// Closing chapter so the spell-descriptions anchor has an end heading to find.
+// Closing chapter so the spell-descriptions anchor has an end heading to find,
+// and the source slice for the creature parser. Carries one full Goblin stat
+// block so runImporter emits a creature record; the monsters anchor has no
+// end heading (runs to EOF), and the creature parser keys on the stat-block
+// signature, so the chapters that follow in this fixture are ignored.
 const MONSTERS_PAGE: FixturePage = {
-  lines: ['Monsters', 'Goblin', 'Small humanoid (goblinoid), neutral evil.'],
+  lines: [
+    'Monsters',
+    'Goblin',
+    'Small humanoid (goblinoid), neutral evil',
+    'Armor Class 15 (leather armor, shield)',
+    'Hit Points 7 (2d6)',
+    'Speed 30 ft.',
+    'STR DEX CON INT WIS CHA',
+    '8 (−1) 14 (+2) 10 (+0) 10 (+0) 8 (−1) 8 (−1)',
+    'Senses darkvision 60 ft., passive Perception 9',
+    'Languages Common, Goblin',
+    'Challenge 1/4 (50 XP)',
+  ],
 };
 
 const TREASURE_TABLES_PAGE: FixturePage = {
@@ -473,6 +489,7 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
 
     const result = await runImporter({ pdfPath, outDir });
     expect(result.counts.spells).toBe(2);
+    expect(result.counts.creatures).toBe(1);
     expect(result.counts.conditions).toBe(2);
     expect(result.counts.feats).toBe(1);
     expect(result.counts.hazards).toBe(1);
@@ -484,7 +501,7 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(result.sourceHash).toMatch(/^[0-9a-f]{64}$/);
 
     const pack = loadRulesPackFromDirectory(outDir);
-    expect(pack.records).toHaveLength(29);
+    expect(pack.records).toHaveLength(30);
     const keys = pack.records.map((r) => r.key).sort();
     expect(keys).toContain('action:attack');
     expect(keys).toContain('action:cast-a-spell');
@@ -498,6 +515,7 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(keys).toContain('action:use-an-object');
     expect(keys).toContain('spell:acid-splash');
     expect(keys).toContain('spell:magic-missile');
+    expect(keys).toContain('creature:goblin');
     expect(keys).toContain('condition:blinded');
     expect(keys).toContain('condition:prone');
     expect(keys).toContain('feat:grappler');
@@ -619,6 +637,31 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(grapplerData.prerequisites).toBe('Strength 13 or higher');
     expect(typeof grapplerData.description).toBe('string');
     expect((grapplerData.description as string).length).toBeGreaterThan(0);
+
+    // The generated manifest must advertise creature as an included kind.
+    expect(pack.meta.description).toMatch(
+      /Included record kinds:[^.]*creature/,
+    );
+
+    const goblin = pack.records.find((r) => r.key === 'creature:goblin');
+    expect(goblin?.kind).toBe('creature');
+    expect(goblin?.name).toBe('Goblin');
+    const goblinData = goblin?.data as Record<string, unknown>;
+    expect(goblinData.size).toBe('Small');
+    expect(goblinData.type).toBe('humanoid');
+    expect(goblinData.alignment).toBe('neutral evil');
+    expect(goblinData.armorClass).toBe(15);
+    expect(goblinData.hitPoints).toBe(7);
+    expect(goblinData.speed).toEqual({ walk: 30 });
+    expect(goblinData.challengeRating).toBe('1/4');
+    expect(goblinData.abilityScores).toEqual({
+      strength: 8,
+      dexterity: 14,
+      constitution: 10,
+      intelligence: 10,
+      wisdom: 8,
+      charisma: 8,
+    });
 
     const dagger = pack.records.find((r) => r.key === 'equipment:dagger');
     expect(dagger?.name).toBe('Dagger');

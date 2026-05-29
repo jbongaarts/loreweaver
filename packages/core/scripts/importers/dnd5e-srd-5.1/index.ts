@@ -13,8 +13,8 @@
  * spell parser over the whole PDF (which would let class-list text and
  * unrelated chapters bleed into the last spell's body).
  *
- * Scope today: spells, conditions, feats, hazards, actions, rules, tables,
- * equipment, and ancestries (races + subraces).
+ * Scope today: spells, creatures, conditions, feats, hazards, actions, rules,
+ * tables, equipment, and ancestries (races + subraces).
  * Other SRD record kinds are tracked under `loreweaver-0m9.5` child issues;
  * until those parsers ship the importer deliberately omits them so the
  * generated pack does not claim coverage it does not have. See `README.md`
@@ -28,6 +28,7 @@ import { extractPdfText } from './extract.js';
 import { parseActions } from './parseActions.js';
 import { parseAncestries } from './parseAncestries.js';
 import { parseConditions } from './parseConditions.js';
+import { parseCreatures } from './parseCreatures.js';
 import { parseEquipment } from './parseEquipment.js';
 import { parseFeats } from './parseFeats.js';
 import { parseHazards } from './parseHazards.js';
@@ -75,6 +76,12 @@ export async function runImporter(
 
   const spells = parseSpells(spellDescriptionPages);
   const classIndex = parseSpellClassLists(spellListPages);
+  // Throws SectionNotFoundError if the monsters start anchor doesn't match —
+  // creature is an implemented kind, so fail closed rather than emit a pack
+  // without creatures. The section may run to EOF (no requireEndHeading); see
+  // the anchor comment in sections.ts.
+  const monsterPages = sliceSection(pages, anchors.monsters);
+  const creatures = parseCreatures(monsterPages);
   const conditions = parseConditions(conditionPages);
   const actions = parseActions(combatActionPages);
   const featPages = sliceSection(pages, anchors.feats);
@@ -95,6 +102,7 @@ export async function runImporter(
   const pack = buildPack({
     spells,
     classIndex,
+    creatures,
     conditions,
     feats,
     hazards,
@@ -111,6 +119,7 @@ export async function runImporter(
     sourceHash,
     counts: {
       spells: spells.length,
+      creatures: creatures.length,
       conditions: conditions.length,
       feats: feats.length,
       hazards: hazards.length,
