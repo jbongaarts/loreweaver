@@ -28,6 +28,7 @@ import type {
   ActionExtraction,
   AncestryExtraction,
   ConditionExtraction,
+  CreatureExtraction,
   EquipmentExtraction,
   FeatExtraction,
   HazardExtraction,
@@ -172,6 +173,10 @@ function buildSpellData(
   return base;
 }
 
+function creatureKey(name: string): string {
+  return `creature:${slug(name)}`;
+}
+
 function conditionKey(name: string): string {
   return `condition:${slug(name)}`;
 }
@@ -202,6 +207,53 @@ function equipmentKey(name: string): string {
 
 function ancestryKey(name: string): string {
   return `ancestry:${slug(name)}`;
+}
+
+/**
+ * Build the `data` payload for one creature record. Field insertion order is
+ * fixed (so emitted JSON is byte-stable) and matches the `dnd5e-srd` creature
+ * kindSchema's required keys; see `validateDnd5eCreature` in `kindSchemas.ts`.
+ */
+function buildCreatureData(
+  creature: CreatureExtraction,
+): Record<string, unknown> {
+  return {
+    size: creature.size,
+    type: creature.type,
+    alignment: creature.alignment,
+    armorClass: creature.armorClass,
+    hitPoints: creature.hitPoints,
+    speed: { ...creature.speed },
+    challengeRating: creature.challengeRating,
+    abilityScores: {
+      strength: creature.abilityScores.strength,
+      dexterity: creature.abilityScores.dexterity,
+      constitution: creature.abilityScores.constitution,
+      intelligence: creature.abilityScores.intelligence,
+      wisdom: creature.abilityScores.wisdom,
+      charisma: creature.abilityScores.charisma,
+    },
+  };
+}
+
+export function creatureExtractionsToRecords(
+  creatures: readonly CreatureExtraction[],
+): RulesRecord[] {
+  const out: RulesRecord[] = creatures.map((creature) => {
+    const record: RulesRecord = {
+      systemId: SYSTEM_ID,
+      kind: 'creature',
+      key: creatureKey(creature.name),
+      name: creature.name,
+      data: buildCreatureData(creature),
+      source: sourceLabelFor(creature.sourcePage),
+      license: SRD_5_1_LICENSE,
+      provenance: provenanceFor(creature.sourcePage),
+    };
+    return record;
+  });
+  out.sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+  return out;
 }
 
 export function conditionExtractionsToRecords(
@@ -459,6 +511,7 @@ export function ancestryExtractionsToRecords(
 export interface BuildPackInput {
   readonly spells: readonly SpellExtraction[];
   readonly classIndex: SpellClassIndex;
+  readonly creatures?: readonly CreatureExtraction[];
   readonly conditions: readonly ConditionExtraction[];
   readonly feats?: readonly FeatExtraction[];
   readonly hazards?: readonly HazardExtraction[];
@@ -480,6 +533,7 @@ export function buildPack(input: BuildPackInput): RulesPack {
     );
   }
   const spellRecords = spellExtractionsToRecords(input.spells, classByName);
+  const creatureRecords = creatureExtractionsToRecords(input.creatures ?? []);
   const conditionRecords = conditionExtractionsToRecords(input.conditions);
   const featRecords = featExtractionsToRecords(input.feats ?? []);
   const hazardRecords = hazardExtractionsToRecords(input.hazards ?? []);
@@ -490,6 +544,7 @@ export function buildPack(input: BuildPackInput): RulesPack {
   const ancestryRecords = ancestryExtractionsToRecords(input.ancestries ?? []);
   const records = [
     ...spellRecords,
+    ...creatureRecords,
     ...conditionRecords,
     ...featRecords,
     ...hazardRecords,

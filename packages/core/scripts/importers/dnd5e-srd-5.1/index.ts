@@ -11,10 +11,13 @@
  * Failing-closed design: if the section anchors don't match the input PDF,
  * the importer throws `SectionNotFoundError`. It never silently runs the
  * spell parser over the whole PDF (which would let class-list text and
- * unrelated chapters bleed into the last spell's body).
+ * unrelated chapters bleed into the last spell's body). The creature set is
+ * additionally guarded by `validateCreatureCoverage`: an empty Monsters parse
+ * (or one below `minCreatureCount`) throws `CreatureCoverageError` and writes
+ * nothing.
  *
- * Scope today: spells, conditions, feats, hazards, actions, rules, tables,
- * equipment, and ancestries (races + subraces).
+ * Scope today: spells, creatures, conditions, feats, hazards, actions, rules,
+ * tables, equipment, and ancestries (races + subraces).
  * Other SRD record kinds are tracked under `loreweaver-0m9.5` child issues;
  * until those parsers ship the importer deliberately omits them so the
  * generated pack does not claim coverage it does not have. See `README.md`
@@ -28,6 +31,7 @@ import { extractPdfText } from './extract.js';
 import { parseActions } from './parseActions.js';
 import { parseAncestries } from './parseAncestries.js';
 import { parseConditions } from './parseConditions.js';
+import { parseCreatures } from './parseCreatures.js';
 import { parseEquipment } from './parseEquipment.js';
 import { parseFeats } from './parseFeats.js';
 import { parseHazards } from './parseHazards.js';
@@ -41,6 +45,34 @@ import {
 } from './sections.js';
 import type { ImporterRunResult } from './types.js';
 
+/**
+ * Minimum number of creature stat blocks a full SRD 5.1 import must yield. The
+ * SRD 5.1 "Monsters" chapter contains on the order of 300+ creature stat blocks
+ * (the separate "Nonplayer Characters" section is intentionally out of scope —
+ * see the `monsters` section anchor in `sections.ts`). This floor exists to
+ * catch a gross extraction regression — an empty or badly-truncated run — when
+ * the importer is pointed at the real PDF. It is deliberately a count floor
+ * rather than an exact name set: enumerating the full name set by hand is
+ * error-prone without the vendored PDF, and exact-coverage validation is
+ * tracked separately in `loreweaver-0m9.5.14`. The CLI passes this value;
+ * fixture-based tests use the always-on empty-result guard instead (or pass a
+ * smaller `minCreatureCount`).
+ */
+export const MIN_EXPECTED_SRD_5_1_CREATURES = 300;
+
+/**
+ * Thrown when the parsed creature set fails the coverage check (empty result,
+ * or fewer creatures than `minCreatureCount`). Distinct from
+ * `SectionNotFoundError` so callers can tell "the Monsters section was found
+ * but produced too few creatures" apart from "the section anchor didn't match".
+ */
+export class CreatureCoverageError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'CreatureCoverageError';
+  }
+}
+
 export interface RunImporterInput {
   /** Absolute path to the vendored SRD 5.1 PDF. */
   readonly pdfPath: string;
@@ -52,6 +84,39 @@ export interface RunImporterInput {
    * heading text differs.
    */
   readonly sectionAnchors?: Srd51SectionAnchors;
+  /**
+   * Minimum number of creature stat blocks the Monsters section must yield for
+   * the run to be accepted. When set and the parsed count is below it, the
+   * importer throws `CreatureCoverageError` and writes nothing. The real-import
+   * CLI passes `MIN_EXPECTED_SRD_5_1_CREATURES`; fixture pipelines that exercise
+   * a reduced Monsters section either omit this (relying on the always-on
+   * empty-result guard) or pass a small value. An empty creature result is
+   * always rejected regardless of this option.
+   */
+  readonly minCreatureCount?: number;
+}
+
+/**
+ * Fail closed on a creature result that can't be a faithful SRD 5.1 import:
+ * an empty set is always rejected; a non-empty set below `minCreatureCount`
+ * (when provided) is rejected too. Runs after parsing and before any output is
+ * written. Error messages are deterministic and name the observed/expected
+ * counts so a CI failure is self-explanatory.
+ */
+function validateCreatureCoverage(
+  count: number,
+  minCreatureCount: number | undefined,
+): void {
+  if (count === 0) {
+    throw new CreatureCoverageError(
+      'SRD 5.1 creature coverage check failed: the Monsters section was found but yielded 0 creature stat blocks. The Monsters layout likely changed. Refusing to write a pack with no creatures.',
+    );
+  }
+  if (minCreatureCount !== undefined && count < minCreatureCount) {
+    throw new CreatureCoverageError(
+      `SRD 5.1 creature coverage check failed: parsed ${count} creature stat block(s), expected at least ${minCreatureCount}. The Monsters section may have been truncated or its layout changed. (Exact name-set coverage is tracked in loreweaver-0m9.5.14.)`,
+    );
+  }
 }
 
 export async function runImporter(
@@ -75,6 +140,15 @@ export async function runImporter(
 
   const spells = parseSpells(spellDescriptionPages);
   const classIndex = parseSpellClassLists(spellListPages);
+  // Throws SectionNotFoundError if the monsters start OR end anchor doesn't
+  // match — creature is an implemented kind, so fail closed rather than emit a
+  // pack without creatures or let trailing content bleed in (the monsters
+  // anchor sets requireEndHeading: true); see the anchor comment in sections.ts.
+  const monsterPages = sliceSection(pages, anchors.monsters);
+  const creatures = parseCreatures(monsterPages);
+  // Fail closed before any output is written if creature extraction is empty
+  // or (when a floor is supplied) implausibly small.
+  validateCreatureCoverage(creatures.length, input.minCreatureCount);
   const conditions = parseConditions(conditionPages);
   const actions = parseActions(combatActionPages);
   const featPages = sliceSection(pages, anchors.feats);
@@ -95,6 +169,7 @@ export async function runImporter(
   const pack = buildPack({
     spells,
     classIndex,
+    creatures,
     conditions,
     feats,
     hazards,
@@ -111,6 +186,7 @@ export async function runImporter(
     sourceHash,
     counts: {
       spells: spells.length,
+      creatures: creatures.length,
       conditions: conditions.length,
       feats: feats.length,
       hazards: hazards.length,

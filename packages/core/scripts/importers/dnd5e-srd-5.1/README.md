@@ -14,7 +14,7 @@ tracked as child issues).
 |-------------|--------|
 | `spell`     | Implemented. Stat-block parser extracts name, level, school, ritual flag, casting time, range, components (incl. material text), duration, description, and "At Higher Levels" upcast text. Class lists are cross-referenced from the class-spell-list section. |
 | `action`    | Implemented. Parser extracts the 10 standard SRD combat actions (Attack, Cast a Spell, Dash, Disengage, Dodge, Help, Hide, Ready, Search, Use an Object) from the combat-actions section into `kind=action` records with `data.description`. |
-| `creature`  | Not implemented. Child of `loreweaver-0m9.5`. |
+| `creature`  | Implemented. Stat-block parser extracts every creature from the Monsters section into `kind=creature` records satisfying the `dnd5e-srd` creature kindSchema: `size`, `type` (subtype parenthetical dropped), `alignment`, `armorClass`, `hitPoints`, `speed` (mode→feet map; the unlabeled base speed keyed as `walk`), `challengeRating` (bare fraction/integer), and `abilityScores`. A stat block is confirmed by its size/type/alignment meta line plus the AC/HP/ability-table signature. NPC stat blocks (the separate "Nonplayer Characters" section) are intentionally out of scope. Section anchor: `monsters` (`startHeading: /^Monsters$/`, `requireEndHeading: true`). `runImporter` additionally fails closed via a creature-coverage guard: an empty Monsters parse (or a count below `minCreatureCount`, which the CLI sets to `MIN_EXPECTED_SRD_5_1_CREATURES`) throws and writes nothing. Exact name-set coverage is tracked in `loreweaver-0m9.5.14`. |
 | `class`     | Not implemented. Child of `loreweaver-0m9.5`. |
 | `background`| SRD 5.1 does not publish backgrounds; see ADR 0005. |
 | `ancestry`  | Implemented. Parser extracts the SRD 5.1 races and subraces by known-name match into `kind=ancestry` records (`data.source = 'race'` per ADR 0005). Parents and subraces are **separate records**; each subrace record is **flattened/self-contained** — its `data.traits` merge the parent's shared traits with the subrace's own additions, with `data.subraceOf` back-referencing the parent and the parent's `data.subraces` listing its children (no `overrides`). Section anchor: `races` (`startHeading: /^Races$/`, `endHeading: /^Classes$/`, `requireEndHeading: true`). |
@@ -95,6 +95,12 @@ sources/dnd5e-srd-5.1/SRD_CC_v5.1.pdf
 - `parseActions.ts` -- narrowed text -> `ActionExtraction[]` by exact heading
   match over the 10 standard SRD combat-action names. Body text is re-flowed
   into `description`.
+- `parseCreatures.ts` -- narrowed Monsters-section text -> `CreatureExtraction[]`
+  by scanning for each stat block's size/type/alignment meta line, validating
+  the type against the 14 SRD creature types, then reading the keyed stat lines
+  (Armor Class, Hit Points, Speed, the STR/DEX/… ability table, Challenge). A
+  meta-like sentence without the AC/HP/ability signature is skipped; a
+  confirmed block missing Speed or Challenge throws.
 - `parseConditions.ts` -- narrowed text -> `ConditionExtraction[]` by exact
   match against the 15 known condition names. Bullet-point lines become
   `effects[]`; exhaustion's level table becomes a structured `levels[]` array.
@@ -159,7 +165,7 @@ dispatch. Each entry is a `SectionAnchorOptions` value:
 | `requireEndHeading`  | If `true`, an unmatched `endHeading` throws `SectionNotFoundError('end')` instead of slicing to EOF.   |
 
 `SRD_5_1_DEFAULT_SECTION_ANCHORS` is the live table consumed by the
-orchestrator. Today it covers nine slices. Freestanding `table` records use
+orchestrator. Today it covers ten slices. Freestanding `table` records use
 the `coreRules` slice for simple reference tables and the `treasureTables`
 slice for treasure challenge tables.
 
@@ -170,6 +176,7 @@ slice for treasure challenge tables.
 | `spellLists`         | `/^Spell Lists$/`                              | `/^Spells$\|^Spell Descriptions$/`                          | `true`              |
 | `spellDescriptions`  | `/^Spells$\|^Spell Descriptions$/`             | `/^(Monsters\|Magic Items\|Creatures\|NPCs\|Treasure\|Appendix)$/` | `true`              |
 | `combatActions`      | `/^Actions in Combat$/`                        | `/^(Making an Attack\|Movement and Position\|Reactions?\|Bonus Actions?\|Mounted Combat\|Underwater Combat\|Contests in Combat\|Cover)$/i` | `true` |
+| `monsters`           | `/^Monsters$/`                                 | `/^(Nonplayer Characters\|NPCs\|Appendix\|Open Game License\|Legal Information)\b/i` | `true`              |
 | `conditions`         | `/^Appendix A: Conditions$\|^Conditions$/`     | `/^Appendix [B-Z]:\|^Open Game License\|^Legal Information\|^Monster (Statistics\|Lists?)$/i` | false (may run to EOF) |
 | `feats`              | `/^Feats?$\|^Feat Descriptions?$/`             | `/^(Using Ability Scores\|Adventuring\|Combat\|Equipment\|Monsters\|Magic Items\|Running the Game\|Chapter \d+\|Spell Lists?)$\|^Appendix\b/i` | `true` |
 | `hazards`            | `/^Dungeon Hazards$\|^Hazards$/`               | `/^(Traps\|Sample Traps\|Wilderness Hazards\|Monsters\|Magic Items\|Appendix\|Chapter \d+\|Open Game License\|Legal Information)$/i` | `true` |

@@ -237,6 +237,20 @@ export const SRD_5_1_DEFAULT_SECTION_ANCHORS = {
       /^(Mounts and Vehicles|Trade Goods|Expenses|Trinkets|Multiclassing|Spellcasting|Using Ability Scores|Adventuring|Combat|Monsters|Magic Items|Chapter \d+)$/i,
     requireEndHeading: true,
   },
+  // SRD 5.1 presents creature stat blocks alphabetically under the "Monsters"
+  // chapter, bounded below by the "Nonplayer Characters" section (NPC stat
+  // blocks, intentionally out of scope for the creature kind) and the license
+  // text. `requireEndHeading` is true: creature is an implemented kind, so a
+  // missing end boundary must fail closed rather than let the slice run to EOF
+  // and feed trailing appendix / NPC / legal content to the creature parser.
+  // The end alternation is kept tight to the sections that actually follow the
+  // Monsters chapter so a stray heading can't widen the slice.
+  monsters: {
+    startHeading: /^Monsters$/,
+    endHeading:
+      /^(Nonplayer Characters|NPCs|Appendix|Open Game License|Legal Information)\b/i,
+    requireEndHeading: true,
+  },
   // SRD 5.1 treasure tables live in the "Treasure" section, before the
   // following magic-item rules. Use the first rules heading inside that next
   // section as the end boundary instead of "Magic Items" itself because
@@ -254,6 +268,7 @@ export type Srd51SectionAnchors = {
   readonly spellLists: SectionAnchorOptions;
   readonly spellDescriptions: SectionAnchorOptions;
   readonly combatActions: SectionAnchorOptions;
+  readonly monsters: SectionAnchorOptions;
   readonly conditions: SectionAnchorOptions;
   readonly feats: SectionAnchorOptions;
   readonly hazards: SectionAnchorOptions;

@@ -17,7 +17,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import PDFDocument from 'pdfkit';
 import { afterEach, describe, expect, it } from 'vitest';
-import { runImporter } from '../../../scripts/importers/dnd5e-srd-5.1/index.js';
+import {
+  CreatureCoverageError,
+  runImporter,
+} from '../../../scripts/importers/dnd5e-srd-5.1/index.js';
 import { SectionNotFoundError } from '../../../scripts/importers/dnd5e-srd-5.1/sections.js';
 import { loadRulesPackFromDirectory } from '../../../src/internal.js';
 
@@ -129,9 +132,54 @@ const SPELLS_PAGE: FixturePage = {
   ],
 };
 
-// Closing chapter so the spell-descriptions anchor has an end heading to find.
+// Closing chapter so the spell-descriptions anchor has an end heading to find,
+// and the source slice for the creature parser. Carries one full Goblin stat
+// block so runImporter emits a creature record, then the "Nonplayer Characters"
+// heading that bounds the Monsters section (monsters anchor requireEndHeading
+// is true), so the chapters that follow in the fixture are excluded from the
+// monsters slice.
 const MONSTERS_PAGE: FixturePage = {
-  lines: ['Monsters', 'Goblin', 'Small humanoid (goblinoid), neutral evil.'],
+  lines: [
+    'Monsters',
+    'Goblin',
+    'Small humanoid (goblinoid), neutral evil',
+    'Armor Class 15 (leather armor, shield)',
+    'Hit Points 7 (2d6)',
+    'Speed 30 ft.',
+    'STR DEX CON INT WIS CHA',
+    '8 (−1) 14 (+2) 10 (+0) 10 (+0) 8 (−1) 8 (−1)',
+    'Senses darkvision 60 ft., passive Perception 9',
+    'Languages Common, Goblin',
+    'Challenge 1/4 (50 XP)',
+    'Nonplayer Characters',
+  ],
+};
+
+// Monsters fixture without the end heading that bounds the section. With
+// requireEndHeading: true on the monsters anchor, the importer must fail closed
+// rather than slice to EOF and feed trailing content to the creature parser.
+const MONSTERS_PAGE_MISSING_END: FixturePage = {
+  lines: [
+    'Monsters',
+    'Goblin',
+    'Small humanoid (goblinoid), neutral evil',
+    'Armor Class 15 (leather armor, shield)',
+    'Hit Points 7 (2d6)',
+    'Speed 30 ft.',
+    'STR DEX CON INT WIS CHA',
+    '8 (−1) 14 (+2) 10 (+0) 10 (+0) 8 (−1) 8 (−1)',
+    'Challenge 1/4 (50 XP)',
+  ],
+};
+
+// Monsters fixture whose section is found and properly bounded, but contains
+// no parseable stat block. Exercises the empty-result coverage guard.
+const MONSTERS_PAGE_NO_CREATURES: FixturePage = {
+  lines: [
+    'Monsters',
+    'This chapter describes monsters, but the stat blocks did not extract.',
+    'Nonplayer Characters',
+  ],
 };
 
 const TREASURE_TABLES_PAGE: FixturePage = {
@@ -473,6 +521,7 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
 
     const result = await runImporter({ pdfPath, outDir });
     expect(result.counts.spells).toBe(2);
+    expect(result.counts.creatures).toBe(1);
     expect(result.counts.conditions).toBe(2);
     expect(result.counts.feats).toBe(1);
     expect(result.counts.hazards).toBe(1);
@@ -484,7 +533,7 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(result.sourceHash).toMatch(/^[0-9a-f]{64}$/);
 
     const pack = loadRulesPackFromDirectory(outDir);
-    expect(pack.records).toHaveLength(29);
+    expect(pack.records).toHaveLength(30);
     const keys = pack.records.map((r) => r.key).sort();
     expect(keys).toContain('action:attack');
     expect(keys).toContain('action:cast-a-spell');
@@ -498,6 +547,7 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(keys).toContain('action:use-an-object');
     expect(keys).toContain('spell:acid-splash');
     expect(keys).toContain('spell:magic-missile');
+    expect(keys).toContain('creature:goblin');
     expect(keys).toContain('condition:blinded');
     expect(keys).toContain('condition:prone');
     expect(keys).toContain('feat:grappler');
@@ -619,6 +669,31 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(grapplerData.prerequisites).toBe('Strength 13 or higher');
     expect(typeof grapplerData.description).toBe('string');
     expect((grapplerData.description as string).length).toBeGreaterThan(0);
+
+    // The generated manifest must advertise creature as an included kind.
+    expect(pack.meta.description).toMatch(
+      /Included record kinds:[^.]*creature/,
+    );
+
+    const goblin = pack.records.find((r) => r.key === 'creature:goblin');
+    expect(goblin?.kind).toBe('creature');
+    expect(goblin?.name).toBe('Goblin');
+    const goblinData = goblin?.data as Record<string, unknown>;
+    expect(goblinData.size).toBe('Small');
+    expect(goblinData.type).toBe('humanoid');
+    expect(goblinData.alignment).toBe('neutral evil');
+    expect(goblinData.armorClass).toBe(15);
+    expect(goblinData.hitPoints).toBe(7);
+    expect(goblinData.speed).toEqual({ walk: 30 });
+    expect(goblinData.challengeRating).toBe('1/4');
+    expect(goblinData.abilityScores).toEqual({
+      strength: 8,
+      dexterity: 14,
+      constitution: 10,
+      intelligence: 10,
+      wisdom: 8,
+      charisma: 8,
+    });
 
     const dagger = pack.records.find((r) => r.key === 'equipment:dagger');
     expect(dagger?.name).toBe('Dagger');
@@ -1049,5 +1124,86 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     await expect(runImporter({ pdfPath, outDir })).rejects.toThrow(
       SectionNotFoundError,
     );
+  });
+
+  it('fails closed when the monsters end heading is missing', async () => {
+    const workDir = makeTmpDir();
+    const pdfPath = join(workDir, 'fixture.pdf');
+    const outDir = join(workDir, 'pack');
+    // Conditions is placed before the (end-less) Monsters section so its
+    // "Appendix A: Conditions" heading can't double as the monsters end
+    // boundary; nothing after the Monsters heading matches the monsters end
+    // anchor, so with requireEndHeading: true the slice must fail rather than
+    // run to EOF and feed trailing content to the creature parser.
+    await writeFixturePdf(pdfPath, [
+      CORE_RULES_PAGE_ONE,
+      CORE_RULES_PAGE_TWO,
+      SPELL_LISTS_PAGE,
+      SPELLS_PAGE,
+      COMBAT_ACTIONS_PAGE,
+      MAKING_AN_ATTACK_PAGE,
+      CONDITIONS_PAGE,
+      MONSTERS_PAGE_MISSING_END,
+    ]);
+
+    await expect(runImporter({ pdfPath, outDir })).rejects.toThrow(
+      SectionNotFoundError,
+    );
+  });
+
+  it('fails closed when the Monsters section yields no creatures', async () => {
+    const workDir = makeTmpDir();
+    const pdfPath = join(workDir, 'fixture.pdf');
+    const outDir = join(workDir, 'pack');
+    // The Monsters section is found and properly bounded, but no stat block
+    // parses out of it. The coverage guard must reject the empty result and
+    // write nothing rather than emit a creature-less pack.
+    await writeFixturePdf(pdfPath, [
+      CORE_RULES_PAGE_ONE,
+      CORE_RULES_PAGE_TWO,
+      SPELL_LISTS_PAGE,
+      SPELLS_PAGE,
+      MONSTERS_PAGE_NO_CREATURES,
+      COMBAT_ACTIONS_PAGE,
+      MAKING_AN_ATTACK_PAGE,
+      CONDITIONS_PAGE,
+    ]);
+
+    await expect(runImporter({ pdfPath, outDir })).rejects.toThrow(
+      CreatureCoverageError,
+    );
+    // Nothing should have been written.
+    expect(() => readFileSync(join(outDir, 'records.json'), 'utf8')).toThrow();
+  });
+
+  it('fails closed when fewer creatures than minCreatureCount are parsed', async () => {
+    const workDir = makeTmpDir();
+    const pdfPath = join(workDir, 'fixture.pdf');
+    const outDir = join(workDir, 'pack');
+    // The fixture's Monsters section yields a single creature (Goblin); a
+    // minCreatureCount of 2 must trip the coverage floor with a deterministic
+    // message naming the observed and expected counts.
+    await writeFixturePdf(pdfPath, [
+      RACES_PAGE,
+      CLASSES_PAGE,
+      CORE_RULES_PAGE_ONE,
+      CORE_RULES_PAGE_TWO,
+      CORE_RULES_TABLES_PAGE,
+      SPELL_LISTS_PAGE,
+      SPELLS_PAGE,
+      MONSTERS_PAGE,
+      TREASURE_TABLES_PAGE,
+      MAGIC_ITEMS_PAGE,
+      COMBAT_ACTIONS_PAGE,
+      MAKING_AN_ATTACK_PAGE,
+      HAZARDS_PAGE,
+      FEATS_PAGE,
+      EQUIPMENT_PAGE,
+      CONDITIONS_PAGE,
+    ]);
+
+    await expect(
+      runImporter({ pdfPath, outDir, minCreatureCount: 2 }),
+    ).rejects.toThrow(/parsed 1 creature stat block\(s\), expected at least 2/);
   });
 });

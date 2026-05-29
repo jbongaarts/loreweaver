@@ -219,8 +219,51 @@ export interface AncestryExtraction {
   readonly sourcePage: number;
 }
 
+/**
+ * The six 5e ability scores. Each is the raw score (1–30), not the modifier;
+ * the SRD stat block prints both ("8 (−1)") but the canonical creature record
+ * stores only the score.
+ */
+export interface CreatureAbilityScores {
+  readonly strength: number;
+  readonly dexterity: number;
+  readonly constitution: number;
+  readonly intelligence: number;
+  readonly wisdom: number;
+  readonly charisma: number;
+}
+
+/**
+ * A creature (monster) entry as extracted from the SRD source, before
+ * conversion to a `kind=creature` `RulesRecord`. Mirrors the fields the
+ * `dnd5e-srd` creature kindSchema requires (see `kindSchemas.ts`):
+ *   - `size` is the capitalized size word ("Small", "Large", …);
+ *   - `type` is the lowercase creature type as printed, with the subtype
+ *     parenthetical dropped ("humanoid", "dragon", "swarm of Tiny beasts");
+ *   - `armorClass` / `hitPoints` are the leading integers of the stat-block
+ *     lines (the parenthetical AC source and HP dice expression are dropped);
+ *   - `speed` maps movement modes to feet, the unlabeled base speed keyed as
+ *     `walk` ({ walk: 30, climb: 30 });
+ *   - `challengeRating` is the bare fraction/integer string ("1/4", "6"),
+ *     without the XP parenthetical.
+ */
+export interface CreatureExtraction {
+  readonly name: string;
+  readonly size: string;
+  readonly type: string;
+  readonly alignment: string;
+  readonly armorClass: number;
+  readonly hitPoints: number;
+  readonly speed: Readonly<Record<string, number>>;
+  readonly challengeRating: string;
+  readonly abilityScores: CreatureAbilityScores;
+  /** 1-based page in the source PDF where the creature stat block begins. */
+  readonly sourcePage: number;
+}
+
 export interface ImporterCounts {
   readonly spells: number;
+  readonly creatures: number;
   readonly conditions: number;
   readonly feats: number;
   readonly hazards: number;
