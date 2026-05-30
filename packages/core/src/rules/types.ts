@@ -12,6 +12,9 @@ export type RulesRecordKind =
   | 'creature'
   | 'equipment'
   | 'feat'
+  // `feature` is class/subclass-granted (Action Surge, Rage, ...), distinct
+  // from the player-selected `feat`. See ADR 0009.
+  | 'feature'
   | 'hazard'
   | 'rule'
   | 'spell'

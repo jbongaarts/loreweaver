@@ -25,6 +25,7 @@ const RULES_RECORD_KINDS: readonly RulesRecordKind[] = [
   'creature',
   'equipment',
   'feat',
+  'feature',
   'hazard',
   'rule',
   'spell',
