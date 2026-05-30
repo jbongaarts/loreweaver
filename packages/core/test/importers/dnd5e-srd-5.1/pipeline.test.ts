@@ -490,9 +490,28 @@ const RACES_PAGE: FixturePage = {
   ],
 };
 
-// End heading for the races section.
+// End heading for the races section AND the start of the Classes chapter. Now
+// carries one full base-class block (Fighter) so runImporter emits a class
+// record; the chapter is bounded below by "Using Ability Scores" (the
+// classes-anchor end heading, supplied by CORE_RULES_PAGE_ONE). Class-feature
+// text is reproduced from the SRD 5.1 (CC-BY-4.0) as parser input.
 const CLASSES_PAGE: FixturePage = {
-  lines: ['Classes', 'Barbarian', 'A fierce warrior of primitive background.'],
+  lines: [
+    'Classes',
+    'Fighter',
+    'A master of martial combat, skilled with a variety of weapons and armor.',
+    'Class Features',
+    'As a fighter, you gain the following class features.',
+    'Hit Points',
+    'Hit Dice: 1d10 per fighter level',
+    'Hit Points at 1st Level: 10 + your Constitution modifier',
+    'Proficiencies',
+    'Armor: All armor, shields',
+    'Weapons: Simple weapons, martial weapons',
+    'Tools: None',
+    'Saving Throws: Strength, Constitution',
+    'Skills: Choose two skills from Acrobatics, Athletics, History, Insight',
+  ],
 };
 
 describe('runImporter — end-to-end against a fixture PDF', () => {
@@ -522,6 +541,7 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     const result = await runImporter({ pdfPath, outDir });
     expect(result.counts.spells).toBe(2);
     expect(result.counts.creatures).toBe(1);
+    expect(result.counts.classes).toBe(1);
     expect(result.counts.conditions).toBe(2);
     expect(result.counts.feats).toBe(1);
     expect(result.counts.hazards).toBe(1);
@@ -533,8 +553,9 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(result.sourceHash).toMatch(/^[0-9a-f]{64}$/);
 
     const pack = loadRulesPackFromDirectory(outDir);
-    expect(pack.records).toHaveLength(30);
+    expect(pack.records).toHaveLength(31);
     const keys = pack.records.map((r) => r.key).sort();
+    expect(keys).toContain('class:fighter');
     expect(keys).toContain('action:attack');
     expect(keys).toContain('action:cast-a-spell');
     expect(keys).toContain('action:dash');
@@ -694,6 +715,26 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       wisdom: 8,
       charisma: 8,
     });
+
+    // The generated manifest must advertise class as an included kind.
+    expect(pack.meta.description).toMatch(/Included record kinds:[^.]*class/);
+
+    const fighter = pack.records.find((r) => r.key === 'class:fighter');
+    expect(fighter?.kind).toBe('class');
+    expect(fighter?.name).toBe('Fighter');
+    const fighterData = fighter?.data as Record<string, unknown>;
+    expect(fighterData.hitDie).toBe(10);
+    expect(fighterData.armorProficiencies).toEqual(['All armor', 'shields']);
+    expect(fighterData.weaponProficiencies).toEqual([
+      'Simple weapons',
+      'martial weapons',
+    ]);
+    expect(fighterData.savingThrowProficiencies).toEqual([
+      'Strength',
+      'Constitution',
+    ]);
+    // SRD Class Features block carries no primary-ability line (ADR 0007).
+    expect(fighterData.primaryAbilities).toEqual([]);
 
     const dagger = pack.records.find((r) => r.key === 'equipment:dagger');
     expect(dagger?.name).toBe('Dagger');

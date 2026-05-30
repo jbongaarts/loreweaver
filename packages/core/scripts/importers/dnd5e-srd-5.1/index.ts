@@ -16,8 +16,10 @@
  * (or one below `minCreatureCount`) throws `CreatureCoverageError` and writes
  * nothing.
  *
- * Scope today: spells, creatures, conditions, feats, hazards, actions, rules,
- * tables, equipment, and ancestries (races + subraces).
+ * Scope today: spells, creatures, base classes, conditions, feats, hazards,
+ * actions, rules, tables, equipment, and ancestries (races + subraces).
+ * Subclasses and class features are separate record kinds tracked under
+ * loreweaver-0m9.5.15-18 (see ADR 0008) and are not parsed here.
  * Other SRD record kinds are tracked under `loreweaver-0m9.5` child issues;
  * until those parsers ship the importer deliberately omits them so the
  * generated pack does not claim coverage it does not have. See `README.md`
@@ -30,6 +32,7 @@ import { buildPack, writePackToDirectory } from './emit.js';
 import { extractPdfText } from './extract.js';
 import { parseActions } from './parseActions.js';
 import { parseAncestries } from './parseAncestries.js';
+import { parseClasses } from './parseClasses.js';
 import { parseConditions } from './parseConditions.js';
 import { parseCreatures } from './parseCreatures.js';
 import { parseEquipment } from './parseEquipment.js';
@@ -166,10 +169,16 @@ export async function runImporter(
   // emit a pack without races.
   const racePages = sliceSection(pages, anchors.races);
   const ancestries = parseAncestries(racePages);
+  // Throws SectionNotFoundError if the classes start OR end anchor doesn't
+  // match — class is an implemented kind, so fail closed rather than emit a
+  // pack without classes (the classes anchor sets requireEndHeading: true).
+  const classPages = sliceSection(pages, anchors.classes);
+  const classes = parseClasses(classPages);
   const pack = buildPack({
     spells,
     classIndex,
     creatures,
+    classes,
     conditions,
     feats,
     hazards,
@@ -187,6 +196,7 @@ export async function runImporter(
     counts: {
       spells: spells.length,
       creatures: creatures.length,
+      classes: classes.length,
       conditions: conditions.length,
       feats: feats.length,
       hazards: hazards.length,

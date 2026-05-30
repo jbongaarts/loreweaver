@@ -163,6 +163,19 @@ export const SRD_5_1_DEFAULT_SECTION_ANCHORS = {
     endHeading: /^Classes$/,
     requireEndHeading: true,
   },
+  // SRD 5.1 "Classes" chapter (Barbarian … Wizard), bounded below by the
+  // core-rules chapter that opens at "Using Ability Scores". `requireEndHeading`
+  // is true because class is an implemented kind: if the end boundary is missing
+  // the importer must fail closed rather than run the class parser over the
+  // core-rules / spell chapters. The parser keys off each class's
+  // "Hit Dice: 1dN per <class> level" signature line, so a widened slice cannot
+  // promote arbitrary headings as classes, but failing closed keeps the slice
+  // honest. See ADR 0008 and loreweaver-0m9.5.2.
+  classes: {
+    startHeading: /^Classes$/,
+    endHeading: /^Using Ability Scores$/,
+    requireEndHeading: true,
+  },
   // Core-rules chapters (ability checks, adventuring, combat, etc.) begin at
   // "Using Ability Scores" and run up to (but not including) "Spell Lists".
   // This slice feeds the generic rule-text parser.
@@ -264,6 +277,7 @@ export const SRD_5_1_DEFAULT_SECTION_ANCHORS = {
 
 export type Srd51SectionAnchors = {
   readonly races: SectionAnchorOptions;
+  readonly classes: SectionAnchorOptions;
   readonly coreRules: SectionAnchorOptions;
   readonly spellLists: SectionAnchorOptions;
   readonly spellDescriptions: SectionAnchorOptions;
