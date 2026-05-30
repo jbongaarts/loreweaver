@@ -2,10 +2,7 @@
   "name": "@loreweaver/core",
   "version": "0.0.0",
   "type": "module",
-  "files": [
-    "dist",
-    "data"
-  ],
+  "files": ["dist", "data"],
   "engines": {
     "node": ">=24 <25"
   },
