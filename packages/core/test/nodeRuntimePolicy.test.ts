@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 interface PackageJson {
   engines?: { node?: string };
+  scripts?: Record<string, string>;
   dependencies?: Record<string, string>;
   devDependencies?: Record<string, string>;
 }
@@ -115,6 +116,58 @@ describe('Node runtime policy', () => {
       'packages/core/scripts/importers/*/.generated/',
     );
     expect(gitignore).toContain('packages/core/sources/*/*.pdf');
+  });
+
+  it('runs Biome across the whole repo without omitting tracked root files', () => {
+    const root = readPackageJson('package.json');
+    const scripts = root.scripts ?? {};
+
+    // Root files that live outside docs/packages/scripts/.github and must not
+    // be silently dropped from Biome coverage by a narrowed allowlist.
+    const requiredRootFiles = [
+      'AGENTS.md',
+      'CLAUDE.md',
+      'README.md',
+      'biome.json',
+      'package.json',
+      'tsconfig.base.json',
+      'tsconfig.json',
+      'vitest.config.ts',
+    ];
+
+    for (const name of ['format', 'format:check', 'lint', 'check']) {
+      const command = scripts[name];
+      expect(command, `expected a "${name}" script`).toBeDefined();
+      expect(command).toContain('biome');
+
+      // Path arguments are the tokens that follow the biome subcommand/flags.
+      const paths = (command as string)
+        .split(/\s+/)
+        .filter(
+          (token) =>
+            token !== '' &&
+            token !== 'biome' &&
+            token !== 'format' &&
+            token !== 'lint' &&
+            token !== 'ci' &&
+            !token.startsWith('-'),
+        );
+
+      if (paths.includes('.')) {
+        // Whole-repo form: rely on biome.json/.gitignore exclusions, and do
+        // not also carry a narrowing allowlist that could omit root files.
+        expect(paths).toEqual(['.']);
+      } else {
+        // Explicit allowlist is only acceptable if it still covers every
+        // tracked root file the whole-repo form would otherwise pick up.
+        for (const file of requiredRootFiles) {
+          expect(
+            paths,
+            `"${name}" must cover ${file} (or pass "." for the whole repo)`,
+          ).toContain(file);
+        }
+      }
+    }
   });
 
   it('requires manual review for major runtime and toolchain updates', () => {
