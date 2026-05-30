@@ -37,12 +37,14 @@ use `npm run typecheck` (`--force`). CI uses `--force` for this reason.
 
 **Native dep — `better-sqlite3` (the only compiled dependency):** use
 **Node 24 LTS**. ADR 0008 makes Node 24 the supported runtime and keeps the
-root/workspace engines at `>=24 <25`. The workspace uses `better-sqlite3` 12.x
-because that line ships Node 24 prebuilds; do not downgrade to 11.x without
-also moving the supported runtime back to Node 22. CI pins Node 24 and sets
-`npm_config_build_from_source=false` to keep installs on the prebuilt-first
-path. Fallback for local development: install a C++ toolchain and
-`npm rebuild better-sqlite3`. Full rationale:
+root/workspace engines at `>=24 <25`. Keep `@types/node` on 24.x while that
+engine range is in force. The workspace uses `better-sqlite3` 12.x because that
+line ships Node 24 prebuilds. CI pins Node 24, sets
+`npm_config_build_from_source=false`, and runs the CLI install smoke on Linux,
+Windows, and macOS. A `better-sqlite3` source-build fallback is a regression
+unless a bead explicitly changes the runtime/native support policy. Fallback
+for local development: install a C++ toolchain and `npm rebuild better-sqlite3`.
+Full rationale:
 `docs/adr/0008-node-runtime-and-native-sqlite-support.md` and the header
 comment in `.github/workflows/ci.yml`.
 
@@ -52,7 +54,10 @@ Dependency updates must follow `docs/dependencies.md`. Keep dependency PRs
 separate from feature work and importer parser changes. Treat `better-sqlite3`
 updates as runtime/native-sensitive: verify Node 24 compatibility, preserve the
 `npm_config_build_from_source=false` CI assumption, and do not take major
-updates without a bead that explicitly reviews the Node/runtime decision.
+updates without a bead that explicitly reviews the Node/runtime decision. Keep
+semver-major `@types/node`, `@biomejs/biome`, and `typescript` updates manual
+or separate from routine dependency groups so runtime and toolchain policy
+changes cannot ride along unnoticed.
 
 ## Formatting & Linting
 
