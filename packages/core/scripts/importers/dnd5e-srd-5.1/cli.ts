@@ -22,6 +22,7 @@ import { fileURLToPath } from 'node:url';
 import {
   MIN_EXPECTED_SRD_5_1_CLASSES,
   MIN_EXPECTED_SRD_5_1_CREATURES,
+  MIN_EXPECTED_SRD_5_1_SUBCLASSES,
   runImporter,
 } from './index.js';
 
@@ -95,10 +96,11 @@ async function main(): Promise<void> {
     outDir: args.out,
     minCreatureCount: MIN_EXPECTED_SRD_5_1_CREATURES,
     minClassCount: MIN_EXPECTED_SRD_5_1_CLASSES,
+    minSubclassCount: MIN_EXPECTED_SRD_5_1_SUBCLASSES,
   });
   const c = result.counts;
   console.log(
-    `Imported ${c.spells} spells, ${c.creatures} creatures, ${c.classes} classes, ${c.conditions} conditions, ${c.feats} feats, ${c.hazards} hazards, ${c.actions} actions, ${c.rules} rules, ${c.tables} tables, ${c.equipment} equipment, and ${c.ancestries} ancestries.`,
+    `Imported ${c.spells} spells, ${c.creatures} creatures, ${c.classes} classes, ${c.subclasses} subclasses, ${c.conditions} conditions, ${c.feats} feats, ${c.hazards} hazards, ${c.actions} actions, ${c.rules} rules, ${c.tables} tables, ${c.equipment} equipment, and ${c.ancestries} ancestries.`,
   );
   console.log(`Source PDF SHA-256: ${result.sourceHash}`);
   console.log(`Output written to: ${result.outDir}`);

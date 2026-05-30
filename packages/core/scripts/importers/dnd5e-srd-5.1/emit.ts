@@ -37,6 +37,7 @@ import type {
   SpellCasterClass,
   SpellClassIndex,
   SpellExtraction,
+  SubclassExtraction,
   TableExtraction,
 } from './types.js';
 
@@ -182,6 +183,10 @@ function classKey(name: string): string {
   return `class:${slug(name)}`;
 }
 
+function subclassKey(name: string): string {
+  return `subclass:${slug(name)}`;
+}
+
 function conditionKey(name: string): string {
   return `condition:${slug(name)}`;
 }
@@ -289,6 +294,40 @@ export function classExtractionsToRecords(
       source: sourceLabelFor(cls.sourcePage),
       license: SRD_5_1_LICENSE,
       provenance: provenanceFor(cls.sourcePage),
+    };
+    return record;
+  });
+  out.sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+  return out;
+}
+
+/**
+ * Build the `data` payload for one subclass record. `parentClass` is keyed to
+ * the parent `class:<slug>` record (ADR 0009 data-side linkage, never
+ * `overrides`). Field insertion order is fixed for byte-stable output. The
+ * optional granted-`features` reference array is populated by the feature
+ * parser (loreweaver-0m9.5.18), not here.
+ */
+function buildSubclassData(sub: SubclassExtraction): Record<string, unknown> {
+  return {
+    parentClass: classKey(sub.parentClass),
+    description: sub.description,
+  };
+}
+
+export function subclassExtractionsToRecords(
+  subclasses: readonly SubclassExtraction[],
+): RulesRecord[] {
+  const out: RulesRecord[] = subclasses.map((sub) => {
+    const record: RulesRecord = {
+      systemId: SYSTEM_ID,
+      kind: 'subclass',
+      key: subclassKey(sub.name),
+      name: sub.name,
+      data: buildSubclassData(sub),
+      source: sourceLabelFor(sub.sourcePage),
+      license: SRD_5_1_LICENSE,
+      provenance: provenanceFor(sub.sourcePage),
     };
     return record;
   });
@@ -553,6 +592,7 @@ export interface BuildPackInput {
   readonly classIndex: SpellClassIndex;
   readonly creatures?: readonly CreatureExtraction[];
   readonly classes?: readonly ClassExtraction[];
+  readonly subclasses?: readonly SubclassExtraction[];
   readonly conditions: readonly ConditionExtraction[];
   readonly feats?: readonly FeatExtraction[];
   readonly hazards?: readonly HazardExtraction[];
@@ -576,6 +616,7 @@ export function buildPack(input: BuildPackInput): RulesPack {
   const spellRecords = spellExtractionsToRecords(input.spells, classByName);
   const creatureRecords = creatureExtractionsToRecords(input.creatures ?? []);
   const classRecords = classExtractionsToRecords(input.classes ?? []);
+  const subclassRecords = subclassExtractionsToRecords(input.subclasses ?? []);
   const conditionRecords = conditionExtractionsToRecords(input.conditions);
   const featRecords = featExtractionsToRecords(input.feats ?? []);
   const hazardRecords = hazardExtractionsToRecords(input.hazards ?? []);
@@ -588,6 +629,7 @@ export function buildPack(input: BuildPackInput): RulesPack {
     ...spellRecords,
     ...creatureRecords,
     ...classRecords,
+    ...subclassRecords,
     ...conditionRecords,
     ...featRecords,
     ...hazardRecords,

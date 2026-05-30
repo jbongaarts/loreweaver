@@ -16,10 +16,11 @@
  * (or one below `minCreatureCount`) throws `CreatureCoverageError` and writes
  * nothing.
  *
- * Scope today: spells, creatures, base classes, conditions, feats, hazards,
- * actions, rules, tables, equipment, and ancestries (races + subraces).
- * Subclasses and class features are separate record kinds tracked under
- * loreweaver-0m9.5.15-18 (see ADR 0009) and are not parsed here.
+ * Scope today: spells, creatures, base classes, subclasses, conditions, feats,
+ * hazards, actions, rules, tables, equipment, and ancestries (races + subraces).
+ * Subclasses (Champion, Life domain, …) parse from the same Classes-chapter
+ * slice as base classes. Class features remain a separate record kind tracked
+ * under loreweaver-0m9.5.18 (see ADR 0009) and are not parsed here.
  * Other SRD record kinds are tracked under `loreweaver-0m9.5` child issues;
  * until those parsers ship the importer deliberately omits them so the
  * generated pack does not claim coverage it does not have. See `README.md`
@@ -40,6 +41,7 @@ import { parseFeats } from './parseFeats.js';
 import { parseHazards } from './parseHazards.js';
 import { parseRules } from './parseRules.js';
 import { parseSpellClassLists, parseSpells } from './parseSpells.js';
+import { parseSubclasses } from './parseSubclasses.js';
 import { parseTables } from './parseTables.js';
 import {
   SRD_5_1_DEFAULT_SECTION_ANCHORS,
@@ -75,6 +77,19 @@ export const MIN_EXPECTED_SRD_5_1_CREATURES = 300;
 export const MIN_EXPECTED_SRD_5_1_CLASSES = 12;
 
 /**
+ * Minimum number of subclasses a full SRD 5.1 import must yield. The SRD 5.1
+ * publishes exactly one subclass per base class — 12 in total (Path of the
+ * Berserker … School of Evocation). This floor catches a gross extraction
+ * regression — an empty or badly-truncated subclass parse — when the importer
+ * runs against the real PDF (e.g. if the subclass headings drift and the
+ * known-name matcher misses them). The CLI passes this value; fixture-based
+ * tests rely on the always-on empty-result guard (or pass a smaller floor).
+ * Subclasses parse from the same Classes-chapter slice as base classes; see
+ * ADR 0009 and loreweaver-0m9.5.17.
+ */
+export const MIN_EXPECTED_SRD_5_1_SUBCLASSES = 12;
+
+/**
  * Thrown when the parsed creature set fails the coverage check (empty result,
  * or fewer creatures than `minCreatureCount`). Distinct from
  * `SectionNotFoundError` so callers can tell "the Monsters section was found
@@ -97,6 +112,19 @@ export class ClassCoverageError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'ClassCoverageError';
+  }
+}
+
+/**
+ * Thrown when the parsed subclass set fails the coverage check (empty result,
+ * or fewer subclasses than `minSubclassCount`). Distinct from
+ * `SectionNotFoundError` so callers can tell "the Classes section was found but
+ * produced too few subclasses" apart from "the section anchor didn't match".
+ */
+export class SubclassCoverageError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'SubclassCoverageError';
   }
 }
 
@@ -130,6 +158,15 @@ export interface RunImporterInput {
    * result is always rejected regardless of this option.
    */
   readonly minClassCount?: number;
+  /**
+   * Minimum number of subclasses the Classes section must yield for the run to
+   * be accepted. When set and the parsed count is below it, the importer throws
+   * `SubclassCoverageError` and writes nothing. The real-import CLI passes
+   * `MIN_EXPECTED_SRD_5_1_SUBCLASSES`; fixture pipelines either omit this
+   * (relying on the always-on empty-result guard) or pass a small value. An
+   * empty subclass result is always rejected regardless of this option.
+   */
+  readonly minSubclassCount?: number;
 }
 
 /**
@@ -174,6 +211,29 @@ function validateClassCoverage(
   if (minClassCount !== undefined && count < minClassCount) {
     throw new ClassCoverageError(
       `SRD 5.1 class coverage check failed: parsed ${count} base class(es), expected at least ${minClassCount}. The Classes section may have been truncated or its layout changed.`,
+    );
+  }
+}
+
+/**
+ * Fail closed on a subclass result that can't be a faithful SRD 5.1 import: an
+ * empty set is always rejected; a non-empty set below `minSubclassCount` (when
+ * provided) is rejected too. Runs after parsing and before any output is
+ * written. Error messages name the observed/expected counts so a CI failure is
+ * self-explanatory.
+ */
+function validateSubclassCoverage(
+  count: number,
+  minSubclassCount: number | undefined,
+): void {
+  if (count === 0) {
+    throw new SubclassCoverageError(
+      'SRD 5.1 subclass coverage check failed: the Classes section was found but yielded 0 subclasses. The subclass headings likely changed. Refusing to write a pack with no subclasses.',
+    );
+  }
+  if (minSubclassCount !== undefined && count < minSubclassCount) {
+    throw new SubclassCoverageError(
+      `SRD 5.1 subclass coverage check failed: parsed ${count} subclass(es), expected at least ${minSubclassCount}. The Classes section may have been truncated or the subclass headings changed.`,
     );
   }
 }
@@ -233,11 +293,20 @@ export async function runImporter(
   // Fail closed before any output is written if class extraction is empty or
   // (when a floor is supplied) implausibly small. Class is an implemented kind.
   validateClassCoverage(classes.length, input.minClassCount);
+  // Subclasses (Champion, Life domain, …) live inside the Classes chapter, so
+  // they parse from the same slice. See ADR 0009 and loreweaver-0m9.5.17.
+  const subclasses = parseSubclasses(classPages);
+  // Fail closed before any output is written if subclass extraction is empty or
+  // (when a floor is supplied) implausibly small. Subclass is an implemented
+  // kind, so a Classes section that yields base classes but no subclasses must
+  // not silently produce a pack that omits `subclass` from the manifest.
+  validateSubclassCoverage(subclasses.length, input.minSubclassCount);
   const pack = buildPack({
     spells,
     classIndex,
     creatures,
     classes,
+    subclasses,
     conditions,
     feats,
     hazards,
@@ -256,6 +325,7 @@ export async function runImporter(
       spells: spells.length,
       creatures: creatures.length,
       classes: classes.length,
+      subclasses: subclasses.length,
       conditions: conditions.length,
       feats: feats.length,
       hazards: hazards.length,

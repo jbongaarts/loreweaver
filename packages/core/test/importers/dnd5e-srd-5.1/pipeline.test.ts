@@ -20,6 +20,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   ClassCoverageError,
   CreatureCoverageError,
+  SubclassCoverageError,
   runImporter,
 } from '../../../scripts/importers/dnd5e-srd-5.1/index.js';
 import { SectionNotFoundError } from '../../../scripts/importers/dnd5e-srd-5.1/sections.js';
@@ -492,10 +493,11 @@ const RACES_PAGE: FixturePage = {
 };
 
 // End heading for the races section AND the start of the Classes chapter. Now
-// carries one full base-class block (Fighter) so runImporter emits a class
-// record; the chapter is bounded below by "Using Ability Scores" (the
-// classes-anchor end heading, supplied by CORE_RULES_PAGE_ONE). Class-feature
-// text is reproduced from the SRD 5.1 (CC-BY-4.0) as parser input.
+// carries one full base-class block (Fighter) plus its subclass (Champion) so
+// runImporter emits both a class and a subclass record; the chapter is bounded
+// below by "Using Ability Scores" (the classes-anchor end heading, supplied by
+// CORE_RULES_PAGE_ONE). Class-feature and subclass text is reproduced from the
+// SRD 5.1 (CC-BY-4.0) as parser input.
 const CLASSES_PAGE: FixturePage = {
   lines: [
     'Classes',
@@ -512,6 +514,12 @@ const CLASSES_PAGE: FixturePage = {
     'Tools: None',
     'Saving Throws: Strength, Constitution',
     'Skills: Choose two skills from Acrobatics, Athletics, History, Insight',
+    'Martial Archetypes',
+    'Different fighters choose different approaches to perfecting their martial prowess.',
+    'Champion',
+    'The archetypal Champion focuses on the development of raw physical power honed to deadly perfection.',
+    'Improved Critical',
+    'Beginning when you choose this archetype at 3rd level, your weapon attacks score a critical hit on a roll of 19 or 20.',
   ],
 };
 
@@ -522,6 +530,23 @@ const CLASSES_PAGE_NO_CLASSES: FixturePage = {
   lines: [
     'Classes',
     'This chapter introduces the classes, but no class block extracted.',
+  ],
+};
+
+// Classes fixture that yields a base class (Fighter) but NO subclass heading.
+// Exercises the empty-result subclass-coverage guard: the class parse succeeds
+// (so validateClassCoverage passes), but the subclass parse is empty and must
+// fail closed rather than emit a pack that silently omits `subclass`.
+const CLASSES_PAGE_NO_SUBCLASS: FixturePage = {
+  lines: [
+    'Classes',
+    'Fighter',
+    'A master of martial combat, skilled with a variety of weapons and armor.',
+    'Class Features',
+    'Hit Dice: 1d10 per fighter level',
+    'Armor: All armor, shields',
+    'Weapons: Simple weapons, martial weapons',
+    'Saving Throws: Strength, Constitution',
   ],
 };
 
@@ -553,6 +578,7 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(result.counts.spells).toBe(2);
     expect(result.counts.creatures).toBe(1);
     expect(result.counts.classes).toBe(1);
+    expect(result.counts.subclasses).toBe(1);
     expect(result.counts.conditions).toBe(2);
     expect(result.counts.feats).toBe(1);
     expect(result.counts.hazards).toBe(1);
@@ -564,9 +590,10 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(result.sourceHash).toMatch(/^[0-9a-f]{64}$/);
 
     const pack = loadRulesPackFromDirectory(outDir);
-    expect(pack.records).toHaveLength(31);
+    expect(pack.records).toHaveLength(32);
     const keys = pack.records.map((r) => r.key).sort();
     expect(keys).toContain('class:fighter');
+    expect(keys).toContain('subclass:champion');
     expect(keys).toContain('action:attack');
     expect(keys).toContain('action:cast-a-spell');
     expect(keys).toContain('action:dash');
@@ -746,6 +773,23 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     ]);
     // SRD Class Features block carries no primary-ability line (ADR 0007).
     expect(fighterData.primaryAbilities).toEqual([]);
+
+    // The generated manifest must advertise subclass as an included kind.
+    expect(pack.meta.description).toMatch(
+      /Included record kinds:[^.]*subclass/,
+    );
+
+    const champion = pack.records.find((r) => r.key === 'subclass:champion');
+    expect(champion?.kind).toBe('subclass');
+    expect(champion?.name).toBe('Champion');
+    const championData = champion?.data as Record<string, unknown>;
+    // Parent linkage is data-side and keyed to the class record (ADR 0009).
+    expect(championData.parentClass).toBe('class:fighter');
+    expect(champion?.overrides).toBeUndefined();
+    expect(typeof championData.description).toBe('string');
+    expect(championData.description).toMatch(/archetypal Champion/);
+    // Base-class proficiency text must not bleed into the subclass body.
+    expect(championData.description).not.toMatch(/Hit Dice/);
 
     const dagger = pack.records.find((r) => r.key === 'equipment:dagger');
     expect(dagger?.name).toBe('Dagger');
@@ -1291,5 +1335,70 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     );
     // Nothing should have been written.
     expect(() => readFileSync(join(outDir, 'records.json'), 'utf8')).toThrow();
+  });
+
+  it('fails closed when the Classes section yields classes but no subclasses', async () => {
+    const workDir = makeTmpDir();
+    const pdfPath = join(workDir, 'fixture.pdf');
+    const outDir = join(workDir, 'pack');
+    // The Classes chapter parses a base class (Fighter) but carries no subclass
+    // heading. Subclass is an implemented kind, so the subclass-coverage guard
+    // must reject the empty result and write nothing rather than emit a pack
+    // that silently omits `subclass`.
+    await writeFixturePdf(pdfPath, [
+      RACES_PAGE,
+      CLASSES_PAGE_NO_SUBCLASS,
+      CORE_RULES_PAGE_ONE,
+      CORE_RULES_PAGE_TWO,
+      CORE_RULES_TABLES_PAGE,
+      SPELL_LISTS_PAGE,
+      SPELLS_PAGE,
+      MONSTERS_PAGE,
+      TREASURE_TABLES_PAGE,
+      MAGIC_ITEMS_PAGE,
+      COMBAT_ACTIONS_PAGE,
+      MAKING_AN_ATTACK_PAGE,
+      HAZARDS_PAGE,
+      FEATS_PAGE,
+      EQUIPMENT_PAGE,
+      CONDITIONS_PAGE,
+    ]);
+
+    await expect(runImporter({ pdfPath, outDir })).rejects.toThrow(
+      SubclassCoverageError,
+    );
+    // Nothing should have been written.
+    expect(() => readFileSync(join(outDir, 'records.json'), 'utf8')).toThrow();
+  });
+
+  it('fails closed when fewer subclasses than minSubclassCount are parsed', async () => {
+    const workDir = makeTmpDir();
+    const pdfPath = join(workDir, 'fixture.pdf');
+    const outDir = join(workDir, 'pack');
+    // The fixture's Classes section yields a single subclass (Champion); a
+    // minSubclassCount of 2 must trip the coverage floor with a deterministic
+    // message naming the observed and expected counts.
+    await writeFixturePdf(pdfPath, [
+      RACES_PAGE,
+      CLASSES_PAGE,
+      CORE_RULES_PAGE_ONE,
+      CORE_RULES_PAGE_TWO,
+      CORE_RULES_TABLES_PAGE,
+      SPELL_LISTS_PAGE,
+      SPELLS_PAGE,
+      MONSTERS_PAGE,
+      TREASURE_TABLES_PAGE,
+      MAGIC_ITEMS_PAGE,
+      COMBAT_ACTIONS_PAGE,
+      MAKING_AN_ATTACK_PAGE,
+      HAZARDS_PAGE,
+      FEATS_PAGE,
+      EQUIPMENT_PAGE,
+      CONDITIONS_PAGE,
+    ]);
+
+    await expect(
+      runImporter({ pdfPath, outDir, minSubclassCount: 2 }),
+    ).rejects.toThrow(/parsed 1 subclass\(es\), expected at least 2/);
   });
 });

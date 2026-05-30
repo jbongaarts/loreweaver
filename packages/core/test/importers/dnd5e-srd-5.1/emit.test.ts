@@ -18,6 +18,7 @@ import {
   ancestryExtractionsToRecords,
   buildPack,
   spellExtractionsToRecords,
+  subclassExtractionsToRecords,
   tableExtractionsToRecords,
   writePackToDirectory,
 } from '../../../scripts/importers/dnd5e-srd-5.1/emit.js';
@@ -27,6 +28,7 @@ import type {
   RuleExtraction,
   SpellCasterClass,
   SpellExtraction,
+  SubclassExtraction,
   TableExtraction,
 } from '../../../scripts/importers/dnd5e-srd-5.1/types.js';
 
@@ -136,6 +138,14 @@ const HILL_DWARF_ANCESTRY: AncestryExtraction = {
   speed: 25,
   subraceOf: 'Dwarf',
   sourcePage: 18,
+};
+
+const CHAMPION_SUBCLASS: SubclassExtraction = {
+  name: 'Champion',
+  parentClass: 'Fighter',
+  description:
+    'The archetypal Champion focuses on the development of raw physical power honed to deadly perfection.',
+  sourcePage: 72,
 };
 
 const DIFFICULTY_TABLE: TableExtraction = {
@@ -255,6 +265,19 @@ describe('buildPack — validation', () => {
     );
   });
 
+  it('includes "subclass" in included-kinds when subclass records are present', () => {
+    const pack = buildPack({
+      spells: [ACID_SPLASH],
+      classIndex: makeIndex([]),
+      conditions: [],
+      subclasses: [CHAMPION_SUBCLASS],
+      sourceHash: FAKE_HASH,
+    });
+    expect(pack.meta.description).toMatch(
+      /Included record kinds: spell, subclass\b/,
+    );
+  });
+
   it('includes "ancestry" in included-kinds when ancestry records are present', () => {
     const pack = buildPack({
       spells: [ACID_SPLASH],
@@ -320,6 +343,38 @@ describe('actionExtractionsToRecords — record shape', () => {
     expect((record.data as { description: string }).description).toMatch(
       /Attack action/,
     );
+  });
+});
+
+describe('subclassExtractionsToRecords — record shape', () => {
+  it('builds subclass keys of the form "subclass:<slug>"', () => {
+    const [record] = subclassExtractionsToRecords([CHAMPION_SUBCLASS]);
+    expect(record.key).toBe('subclass:champion');
+    expect(record.kind).toBe('subclass');
+  });
+
+  it('keys parentClass to the parent class record (data-side linkage, ADR 0009)', () => {
+    const [record] = subclassExtractionsToRecords([CHAMPION_SUBCLASS]);
+    expect((record.data as { parentClass: string }).parentClass).toBe(
+      'class:fighter',
+    );
+  });
+
+  it('carries the subclass description through into data.description', () => {
+    const [record] = subclassExtractionsToRecords([CHAMPION_SUBCLASS]);
+    expect((record.data as { description: string }).description).toMatch(
+      /archetypal Champion/,
+    );
+  });
+
+  it('does not set overrides (parent linkage lives in data only)', () => {
+    const [record] = subclassExtractionsToRecords([CHAMPION_SUBCLASS]);
+    expect(record.overrides).toBeUndefined();
+  });
+
+  it('attaches provenance pointing at the SRD source page', () => {
+    const [record] = subclassExtractionsToRecords([CHAMPION_SUBCLASS]);
+    expect(record.provenance.locator).toBe('p. 72');
   });
 });
 
