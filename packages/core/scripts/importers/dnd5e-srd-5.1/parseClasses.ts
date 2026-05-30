@@ -5,7 +5,7 @@
  * chapter (the orchestrator in `index.ts` narrows it via `sliceSection`);
  * output is a `ClassExtraction[]` with stable shape, sorted by name.
  *
- * Scope (ADR 0008 / loreweaver-0m9.5.2): **base classes only**. Subclasses
+ * Scope (ADR 0009 / loreweaver-0m9.5.2): **base classes only**. Subclasses
  * (Champion, Life domain, …) and class features (Action Surge, Rage, …) are
  * separate, addressable record kinds (`subclass`, `feature`) parsed by separate
  * beads — they are deliberately NOT extracted here.
@@ -48,7 +48,7 @@
  * parse below still runs so a layout that DOES carry the line (a variant SRD
  * rendering, or a homebrew pack) populates it. Cross-referencing the
  * Multiclassing prerequisites table to fill this field is tracked as a separate
- * normalization-mapping bead (loreweaver-0m9.5.19; see ADR 0008).
+ * normalization-mapping bead (loreweaver-0m9.5.19; see ADR 0009).
  */
 
 import type { ClassExtraction, PageText } from './types.js';

@@ -19,7 +19,7 @@
  * Scope today: spells, creatures, base classes, conditions, feats, hazards,
  * actions, rules, tables, equipment, and ancestries (races + subraces).
  * Subclasses and class features are separate record kinds tracked under
- * loreweaver-0m9.5.15-18 (see ADR 0008) and are not parsed here.
+ * loreweaver-0m9.5.15-18 (see ADR 0009) and are not parsed here.
  * Other SRD record kinds are tracked under `loreweaver-0m9.5` child issues;
  * until those parsers ship the importer deliberately omits them so the
  * generated pack does not claim coverage it does not have. See `README.md`
@@ -69,7 +69,7 @@ export const MIN_EXPECTED_SRD_5_1_CREATURES = 300;
  * floor catches a gross extraction regression — an empty or badly-truncated
  * class parse — when the importer runs against the real PDF. The CLI passes this
  * value; fixture-based tests rely on the always-on empty-result guard (or pass a
- * smaller floor). Subclasses and features are separate kinds (ADR 0008) and are
+ * smaller floor). Subclasses and features are separate kinds (ADR 0009) and are
  * not counted here.
  */
 export const MIN_EXPECTED_SRD_5_1_CLASSES = 12;

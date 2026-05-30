@@ -1,4 +1,4 @@
-# ADR 0008: `subclass` and `feature` Record Kinds for Class Ingestion
+# ADR 0009: `subclass` and `feature` Record Kinds for Class Ingestion
 
 Status: accepted
 

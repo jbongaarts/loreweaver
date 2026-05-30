@@ -7,7 +7,7 @@
  * as parser test input; no modification has been made beyond reformatting to
  * match the importer's extracted-line input shape.
  *
- * Scope per ADR 0008 / loreweaver-0m9.5.2: base classes only. The "Primary
+ * Scope per ADR 0009 / loreweaver-0m9.5.2: base classes only. The "Primary
  * Ability" cases use a synthetic, clearly-non-SRD class ("Testblade") because
  * the SRD 5.1 Class Features block does not print a primary-ability line — see
  * the parser header. Faithful SRD blocks (Fighter, Wizard) therefore yield
@@ -84,11 +84,13 @@ describe('parseClasses — Fighter (simple martial class)', () => {
 
 // ---------------------------------------------------------------------------
 // Wizard — a complex caster (no armor proficiency, longer weapon list). This
-// fixture is "real-PDF-shaped": labels carry runs of internal whitespace the
-// way `extract.ts` emits them from a column-spaced PDF ("Hit   Dice:",
-// "Saving   Throws:"), and the weapon proficiency list wraps onto an unlabeled
-// continuation line. Exercises whitespace normalization (issue: tabbed labels)
-// and continuation collection (issue: truncated wrapped lists).
+// fixture is "real-PDF-shaped": the labels carry literal tab characters (`\t`)
+// the way `extract.ts` emits column-spaced labels from the PDF, and the weapon
+// proficiency list wraps onto an unlabeled continuation line. Explicit `\t`
+// escapes (rather than runs of literal spaces, which a formatter could collapse)
+// keep the whitespace-normalization regression unambiguous. Exercises
+// normalization (issue: tabbed labels) and continuation collection (issue:
+// truncated wrapped lists).
 // ---------------------------------------------------------------------------
 
 const WIZARD_PAGE = page(112, [
@@ -97,21 +99,21 @@ const WIZARD_PAGE = page(112, [
   'Class Features',
   'As a wizard, you gain the following class features.',
   'Hit Points',
-  'Hit   Dice: 1d6 per wizard level',
+  'Hit\tDice: 1d6 per wizard level',
   'Hit Points at 1st Level: 6 + your Constitution modifier',
   'Proficiencies',
   'Armor: None',
   'Weapons: Daggers, darts, slings, quarterstaffs,',
   'light crossbows',
   'Tools: None',
-  'Saving   Throws: Intelligence, Wisdom',
+  'Saving\tThrows: Intelligence, Wisdom',
   'Skills: Choose two from Arcana, History, Insight, Investigation, Medicine, Religion',
 ]);
 
 describe('parseClasses — Wizard (tabbed labels + wrapped weapon list)', () => {
   const [wizard] = parseClasses([WIZARD_PAGE]);
 
-  it('detects the class despite internal whitespace in "Hit   Dice:"', () => {
+  it('detects the class despite a tab inside the "Hit\\tDice:" label', () => {
     expect(wizard.name).toBe('Wizard');
     expect(wizard.hitDie).toBe(6);
   });

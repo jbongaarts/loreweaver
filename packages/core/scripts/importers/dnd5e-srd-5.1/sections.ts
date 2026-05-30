@@ -170,7 +170,7 @@ export const SRD_5_1_DEFAULT_SECTION_ANCHORS = {
   // core-rules / spell chapters. The parser keys off each class's
   // "Hit Dice: 1dN per <class> level" signature line, so a widened slice cannot
   // promote arbitrary headings as classes, but failing closed keeps the slice
-  // honest. See ADR 0008 and loreweaver-0m9.5.2.
+  // honest. See ADR 0009 and loreweaver-0m9.5.2.
   classes: {
     startHeading: /^Classes$/,
     endHeading: /^Using Ability Scores$/,

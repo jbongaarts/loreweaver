@@ -272,7 +272,7 @@ export interface CreatureExtraction {
  *     array for proficiencies);
  *   - `primaryAbilities` is the parsed "Primary Ability" line.
  *
- * Scope (ADR 0008 / loreweaver-0m9.5.2): base classes only. Subclasses and
+ * Scope (ADR 0009 / loreweaver-0m9.5.2): base classes only. Subclasses and
  * class features are separate record kinds parsed by separate beads
  * (loreweaver-0m9.5.16/0m9.5.17 and 0m9.5.15/0m9.5.18).
  */
