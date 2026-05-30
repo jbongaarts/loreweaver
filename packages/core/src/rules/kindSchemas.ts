@@ -144,6 +144,9 @@ const BASE_KIND_VALIDATORS: Record<RulesRecordKind, Validator> = {
   creature: baseObjectKind,
   equipment: baseObjectKind,
   feat: baseObjectKind,
+  // Class/subclass-granted features (see ADR 0009); baseline only requires an
+  // object payload, the dnd5e validator enforces grantor/level linkage.
+  feature: baseObjectKind,
   hazard: baseObjectKind,
   rule: (record, path) => {
     // Rule records always carry the rule body as `text`.
@@ -238,6 +241,18 @@ function validateDnd5eFeat(record: RulesRecord, path: string): void {
   optStr(data, 'prerequisites', `${path}.data`);
 }
 
+// A `feature` is class- or subclass-granted (Action Surge, Channel Divinity,
+// Rage, ...), distinct from the player-selected `feat`. Per ADR 0009 it links
+// to its grantor through `data.source` (the granting class/subclass record key)
+// and the `data.level` at which it is gained; the feature name rides on the
+// record. Parent linkage lives in `data`, never in `overrides`.
+function validateDnd5eFeature(record: RulesRecord, path: string): void {
+  const data = dataObj(record, path);
+  reqStr(data, 'description', `${path}.data`);
+  reqStr(data, 'source', `${path}.data`);
+  reqInt(data, 'level', `${path}.data`, 1);
+}
+
 function validateDnd5eHazard(record: RulesRecord, path: string): void {
   const data = dataObj(record, path);
   reqStr(data, 'description', `${path}.data`);
@@ -329,6 +344,7 @@ const SYSTEM_KIND_VALIDATORS: Record<
     class: validateDnd5eClass,
     condition: validateDnd5eCondition,
     feat: validateDnd5eFeat,
+    feature: validateDnd5eFeature,
     hazard: validateDnd5eHazard,
     action: validateDnd5eAction,
   },

@@ -364,6 +364,57 @@ describe('rules pack validation', () => {
     expect(() => validateRulesPack(pack)).toThrow(/data\.description/);
   });
 
+  it('accepts dnd5e feature records linked to a grantor and level', () => {
+    const pack = validateRulesPack(
+      validRulesPack({
+        records: [
+          record('feature:action-surge', {
+            kind: 'feature',
+            name: 'Action Surge',
+            data: {
+              description:
+                'You can push yourself beyond your normal limits for a moment.',
+              source: 'class:fighter',
+              level: 2,
+            },
+          }),
+        ],
+      }),
+    );
+    expect(pack.records[0].kind).toBe('feature');
+  });
+
+  it('rejects dnd5e feature records missing the grantor source link', () => {
+    const pack = validRulesPack({
+      records: [
+        record('feature:rage', {
+          kind: 'feature',
+          name: 'Rage',
+          data: { description: 'In battle, you fight with primal ferocity.' },
+        }),
+      ],
+    });
+    expect(() => validateRulesPack(pack)).toThrow(RulesPackError);
+    expect(() => validateRulesPack(pack)).toThrow(/data\.source/);
+  });
+
+  it('rejects dnd5e feature records without the level gained', () => {
+    const pack = validRulesPack({
+      records: [
+        record('feature:channel-divinity', {
+          kind: 'feature',
+          name: 'Channel Divinity',
+          data: {
+            description: 'You can channel divine energy directly from a deity.',
+            source: 'class:cleric',
+          },
+        }),
+      ],
+    });
+    expect(() => validateRulesPack(pack)).toThrow(RulesPackError);
+    expect(() => validateRulesPack(pack)).toThrow(/data\.level/);
+  });
+
   it('rejects rule records without a text body', () => {
     const pack = validRulesPack({
       records: [
