@@ -110,6 +110,48 @@ describe('parseSubclasses — Life Domain (caster subclass)', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Wizard → School of Evocation: a "real-PDF-shaped" multi-word subclass
+// heading. `extract.ts` joins column-spaced text items with no separator, so a
+// multi-word heading can extract with internal tabs / runs of spaces. Explicit
+// `\t` escapes and multi-space runs (rather than single spaces a formatter
+// could normalize) keep the whitespace-normalization regression unambiguous:
+// the parser must collapse internal whitespace before exact known-name match.
+// ---------------------------------------------------------------------------
+
+const WIZARD_WITH_EVOCATION = page(116, [
+  'Wizard',
+  'Class Features',
+  'Hit\tDice: 1d6 per wizard level',
+  'Armor: None',
+  'Weapons: Daggers, darts, slings, quarterstaffs, light crossbows',
+  'Saving\tThrows: Intelligence, Wisdom',
+  'Arcane Traditions',
+  'The study of wizardry is ancient, spanning entire schools of magic.',
+  'School\tof   Evocation',
+  'You have focused your study on magic that creates powerful elemental effects.',
+  'Evocation Savant',
+  'Beginning when you select this school at 2nd level, the gold and time you',
+  'must spend to copy an evocation spell into your spellbook is halved.',
+]);
+
+describe('parseSubclasses — multi-word heading with internal whitespace', () => {
+  const [evocation] = parseSubclasses([WIZARD_WITH_EVOCATION]);
+
+  it('matches a heading whose internal whitespace differs from the known name', () => {
+    expect(evocation.name).toBe('School of Evocation');
+  });
+
+  it('links it to the Wizard base class', () => {
+    expect(evocation.parentClass).toBe('Wizard');
+  });
+
+  it('captures the school body prose', () => {
+    expect(evocation.description).toMatch(/powerful elemental effects/);
+    expect(evocation.description).toMatch(/Evocation Savant/);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Multiple classes in one slice — each subclass is bounded by the next class's
 // name, sorted by name, with no cross-class bleed.
 // ---------------------------------------------------------------------------

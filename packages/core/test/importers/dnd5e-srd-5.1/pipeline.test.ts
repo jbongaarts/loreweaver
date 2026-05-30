@@ -20,6 +20,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   ClassCoverageError,
   CreatureCoverageError,
+  SubclassCoverageError,
   runImporter,
 } from '../../../scripts/importers/dnd5e-srd-5.1/index.js';
 import { SectionNotFoundError } from '../../../scripts/importers/dnd5e-srd-5.1/sections.js';
@@ -529,6 +530,23 @@ const CLASSES_PAGE_NO_CLASSES: FixturePage = {
   lines: [
     'Classes',
     'This chapter introduces the classes, but no class block extracted.',
+  ],
+};
+
+// Classes fixture that yields a base class (Fighter) but NO subclass heading.
+// Exercises the empty-result subclass-coverage guard: the class parse succeeds
+// (so validateClassCoverage passes), but the subclass parse is empty and must
+// fail closed rather than emit a pack that silently omits `subclass`.
+const CLASSES_PAGE_NO_SUBCLASS: FixturePage = {
+  lines: [
+    'Classes',
+    'Fighter',
+    'A master of martial combat, skilled with a variety of weapons and armor.',
+    'Class Features',
+    'Hit Dice: 1d10 per fighter level',
+    'Armor: All armor, shields',
+    'Weapons: Simple weapons, martial weapons',
+    'Saving Throws: Strength, Constitution',
   ],
 };
 
@@ -1317,5 +1335,70 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     );
     // Nothing should have been written.
     expect(() => readFileSync(join(outDir, 'records.json'), 'utf8')).toThrow();
+  });
+
+  it('fails closed when the Classes section yields classes but no subclasses', async () => {
+    const workDir = makeTmpDir();
+    const pdfPath = join(workDir, 'fixture.pdf');
+    const outDir = join(workDir, 'pack');
+    // The Classes chapter parses a base class (Fighter) but carries no subclass
+    // heading. Subclass is an implemented kind, so the subclass-coverage guard
+    // must reject the empty result and write nothing rather than emit a pack
+    // that silently omits `subclass`.
+    await writeFixturePdf(pdfPath, [
+      RACES_PAGE,
+      CLASSES_PAGE_NO_SUBCLASS,
+      CORE_RULES_PAGE_ONE,
+      CORE_RULES_PAGE_TWO,
+      CORE_RULES_TABLES_PAGE,
+      SPELL_LISTS_PAGE,
+      SPELLS_PAGE,
+      MONSTERS_PAGE,
+      TREASURE_TABLES_PAGE,
+      MAGIC_ITEMS_PAGE,
+      COMBAT_ACTIONS_PAGE,
+      MAKING_AN_ATTACK_PAGE,
+      HAZARDS_PAGE,
+      FEATS_PAGE,
+      EQUIPMENT_PAGE,
+      CONDITIONS_PAGE,
+    ]);
+
+    await expect(runImporter({ pdfPath, outDir })).rejects.toThrow(
+      SubclassCoverageError,
+    );
+    // Nothing should have been written.
+    expect(() => readFileSync(join(outDir, 'records.json'), 'utf8')).toThrow();
+  });
+
+  it('fails closed when fewer subclasses than minSubclassCount are parsed', async () => {
+    const workDir = makeTmpDir();
+    const pdfPath = join(workDir, 'fixture.pdf');
+    const outDir = join(workDir, 'pack');
+    // The fixture's Classes section yields a single subclass (Champion); a
+    // minSubclassCount of 2 must trip the coverage floor with a deterministic
+    // message naming the observed and expected counts.
+    await writeFixturePdf(pdfPath, [
+      RACES_PAGE,
+      CLASSES_PAGE,
+      CORE_RULES_PAGE_ONE,
+      CORE_RULES_PAGE_TWO,
+      CORE_RULES_TABLES_PAGE,
+      SPELL_LISTS_PAGE,
+      SPELLS_PAGE,
+      MONSTERS_PAGE,
+      TREASURE_TABLES_PAGE,
+      MAGIC_ITEMS_PAGE,
+      COMBAT_ACTIONS_PAGE,
+      MAKING_AN_ATTACK_PAGE,
+      HAZARDS_PAGE,
+      FEATS_PAGE,
+      EQUIPMENT_PAGE,
+      CONDITIONS_PAGE,
+    ]);
+
+    await expect(
+      runImporter({ pdfPath, outDir, minSubclassCount: 2 }),
+    ).rejects.toThrow(/parsed 1 subclass\(es\), expected at least 2/);
   });
 });

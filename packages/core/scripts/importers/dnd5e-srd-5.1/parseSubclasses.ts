@@ -24,6 +24,13 @@
  * organization) are hard-coded; every field VALUE (`description`) is extracted
  * from the source, never authored from model knowledge.
  *
+ * Whitespace normalization: like the base-class parser, every line is collapsed
+ * to single spaces before matching (`normalizeLine`). `extract.ts` joins pdfjs
+ * text items with no separator, so a column-spaced multi-word heading extracts
+ * with runs of internal whitespace ("Life   Domain", "School\tof\tEvocation").
+ * Normalizing first lets the single-spaced known names match the real extracted
+ * shape rather than only pre-normalized fixtures.
+ *
  * Parent linkage: each subclass carries its parent base-class NAME, which
  * `emit.ts` keys to the parent `class:<slug>` record under `data.parentClass`
  * (ADR 0009 data-side linkage; never `overrides`). This mirrors how
@@ -73,11 +80,16 @@ interface FlatLine {
   readonly page: number;
 }
 
+/** Collapse internal whitespace runs to single spaces and trim. */
+function normalizeLine(line: string): string {
+  return line.replace(/\s+/g, ' ').trim();
+}
+
 function flatten(pages: readonly PageText[]): readonly FlatLine[] {
   const out: FlatLine[] = [];
   for (const page of pages) {
     for (const line of page.lines) {
-      out.push({ line, page: page.pageNumber });
+      out.push({ line: normalizeLine(line), page: page.pageNumber });
     }
   }
   return out;
@@ -120,8 +132,9 @@ export function parseSubclasses(
   // the previous subclass's body.
   const boundaries: number[] = [];
   for (let i = 0; i < flat.length; i++) {
-    const trimmed = flat[i].line.trim();
-    if (SUBCLASS_BY_NAME.has(trimmed) || PARENT_CLASS_NAMES.has(trimmed)) {
+    // `flat[i].line` is already whitespace-normalized (see `flatten`).
+    const line = flat[i].line;
+    if (SUBCLASS_BY_NAME.has(line) || PARENT_CLASS_NAMES.has(line)) {
       boundaries.push(i);
     }
   }
@@ -129,7 +142,7 @@ export function parseSubclasses(
   const out: SubclassExtraction[] = [];
   for (let b = 0; b < boundaries.length; b++) {
     const idx = boundaries[b];
-    const name = flat[idx].line.trim();
+    const name = flat[idx].line;
     const known = SUBCLASS_BY_NAME.get(name);
     // A base-class-name boundary is not itself a subclass — skip it.
     if (known === undefined) continue;
