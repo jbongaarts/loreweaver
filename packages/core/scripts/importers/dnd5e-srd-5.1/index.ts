@@ -16,10 +16,11 @@
  * (or one below `minCreatureCount`) throws `CreatureCoverageError` and writes
  * nothing.
  *
- * Scope today: spells, creatures, base classes, conditions, feats, hazards,
- * actions, rules, tables, equipment, and ancestries (races + subraces).
- * Subclasses and class features are separate record kinds tracked under
- * loreweaver-0m9.5.15-18 (see ADR 0009) and are not parsed here.
+ * Scope today: spells, creatures, base classes, subclasses, conditions, feats,
+ * hazards, actions, rules, tables, equipment, and ancestries (races + subraces).
+ * Subclasses (Champion, Life domain, …) parse from the same Classes-chapter
+ * slice as base classes. Class features remain a separate record kind tracked
+ * under loreweaver-0m9.5.18 (see ADR 0009) and are not parsed here.
  * Other SRD record kinds are tracked under `loreweaver-0m9.5` child issues;
  * until those parsers ship the importer deliberately omits them so the
  * generated pack does not claim coverage it does not have. See `README.md`
@@ -40,6 +41,7 @@ import { parseFeats } from './parseFeats.js';
 import { parseHazards } from './parseHazards.js';
 import { parseRules } from './parseRules.js';
 import { parseSpellClassLists, parseSpells } from './parseSpells.js';
+import { parseSubclasses } from './parseSubclasses.js';
 import { parseTables } from './parseTables.js';
 import {
   SRD_5_1_DEFAULT_SECTION_ANCHORS,
@@ -233,11 +235,15 @@ export async function runImporter(
   // Fail closed before any output is written if class extraction is empty or
   // (when a floor is supplied) implausibly small. Class is an implemented kind.
   validateClassCoverage(classes.length, input.minClassCount);
+  // Subclasses (Champion, Life domain, …) live inside the Classes chapter, so
+  // they parse from the same slice. See ADR 0009 and loreweaver-0m9.5.17.
+  const subclasses = parseSubclasses(classPages);
   const pack = buildPack({
     spells,
     classIndex,
     creatures,
     classes,
+    subclasses,
     conditions,
     feats,
     hazards,
@@ -256,6 +262,7 @@ export async function runImporter(
       spells: spells.length,
       creatures: creatures.length,
       classes: classes.length,
+      subclasses: subclasses.length,
       conditions: conditions.length,
       feats: feats.length,
       hazards: hazards.length,

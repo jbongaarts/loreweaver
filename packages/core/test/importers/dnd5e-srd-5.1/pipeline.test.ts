@@ -492,10 +492,11 @@ const RACES_PAGE: FixturePage = {
 };
 
 // End heading for the races section AND the start of the Classes chapter. Now
-// carries one full base-class block (Fighter) so runImporter emits a class
-// record; the chapter is bounded below by "Using Ability Scores" (the
-// classes-anchor end heading, supplied by CORE_RULES_PAGE_ONE). Class-feature
-// text is reproduced from the SRD 5.1 (CC-BY-4.0) as parser input.
+// carries one full base-class block (Fighter) plus its subclass (Champion) so
+// runImporter emits both a class and a subclass record; the chapter is bounded
+// below by "Using Ability Scores" (the classes-anchor end heading, supplied by
+// CORE_RULES_PAGE_ONE). Class-feature and subclass text is reproduced from the
+// SRD 5.1 (CC-BY-4.0) as parser input.
 const CLASSES_PAGE: FixturePage = {
   lines: [
     'Classes',
@@ -512,6 +513,12 @@ const CLASSES_PAGE: FixturePage = {
     'Tools: None',
     'Saving Throws: Strength, Constitution',
     'Skills: Choose two skills from Acrobatics, Athletics, History, Insight',
+    'Martial Archetypes',
+    'Different fighters choose different approaches to perfecting their martial prowess.',
+    'Champion',
+    'The archetypal Champion focuses on the development of raw physical power honed to deadly perfection.',
+    'Improved Critical',
+    'Beginning when you choose this archetype at 3rd level, your weapon attacks score a critical hit on a roll of 19 or 20.',
   ],
 };
 
@@ -553,6 +560,7 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(result.counts.spells).toBe(2);
     expect(result.counts.creatures).toBe(1);
     expect(result.counts.classes).toBe(1);
+    expect(result.counts.subclasses).toBe(1);
     expect(result.counts.conditions).toBe(2);
     expect(result.counts.feats).toBe(1);
     expect(result.counts.hazards).toBe(1);
@@ -564,9 +572,10 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(result.sourceHash).toMatch(/^[0-9a-f]{64}$/);
 
     const pack = loadRulesPackFromDirectory(outDir);
-    expect(pack.records).toHaveLength(31);
+    expect(pack.records).toHaveLength(32);
     const keys = pack.records.map((r) => r.key).sort();
     expect(keys).toContain('class:fighter');
+    expect(keys).toContain('subclass:champion');
     expect(keys).toContain('action:attack');
     expect(keys).toContain('action:cast-a-spell');
     expect(keys).toContain('action:dash');
@@ -746,6 +755,23 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     ]);
     // SRD Class Features block carries no primary-ability line (ADR 0007).
     expect(fighterData.primaryAbilities).toEqual([]);
+
+    // The generated manifest must advertise subclass as an included kind.
+    expect(pack.meta.description).toMatch(
+      /Included record kinds:[^.]*subclass/,
+    );
+
+    const champion = pack.records.find((r) => r.key === 'subclass:champion');
+    expect(champion?.kind).toBe('subclass');
+    expect(champion?.name).toBe('Champion');
+    const championData = champion?.data as Record<string, unknown>;
+    // Parent linkage is data-side and keyed to the class record (ADR 0009).
+    expect(championData.parentClass).toBe('class:fighter');
+    expect(champion?.overrides).toBeUndefined();
+    expect(typeof championData.description).toBe('string');
+    expect(championData.description).toMatch(/archetypal Champion/);
+    // Base-class proficiency text must not bleed into the subclass body.
+    expect(championData.description).not.toMatch(/Hit Dice/);
 
     const dagger = pack.records.find((r) => r.key === 'equipment:dagger');
     expect(dagger?.name).toBe('Dagger');

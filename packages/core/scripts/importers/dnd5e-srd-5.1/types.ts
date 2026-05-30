@@ -287,10 +287,38 @@ export interface ClassExtraction {
   readonly sourcePage: number;
 }
 
+/**
+ * A subclass entry as extracted from the SRD source, before conversion to a
+ * `kind=subclass` `RulesRecord`. Per ADR 0009 a subclass links to its parent
+ * base class via `data.parentClass` (the parent class record's key); this
+ * extraction carries the parent class NAME and `emit.ts` keys it as
+ * `class:<slug>` (mirroring how ancestry `subraceOf` is keyed).
+ *
+ * The `dnd5e-srd` subclass kindSchema (`validateDnd5eSubclass`) requires
+ * `parentClass` and a non-empty `description`. The optional granted-`features`
+ * reference array is the responsibility of the feature parser
+ * (loreweaver-0m9.5.18) and is intentionally not populated here.
+ *
+ * Scope (ADR 0009 / loreweaver-0m9.5.17): one record per SRD 5.1 subclass
+ * (Champion, Life domain, School of Evocation, …). Base classes are separate
+ * `class` records (loreweaver-0m9.5.2); class features are a separate `feature`
+ * kind (loreweaver-0m9.5.18).
+ */
+export interface SubclassExtraction {
+  readonly name: string;
+  /** Parent base-class name (e.g. "Fighter"); emit keys it as class:<slug>. */
+  readonly parentClass: string;
+  /** Subclass body prose, re-flowed into paragraphs. */
+  readonly description: string;
+  /** 1-based page in the source PDF where the subclass heading begins. */
+  readonly sourcePage: number;
+}
+
 export interface ImporterCounts {
   readonly spells: number;
   readonly creatures: number;
   readonly classes: number;
+  readonly subclasses: number;
   readonly conditions: number;
   readonly feats: number;
   readonly hazards: number;
