@@ -83,7 +83,12 @@ describe('parseClasses — Fighter (simple martial class)', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Wizard — a complex caster (no armor proficiency, longer weapon list).
+// Wizard — a complex caster (no armor proficiency, longer weapon list). This
+// fixture is "real-PDF-shaped": labels carry runs of internal whitespace the
+// way `extract.ts` emits them from a column-spaced PDF ("Hit   Dice:",
+// "Saving   Throws:"), and the weapon proficiency list wraps onto an unlabeled
+// continuation line. Exercises whitespace normalization (issue: tabbed labels)
+// and continuation collection (issue: truncated wrapped lists).
 // ---------------------------------------------------------------------------
 
 const WIZARD_PAGE = page(112, [
@@ -92,20 +97,22 @@ const WIZARD_PAGE = page(112, [
   'Class Features',
   'As a wizard, you gain the following class features.',
   'Hit Points',
-  'Hit Dice: 1d6 per wizard level',
+  'Hit   Dice: 1d6 per wizard level',
   'Hit Points at 1st Level: 6 + your Constitution modifier',
   'Proficiencies',
   'Armor: None',
-  'Weapons: Daggers, darts, slings, quarterstaffs, light crossbows',
+  'Weapons: Daggers, darts, slings, quarterstaffs,',
+  'light crossbows',
   'Tools: None',
-  'Saving Throws: Intelligence, Wisdom',
+  'Saving   Throws: Intelligence, Wisdom',
   'Skills: Choose two from Arcana, History, Insight, Investigation, Medicine, Religion',
 ]);
 
-describe('parseClasses — Wizard (caster with no armor proficiency)', () => {
+describe('parseClasses — Wizard (tabbed labels + wrapped weapon list)', () => {
   const [wizard] = parseClasses([WIZARD_PAGE]);
 
-  it('extracts the hit die size', () => {
+  it('detects the class despite internal whitespace in "Hit   Dice:"', () => {
+    expect(wizard.name).toBe('Wizard');
     expect(wizard.hitDie).toBe(6);
   });
 
@@ -113,7 +120,7 @@ describe('parseClasses — Wizard (caster with no armor proficiency)', () => {
     expect(wizard.armorProficiencies).toEqual([]);
   });
 
-  it('extracts the comma-separated weapon list', () => {
+  it('captures a weapon list that wraps onto a continuation line', () => {
     expect(wizard.weaponProficiencies).toEqual([
       'Daggers',
       'darts',
@@ -123,7 +130,7 @@ describe('parseClasses — Wizard (caster with no armor proficiency)', () => {
     ]);
   });
 
-  it('extracts saving throw proficiencies', () => {
+  it('extracts saving throws despite internal whitespace in the label', () => {
     expect(wizard.savingThrowProficiencies).toEqual(['Intelligence', 'Wisdom']);
   });
 });

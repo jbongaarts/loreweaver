@@ -17,12 +17,27 @@
  * primary-ability fields are then read from the labeled lines that follow,
  * within the same block (first match wins, mirroring `parseCreatures`).
  *
+ * Whitespace normalization: `extract.ts` joins pdfjs text items with no
+ * separator and trims only the whole line, so a column-spaced source label
+ * extracts with runs of internal whitespace ("Hit   Dice:",
+ * "Saving   Throws:"). Every line is collapsed to single spaces before matching
+ * (`normalizeLine`) so the literal-space label patterns below match the real
+ * extracted shape, not just pre-normalized fixtures.
+ *
+ * Wrapped fields: SRD proficiency lists wrap onto unlabeled continuation lines
+ * (a long weapon list spilling past the column). A matched labeled value
+ * therefore absorbs following lines until the next labeled line, block heading,
+ * or blank line (`collectValue`), so the list is not silently truncated at the
+ * first physical line.
+ *
  * Fail-closed: a confirmed class (one with a Hit Dice line) missing one of the
  * proficiency fields the `dnd5e-srd` class kindSchema requires
  * (`validateDnd5eClass`) is a genuine malformed entry, so the parser throws with
  * the class name + page rather than emit a record that can't satisfy the schema.
  * The "Armor:" value "None" (e.g. Wizard) maps to an empty proficiency array —
- * that is a valid, present field, not a missing one.
+ * that is a valid, present field, not a missing one. Missing ALL classes is a
+ * coverage failure handled by the orchestrator (`validateClassCoverage`), not
+ * here.
  *
  * `primaryAbilities` is best-effort, NOT fail-closed: the SRD 5.1 "Class
  * Features" block does not print a per-class primary/key ability line — that
@@ -33,11 +48,7 @@
  * parse below still runs so a layout that DOES carry the line (a variant SRD
  * rendering, or a homebrew pack) populates it. Cross-referencing the
  * Multiclassing prerequisites table to fill this field is tracked as a separate
- * normalization-mapping bead (see ADR 0008 / loreweaver-0m9.5.2 notes).
- *
- * Real-PDF note: like the section anchors in `sections.ts`, the labeled-line
- * patterns below target the SRD 5.1 layout and must be confirmed once the PDF
- * is vendored.
+ * normalization-mapping bead (loreweaver-0m9.5.19; see ADR 0008).
  */
 
 import type { ClassExtraction, PageText } from './types.js';
@@ -51,16 +62,27 @@ const WEAPONS_PATTERN = /^Weapons:\s*(.+)$/i;
 const SAVING_THROWS_PATTERN = /^Saving Throws?:\s*(.+)$/i;
 const PRIMARY_ABILITY_PATTERN = /^Primary Abilit(?:y|ies):\s*(.+)$/i;
 
+// A labeled line ("Tools:", "Skills:", "Saving Throws:", …) or a Class-Features
+// block heading ends a wrapped field's continuation run.
+const FIELD_LABEL_PATTERN = /^[A-Za-z][A-Za-z ]*:/;
+const BLOCK_HEADING_PATTERN =
+  /^(Hit Points|Proficiencies|Equipment|Quick Build|Class Features|Spellcasting)$/i;
+
 interface FlatLine {
   readonly line: string;
   readonly page: number;
+}
+
+/** Collapse internal whitespace runs to single spaces and trim. */
+function normalizeLine(line: string): string {
+  return line.replace(/\s+/g, ' ').trim();
 }
 
 function flatten(pages: readonly PageText[]): readonly FlatLine[] {
   const out: FlatLine[] = [];
   for (const page of pages) {
     for (const line of page.lines) {
-      out.push({ line, page: page.pageNumber });
+      out.push({ line: normalizeLine(line), page: page.pageNumber });
     }
   }
   return out;
@@ -93,6 +115,28 @@ function parseProficiencyList(value: string): string[] {
   return splitList(value);
 }
 
+/**
+ * Collect a labeled field's value: the captured first-line text plus any
+ * following unlabeled continuation lines (a wrapped list), stopping at the next
+ * labeled line, block heading, or blank line. `body` lines are already
+ * whitespace-normalized.
+ */
+function collectValue(
+  body: readonly string[],
+  startIdx: number,
+  initial: string,
+): string {
+  const parts = [initial.trim()];
+  for (let j = startIdx + 1; j < body.length; j++) {
+    const line = body[j].trim();
+    if (line.length === 0) break;
+    if (FIELD_LABEL_PATTERN.test(line)) break;
+    if (BLOCK_HEADING_PATTERN.test(line)) break;
+    parts.push(line);
+  }
+  return parts.join(' ');
+}
+
 function titleCase(name: string): string {
   return name.length === 0
     ? name
@@ -117,7 +161,7 @@ export function parseClasses(pages: readonly PageText[]): ClassExtraction[] {
   // the start of one class's Class Features block.
   const starts: ClassStart[] = [];
   flat.forEach((entry, idx) => {
-    const match = HIT_DICE_PATTERN.exec(entry.line.trim());
+    const match = HIT_DICE_PATTERN.exec(entry.line);
     if (match === null) return;
     starts.push({
       idx,
@@ -129,8 +173,8 @@ export function parseClasses(pages: readonly PageText[]): ClassExtraction[] {
 
   // Second pass: each class's block runs from its Hit Dice line to the next
   // class's Hit Dice line (exclusive), or to EOF for the last class. The labeled
-  // proficiency / primary-ability lines are read from that block, first match
-  // wins.
+  // proficiency / primary-ability lines are read from that block (first match
+  // wins), each absorbing wrapped continuation lines.
   const out: ClassExtraction[] = [];
   for (let i = 0; i < starts.length; i++) {
     const start = starts[i];
@@ -142,38 +186,38 @@ export function parseClasses(pages: readonly PageText[]): ClassExtraction[] {
     let savingThrows: string[] | undefined;
     let primaryAbilities: string[] | undefined;
 
-    for (const raw of body) {
-      const line = raw.trim();
+    for (let k = 0; k < body.length; k++) {
+      const line = body[k];
       if (armor === undefined) {
         const m = ARMOR_PATTERN.exec(line);
         if (m !== null) {
-          armor = parseProficiencyList(m[1]);
+          armor = parseProficiencyList(collectValue(body, k, m[1]));
           continue;
         }
       }
       if (weapons === undefined) {
         const m = WEAPONS_PATTERN.exec(line);
         if (m !== null) {
-          weapons = parseProficiencyList(m[1]);
+          weapons = parseProficiencyList(collectValue(body, k, m[1]));
           continue;
         }
       }
       if (savingThrows === undefined) {
         const m = SAVING_THROWS_PATTERN.exec(line);
         if (m !== null) {
-          savingThrows = splitList(m[1]);
+          savingThrows = splitList(collectValue(body, k, m[1]));
           continue;
         }
       }
       if (primaryAbilities === undefined) {
         const m = PRIMARY_ABILITY_PATTERN.exec(line);
         if (m !== null) {
-          primaryAbilities = splitList(m[1]);
+          primaryAbilities = splitList(collectValue(body, k, m[1]));
         }
       }
     }
 
-    // A confirmed class missing any kindSchema-required field is a malformed
+    // A confirmed class missing a required proficiency field is a malformed
     // entry (or a layout the patterns above don't yet match) — fail closed with
     // the class name + page rather than emit an invalid record.
     if (armor === undefined) {

@@ -18,6 +18,7 @@ import { join } from 'node:path';
 import PDFDocument from 'pdfkit';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
+  ClassCoverageError,
   CreatureCoverageError,
   runImporter,
 } from '../../../scripts/importers/dnd5e-srd-5.1/index.js';
@@ -511,6 +512,16 @@ const CLASSES_PAGE: FixturePage = {
     'Tools: None',
     'Saving Throws: Strength, Constitution',
     'Skills: Choose two skills from Acrobatics, Athletics, History, Insight',
+  ],
+};
+
+// Classes fixture whose section is found and properly bounded, but contains no
+// parseable class block (no "Hit Dice: 1dN per <class> level" signature).
+// Exercises the empty-result class-coverage guard.
+const CLASSES_PAGE_NO_CLASSES: FixturePage = {
+  lines: [
+    'Classes',
+    'This chapter introduces the classes, but no class block extracted.',
   ],
 };
 
@@ -1246,5 +1257,39 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     await expect(
       runImporter({ pdfPath, outDir, minCreatureCount: 2 }),
     ).rejects.toThrow(/parsed 1 creature stat block\(s\), expected at least 2/);
+  });
+
+  it('fails closed when the Classes section yields no classes', async () => {
+    const workDir = makeTmpDir();
+    const pdfPath = join(workDir, 'fixture.pdf');
+    const outDir = join(workDir, 'pack');
+    // Every section is present and valid except the Classes chapter, which is
+    // found and bounded (Races → Classes → Using Ability Scores) but carries no
+    // class block. The class-coverage guard must reject the empty result and
+    // write nothing rather than emit a class-less pack.
+    await writeFixturePdf(pdfPath, [
+      RACES_PAGE,
+      CLASSES_PAGE_NO_CLASSES,
+      CORE_RULES_PAGE_ONE,
+      CORE_RULES_PAGE_TWO,
+      CORE_RULES_TABLES_PAGE,
+      SPELL_LISTS_PAGE,
+      SPELLS_PAGE,
+      MONSTERS_PAGE,
+      TREASURE_TABLES_PAGE,
+      MAGIC_ITEMS_PAGE,
+      COMBAT_ACTIONS_PAGE,
+      MAKING_AN_ATTACK_PAGE,
+      HAZARDS_PAGE,
+      FEATS_PAGE,
+      EQUIPMENT_PAGE,
+      CONDITIONS_PAGE,
+    ]);
+
+    await expect(runImporter({ pdfPath, outDir })).rejects.toThrow(
+      ClassCoverageError,
+    );
+    // Nothing should have been written.
+    expect(() => readFileSync(join(outDir, 'records.json'), 'utf8')).toThrow();
   });
 });

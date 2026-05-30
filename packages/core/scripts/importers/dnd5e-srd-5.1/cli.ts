@@ -19,7 +19,11 @@
 
 import { dirname, isAbsolute, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { MIN_EXPECTED_SRD_5_1_CREATURES, runImporter } from './index.js';
+import {
+  MIN_EXPECTED_SRD_5_1_CLASSES,
+  MIN_EXPECTED_SRD_5_1_CREATURES,
+  runImporter,
+} from './index.js';
 
 interface ParsedArgs {
   readonly pdf: string;
@@ -90,6 +94,7 @@ async function main(): Promise<void> {
     pdfPath: args.pdf,
     outDir: args.out,
     minCreatureCount: MIN_EXPECTED_SRD_5_1_CREATURES,
+    minClassCount: MIN_EXPECTED_SRD_5_1_CLASSES,
   });
   const c = result.counts;
   console.log(
