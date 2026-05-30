@@ -46,6 +46,14 @@ path. Fallback for local development: install a C++ toolchain and
 `docs/adr/0008-node-runtime-and-native-sqlite-support.md` and the header
 comment in `.github/workflows/ci.yml`.
 
+## Dependency Updates
+
+Dependency updates must follow `docs/dependencies.md`. Keep dependency PRs
+separate from feature work and importer parser changes. Treat `better-sqlite3`
+updates as runtime/native-sensitive: verify Node 24 compatibility, preserve the
+`npm_config_build_from_source=false` CI assumption, and do not take major
+updates without a bead that explicitly reviews the Node/runtime decision.
+
 ## Formatting & Linting
 
 Biome is the canonical formatter/linter for JS/TS source files. Do not

@@ -246,6 +246,9 @@ content lives in the npm package build output.
   Run `bd ready` to find available work and `bd prime` for the full workflow.
 - Operational guidance for both humans and AI agents lives in
   [AGENTS.md](AGENTS.md). `CLAUDE.md` simply imports it.
+- Dependency updates use the conservative policy in
+  [docs/dependencies.md](docs/dependencies.md), including special handling for
+  Node runtime and `better-sqlite3` compatibility.
 - Bundled or publicly shared campaign/rules content must be open-licensed,
   public domain, original, or publisher-licensed.
 
