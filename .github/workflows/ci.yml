@@ -1,4 +1,5 @@
-# CI: build + test on a clean Node 24 runner.
+# CI: build + test on a clean Node 24 Linux runner, plus focused native
+# dependency install smoke coverage on Linux, Windows, and macOS.
 #
 # WHY THIS IS PINNED THE WAY IT IS (better-sqlite3 native binary):
 #
@@ -14,10 +15,14 @@
 #   better-sqlite3 line must therefore move together.
 #
 #   STRATEGY (primary path = prebuilt binary, no compiler required):
-#   - Run CI on Node 24 LTS.
+#   - Run the full build/test gate on Node 24 LTS.
+#   - Run focused install/smoke coverage on Node 24 LTS across Linux, Windows,
+#     and macOS because the CLI is not Linux-only.
 #   - Use better-sqlite3 12.x, whose release line includes Node 24 prebuilds.
 #   - Set npm_config_build_from_source=false so prebuild-install does not
 #     intentionally skip native prebuilds.
+#   - Capture npm ci logs in the cross-OS smoke job and fail if they show
+#     better-sqlite3 falling back to node-gyp/source compilation.
 #
 #   NODE SUPPORT DECISION (intentional, documented):
 #   ADR 0008 makes Node 24 LTS the supported runtime. The root and workspace
@@ -76,3 +81,68 @@ jobs:
 
       - name: Biome check (format + lint)
         run: npm run check
+
+  install-smoke:
+    name: Install smoke (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Node 24 LTS
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies and check native install path
+        shell: pwsh
+        env:
+          npm_config_build_from_source: "false"
+        run: |
+          $ErrorActionPreference = "Stop"
+          if (Get-Variable PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue) {
+            $PSNativeCommandUseErrorActionPreference = $false
+          }
+
+          $previousErrorActionPreference = $ErrorActionPreference
+          $ErrorActionPreference = "Continue"
+          $npmOutput = npm ci --foreground-scripts 2>&1
+          $npmExit = $LASTEXITCODE
+          $ErrorActionPreference = $previousErrorActionPreference
+
+          $npmOutput | Tee-Object -FilePath npm-ci.log
+          if ($npmExit -ne 0) {
+            exit $npmExit
+          }
+
+          $log = Get-Content npm-ci.log -Raw
+          $sourceBuildPatterns = @(
+            "(?m)^gyp info",
+            "(?m)^gyp verb",
+            "(?m)^make: Entering directory.*better-sqlite3",
+            "(?m)^\s*CXX\(target\)",
+            "(?m)^.*prebuild-install WARN install No prebuilt binaries found",
+            "(?m)^.*prebuild-install WARN install .*node-gyp",
+            "(?m)^.*Building the projects in this solution"
+          )
+          foreach ($pattern in $sourceBuildPatterns) {
+            if ($log -match $pattern) {
+              Write-Error "npm ci log indicates better-sqlite3 source-build fallback: $pattern"
+              exit 1
+            }
+          }
+
+          $nodeGypRebuildLines = Select-String -Path npm-ci.log -Pattern "node-gyp rebuild"
+          foreach ($line in $nodeGypRebuildLines) {
+            if ($line.Line -notmatch "prebuild-install\s+\|\|\s+node-gyp rebuild") {
+              Write-Error "npm ci log contains unexpected node-gyp rebuild invocation: $($line.Line)"
+              exit 1
+            }
+          }
+
+      - name: CLI install smoke
+        run: npm run smoke:cli-install
