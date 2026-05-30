@@ -1,4 +1,5 @@
-# CI: build + test on a clean runner with NO local C++ build toolchain.
+# CI: build + test on a clean Node 24 Linux runner, plus focused native
+# dependency install smoke coverage on Linux, Windows, and macOS.
 #
 # WHY THIS IS PINNED THE WAY IT IS (better-sqlite3 native binary):
 #
@@ -9,28 +10,24 @@
 #   toolchain (MSVC / build-essential).
 #
 #   FAILURE MODE (the risk this workflow exists to prevent):
-#   The pinned `better-sqlite3@^11.3.0` (resolved 11.10.0) ships prebuilt
-#   binaries for Node ABIs v108/v115/v127/v131 (Node 18/20/22/23) but NOT
-#   v137 (Node 24). On Node 24, prebuild-install gets a 404 and the install
-#   silently falls back to compiling from source — which fails on any runner
-#   without a C++ toolchain. (This is exactly what happened on the dev machine
-#   during cck.3: it compiled from source under Node 24.)
+#   Native source compilation makes CI and release installs depend on local C++
+#   toolchains instead of package release artifacts. The Node runtime and
+#   better-sqlite3 line must therefore move together.
 #
 #   STRATEGY (primary path = prebuilt binary, no compiler required):
-#   - Run CI on Node 22 LTS, whose ABI (v127) HAS a confirmed 11.10.0 prebuilt
-#     (better-sqlite3-v11.10.0-node-v127-linux-x64.tar.gz, verified to download
-#     with HTTP 200 and no node-gyp invocation).
-#   - Set npm_config_build_from_source=false so the install can NEVER silently
-#     compile: a missing prebuilt fails the job loudly instead of attempting an
-#     MSVC/node-gyp build that would produce a confusing error.
+#   - Run the full build/test gate on Node 24 LTS.
+#   - Run focused install/smoke coverage on Node 24 LTS across Linux, Windows,
+#     and macOS because the CLI is not Linux-only.
+#   - Use better-sqlite3 12.x, whose release line includes Node 24 prebuilds.
+#   - Set npm_config_build_from_source=false so prebuild-install does not
+#     intentionally skip native prebuilds.
+#   - Capture npm ci logs in the cross-OS smoke job and fail if they show
+#     better-sqlite3 falling back to node-gyp/source compilation.
 #
-#   NODE VERSION DIVERGENCE FROM EPIC (intentional, documented):
-#   The E0 epic targets Node 24. CI runs Node 22 LTS because the pinned
-#   better-sqlite3 11.x has no Node 24 prebuilt. Adopting Node 24 in CI
-#   requires upgrading better-sqlite3 to the 12.x line (12.x ships the
-#   v137/Node-24 prebuilt) — that is a separate major-version-upgrade decision,
-#   out of scope for this CI task. Dev machines on Node 24 still work because
-#   they compiled better-sqlite3 from source locally.
+#   NODE SUPPORT DECISION (intentional, documented):
+#   ADR 0008 makes Node 24 LTS the supported runtime. The root and workspace
+#   package engines stay at >=24 <25, CI uses Node 24, and better-sqlite3 stays
+#   on the 12.x line for Node 24 native prebuild support.
 #
 #   DOCUMENTED FALLBACK (if a prebuilt is ever unavailable for the chosen
 #   Node/OS): see AGENTS.md "Build & Test" -> better-sqlite3 native binary.
@@ -52,19 +49,21 @@ jobs:
   build-test:
     runs-on: ubuntu-latest
     env:
-      # Prebuilt-binary-only: never silently compile better-sqlite3 from source.
-      # If no matching prebuilt exists, `npm ci` fails loudly here.
+      # Keep prebuild-install on the prebuilt-first path. better-sqlite3 still
+      # has a node-gyp fallback, so dependency/runtime changes must be reviewed
+      # against install output and CI results rather than assuming this env var
+      # alone forbids source compilation.
       npm_config_build_from_source: "false"
     steps:
       - uses: actions/checkout@v6
 
-      - name: Set up Node 22 LTS (has a confirmed better-sqlite3 11.x prebuilt)
+      - name: Set up Node 24 LTS
         uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
 
-      - name: Install dependencies (prebuilt better-sqlite3, no C++ toolchain)
+      - name: Install dependencies
         run: npm ci
 
       # `npm run typecheck` is `tsc --build --force`. The plain `build`
@@ -82,3 +81,68 @@ jobs:
 
       - name: Biome check (format + lint)
         run: npm run check
+
+  install-smoke:
+    name: Install smoke (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Node 24 LTS
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies and check native install path
+        shell: pwsh
+        env:
+          npm_config_build_from_source: "false"
+        run: |
+          $ErrorActionPreference = "Stop"
+          if (Get-Variable PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue) {
+            $PSNativeCommandUseErrorActionPreference = $false
+          }
+
+          $previousErrorActionPreference = $ErrorActionPreference
+          $ErrorActionPreference = "Continue"
+          $npmOutput = npm ci --foreground-scripts 2>&1
+          $npmExit = $LASTEXITCODE
+          $ErrorActionPreference = $previousErrorActionPreference
+
+          $npmOutput | Tee-Object -FilePath npm-ci.log
+          if ($npmExit -ne 0) {
+            exit $npmExit
+          }
+
+          $log = Get-Content npm-ci.log -Raw
+          $sourceBuildPatterns = @(
+            "(?m)^gyp info",
+            "(?m)^gyp verb",
+            "(?m)^make: Entering directory.*better-sqlite3",
+            "(?m)^\s*CXX\(target\)",
+            "(?m)^.*prebuild-install WARN install No prebuilt binaries found",
+            "(?m)^.*prebuild-install WARN install .*node-gyp",
+            "(?m)^.*Building the projects in this solution"
+          )
+          foreach ($pattern in $sourceBuildPatterns) {
+            if ($log -match $pattern) {
+              Write-Error "npm ci log indicates better-sqlite3 source-build fallback: $pattern"
+              exit 1
+            }
+          }
+
+          $nodeGypRebuildLines = Select-String -Path npm-ci.log -Pattern "node-gyp rebuild"
+          foreach ($line in $nodeGypRebuildLines) {
+            if ($line.Line -notmatch "prebuild-install\s+\|\|\s+node-gyp rebuild") {
+              Write-Error "npm ci log contains unexpected node-gyp rebuild invocation: $($line.Line)"
+              exit 1
+            }
+          }
+
+      - name: CLI install smoke
+        run: npm run smoke:cli-install

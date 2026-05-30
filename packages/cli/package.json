@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "type": "module",
   "files": ["dist"],
-  "engines": { "node": ">=22 <23" },
+  "engines": { "node": ">=24 <25" },
   "bin": { "loreweaver": "./dist/index.js" },
   "scripts": { "build": "tsc --build" },
   "dependencies": { "@loreweaver/core": "0.0.0" }

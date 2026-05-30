@@ -36,13 +36,15 @@ alone and asserts `packages/core/dist/index.js` exists. Always reset with
 use `npm run typecheck` (`--force`). CI uses `--force` for this reason.
 
 **Native dep — `better-sqlite3` (the only compiled dependency):** use
-**Node 22 LTS**. The pinned `11.x` ships a Node 22 prebuilt but **no Node 24
-prebuilt**; on Node 24 the install silently source-compiles and fails without a
-C++ toolchain. CI pins Node 22 and sets `npm_config_build_from_source=false` so
-a missing prebuilt fails loud instead. Fallback: install a C++ toolchain and
-`npm rebuild better-sqlite3`, or upgrade to `better-sqlite3` 12.x (ships the
-Node 24 prebuilt). Full rationale: header comment in
-`.github/workflows/ci.yml`.
+**Node 24 LTS**. ADR 0008 makes Node 24 the supported runtime and keeps the
+root/workspace engines at `>=24 <25`. The workspace uses `better-sqlite3` 12.x
+because that line ships Node 24 prebuilds; do not downgrade to 11.x without
+also moving the supported runtime back to Node 22. CI pins Node 24 and sets
+`npm_config_build_from_source=false` to keep installs on the prebuilt-first
+path. Fallback for local development: install a C++ toolchain and
+`npm rebuild better-sqlite3`. Full rationale:
+`docs/adr/0008-node-runtime-and-native-sqlite-support.md` and the header
+comment in `.github/workflows/ci.yml`.
 
 ## Formatting & Linting
 
