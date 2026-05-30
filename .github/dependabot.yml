@@ -1,0 +1,61 @@
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "10:00"
+      timezone: "America/Chicago"
+    open-pull-requests-limit: 8
+    versioning-strategy: increase-if-necessary
+    labels:
+      - dependencies
+      - npm
+    commit-message:
+      prefix: "deps"
+    groups:
+      runtime-native-sensitive:
+        patterns:
+          - "better-sqlite3"
+          - "@types/better-sqlite3"
+      model-provider-sdks:
+        patterns:
+          - "@anthropic-ai/*"
+      document-import-tooling:
+        dependency-type: development
+        patterns:
+          - "pdfjs-dist"
+          - "pdfkit"
+          - "@types/pdfkit"
+      dev-tooling:
+        dependency-type: development
+        patterns:
+          - "@biomejs/*"
+          - "@types/node"
+          - "tsx"
+          - "typescript"
+          - "vitest"
+          - "@vitest/*"
+    ignore:
+      - dependency-name: "better-sqlite3"
+        update-types:
+          - "version-update:semver-major"
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "10:30"
+      timezone: "America/Chicago"
+    labels:
+      - dependencies
+      - github-actions
+    commit-message:
+      prefix: "ci"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
