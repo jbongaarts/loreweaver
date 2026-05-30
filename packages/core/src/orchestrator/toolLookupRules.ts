@@ -60,6 +60,7 @@ export const lookupRulesTool: Tool = {
           'hazard',
           'rule',
           'spell',
+          'subclass',
           'table',
         ],
         description: 'The kind of rules record to look up.',

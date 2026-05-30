@@ -29,6 +29,7 @@ const RULES_RECORD_KINDS: readonly RulesRecordKind[] = [
   'hazard',
   'rule',
   'spell',
+  'subclass',
   'table',
 ];
 

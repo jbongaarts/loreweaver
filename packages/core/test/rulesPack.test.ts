@@ -415,6 +415,59 @@ describe('rules pack validation', () => {
     expect(() => validateRulesPack(pack)).toThrow(/data\.level/);
   });
 
+  it('accepts dnd5e subclass records linked to a parent class', () => {
+    const pack = validateRulesPack(
+      validRulesPack({
+        records: [
+          record('subclass:champion', {
+            kind: 'subclass',
+            name: 'Champion',
+            data: {
+              parentClass: 'class:fighter',
+              description:
+                'The archetypal Champion focuses on the development of raw physical power.',
+              features: ['feature:improved-critical'],
+            },
+          }),
+        ],
+      }),
+    );
+    expect(pack.records[0].kind).toBe('subclass');
+  });
+
+  it('rejects dnd5e subclass records missing the parent class link', () => {
+    const pack = validRulesPack({
+      records: [
+        record('subclass:life-domain', {
+          kind: 'subclass',
+          name: 'Life Domain',
+          data: {
+            description:
+              'The Life domain focuses on the vibrant positive energy.',
+          },
+        }),
+      ],
+    });
+    expect(() => validateRulesPack(pack)).toThrow(RulesPackError);
+    expect(() => validateRulesPack(pack)).toThrow(/data\.parentClass/);
+  });
+
+  it('does not require base-class scalar fields on a subclass', () => {
+    // A subclass carries only its own fields; hitDie/proficiencies stay on
+    // the parent `class` record (ADR 0009). Description is still required.
+    const pack = validRulesPack({
+      records: [
+        record('subclass:evocation', {
+          kind: 'subclass',
+          name: 'School of Evocation',
+          data: { parentClass: 'class:wizard' },
+        }),
+      ],
+    });
+    expect(() => validateRulesPack(pack)).toThrow(RulesPackError);
+    expect(() => validateRulesPack(pack)).toThrow(/data\.description/);
+  });
+
   it('rejects rule records without a text body', () => {
     const pack = validRulesPack({
       records: [
