@@ -16,8 +16,10 @@
  * (or one below `minCreatureCount`) throws `CreatureCoverageError` and writes
  * nothing.
  *
- * Scope today: spells, creatures, conditions, feats, hazards, actions, rules,
- * tables, equipment, and ancestries (races + subraces).
+ * Scope today: spells, creatures, base classes, conditions, feats, hazards,
+ * actions, rules, tables, equipment, and ancestries (races + subraces).
+ * Subclasses and class features are separate record kinds tracked under
+ * loreweaver-0m9.5.15-18 (see ADR 0009) and are not parsed here.
  * Other SRD record kinds are tracked under `loreweaver-0m9.5` child issues;
  * until those parsers ship the importer deliberately omits them so the
  * generated pack does not claim coverage it does not have. See `README.md`
@@ -30,6 +32,7 @@ import { buildPack, writePackToDirectory } from './emit.js';
 import { extractPdfText } from './extract.js';
 import { parseActions } from './parseActions.js';
 import { parseAncestries } from './parseAncestries.js';
+import { parseClasses } from './parseClasses.js';
 import { parseConditions } from './parseConditions.js';
 import { parseCreatures } from './parseCreatures.js';
 import { parseEquipment } from './parseEquipment.js';
@@ -61,6 +64,17 @@ import type { ImporterRunResult } from './types.js';
 export const MIN_EXPECTED_SRD_5_1_CREATURES = 300;
 
 /**
+ * Minimum number of base classes a full SRD 5.1 import must yield. The SRD 5.1
+ * "Classes" chapter contains the 12 base classes (Barbarian … Wizard). This
+ * floor catches a gross extraction regression — an empty or badly-truncated
+ * class parse — when the importer runs against the real PDF. The CLI passes this
+ * value; fixture-based tests rely on the always-on empty-result guard (or pass a
+ * smaller floor). Subclasses and features are separate kinds (ADR 0009) and are
+ * not counted here.
+ */
+export const MIN_EXPECTED_SRD_5_1_CLASSES = 12;
+
+/**
  * Thrown when the parsed creature set fails the coverage check (empty result,
  * or fewer creatures than `minCreatureCount`). Distinct from
  * `SectionNotFoundError` so callers can tell "the Monsters section was found
@@ -70,6 +84,19 @@ export class CreatureCoverageError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'CreatureCoverageError';
+  }
+}
+
+/**
+ * Thrown when the parsed class set fails the coverage check (empty result, or
+ * fewer classes than `minClassCount`). Distinct from `SectionNotFoundError` so
+ * callers can tell "the Classes section was found but produced too few classes"
+ * apart from "the section anchor didn't match".
+ */
+export class ClassCoverageError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ClassCoverageError';
   }
 }
 
@@ -94,6 +121,15 @@ export interface RunImporterInput {
    * always rejected regardless of this option.
    */
   readonly minCreatureCount?: number;
+  /**
+   * Minimum number of base classes the Classes section must yield for the run
+   * to be accepted. When set and the parsed count is below it, the importer
+   * throws `ClassCoverageError` and writes nothing. The real-import CLI passes
+   * `MIN_EXPECTED_SRD_5_1_CLASSES`; fixture pipelines either omit this (relying
+   * on the always-on empty-result guard) or pass a small value. An empty class
+   * result is always rejected regardless of this option.
+   */
+  readonly minClassCount?: number;
 }
 
 /**
@@ -115,6 +151,29 @@ function validateCreatureCoverage(
   if (minCreatureCount !== undefined && count < minCreatureCount) {
     throw new CreatureCoverageError(
       `SRD 5.1 creature coverage check failed: parsed ${count} creature stat block(s), expected at least ${minCreatureCount}. The Monsters section may have been truncated or its layout changed. (Exact name-set coverage is tracked in loreweaver-0m9.5.14.)`,
+    );
+  }
+}
+
+/**
+ * Fail closed on a class result that can't be a faithful SRD 5.1 import: an
+ * empty set is always rejected; a non-empty set below `minClassCount` (when
+ * provided) is rejected too. Runs after parsing and before any output is
+ * written. Error messages name the observed/expected counts so a CI failure is
+ * self-explanatory.
+ */
+function validateClassCoverage(
+  count: number,
+  minClassCount: number | undefined,
+): void {
+  if (count === 0) {
+    throw new ClassCoverageError(
+      'SRD 5.1 class coverage check failed: the Classes section was found but yielded 0 base classes. The Classes layout likely changed. Refusing to write a pack with no classes.',
+    );
+  }
+  if (minClassCount !== undefined && count < minClassCount) {
+    throw new ClassCoverageError(
+      `SRD 5.1 class coverage check failed: parsed ${count} base class(es), expected at least ${minClassCount}. The Classes section may have been truncated or its layout changed.`,
     );
   }
 }
@@ -166,10 +225,19 @@ export async function runImporter(
   // emit a pack without races.
   const racePages = sliceSection(pages, anchors.races);
   const ancestries = parseAncestries(racePages);
+  // Throws SectionNotFoundError if the classes start OR end anchor doesn't
+  // match — class is an implemented kind, so fail closed rather than emit a
+  // pack without classes (the classes anchor sets requireEndHeading: true).
+  const classPages = sliceSection(pages, anchors.classes);
+  const classes = parseClasses(classPages);
+  // Fail closed before any output is written if class extraction is empty or
+  // (when a floor is supplied) implausibly small. Class is an implemented kind.
+  validateClassCoverage(classes.length, input.minClassCount);
   const pack = buildPack({
     spells,
     classIndex,
     creatures,
+    classes,
     conditions,
     feats,
     hazards,
@@ -187,6 +255,7 @@ export async function runImporter(
     counts: {
       spells: spells.length,
       creatures: creatures.length,
+      classes: classes.length,
       conditions: conditions.length,
       feats: feats.length,
       hazards: hazards.length,

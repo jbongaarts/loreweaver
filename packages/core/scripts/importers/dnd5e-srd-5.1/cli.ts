@@ -19,7 +19,11 @@
 
 import { dirname, isAbsolute, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { MIN_EXPECTED_SRD_5_1_CREATURES, runImporter } from './index.js';
+import {
+  MIN_EXPECTED_SRD_5_1_CLASSES,
+  MIN_EXPECTED_SRD_5_1_CREATURES,
+  runImporter,
+} from './index.js';
 
 interface ParsedArgs {
   readonly pdf: string;
@@ -90,10 +94,11 @@ async function main(): Promise<void> {
     pdfPath: args.pdf,
     outDir: args.out,
     minCreatureCount: MIN_EXPECTED_SRD_5_1_CREATURES,
+    minClassCount: MIN_EXPECTED_SRD_5_1_CLASSES,
   });
   const c = result.counts;
   console.log(
-    `Imported ${c.spells} spells, ${c.creatures} creatures, ${c.conditions} conditions, ${c.feats} feats, ${c.hazards} hazards, ${c.actions} actions, ${c.rules} rules, ${c.tables} tables, ${c.equipment} equipment, and ${c.ancestries} ancestries.`,
+    `Imported ${c.spells} spells, ${c.creatures} creatures, ${c.classes} classes, ${c.conditions} conditions, ${c.feats} feats, ${c.hazards} hazards, ${c.actions} actions, ${c.rules} rules, ${c.tables} tables, ${c.equipment} equipment, and ${c.ancestries} ancestries.`,
   );
   console.log(`Source PDF SHA-256: ${result.sourceHash}`);
   console.log(`Output written to: ${result.outDir}`);

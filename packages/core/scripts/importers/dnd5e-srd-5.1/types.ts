@@ -261,9 +261,36 @@ export interface CreatureExtraction {
   readonly sourcePage: number;
 }
 
+/**
+ * A base-class entry as extracted from the SRD source, before conversion to a
+ * `kind=class` `RulesRecord`. Mirrors the fields the `dnd5e-srd` class
+ * kindSchema requires (see `validateDnd5eClass` in `kindSchemas.ts`):
+ *   - `hitDie` is the die size N from "Hit Dice: 1dN per <class> level";
+ *   - `armorProficiencies` / `weaponProficiencies` / `savingThrowProficiencies`
+ *     are the parsed list values of the "Armor:" / "Weapons:" / "Saving Throws:"
+ *     lines in the class's "Class Features" block ("None" maps to an empty
+ *     array for proficiencies);
+ *   - `primaryAbilities` is the parsed "Primary Ability" line.
+ *
+ * Scope (ADR 0009 / loreweaver-0m9.5.2): base classes only. Subclasses and
+ * class features are separate record kinds parsed by separate beads
+ * (loreweaver-0m9.5.16/0m9.5.17 and 0m9.5.15/0m9.5.18).
+ */
+export interface ClassExtraction {
+  readonly name: string;
+  readonly hitDie: number;
+  readonly primaryAbilities: readonly string[];
+  readonly savingThrowProficiencies: readonly string[];
+  readonly armorProficiencies: readonly string[];
+  readonly weaponProficiencies: readonly string[];
+  /** 1-based page in the source PDF where the class's Hit Dice line begins. */
+  readonly sourcePage: number;
+}
+
 export interface ImporterCounts {
   readonly spells: number;
   readonly creatures: number;
+  readonly classes: number;
   readonly conditions: number;
   readonly feats: number;
   readonly hazards: number;

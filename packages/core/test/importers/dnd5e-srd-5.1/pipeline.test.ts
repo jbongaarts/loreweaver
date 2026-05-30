@@ -18,6 +18,7 @@ import { join } from 'node:path';
 import PDFDocument from 'pdfkit';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
+  ClassCoverageError,
   CreatureCoverageError,
   runImporter,
 } from '../../../scripts/importers/dnd5e-srd-5.1/index.js';
@@ -490,9 +491,38 @@ const RACES_PAGE: FixturePage = {
   ],
 };
 
-// End heading for the races section.
+// End heading for the races section AND the start of the Classes chapter. Now
+// carries one full base-class block (Fighter) so runImporter emits a class
+// record; the chapter is bounded below by "Using Ability Scores" (the
+// classes-anchor end heading, supplied by CORE_RULES_PAGE_ONE). Class-feature
+// text is reproduced from the SRD 5.1 (CC-BY-4.0) as parser input.
 const CLASSES_PAGE: FixturePage = {
-  lines: ['Classes', 'Barbarian', 'A fierce warrior of primitive background.'],
+  lines: [
+    'Classes',
+    'Fighter',
+    'A master of martial combat, skilled with a variety of weapons and armor.',
+    'Class Features',
+    'As a fighter, you gain the following class features.',
+    'Hit Points',
+    'Hit Dice: 1d10 per fighter level',
+    'Hit Points at 1st Level: 10 + your Constitution modifier',
+    'Proficiencies',
+    'Armor: All armor, shields',
+    'Weapons: Simple weapons, martial weapons',
+    'Tools: None',
+    'Saving Throws: Strength, Constitution',
+    'Skills: Choose two skills from Acrobatics, Athletics, History, Insight',
+  ],
+};
+
+// Classes fixture whose section is found and properly bounded, but contains no
+// parseable class block (no "Hit Dice: 1dN per <class> level" signature).
+// Exercises the empty-result class-coverage guard.
+const CLASSES_PAGE_NO_CLASSES: FixturePage = {
+  lines: [
+    'Classes',
+    'This chapter introduces the classes, but no class block extracted.',
+  ],
 };
 
 describe('runImporter — end-to-end against a fixture PDF', () => {
@@ -522,6 +552,7 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     const result = await runImporter({ pdfPath, outDir });
     expect(result.counts.spells).toBe(2);
     expect(result.counts.creatures).toBe(1);
+    expect(result.counts.classes).toBe(1);
     expect(result.counts.conditions).toBe(2);
     expect(result.counts.feats).toBe(1);
     expect(result.counts.hazards).toBe(1);
@@ -533,8 +564,9 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(result.sourceHash).toMatch(/^[0-9a-f]{64}$/);
 
     const pack = loadRulesPackFromDirectory(outDir);
-    expect(pack.records).toHaveLength(30);
+    expect(pack.records).toHaveLength(31);
     const keys = pack.records.map((r) => r.key).sort();
+    expect(keys).toContain('class:fighter');
     expect(keys).toContain('action:attack');
     expect(keys).toContain('action:cast-a-spell');
     expect(keys).toContain('action:dash');
@@ -694,6 +726,26 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       wisdom: 8,
       charisma: 8,
     });
+
+    // The generated manifest must advertise class as an included kind.
+    expect(pack.meta.description).toMatch(/Included record kinds:[^.]*class/);
+
+    const fighter = pack.records.find((r) => r.key === 'class:fighter');
+    expect(fighter?.kind).toBe('class');
+    expect(fighter?.name).toBe('Fighter');
+    const fighterData = fighter?.data as Record<string, unknown>;
+    expect(fighterData.hitDie).toBe(10);
+    expect(fighterData.armorProficiencies).toEqual(['All armor', 'shields']);
+    expect(fighterData.weaponProficiencies).toEqual([
+      'Simple weapons',
+      'martial weapons',
+    ]);
+    expect(fighterData.savingThrowProficiencies).toEqual([
+      'Strength',
+      'Constitution',
+    ]);
+    // SRD Class Features block carries no primary-ability line (ADR 0007).
+    expect(fighterData.primaryAbilities).toEqual([]);
 
     const dagger = pack.records.find((r) => r.key === 'equipment:dagger');
     expect(dagger?.name).toBe('Dagger');
@@ -1205,5 +1257,39 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     await expect(
       runImporter({ pdfPath, outDir, minCreatureCount: 2 }),
     ).rejects.toThrow(/parsed 1 creature stat block\(s\), expected at least 2/);
+  });
+
+  it('fails closed when the Classes section yields no classes', async () => {
+    const workDir = makeTmpDir();
+    const pdfPath = join(workDir, 'fixture.pdf');
+    const outDir = join(workDir, 'pack');
+    // Every section is present and valid except the Classes chapter, which is
+    // found and bounded (Races → Classes → Using Ability Scores) but carries no
+    // class block. The class-coverage guard must reject the empty result and
+    // write nothing rather than emit a class-less pack.
+    await writeFixturePdf(pdfPath, [
+      RACES_PAGE,
+      CLASSES_PAGE_NO_CLASSES,
+      CORE_RULES_PAGE_ONE,
+      CORE_RULES_PAGE_TWO,
+      CORE_RULES_TABLES_PAGE,
+      SPELL_LISTS_PAGE,
+      SPELLS_PAGE,
+      MONSTERS_PAGE,
+      TREASURE_TABLES_PAGE,
+      MAGIC_ITEMS_PAGE,
+      COMBAT_ACTIONS_PAGE,
+      MAKING_AN_ATTACK_PAGE,
+      HAZARDS_PAGE,
+      FEATS_PAGE,
+      EQUIPMENT_PAGE,
+      CONDITIONS_PAGE,
+    ]);
+
+    await expect(runImporter({ pdfPath, outDir })).rejects.toThrow(
+      ClassCoverageError,
+    );
+    // Nothing should have been written.
+    expect(() => readFileSync(join(outDir, 'records.json'), 'utf8')).toThrow();
   });
 });
