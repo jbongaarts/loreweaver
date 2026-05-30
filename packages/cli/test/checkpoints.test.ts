@@ -24,6 +24,8 @@ import {
 } from '../src/registry.js';
 
 const HAS_DOLT = DoltRepo.available();
+// Real Dolt subprocesses can exceed Vitest's 5s default under full-suite load.
+const DOLT_TEST_TIMEOUT_MS = 30_000;
 
 const dirs: string[] = [];
 afterEach(() => {
@@ -165,68 +167,92 @@ describe('resolveCampaignDbPath', () => {
 });
 
 describe.skipIf(!HAS_DOLT)('runCheckpointCommand with Dolt', () => {
-  it('lists a campaign checkpoint', () => {
-    const { dbPath, checkpointId } = campaignWithCheckpoint();
-    const h = harness({ LOREWEAVER_DB_PATH: dbPath });
-    expect(runCheckpointCommand(['list'], h.deps)).toBe(0);
-    expect(h.logs.join('\n')).toContain(checkpointId);
-    expect(h.logs.join('\n')).toContain('first checkpoint');
-  });
+  it(
+    'lists a campaign checkpoint',
+    () => {
+      const { dbPath, checkpointId } = campaignWithCheckpoint();
+      const h = harness({ LOREWEAVER_DB_PATH: dbPath });
+      expect(runCheckpointCommand(['list'], h.deps)).toBe(0);
+      expect(h.logs.join('\n')).toContain(checkpointId);
+      expect(h.logs.join('\n')).toContain('first checkpoint');
+    },
+    DOLT_TEST_TIMEOUT_MS,
+  );
 
-  it('reports no checkpoints for a campaign that has none', () => {
-    const dbPath = join(tempDir('lw-ckpt-'), 'fresh.db');
-    openDatabase(dbPath).close();
-    const h = harness({ LOREWEAVER_DB_PATH: dbPath });
-    expect(runCheckpointCommand(['list'], h.deps)).toBe(0);
-    expect(h.logs.join('\n')).toContain('No checkpoints');
-  });
+  it(
+    'reports no checkpoints for a campaign that has none',
+    () => {
+      const dbPath = join(tempDir('lw-ckpt-'), 'fresh.db');
+      openDatabase(dbPath).close();
+      const h = harness({ LOREWEAVER_DB_PATH: dbPath });
+      expect(runCheckpointCommand(['list'], h.deps)).toBe(0);
+      expect(h.logs.join('\n')).toContain('No checkpoints');
+    },
+    DOLT_TEST_TIMEOUT_MS,
+  );
 
-  it('restores a checkpoint to a new database without touching the campaign', () => {
-    const { dbPath, checkpointId } = campaignWithCheckpoint();
-    const h = harness({ LOREWEAVER_DB_PATH: dbPath });
-    const dest = join(dirname(dbPath), 'restored.db');
-    expect(runCheckpointCommand(['restore', checkpointId, dest], h.deps)).toBe(
-      0,
-    );
-    expect(existsSync(dest)).toBe(true);
-    // the active campaign database is untouched and still openable
-    const db = openDatabase(dbPath);
-    try {
-      expect(getCampaign(db)).toBeDefined();
-    } finally {
-      db.close();
-    }
-  });
+  it(
+    'restores a checkpoint to a new database without touching the campaign',
+    () => {
+      const { dbPath, checkpointId } = campaignWithCheckpoint();
+      const h = harness({ LOREWEAVER_DB_PATH: dbPath });
+      const dest = join(dirname(dbPath), 'restored.db');
+      expect(
+        runCheckpointCommand(['restore', checkpointId, dest], h.deps),
+      ).toBe(0);
+      expect(existsSync(dest)).toBe(true);
+      // the active campaign database is untouched and still openable
+      const db = openDatabase(dbPath);
+      try {
+        expect(getCampaign(db)).toBeDefined();
+      } finally {
+        db.close();
+      }
+    },
+    DOLT_TEST_TIMEOUT_MS,
+  );
 
-  it('refuses to restore onto an existing destination', () => {
-    const { dbPath, checkpointId } = campaignWithCheckpoint();
-    const h = harness({ LOREWEAVER_DB_PATH: dbPath });
-    const dest = join(dirname(dbPath), 'occupied.db');
-    openDatabase(dest).close();
-    expect(runCheckpointCommand(['restore', checkpointId, dest], h.deps)).toBe(
-      1,
-    );
-    expect(h.logs.join('\n')).toContain('restore failed');
-  });
+  it(
+    'refuses to restore onto an existing destination',
+    () => {
+      const { dbPath, checkpointId } = campaignWithCheckpoint();
+      const h = harness({ LOREWEAVER_DB_PATH: dbPath });
+      const dest = join(dirname(dbPath), 'occupied.db');
+      openDatabase(dest).close();
+      expect(
+        runCheckpointCommand(['restore', checkpointId, dest], h.deps),
+      ).toBe(1);
+      expect(h.logs.join('\n')).toContain('restore failed');
+    },
+    DOLT_TEST_TIMEOUT_MS,
+  );
 
-  it('forks a checkpoint onto a new branch and database', () => {
-    const { dbPath, checkpointId } = campaignWithCheckpoint();
-    const h = harness({ LOREWEAVER_DB_PATH: dbPath });
-    const dest = join(dirname(dbPath), 'forked.db');
-    expect(
-      runCheckpointCommand(['fork', checkpointId, 'altline', dest], h.deps),
-    ).toBe(0);
-    expect(existsSync(dest)).toBe(true);
-  });
+  it(
+    'forks a checkpoint onto a new branch and database',
+    () => {
+      const { dbPath, checkpointId } = campaignWithCheckpoint();
+      const h = harness({ LOREWEAVER_DB_PATH: dbPath });
+      const dest = join(dirname(dbPath), 'forked.db');
+      expect(
+        runCheckpointCommand(['fork', checkpointId, 'altline', dest], h.deps),
+      ).toBe(0);
+      expect(existsSync(dest)).toBe(true);
+    },
+    DOLT_TEST_TIMEOUT_MS,
+  );
 
-  it('refuses to fork onto an existing destination', () => {
-    const { dbPath, checkpointId } = campaignWithCheckpoint();
-    const h = harness({ LOREWEAVER_DB_PATH: dbPath });
-    const dest = join(dirname(dbPath), 'occupied.db');
-    openDatabase(dest).close();
-    expect(
-      runCheckpointCommand(['fork', checkpointId, 'altline', dest], h.deps),
-    ).toBe(1);
-    expect(h.logs.join('\n')).toContain('fork failed');
-  });
+  it(
+    'refuses to fork onto an existing destination',
+    () => {
+      const { dbPath, checkpointId } = campaignWithCheckpoint();
+      const h = harness({ LOREWEAVER_DB_PATH: dbPath });
+      const dest = join(dirname(dbPath), 'occupied.db');
+      openDatabase(dest).close();
+      expect(
+        runCheckpointCommand(['fork', checkpointId, 'altline', dest], h.deps),
+      ).toBe(1);
+      expect(h.logs.join('\n')).toContain('fork failed');
+    },
+    DOLT_TEST_TIMEOUT_MS,
+  );
 });

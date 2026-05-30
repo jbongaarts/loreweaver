@@ -7,28 +7,37 @@ import { CheckpointStore } from '../src/persistence/checkpoint/store.js';
 import { openDatabase } from '../src/persistence/db.js';
 
 const doltOk = DoltRepo.available();
+// Real Dolt subprocesses can exceed Vitest's 5s default under full-suite load.
+const DOLT_TEST_TIMEOUT_MS = 30_000;
 function ws() {
   return mkdtempSync(join(tmpdir(), 'lw-cp-'));
 }
 
 describe.skipIf(!doltOk)('CheckpointStore.checkpoint/list', () => {
-  it('checkpoints a live SQLite db and lists it', () => {
-    const root = ws();
-    const dbPath = join(root, 'live.db');
-    const db = openDatabase(dbPath);
-    db.exec('CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);');
-    db.prepare('INSERT INTO meta(key, value) VALUES (?, ?)').run('hp', '10');
-    db.close();
+  it(
+    'checkpoints a live SQLite db and lists it',
+    () => {
+      const root = ws();
+      const dbPath = join(root, 'live.db');
+      const db = openDatabase(dbPath);
+      db.exec('CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);');
+      db.prepare('INSERT INTO meta(key, value) VALUES (?, ?)').run('hp', '10');
+      db.close();
 
-    const store = new CheckpointStore(join(root, 'dolt'), join(root, '.beads'));
-    const id = store.checkpoint(dbPath, 'session-close: s1');
-    expect(id).toMatch(/\S+/);
+      const store = new CheckpointStore(
+        join(root, 'dolt'),
+        join(root, '.beads'),
+      );
+      const id = store.checkpoint(dbPath, 'session-close: s1');
+      expect(id).toMatch(/\S+/);
 
-    const list = store.list();
-    expect(list.some((c) => c.message.includes('session-close: s1'))).toBe(
-      true,
-    );
-  });
+      const list = store.list();
+      expect(list.some((c) => c.message.includes('session-close: s1'))).toBe(
+        true,
+      );
+    },
+    DOLT_TEST_TIMEOUT_MS,
+  );
 });
 
 describe('CheckpointStore separation guard (no dolt needed)', () => {
