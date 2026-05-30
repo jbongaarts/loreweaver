@@ -23,6 +23,11 @@ runtime-sensitive dependencies:
 `better-sqlite3` major updates are ignored by Dependabot. Open those manually
 only as part of a Node runtime/native dependency decision, because the Node
 engine range, CI runtime, and native prebuild availability must move together.
+Semver-major updates for `@types/node`, `@biomejs/biome`, and `typescript` are
+also ignored by Dependabot and must be opened manually or separately. These
+updates can change the supported runtime contract, formatter/linter behavior,
+or compiler diagnostics, so they should not be auto-grouped into routine
+dependency PRs.
 
 GitHub Actions updates are grouped into one PR so CI workflow changes can be
 reviewed as a single operational surface.
@@ -48,6 +53,7 @@ with the supported Node runtime:
 
 - Node 24 LTS is the supported runtime for this release line.
 - Root and workspace `engines.node` ranges stay at `>=24 <25`.
+- `@types/node` stays on 24.x while the engine range targets Node 24.
 - CI runs on Node 24 and sets `npm_config_build_from_source=false`.
 - The selected `better-sqlite3` line must provide prebuilt binaries for the
   supported CI and release platforms.

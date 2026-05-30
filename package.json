@@ -17,10 +17,10 @@
     "test": "vitest run",
     "smoke:cli-install": "node scripts/smoke-cli-install.mjs",
     "import:dnd5e-srd": "tsx packages/core/scripts/importers/dnd5e-srd-5.1/cli.ts",
-    "format": "biome format --write .",
-    "format:check": "biome format .",
-    "lint": "biome lint .",
-    "check": "biome ci ."
+    "format": "biome format --write AGENTS.md biome.json package.json docs packages scripts .github",
+    "format:check": "biome format AGENTS.md biome.json package.json docs packages scripts .github",
+    "lint": "biome lint AGENTS.md biome.json package.json docs packages scripts .github",
+    "check": "biome ci AGENTS.md biome.json package.json docs packages scripts .github"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.16",
