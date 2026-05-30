@@ -47,6 +47,8 @@ import {
 } from '../src/play.js';
 
 const FAKE_ARC_SUMMARY = 'FAKE_ARC_SUMMARY';
+// Real Dolt subprocesses can exceed Vitest's 5s default under full-suite load.
+const DOLT_TEST_TIMEOUT_MS = 30_000;
 
 const ROUTED_FAKE_BIBLE_JSON =
   '```bible_json\n' +
@@ -1284,22 +1286,26 @@ describe('runDemo', () => {
 describe.skipIf(!DoltRepo.available())(
   'runPlay Dolt checkpoint integration',
   () => {
-    it('writes a real Dolt checkpoint of the campaign on graceful exit', async () => {
-      const root = mkdtempSync(join(tmpdir(), 'lw-play-cp-'));
-      const dbPath = join(root, 'campaign.db');
-      const db = openDatabase(dbPath);
-      initSchema(db);
-      const { io, lines } = scriptedIO(['/defer', 'look around', '/quit']);
+    it(
+      'writes a real Dolt checkpoint of the campaign on graceful exit',
+      async () => {
+        const root = mkdtempSync(join(tmpdir(), 'lw-play-cp-'));
+        const dbPath = join(root, 'campaign.db');
+        const db = openDatabase(dbPath);
+        initSchema(db);
+        const { io, lines } = scriptedIO(['/defer', 'look around', '/quit']);
 
-      const code = await runPlay(
-        { ...baseDeps(db, io), makeCheckpointRunner: doltCheckpointRunner },
-        { dbPath },
-      );
+        const code = await runPlay(
+          { ...baseDeps(db, io), makeCheckpointRunner: doltCheckpointRunner },
+          { dbPath },
+        );
 
-      expect(code).toBe(0);
-      // A real Dolt commit hash was produced and reported.
-      expect(lines.join('\n')).toMatch(/\(checkpoint [0-9a-z]+\)/);
-    });
+        expect(code).toBe(0);
+        // A real Dolt commit hash was produced and reported.
+        expect(lines.join('\n')).toMatch(/\(checkpoint [0-9a-z]+\)/);
+      },
+      DOLT_TEST_TIMEOUT_MS,
+    );
   },
 );
 

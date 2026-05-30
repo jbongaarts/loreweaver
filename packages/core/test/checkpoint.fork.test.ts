@@ -11,11 +11,13 @@ import { CheckpointStore } from '../src/persistence/checkpoint/store.js';
 import { openDatabase } from '../src/persistence/db.js';
 
 const doltOk = DoltRepo.available();
+// Real Dolt subprocesses can exceed Vitest's 5s default under full-suite load.
+const DOLT_TEST_TIMEOUT_MS = 30_000;
 
 describe.skipIf(!doltOk)('CheckpointStore.forkFromCheckpoint', () => {
   it(
     'forks a checkpoint into an isolated branch + working copy',
-    { timeout: 30000 },
+    { timeout: DOLT_TEST_TIMEOUT_MS },
     () => {
       const root = mkdtempSync(join(tmpdir(), 'lw-fk-'));
       const src = join(root, 'live.db');
