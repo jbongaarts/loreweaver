@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
-  SessionError,
   closeSession,
   getOpenSession,
   getSession,
   listSessions,
+  SessionError,
   startSession,
 } from '../src/internal.js';
 import { bareDb } from './support/db.js';

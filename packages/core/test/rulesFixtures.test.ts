@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest';
+import type { RulesRecord, RulesRecordKind } from '../src/internal.js';
 import {
-  DND5E_SRD_RULES_PACK,
-  PATHFINDER2E_REMASTER_RULES_PACK,
-  RulesPackError,
   assertShippableRulesPack,
+  DND5E_SRD_RULES_PACK,
   evaluateRulesPackPolicy,
   lookupRulesRecord,
+  PATHFINDER2E_REMASTER_RULES_PACK,
+  RulesPackError,
   resolveRulesStack,
   validateRulesPack,
 } from '../src/internal.js';
-import type { RulesRecord, RulesRecordKind } from '../src/internal.js';
 
 describe('rules pack fixtures', () => {
   it('validates the D&D 5e SRD rules pack as a base pack', () => {

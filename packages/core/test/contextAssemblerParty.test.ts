@@ -1,19 +1,19 @@
 import { describe, expect, it } from 'vitest';
+import type { Db } from '../src/internal.js';
 import {
-  CharacterResolutionError,
   assembleContext,
+  CharacterResolutionError,
   ensureCharacterRow,
   giveItem,
   mutateState,
   renderContextMessage,
   setActiveCharacterId,
 } from '../src/internal.js';
-import type { Db } from '../src/internal.js';
 import {
   DEFAULT_TEST_CAMPAIGN_ID as CAMPAIGN,
   DEFAULT_TEST_ABILITY_SCORES,
-  DEFAULT_TEST_SESSION_ID as SESSION,
   freshDbWithSession,
+  DEFAULT_TEST_SESSION_ID as SESSION,
 } from './support/db.js';
 
 const AT = '2026-05-20T10:00:00.000Z';

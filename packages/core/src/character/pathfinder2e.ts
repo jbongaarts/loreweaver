@@ -12,8 +12,8 @@
 import type { AbilityScoreName, AbilityScores } from '../characterCreation.js';
 import { lookupRulesRecord } from '../rules/lookup.js';
 import { PATHFINDER2E_REMASTER_RULES_PACK } from '../rules/pathfinder2eRemaster.js';
-import { resolveRulesStack } from '../rules/stack.js';
 import type { ResolvedRulesStack } from '../rules/stack.js';
+import { resolveRulesStack } from '../rules/stack.js';
 import type { RulesRecordKind } from '../rules/types.js';
 
 const ABILITY_SCORE_NAMES: readonly AbilityScoreName[] = [

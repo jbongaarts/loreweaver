@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
-  CharacterCreationError,
-  EMBERFALL_HOLLOW,
-  PATHFINDER2E_REMASTER_RULES_PACK,
   buildCharacterCreationMutations,
+  CharacterCreationError,
   completeCharacterCreation,
   createCampaign,
+  EMBERFALL_HOLLOW,
   getActiveCharacterId,
   initSchema,
   openDatabase,
+  PATHFINDER2E_REMASTER_RULES_PACK,
   validateCharacterDraft,
   writeCampaignRulesBinding,
 } from '../src/internal.js';

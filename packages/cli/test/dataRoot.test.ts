@@ -1,6 +1,5 @@
 import { existsSync, mkdtempSync, rmSync, statSync } from 'node:fs';
-import { homedir } from 'node:os';
-import { tmpdir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import {

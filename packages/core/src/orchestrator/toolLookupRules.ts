@@ -1,16 +1,16 @@
+import type { CampaignRulesBinding } from '../rules/binding.js';
 import {
   DEFAULT_DND5E_SRD_BINDING,
   readCampaignRulesBinding,
 } from '../rules/binding.js';
-import type { CampaignRulesBinding } from '../rules/binding.js';
 import { DND5E_SRD_RULES_PACK } from '../rules/dnd5eSrd.js';
 import { lookupRulesRecord } from '../rules/lookup.js';
 import { PATHFINDER2E_REMASTER_RULES_PACK } from '../rules/pathfinder2eRemaster.js';
 import { resolveRulesStack } from '../rules/stack.js';
 import type { RulesPack, RulesRecordKind } from '../rules/types.js';
 import { RulesPackError } from '../rules/types.js';
-import { asRecord, err, ok } from './toolRegistry.js';
 import type { Tool, ToolContext } from './toolRegistry.js';
+import { asRecord, err, ok } from './toolRegistry.js';
 
 const BUNDLED_RULES_PACKS: readonly RulesPack[] = [
   DND5E_SRD_RULES_PACK,

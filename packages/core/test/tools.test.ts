@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'vitest';
+import type {
+  MarkSceneToolData,
+  ModelToolDefinition,
+  ToolContext,
+} from '../src/internal.js';
 import {
-  DEFAULT_TOOLS,
-  DiceError,
-  ToolRegistry,
   appendSceneLog,
   createDefaultToolRegistry,
   createSeededRng,
+  DEFAULT_TOOLS,
+  DiceError,
   getOpenScene,
   initSchema,
   openDatabase,
@@ -14,11 +18,7 @@ import {
   recordSceneSummary,
   rollDice,
   startSession,
-} from '../src/internal.js';
-import type {
-  MarkSceneToolData,
-  ModelToolDefinition,
-  ToolContext,
+  ToolRegistry,
 } from '../src/internal.js';
 
 const closedMarkSceneDataTypecheck = {

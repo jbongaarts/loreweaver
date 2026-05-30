@@ -1,7 +1,7 @@
-import { memoryDrilldown } from '../memory/summary.js';
 import type { MemoryDrilldownSelector } from '../memory/summary.js';
-import { asRecord, err, ok } from './toolRegistry.js';
+import { memoryDrilldown } from '../memory/summary.js';
 import type { Tool } from './toolRegistry.js';
+import { asRecord, err, ok } from './toolRegistry.js';
 
 export const memoryDrilldownTool: Tool = {
   name: 'memory_drilldown',

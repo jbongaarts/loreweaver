@@ -1,4 +1,3 @@
-import { RulesPackError } from './types.js';
 import type {
   CompatibleBaseSystem,
   RulesPack,
@@ -6,6 +5,7 @@ import type {
   RulesRecord,
   RulesRecordKind,
 } from './types.js';
+import { RulesPackError } from './types.js';
 
 export interface ResolveRulesStackInput {
   readonly base: RulesPack;

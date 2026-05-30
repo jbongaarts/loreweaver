@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { Db, TraceJsonValue } from '../src/internal.js';
 import {
   appendSceneLog,
   ensureCharacterRow,
@@ -11,7 +12,6 @@ import {
   startSession,
   summarizeSceneFromLog,
 } from '../src/internal.js';
-import type { Db, TraceJsonValue } from '../src/internal.js';
 
 const CAMPAIGN = 'campaign-1';
 const SESSION = 'session-1';

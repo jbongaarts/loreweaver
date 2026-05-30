@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { Db } from '../src/internal.js';
 import {
   appendSceneLog,
   assembleContext,
@@ -14,7 +15,6 @@ import {
   rollupSessionRecap,
   stampSessionWithOpenArc,
 } from '../src/internal.js';
-import type { Db } from '../src/internal.js';
 import { freshDbWithSession } from './support/db.js';
 
 const CAMPAIGN = 'campaign-1';

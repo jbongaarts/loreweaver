@@ -19,11 +19,11 @@
 import { createCampaign } from './campaign.js';
 import {
   DEFAULT_PROFILE_REGISTRY,
+  getProfile,
   type ModelProfileName,
   type ProfileRegistry,
   type ProfileTier,
   type ProviderId,
-  getProfile,
 } from './model/profiles.js';
 import type { Db } from './persistence/db.js';
 import { type SessionRecord, startSession } from './session.js';

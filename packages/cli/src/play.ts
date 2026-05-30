@@ -2,12 +2,12 @@ import { dirname, join } from 'node:path';
 import { createInterface } from 'node:readline/promises';
 import {
   CheckpointStore,
+  createDemoCampaign,
   DEMO_TURN_CAP,
   DoltRepo,
-  type SessionCheckpointRunner,
-  createDemoCampaign,
   getCampaign,
   initSchema,
+  type SessionCheckpointRunner,
 } from '@loreweaver/core';
 import { validateMemoryConfig } from '@loreweaver/core/internal';
 import { ensureCharacterReady } from './playCharacter.js';

@@ -2,7 +2,10 @@
   "name": "loreweaver",
   "private": true,
   "type": "module",
-  "workspaces": ["packages/core", "packages/cli"],
+  "workspaces": [
+    "packages/core",
+    "packages/cli"
+  ],
   "engines": {
     "node": ">=24 <25"
   },
@@ -20,9 +23,9 @@
     "check": "biome ci ."
   },
   "devDependencies": {
-    "@biomejs/biome": "^1.9.4",
+    "@biomejs/biome": "^2.4.16",
     "@types/node": "^24.0.0",
-    "typescript": "^5.6.0",
+    "typescript": "^6.0.3",
     "vitest": "^4.1.7"
   }
 }

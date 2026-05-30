@@ -26,133 +26,9 @@
 // Core version (used by the CLI banner).
 export const CORE_VERSION = '0.0.0';
 
-// Configuration.
-export { ConfigError, loadConfig } from './config.js';
-export type {
-  LoreweaverConfig,
-  ProviderAuth,
-  ProviderAuthMode,
-} from './config.js';
-export type { ConfiguredProfileEntry } from './model/profiles.js';
-
-// Live campaign database.
-export { openDatabase } from './persistence/db.js';
-export type { Db } from './persistence/db.js';
-export {
-  SCHEMA_VERSION,
-  SchemaCompatibilityError,
-  initSchema,
-} from './persistence/schema.js';
-
+export type { CampaignInfo, CreateCampaignInput } from './campaign.js';
 // Campaign lifecycle.
 export { CampaignError, createCampaign, getCampaign } from './campaign.js';
-export type { CampaignInfo, CreateCampaignInput } from './campaign.js';
-
-// Session lifecycle.
-export {
-  SessionError,
-  closeSession,
-  getOpenSession,
-  getSession,
-  listSessions,
-  startSession,
-} from './session.js';
-export type {
-  CampaignSelector,
-  CloseSessionInput,
-  SessionKey,
-  SessionRecord,
-  SessionStatus,
-  StartSessionInput,
-} from './session.js';
-
-// Graceful session close (commits a recap + checkpoint hand-off).
-export { closeSessionGracefully } from './sessionClose.js';
-export type {
-  CloseSessionGracefullyInput,
-  CloseSessionGracefullyResult,
-  SessionCheckpointRunner,
-} from './sessionClose.js';
-
-// Session launch (resume-or-new view used by the play UI).
-export { getSessionLaunchState } from './sessionLaunch.js';
-export type { SessionLaunchState } from './sessionLaunch.js';
-
-// Turn orchestrator.
-export { OrchestratorError, runTurn } from './orchestrator/orchestrator.js';
-export type {
-  ExecutedToolCall,
-  RunTurnDeps,
-  RunTurnInput,
-  RunTurnResult,
-} from './orchestrator/orchestrator.js';
-
-// Tool registry contract — the supported plug-in seam for custom tools.
-export {
-  DEFAULT_TOOLS,
-  ToolRegistry,
-  createDefaultToolRegistry,
-} from './orchestrator/tools.js';
-export type { Tool, ToolContext, ToolResult } from './orchestrator/tools.js';
-export type {
-  JsonSchema,
-  JsonSchemaType,
-  ModelToolDefinition,
-  ToolInputSchema,
-} from './model/toolSchema.js';
-
-// Model client contract + Agent SDK adapter.
-export { ModelClientError } from './model/client.js';
-export type {
-  ModelClient,
-  ModelCompleteInput,
-  ModelCompleteResult,
-  ModelMessage,
-  ModelProfileMetadata,
-  ModelResponseFormat,
-  ModelStopReason,
-  ModelToolCall,
-  ModelTraceMetadata,
-} from './model/client.js';
-export { AgentSdkModelClient } from './model/agentSdkClient.js';
-export type {
-  AgentSdkAuth,
-  AgentSdkAuthSource,
-} from './model/agentSdkClient.js';
-
-// Memory: high-level composition and read APIs.
-export { composeSessionRecap } from './memory/recapBuilder.js';
-export type {
-  ComposeSessionRecapInput,
-  ComposeSessionRecapResult,
-} from './memory/recapBuilder.js';
-export { composeArcSummary } from './memory/arcSummary.js';
-export type { ComposeArcSummaryInput } from './memory/arcSummary.js';
-export { extractCampaignBible } from './memory/campaignBibleExtractor.js';
-export type { ExtractCampaignBibleInput } from './memory/campaignBibleExtractor.js';
-export {
-  getArcSummary,
-  getCampaignBible,
-  getSessionRecap,
-  rollupArcSummary,
-} from './memory/summary.js';
-export type {
-  ArcSummaryInput,
-  ArcSummaryKey,
-  ArcSummaryRecord,
-  CampaignBibleEntry,
-  CampaignBibleInput,
-  CampaignBibleKey,
-  CampaignBibleRecord,
-  SessionRecapInput,
-  SessionRecapRecord,
-} from './memory/summary.js';
-
-// Character creation (high-level, system-dispatching).
-export {
-  CharacterCreationError,
-  completeCharacterCreation,
-} from './characterCreation.js';
 export type {
   AbilityScoreMethod,
   AbilityScoreName,
@@ -164,15 +40,18 @@ export type {
   CompleteCharacterCreationResult,
   CreatedCharacter,
 } from './characterCreation.js';
-
-// Demo mode (entrypoints — the policy/budget helpers live in /internal).
+// Character creation (high-level, system-dispatching).
 export {
-  DEFAULT_DEMO_PACK,
-  DEMO_TURN_CAP,
-  DemoModeError,
-  createDemoCampaign,
-  getDemoTurnBudget,
-} from './demoMode.js';
+  CharacterCreationError,
+  completeCharacterCreation,
+} from './characterCreation.js';
+export type {
+  LoreweaverConfig,
+  ProviderAuth,
+  ProviderAuthMode,
+} from './config.js';
+// Configuration.
+export { ConfigError, loadConfig } from './config.js';
 export type {
   CreateDemoCampaignOptions,
   DemoCampaign,
@@ -181,17 +60,108 @@ export type {
   DemoQualityLabel,
   DemoTurnBudget,
 } from './demoMode.js';
-
-// Built-in sample world module and module-pack shape.
-export { EMBERFALL_HOLLOW } from './world/samples/emberfallHollow.js';
+// Demo mode (entrypoints — the policy/budget helpers live in /internal).
+export {
+  createDemoCampaign,
+  DEFAULT_DEMO_PACK,
+  DEMO_TURN_CAP,
+  DemoModeError,
+  getDemoTurnBudget,
+} from './demoMode.js';
+export type { ComposeArcSummaryInput } from './memory/arcSummary.js';
+export { composeArcSummary } from './memory/arcSummary.js';
+export type { ExtractCampaignBibleInput } from './memory/campaignBibleExtractor.js';
+export { extractCampaignBible } from './memory/campaignBibleExtractor.js';
 export type {
-  ModuleMeta,
-  ModulePack,
-  PackLicense,
-  PackLicenseClass,
-  PackType,
-} from './world/types.js';
+  ComposeSessionRecapInput,
+  ComposeSessionRecapResult,
+} from './memory/recapBuilder.js';
+// Memory: high-level composition and read APIs.
+export { composeSessionRecap } from './memory/recapBuilder.js';
+export type {
+  ArcSummaryInput,
+  ArcSummaryKey,
+  ArcSummaryRecord,
+  CampaignBibleEntry,
+  CampaignBibleInput,
+  CampaignBibleKey,
+  CampaignBibleRecord,
+  SessionRecapInput,
+  SessionRecapRecord,
+} from './memory/summary.js';
+export {
+  getArcSummary,
+  getCampaignBible,
+  getSessionRecap,
+  rollupArcSummary,
+} from './memory/summary.js';
+export type {
+  AgentSdkAuth,
+  AgentSdkAuthSource,
+} from './model/agentSdkClient.js';
+export { AgentSdkModelClient } from './model/agentSdkClient.js';
+export type {
+  ModelClient,
+  ModelCompleteInput,
+  ModelCompleteResult,
+  ModelMessage,
+  ModelProfileMetadata,
+  ModelResponseFormat,
+  ModelStopReason,
+  ModelToolCall,
+  ModelTraceMetadata,
+} from './model/client.js';
 
+// Model client contract + Agent SDK adapter.
+export { ModelClientError } from './model/client.js';
+export type { ConfiguredProfileEntry } from './model/profiles.js';
+export type {
+  JsonSchema,
+  JsonSchemaType,
+  ModelToolDefinition,
+  ToolInputSchema,
+} from './model/toolSchema.js';
+export type {
+  ExecutedToolCall,
+  RunTurnDeps,
+  RunTurnInput,
+  RunTurnResult,
+} from './orchestrator/orchestrator.js';
+// Turn orchestrator.
+export { OrchestratorError, runTurn } from './orchestrator/orchestrator.js';
+export type { Tool, ToolContext, ToolResult } from './orchestrator/tools.js';
+// Tool registry contract — the supported plug-in seam for custom tools.
+export {
+  createDefaultToolRegistry,
+  DEFAULT_TOOLS,
+  ToolRegistry,
+} from './orchestrator/tools.js';
+export { DoltUnavailableError } from './persistence/checkpoint/doltBinary.js';
+export type {
+  DoltInstallPrompt,
+  DoltInstallReason,
+  EnsureDoltOptions,
+} from './persistence/checkpoint/doltProvision.js';
+export { ensureDoltAvailable } from './persistence/checkpoint/doltProvision.js';
+export type { Checkpoint } from './persistence/checkpoint/doltRepo.js';
+export { DoltRepo } from './persistence/checkpoint/doltRepo.js';
+// Dolt-backed checkpoint store + managed-binary install seam.
+export {
+  CheckpointError,
+  CheckpointStore,
+} from './persistence/checkpoint/store.js';
+export type { Db } from './persistence/db.js';
+// Live campaign database.
+export { openDatabase } from './persistence/db.js';
+export {
+  initSchema,
+  SCHEMA_VERSION,
+  SchemaCompatibilityError,
+} from './persistence/schema.js';
+export type {
+  CampaignRulesBinding,
+  CampaignRulesBindingPackRef,
+} from './rules/binding.js';
 // Campaign rules-binding read/write API.
 // Note: the built-in pack objects (DND5E_SRD_RULES_PACK, PATHFINDER2E_REMASTER_RULES_PACK) are
 // intentionally NOT exported here. They are pre-importer generated-data blobs that will be
@@ -203,11 +173,6 @@ export {
   writeCampaignRulesBinding,
 } from './rules/binding.js';
 export type {
-  CampaignRulesBinding,
-  CampaignRulesBindingPackRef,
-} from './rules/binding.js';
-export { RulesPackError } from './rules/types.js';
-export type {
   CompatibleBaseSystem,
   RecordProvenance,
   RulesPack,
@@ -217,18 +182,40 @@ export type {
   RulesPackRole,
   RulesPackSource,
 } from './rules/types.js';
-
-// Dolt-backed checkpoint store + managed-binary install seam.
-export {
-  CheckpointError,
-  CheckpointStore,
-} from './persistence/checkpoint/store.js';
-export { DoltRepo } from './persistence/checkpoint/doltRepo.js';
-export type { Checkpoint } from './persistence/checkpoint/doltRepo.js';
-export { DoltUnavailableError } from './persistence/checkpoint/doltBinary.js';
-export { ensureDoltAvailable } from './persistence/checkpoint/doltProvision.js';
+export { RulesPackError } from './rules/types.js';
 export type {
-  DoltInstallPrompt,
-  DoltInstallReason,
-  EnsureDoltOptions,
-} from './persistence/checkpoint/doltProvision.js';
+  CampaignSelector,
+  CloseSessionInput,
+  SessionKey,
+  SessionRecord,
+  SessionStatus,
+  StartSessionInput,
+} from './session.js';
+// Session lifecycle.
+export {
+  closeSession,
+  getOpenSession,
+  getSession,
+  listSessions,
+  SessionError,
+  startSession,
+} from './session.js';
+export type {
+  CloseSessionGracefullyInput,
+  CloseSessionGracefullyResult,
+  SessionCheckpointRunner,
+} from './sessionClose.js';
+// Graceful session close (commits a recap + checkpoint hand-off).
+export { closeSessionGracefully } from './sessionClose.js';
+export type { SessionLaunchState } from './sessionLaunch.js';
+// Session launch (resume-or-new view used by the play UI).
+export { getSessionLaunchState } from './sessionLaunch.js';
+// Built-in sample world module and module-pack shape.
+export { EMBERFALL_HOLLOW } from './world/samples/emberfallHollow.js';
+export type {
+  ModuleMeta,
+  ModulePack,
+  PackLicense,
+  PackLicenseClass,
+  PackType,
+} from './world/types.js';

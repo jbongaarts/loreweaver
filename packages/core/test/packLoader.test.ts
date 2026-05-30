@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
-import { RulesPackError, loadRulesPackFromDirectory } from '../src/internal.js';
+import { loadRulesPackFromDirectory, RulesPackError } from '../src/internal.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 

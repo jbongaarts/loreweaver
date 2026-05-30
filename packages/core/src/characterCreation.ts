@@ -1,10 +1,10 @@
-import {
-  PathfinderCharacterCreationError,
-  validatePathfinderCharacterDraft,
-} from './character/pathfinder2e.js';
 import type {
   CreatedPathfinderCharacter,
   PathfinderCharacterDraft,
+} from './character/pathfinder2e.js';
+import {
+  PathfinderCharacterCreationError,
+  validatePathfinderCharacterDraft,
 } from './character/pathfinder2e.js';
 import type { Db } from './persistence/db.js';
 import { withTransaction } from './persistence/db.js';

@@ -1,8 +1,8 @@
 import { setWorldFact } from '../state/domainMutations.js';
-import { MutateStateError } from '../state/mutateState.js';
 import type { MutateStateValue } from '../state/mutateState.js';
-import { asRecord, err, ok } from './toolRegistry.js';
+import { MutateStateError } from '../state/mutateState.js';
 import type { Tool } from './toolRegistry.js';
+import { asRecord, err, ok } from './toolRegistry.js';
 
 export const setWorldFactTool: Tool = {
   name: 'set_world_fact',

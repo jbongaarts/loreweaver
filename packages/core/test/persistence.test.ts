@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { openDatabase, withTransaction } from '../src/persistence/db.js';
 import { SchemaMigrationError } from '../src/persistence/migrations.js';
 import {
+  initSchema,
   SCHEMA_VERSION,
   SchemaCompatibilityError,
-  initSchema,
 } from '../src/persistence/schema.js';
 
 describe('persistence', () => {
