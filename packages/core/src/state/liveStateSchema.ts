@@ -103,7 +103,9 @@ function assertJsonValue(value: unknown, path: string): void {
     return;
   }
   if (Array.isArray(value)) {
-    value.forEach((item, i) => assertJsonValue(item, `${path}[${i}]`));
+    value.forEach((item, i) => {
+      assertJsonValue(item, `${path}[${i}]`);
+    });
     return;
   }
   if (typeof value === 'object') {
@@ -138,7 +140,7 @@ export function validateAbilityScoresJson(
   // Must have exactly the six canonical keys — no more, no less.
   const keys = Object.keys(obj);
   for (const key of ABILITY_SCORE_KEYS) {
-    if (!Object.prototype.hasOwnProperty.call(obj, key)) {
+    if (!Object.hasOwn(obj, key)) {
       throw new LiveStateSchemaError(
         `${path} is missing required key '${key}'`,
       );

@@ -3,9 +3,9 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import {
   CheckpointStore,
+  createCampaign,
   DoltRepo,
   EMBERFALL_HOLLOW,
-  createCampaign,
   getCampaign,
   initSchema,
   openDatabase,
@@ -17,8 +17,8 @@ import {
   runCheckpointCommand,
 } from '../src/checkpoints.js';
 import {
-  type CampaignRegistryEntry,
   addCampaign,
+  type CampaignRegistryEntry,
   emptyRegistry,
   saveRegistry,
 } from '../src/registry.js';

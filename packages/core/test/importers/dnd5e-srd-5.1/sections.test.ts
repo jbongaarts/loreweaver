@@ -9,8 +9,8 @@
 
 import { describe, expect, it } from 'vitest';
 import {
-  SRD_5_1_DEFAULT_SECTION_ANCHORS,
   SectionNotFoundError,
+  SRD_5_1_DEFAULT_SECTION_ANCHORS,
   sliceSection,
 } from '../../../scripts/importers/dnd5e-srd-5.1/sections.js';
 import type { PageText } from '../../../scripts/importers/dnd5e-srd-5.1/types.js';

@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
+import type { ToolResult } from '../src/internal.js';
 import {
   buildSystemPrompt,
   createDefaultToolRegistry,
   parseToolCalls,
   renderToolResults,
 } from '../src/internal.js';
-import type { ToolResult } from '../src/internal.js';
 
 describe('DM system prompt', () => {
   it('encodes the Hybrid rules contract', () => {

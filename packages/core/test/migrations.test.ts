@@ -3,10 +3,10 @@ import type { Db } from '../src/persistence/db.js';
 import { openDatabase } from '../src/persistence/db.js';
 import {
   MIGRATIONS,
-  SchemaMigrationError,
   migrateSchema,
+  SchemaMigrationError,
 } from '../src/persistence/migrations.js';
-import { SCHEMA_VERSION, initSchema } from '../src/persistence/schema.js';
+import { initSchema, SCHEMA_VERSION } from '../src/persistence/schema.js';
 
 describe('migrations', () => {
   it('SchemaMigrationError carries the expected name', () => {

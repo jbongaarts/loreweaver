@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
+import type { PathfinderCharacterDraft } from '../src/internal.js';
 import {
-  PATHFINDER2E_REMASTER_RULES_PACK,
-  PathfinderCharacterCreationError,
   completeCharacterCreation,
   initSchema,
   openDatabase,
+  PATHFINDER2E_REMASTER_RULES_PACK,
+  PathfinderCharacterCreationError,
   validatePathfinderCharacterDraft,
   writeCampaignRulesBinding,
 } from '../src/internal.js';
-import type { PathfinderCharacterDraft } from '../src/internal.js';
 
 const VALID_DRAFT: PathfinderCharacterDraft = {
   name: 'Vesna',

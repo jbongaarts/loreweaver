@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { ModulePack } from './types.js';
-import { WorldModuleError, validateModulePack } from './validate.js';
+import { validateModulePack, WorldModuleError } from './validate.js';
 
 /** File name an authored module pack directory must contain. */
 export const MODULE_FILE = 'module.json';

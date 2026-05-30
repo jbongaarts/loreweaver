@@ -3,8 +3,8 @@ import { openDatabase, withTransaction } from '../db.js';
 import { quoteIdent } from '../sql.js';
 import { type Checkpoint, DoltRepo } from './doltRepo.js';
 import { assertSeparateFromBeads } from './separation.js';
-import { serializeCampaign } from './serialize.js';
 import type { SnapshotRecord } from './serialize.js';
+import { serializeCampaign } from './serialize.js';
 
 const RESTORE_TEMP_SUFFIX = 'restore';
 

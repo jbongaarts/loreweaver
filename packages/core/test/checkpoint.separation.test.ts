@@ -3,11 +3,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
-  BEADS_RESERVED_REF,
-  SeparationError,
   assertSeparateFromBeads,
+  BEADS_RESERVED_REF,
   normalizeRemoteUrl,
   readDoltRemotes,
+  SeparationError,
 } from '../src/persistence/checkpoint/separation.js';
 
 /** Write a minimal `.dolt/repo_state.json` with the given remotes. */

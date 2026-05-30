@@ -1,5 +1,5 @@
-import { listSceneLog, listSceneLogWindow } from '../orchestrator/scene.js';
 import type { SceneLogRecord } from '../orchestrator/scene.js';
+import { listSceneLog, listSceneLogWindow } from '../orchestrator/scene.js';
 import type { Db } from '../persistence/db.js';
 import { withTransaction } from '../persistence/db.js';
 import { jsonColumn } from '../persistence/jsonColumn.js';
@@ -9,8 +9,8 @@ import {
 } from '../state/activeCharacter.js';
 import type { MutateStateTarget } from '../state/mutateState.js';
 import { requireNonEmpty } from '../validation.js';
-import { listTurnTraces } from './turnTrace.js';
 import type { TraceJsonValue } from './turnTrace.js';
+import { listTurnTraces } from './turnTrace.js';
 
 export interface MemoryRef {
   target: MutateStateTarget;

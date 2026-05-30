@@ -1,16 +1,16 @@
 import { describe, expect, it } from 'vitest';
+import type { CampaignRulesBinding } from '../src/internal.js';
 import {
   CampaignError,
+  createCampaign,
   DEFAULT_DND5E_SRD_BINDING,
   DND5E_SRD_RULES_PACK,
   EMBERFALL_HOLLOW,
-  PATHFINDER2E_REMASTER_RULES_PACK,
-  createCampaign,
   getCampaign,
+  PATHFINDER2E_REMASTER_RULES_PACK,
   readCampaignRulesBinding,
   writeCampaignRulesBinding,
 } from '../src/internal.js';
-import type { CampaignRulesBinding } from '../src/internal.js';
 import { bareDb } from './support/db.js';
 
 describe('campaign rules binding', () => {

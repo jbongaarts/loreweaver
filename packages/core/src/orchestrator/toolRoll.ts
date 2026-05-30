@@ -1,6 +1,6 @@
 import { DiceError, rollDice } from './dice.js';
-import { asRecord, err, ok } from './toolRegistry.js';
 import type { Tool } from './toolRegistry.js';
+import { asRecord, err, ok } from './toolRegistry.js';
 
 export const rollTool: Tool = {
   name: 'roll',

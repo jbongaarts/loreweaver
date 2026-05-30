@@ -310,7 +310,7 @@ function requireAllowedField(
   field: string,
   fields: Record<string, FieldDescriptor>,
 ): void {
-  if (!Object.prototype.hasOwnProperty.call(fields, field)) {
+  if (!Object.hasOwn(fields, field)) {
     throw new MutateStateError(
       `Unsupported ${target} mutate_state field: ${field}`,
     );

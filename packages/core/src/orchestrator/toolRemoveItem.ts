@@ -1,13 +1,13 @@
 import { removeItem } from '../state/domainMutations.js';
 import { MutateStateError } from '../state/mutateState.js';
+import type { Tool } from './toolRegistry.js';
 import {
-  CHARACTER_TARGET_SCHEMA,
   asRecord,
+  CHARACTER_TARGET_SCHEMA,
   err,
   ok,
   resolveTargetCharacterId,
 } from './toolRegistry.js';
-import type { Tool } from './toolRegistry.js';
 
 export const removeItemTool: Tool = {
   name: 'remove_item',

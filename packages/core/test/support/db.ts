@@ -1,5 +1,5 @@
-import { initSchema, openDatabase, startSession } from '../../src/index.js';
 import type { Db } from '../../src/index.js';
+import { initSchema, openDatabase, startSession } from '../../src/index.js';
 import { mutateState } from '../../src/internal.js';
 
 export const DEFAULT_TEST_CAMPAIGN_ID = 'campaign-1';

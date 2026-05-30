@@ -4,13 +4,13 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { registryFilePath } from '../src/dataRoot.js';
 import {
+  addCampaign,
   type CampaignRegistry,
   type CampaignRegistryEntry,
-  RegistryError,
-  addCampaign,
   emptyRegistry,
   findCampaign,
   loadRegistry,
+  RegistryError,
   removeCampaign,
   saveRegistry,
   slugify,

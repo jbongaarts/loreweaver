@@ -78,7 +78,9 @@ function assertNoSecrets(value: unknown, path: string): void {
     return;
   }
   if (Array.isArray(value)) {
-    value.forEach((item, i) => assertNoSecrets(item, `${path}[${i}]`));
+    value.forEach((item, i) => {
+      assertNoSecrets(item, `${path}[${i}]`);
+    });
     return;
   }
   if (value && typeof value === 'object') {

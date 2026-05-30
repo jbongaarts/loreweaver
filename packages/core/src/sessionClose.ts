@@ -4,11 +4,11 @@ import { closeScene, getOpenScene } from './orchestrator/scene.js';
 import type { Db } from './persistence/db.js';
 import { withTransaction } from './persistence/db.js';
 import {
+  closeSession,
+  getSession,
   SessionError,
   type SessionKey,
   type SessionRecord,
-  closeSession,
-  getSession,
 } from './session.js';
 
 export interface SessionCheckpointRunner {

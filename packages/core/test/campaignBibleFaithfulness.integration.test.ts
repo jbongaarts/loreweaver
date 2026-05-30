@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   AgentSdkModelClient,
   type CampaignBibleInput,
-  type SessionRecapRecord,
   extractCampaignBible,
+  type SessionRecapRecord,
 } from '../src/index.js';
 
 /**

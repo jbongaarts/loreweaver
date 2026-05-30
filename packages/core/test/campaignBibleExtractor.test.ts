@@ -2,12 +2,12 @@ import { describe, expect, it } from 'vitest';
 import {
   type ArcSummaryRecord,
   type CampaignBibleInput,
+  extractCampaignBible,
   MemorySummaryError,
   type ModelClient,
   ModelClientError,
   type ModelCompleteInput,
   type SessionRecapRecord,
-  extractCampaignBible,
 } from '../src/internal.js';
 
 function fakeModel(

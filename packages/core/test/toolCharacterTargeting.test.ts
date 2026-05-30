@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { ToolContext } from '../src/internal.js';
 import {
   CharacterResolutionError,
   createDefaultToolRegistry,
@@ -10,7 +11,6 @@ import {
   resolveCharacterRef,
   startSession,
 } from '../src/internal.js';
-import type { ToolContext } from '../src/internal.js';
 
 const AT = '2026-05-28T00:00:00.000Z';
 const registry = createDefaultToolRegistry();

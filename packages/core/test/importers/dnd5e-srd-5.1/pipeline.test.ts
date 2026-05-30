@@ -20,8 +20,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   ClassCoverageError,
   CreatureCoverageError,
-  SubclassCoverageError,
   runImporter,
+  SubclassCoverageError,
 } from '../../../scripts/importers/dnd5e-srd-5.1/index.js';
 import { SectionNotFoundError } from '../../../scripts/importers/dnd5e-srd-5.1/sections.js';
 import { loadRulesPackFromDirectory } from '../../../src/internal.js';

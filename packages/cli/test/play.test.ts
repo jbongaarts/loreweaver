@@ -2,15 +2,11 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
+  createCampaign,
+  createDefaultToolRegistry,
   type Db,
   DoltRepo,
   EMBERFALL_HOLLOW,
-  type ModelClient,
-  ModelClientError,
-  type RunTurnInput,
-  type RunTurnResult,
-  createCampaign,
-  createDefaultToolRegistry,
   getArcSummary,
   getCampaign,
   getCampaignBible,
@@ -19,15 +15,19 @@ import {
   getSessionRecap,
   initSchema,
   listSessions,
+  type ModelClient,
+  ModelClientError,
   openDatabase,
+  type RunTurnInput,
+  type RunTurnResult,
   readCampaignRulesBinding,
   startSession,
 } from '@loreweaver/core';
 import {
-  DEFAULT_MEMORY_CONFIG,
-  DND5E_SRD_RULES_PACK,
   appendSceneLog,
   assembleContext,
+  DEFAULT_MEMORY_CONFIG,
+  DND5E_SRD_RULES_PACK,
   getClosedSessionsInOpenArc,
   getOpenArc,
   getOpenScene,
@@ -40,8 +40,8 @@ import {
 import { describe, expect, it, vi } from 'vitest';
 import {
   type CliIO,
-  type PlayDeps,
   doltCheckpointRunner,
+  type PlayDeps,
   runDemo,
   runPlay,
 } from '../src/play.js';

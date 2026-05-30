@@ -5,16 +5,16 @@ import {
   copyFileSync,
   mkdirSync,
   mkdtempSync,
-  readFileSync,
   readdirSync,
+  readFileSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
   DoltUnavailableError,
-  type ResolveDoltOptions,
   managedDoltDir,
+  type ResolveDoltOptions,
   resolveDoltBinary,
 } from './doltBinary.js';
 

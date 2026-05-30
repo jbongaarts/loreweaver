@@ -11,13 +11,13 @@
 
 import type { Db } from './persistence/db.js';
 import { withTransaction } from './persistence/db.js';
+import type { CampaignRulesBinding } from './rules/binding.js';
 import {
-  DEFAULT_DND5E_SRD_BINDING,
   checkBindingAgainstModuleRequirements,
+  DEFAULT_DND5E_SRD_BINDING,
   readCampaignRulesBinding,
   writeCampaignRulesBinding,
 } from './rules/binding.js';
-import type { CampaignRulesBinding } from './rules/binding.js';
 import { forkModuleIntoCampaign } from './world/forkCampaign.js';
 import type { ModulePack } from './world/types.js';
 

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  initSchema,
   LiveStateSchemaError,
   MutateStateError,
-  initSchema,
   mutateState,
   openDatabase,
   validateAbilityScoresJson,

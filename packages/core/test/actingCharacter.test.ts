@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { ToolContext } from '../src/internal.js';
 import {
   assembleContext,
   createDefaultToolRegistry,
@@ -10,7 +11,6 @@ import {
   setActiveCharacterId,
   startSession,
 } from '../src/internal.js';
-import type { ToolContext } from '../src/internal.js';
 
 const registry = createDefaultToolRegistry();
 

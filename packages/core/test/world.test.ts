@@ -3,11 +3,11 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
+import type { ModulePack, PackLicense } from '../src/internal.js';
 import {
-  EMBERFALL_HOLLOW,
-  WorldModuleError,
   assertShippablePack,
   classifyVisibility,
+  EMBERFALL_HOLLOW,
   evaluatePackPolicy,
   forkModuleIntoCampaign,
   initSchema,
@@ -16,10 +16,10 @@ import {
   openDatabase,
   toPlayerSafeView,
   validateModulePack,
+  WorldModuleError,
   worldOverlayKey,
   worldQuery,
 } from '../src/internal.js';
-import type { ModulePack, PackLicense } from '../src/internal.js';
 
 const tmpDirs: string[] = [];
 const worldQuerySource = readFileSync(

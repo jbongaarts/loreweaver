@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest';
+import type { ModulePack } from '../src/internal.js';
 import {
-  DEFAULT_DEMO_PACK,
-  DEMO_TURN_CAP,
-  DemoModeError,
   appendSceneLog,
   assertDemoContentAllowed,
   assertDemoTurnAllowed,
   closeSessionGracefully,
   createDemoCampaign,
+  DEFAULT_DEMO_PACK,
+  DEMO_TURN_CAP,
+  DemoModeError,
   demoTurnBudget,
   evaluateDemoContent,
   getDemoTurnBudget,
@@ -16,7 +17,6 @@ import {
   resolveDemoModel,
   resolveProfileRegistry,
 } from '../src/internal.js';
-import type { ModulePack } from '../src/internal.js';
 import { bareDb } from './support/db.js';
 
 const CAMPAIGN = 'demo-campaign';

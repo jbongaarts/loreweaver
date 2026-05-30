@@ -1,5 +1,5 @@
-import { query } from '@anthropic-ai/claude-agent-sdk';
 import type { SDKResultSuccess } from '@anthropic-ai/claude-agent-sdk';
+import { query } from '@anthropic-ai/claude-agent-sdk';
 import type {
   ModelClient,
   ModelCompleteInput,

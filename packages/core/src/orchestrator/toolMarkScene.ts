@@ -1,7 +1,7 @@
-import { SceneError, closeScene, getOpenScene, openScene } from './scene.js';
 import type { SceneRecord } from './scene.js';
-import { asRecord, err, ok } from './toolRegistry.js';
+import { closeScene, getOpenScene, openScene, SceneError } from './scene.js';
 import type { Tool } from './toolRegistry.js';
+import { asRecord, err, ok } from './toolRegistry.js';
 
 export interface MarkSceneToolData {
   boundary: 'open' | 'close';

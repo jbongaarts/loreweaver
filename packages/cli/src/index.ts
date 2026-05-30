@@ -7,13 +7,13 @@ import {
   AgentSdkModelClient,
   CORE_VERSION,
   ConfigError,
+  createDefaultToolRegistry,
   DEMO_TURN_CAP,
   type DoltInstallPrompt,
   EMBERFALL_HOLLOW,
   type EnsureDoltOptions,
-  type LoreweaverConfig,
-  createDefaultToolRegistry,
   ensureDoltAvailable,
+  type LoreweaverConfig,
   loadConfig,
   openDatabase,
   runTurn,
@@ -35,9 +35,9 @@ import {
 import { campaignsDir, ensureDataRoot, resolveDataRoot } from './dataRoot.js';
 import {
   type CliIO,
-  type PlayDeps,
   doltCheckpointRunner,
   nodeIO,
+  type PlayDeps,
   runDemo,
   runPlay,
 } from './play.js';

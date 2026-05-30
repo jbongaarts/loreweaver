@@ -1,4 +1,11 @@
 import { describe, expect, it } from 'vitest';
+import type {
+  Db,
+  ExecutedToolCall,
+  ModelClient,
+  ModelCompleteInput,
+  ModelCompleteResult,
+} from '../src/internal.js';
 import {
   closeScene,
   createDefaultToolRegistry,
@@ -7,13 +14,6 @@ import {
   openScene,
   rollupSessionRecap,
   runTurn,
-} from '../src/internal.js';
-import type {
-  Db,
-  ExecutedToolCall,
-  ModelClient,
-  ModelCompleteInput,
-  ModelCompleteResult,
 } from '../src/internal.js';
 import { freshDbWithSession } from './support/db.js';
 

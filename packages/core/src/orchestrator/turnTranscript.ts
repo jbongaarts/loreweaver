@@ -1,9 +1,9 @@
 import type { Db } from '../persistence/db.js';
 import {
-  type SceneRecord,
   appendSceneLog,
   getOpenScene,
   openScene,
+  type SceneRecord,
 } from './scene.js';
 
 /**

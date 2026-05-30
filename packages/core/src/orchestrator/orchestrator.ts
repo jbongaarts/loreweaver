@@ -44,8 +44,8 @@ import { appendTurnTranscript } from './turnTranscript.js';
  * never mutates canon; only the tool layer writes.
  */
 
-export { OrchestratorError };
 export type { ExecutedToolCall };
+export { OrchestratorError };
 
 const TURN_SAVEPOINT = 'loreweaver_turn';
 const DEFAULT_MAX_TOOL_ROUNDS = 8;

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
-  MutateStateError,
   getStateProvenance,
   initSchema,
+  MutateStateError,
   mutateState,
   mutateStateBatch,
   openDatabase,

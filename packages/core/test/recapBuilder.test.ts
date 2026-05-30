@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  type TurnTraceRecord,
   appendSceneLog,
   closeScene,
   closeSession,
@@ -9,11 +8,12 @@ import {
   recordSceneSummary,
   recordTurnTrace,
   startSession,
+  type TurnTraceRecord,
 } from '../src/internal.js';
 import {
+  bareDb,
   DEFAULT_TEST_CAMPAIGN_ID,
   DEFAULT_TEST_SESSION_ID,
-  bareDb,
   freshDbWithSession,
 } from './support/db.js';
 

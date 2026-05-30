@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  SceneError,
   appendSceneLog,
   closeScene,
   closeSession,
@@ -8,6 +7,7 @@ import {
   getScene,
   listSceneLog,
   openScene,
+  SceneError,
 } from '../src/internal.js';
 import { bareDb, freshDbWithSession } from './support/db.js';
 

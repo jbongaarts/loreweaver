@@ -1,16 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import {
-  RulesPackError,
-  assertShippableRulesPack,
-  evaluateRulesPackPolicy,
-  validateRulesPack,
-} from '../src/internal.js';
 import type {
   RecordProvenance,
   RulesPack,
   RulesPackLicense,
   RulesPackSource,
   RulesRecord,
+} from '../src/internal.js';
+import {
+  assertShippableRulesPack,
+  evaluateRulesPackPolicy,
+  RulesPackError,
+  validateRulesPack,
 } from '../src/internal.js';
 
 const DEFAULT_SOURCE_URL = 'https://example.test/srd/5.1';

@@ -1,7 +1,7 @@
 import { updateClock } from '../state/domainMutations.js';
 import { MutateStateError } from '../state/mutateState.js';
-import { asRecord, err, ok } from './toolRegistry.js';
 import type { Tool } from './toolRegistry.js';
+import { asRecord, err, ok } from './toolRegistry.js';
 
 export const updateClockTool: Tool = {
   name: 'update_clock',

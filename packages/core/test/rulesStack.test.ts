@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import {
-  RulesPackError,
-  lookupRulesRecord,
-  resolveRulesStack,
-} from '../src/internal.js';
 import type {
   RulesPack,
   RulesPackLicense,
   RulesRecord,
+} from '../src/internal.js';
+import {
+  lookupRulesRecord,
+  RulesPackError,
+  resolveRulesStack,
 } from '../src/internal.js';
 
 function license(overrides: Partial<RulesPackLicense> = {}): RulesPackLicense {
