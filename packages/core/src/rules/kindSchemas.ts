@@ -154,6 +154,10 @@ const BASE_KIND_VALIDATORS: Record<RulesRecordKind, Validator> = {
     reqStr(data, 'text', `${path}.data`);
   },
   spell: baseObjectKind,
+  // An addressable subclass (Champion, Life domain, ...); baseline only
+  // requires an object payload, the dnd5e validator enforces the parent-class
+  // linkage. See ADR 0009.
+  subclass: baseObjectKind,
   table: (record, path) => {
     // Tables always carry column headers and rows.
     const data = dataObj(record, path);
@@ -253,6 +257,20 @@ function validateDnd5eFeature(record: RulesRecord, path: string): void {
   reqInt(data, 'level', `${path}.data`, 1);
 }
 
+// A `subclass` (Champion, Life domain, School of Evocation, ...) is its own
+// addressable kind so the DM can lookup_rules it by name. Per ADR 0009 it links
+// to its parent base class through `data.parentClass` (the parent class record
+// key) — data-side linkage only, never `overrides`. A subclass validates only
+// the fields it carries (parentClass, description, optional granted-feature
+// references); base-class scalars like hitDie/proficiencies stay on the `class`
+// record and are NOT required here.
+function validateDnd5eSubclass(record: RulesRecord, path: string): void {
+  const data = dataObj(record, path);
+  reqStr(data, 'parentClass', `${path}.data`);
+  reqStr(data, 'description', `${path}.data`);
+  optStrArray(data, 'features', `${path}.data`);
+}
+
 function validateDnd5eHazard(record: RulesRecord, path: string): void {
   const data = dataObj(record, path);
   reqStr(data, 'description', `${path}.data`);
@@ -345,6 +363,7 @@ const SYSTEM_KIND_VALIDATORS: Record<
     condition: validateDnd5eCondition,
     feat: validateDnd5eFeat,
     feature: validateDnd5eFeature,
+    subclass: validateDnd5eSubclass,
     hazard: validateDnd5eHazard,
     action: validateDnd5eAction,
   },

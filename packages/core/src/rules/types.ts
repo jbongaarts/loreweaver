@@ -18,6 +18,10 @@ export type RulesRecordKind =
   | 'hazard'
   | 'rule'
   | 'spell'
+  // `subclass` (Champion, Life domain, School of Evocation, ...) is its own
+  // addressable kind; it links to its parent base `class` via
+  // `data.parentClass`. See ADR 0009.
+  | 'subclass'
   | 'table';
 
 export type RulesPackLicense = PackLicense;
