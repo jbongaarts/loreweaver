@@ -46,8 +46,8 @@ import { parseSpellClassLists, parseSpells } from './parseSpells.js';
 import { parseSubclasses } from './parseSubclasses.js';
 import { parseTables } from './parseTables.js';
 import {
-  SRD_5_1_DEFAULT_SECTION_ANCHORS,
   SectionNotFoundError,
+  SRD_5_1_DEFAULT_SECTION_ANCHORS,
   type Srd51SectionAnchors,
   sliceSection,
 } from './sections.js';
