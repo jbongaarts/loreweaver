@@ -16,9 +16,21 @@ The npm configuration groups lower-risk tooling updates separately from
 runtime-sensitive dependencies:
 
 - `dev-tooling`: Biome, TypeScript, Vitest, `tsx`, and Node type packages
-- `document-import-tooling`: `pdfjs-dist`, `pdfkit`, and related types
+- `pdf-extraction-tooling`: `pdfjs-dist` (patch/minor only)
+- `pdf-generation-tooling`: `pdfkit` and `@types/pdfkit` (patch/minor only)
 - `model-provider-sdks`: Anthropic Claude Agent SDK packages
 - `runtime-native-sensitive`: `better-sqlite3` and its type package
+
+PDF tooling is split into two groups on purpose. `pdfjs-dist` is the PDF
+extraction runtime the D&D SRD importer depends on directly, and its
+semver-major releases remove or change extraction lifecycle APIs (for example
+the 5.x → 6.x migration in PR #118). `pdfkit` / `@types/pdfkit` are PDF
+*generation* tooling. Grouping them together would let a risky `pdfjs-dist`
+major ride along with routine `pdfkit` updates, so they are kept separate and
+restricted to patch/minor. Semver-major updates for `pdfjs-dist` and `pdfkit`
+are ignored by Dependabot; a `pdfjs-dist` major must be opened as a dedicated
+migration bead that re-validates importer extraction behavior, never as a
+routine dependency PR.
 
 `better-sqlite3` major updates are ignored by Dependabot. Open those manually
 only as part of a Node runtime/native dependency decision, because the Node

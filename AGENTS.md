@@ -77,6 +77,19 @@ The full config is in `biome.json`; existing style warnings are tracked there
 and addressed incrementally — do not suppress them with inline ignores without
 a reason.
 
+The root scripts run repo-wide (`biome … .`), not against narrowed package
+allowlists, so newly added root-level files stay covered. Biome honors
+`.gitignore` via its VCS integration (`vcs.useIgnoreFile: true`), so build
+output, `node_modules`, local DBs, worktrees, and other gitignored paths are
+excluded automatically. The only non-gitignored exclusions are declared
+explicitly and narrowly in `biome.json` `files.includes`: `coverage`, the
+committed `package-lock.json`, and the generated SRD rules-packs under
+`packages/core/data`. Do not widen `.gitignore` just to hide a file from Biome;
+add a narrow, intentional `files.includes` exclusion only for genuinely
+generated/vendored paths. `packages/core/test/nodeRuntimePolicy.test.ts` guards
+this policy (repo-wide scripts, VCS ignore boundary, and the explicit
+exclusions).
+
 ## Architecture
 
 Text-first, persistent AI Dungeon Master for long-running fantasy campaigns;

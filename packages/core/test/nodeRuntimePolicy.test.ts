@@ -106,6 +106,9 @@ describe('Node runtime policy', () => {
         '!**/.beads',
         '!**/.worktrees',
         '!**/package-lock.json',
+        // Generated SRD rules-packs (large, machine-emitted JSON) are an
+        // intentional, explicit exclusion so Biome never reformats them.
+        '!**/packages/core/data',
       ]),
     );
     expect(gitignore).toContain('.dolt/');
@@ -179,6 +182,23 @@ describe('Node runtime policy', () => {
       '@biomejs/biome',
       'typescript',
     ]) {
+      expectDependabotMajorIgnore(dependabot, dependency);
+    }
+  });
+
+  it('isolates PDF tooling so pdfjs-dist majors require a dedicated migration', () => {
+    const dependabot = readText('.github/dependabot.yml');
+
+    // pdfjs-dist (extraction runtime) and pdfkit (generation) are grouped
+    // separately so a risky pdfjs-dist major can't ride along with routine
+    // pdfkit / @types/pdfkit updates in one PR.
+    expect(dependabot).toMatch(/^\s+pdf-extraction-tooling:/m);
+    expect(dependabot).toMatch(/^\s+pdf-generation-tooling:/m);
+    expect(dependabot).not.toContain('document-import-tooling');
+
+    // Their majors are ignored; PDF.js major migrations are intentional work,
+    // not routine dependency PRs.
+    for (const dependency of ['pdfjs-dist', 'pdfkit']) {
       expectDependabotMajorIgnore(dependabot, dependency);
     }
   });
