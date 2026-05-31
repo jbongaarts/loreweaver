@@ -20,6 +20,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   ClassCoverageError,
   CreatureCoverageError,
+  FeatureCoverageError,
   runImporter,
   SubclassCoverageError,
 } from '../../../scripts/importers/dnd5e-srd-5.1/index.js';
@@ -503,6 +504,10 @@ const CLASSES_PAGE: FixturePage = {
     'Classes',
     'Fighter',
     'A master of martial combat, skilled with a variety of weapons and armor.',
+    'The Fighter',
+    'Level Proficiency Bonus Features',
+    '1st +2 Fighting Style, Second Wind',
+    '2nd +2 Action Surge',
     'Class Features',
     'As a fighter, you gain the following class features.',
     'Hit Points',
@@ -550,8 +555,28 @@ const CLASSES_PAGE_NO_SUBCLASS: FixturePage = {
   ],
 };
 
+// Classes fixture that yields both a base class and subclass, but no feature
+// heading or progression-table feature anchor. Feature is an implemented kind,
+// so this must fail closed before writing output.
+const CLASSES_PAGE_NO_FEATURES: FixturePage = {
+  lines: [
+    'Classes',
+    'Fighter',
+    'A master of martial combat, skilled with a variety of weapons and armor.',
+    'Class Features',
+    'Hit Dice: 1d10 per fighter level',
+    'Armor: All armor, shields',
+    'Weapons: Simple weapons, martial weapons',
+    'Saving Throws: Strength, Constitution',
+    'Martial Archetypes',
+    'Different fighters choose different approaches.',
+    'Champion',
+    'The archetypal Champion focuses on raw physical power.',
+  ],
+};
+
 describe('runImporter — end-to-end against a fixture PDF', () => {
-  it('extracts spells, conditions, feats, hazards, actions, and rules — writes a pack that loads through loadRulesPackFromDirectory', async () => {
+  it('extracts implemented SRD kinds and writes a pack that loads through loadRulesPackFromDirectory', async () => {
     const workDir = makeTmpDir();
     const pdfPath = join(workDir, 'fixture.pdf');
     const outDir = join(workDir, 'pack');
@@ -579,6 +604,7 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(result.counts.creatures).toBe(1);
     expect(result.counts.classes).toBe(1);
     expect(result.counts.subclasses).toBe(1);
+    expect(result.counts.features).toBe(1);
     expect(result.counts.conditions).toBe(2);
     expect(result.counts.feats).toBe(1);
     expect(result.counts.hazards).toBe(1);
@@ -590,10 +616,11 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(result.sourceHash).toMatch(/^[0-9a-f]{64}$/);
 
     const pack = loadRulesPackFromDirectory(outDir);
-    expect(pack.records).toHaveLength(32);
+    expect(pack.records).toHaveLength(33);
     const keys = pack.records.map((r) => r.key).sort();
     expect(keys).toContain('class:fighter');
     expect(keys).toContain('subclass:champion');
+    expect(keys).toContain('feature:champion:improved-critical');
     expect(keys).toContain('action:attack');
     expect(keys).toContain('action:cast-a-spell');
     expect(keys).toContain('action:dash');
@@ -790,6 +817,22 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(championData.description).toMatch(/archetypal Champion/);
     // Base-class proficiency text must not bleed into the subclass body.
     expect(championData.description).not.toMatch(/Hit Dice/);
+
+    // The generated manifest must advertise feature as an included kind.
+    expect(pack.meta.description).toMatch(/Included record kinds:[^.]*feature/);
+
+    const improvedCritical = pack.records.find(
+      (r) => r.key === 'feature:champion:improved-critical',
+    );
+    expect(improvedCritical?.kind).toBe('feature');
+    expect(improvedCritical?.name).toBe('Improved Critical');
+    const improvedCriticalData = improvedCritical?.data as Record<
+      string,
+      unknown
+    >;
+    expect(improvedCriticalData.source).toBe('subclass:champion');
+    expect(improvedCriticalData.level).toBe(3);
+    expect(improvedCriticalData.description).toMatch(/critical hit/);
 
     const dagger = pack.records.find((r) => r.key === 'equipment:dagger');
     expect(dagger?.name).toBe('Dagger');
@@ -1400,5 +1443,62 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     await expect(
       runImporter({ pdfPath, outDir, minSubclassCount: 2 }),
     ).rejects.toThrow(/parsed 1 subclass\(es\), expected at least 2/);
+  });
+
+  it('fails closed when the Classes section yields no features', async () => {
+    const workDir = makeTmpDir();
+    const pdfPath = join(workDir, 'fixture.pdf');
+    const outDir = join(workDir, 'pack');
+    await writeFixturePdf(pdfPath, [
+      RACES_PAGE,
+      CLASSES_PAGE_NO_FEATURES,
+      CORE_RULES_PAGE_ONE,
+      CORE_RULES_PAGE_TWO,
+      CORE_RULES_TABLES_PAGE,
+      SPELL_LISTS_PAGE,
+      SPELLS_PAGE,
+      MONSTERS_PAGE,
+      TREASURE_TABLES_PAGE,
+      MAGIC_ITEMS_PAGE,
+      COMBAT_ACTIONS_PAGE,
+      MAKING_AN_ATTACK_PAGE,
+      HAZARDS_PAGE,
+      FEATS_PAGE,
+      EQUIPMENT_PAGE,
+      CONDITIONS_PAGE,
+    ]);
+
+    await expect(runImporter({ pdfPath, outDir })).rejects.toThrow(
+      FeatureCoverageError,
+    );
+    expect(() => readFileSync(join(outDir, 'records.json'), 'utf8')).toThrow();
+  });
+
+  it('fails closed when fewer features than minFeatureCount are parsed', async () => {
+    const workDir = makeTmpDir();
+    const pdfPath = join(workDir, 'fixture.pdf');
+    const outDir = join(workDir, 'pack');
+    await writeFixturePdf(pdfPath, [
+      RACES_PAGE,
+      CLASSES_PAGE,
+      CORE_RULES_PAGE_ONE,
+      CORE_RULES_PAGE_TWO,
+      CORE_RULES_TABLES_PAGE,
+      SPELL_LISTS_PAGE,
+      SPELLS_PAGE,
+      MONSTERS_PAGE,
+      TREASURE_TABLES_PAGE,
+      MAGIC_ITEMS_PAGE,
+      COMBAT_ACTIONS_PAGE,
+      MAKING_AN_ATTACK_PAGE,
+      HAZARDS_PAGE,
+      FEATS_PAGE,
+      EQUIPMENT_PAGE,
+      CONDITIONS_PAGE,
+    ]);
+
+    await expect(
+      runImporter({ pdfPath, outDir, minFeatureCount: 2 }),
+    ).rejects.toThrow(/parsed 1 feature\(s\), expected at least 2/);
   });
 });

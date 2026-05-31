@@ -16,11 +16,10 @@
  * (or one below `minCreatureCount`) throws `CreatureCoverageError` and writes
  * nothing.
  *
- * Scope today: spells, creatures, base classes, subclasses, conditions, feats,
- * hazards, actions, rules, tables, equipment, and ancestries (races + subraces).
- * Subclasses (Champion, Life domain, …) parse from the same Classes-chapter
- * slice as base classes. Class features remain a separate record kind tracked
- * under loreweaver-0m9.5.18 (see ADR 0009) and are not parsed here.
+ * Scope today: spells, creatures, base classes, subclasses, features,
+ * conditions, feats, hazards, actions, rules, tables, equipment, and ancestries
+ * (races + subraces). Subclasses (Champion, Life domain, …) and class /
+ * subclass features parse from the same Classes-chapter slice as base classes.
  * Other SRD record kinds are tracked under `loreweaver-0m9.5` child issues;
  * until those parsers ship the importer deliberately omits them so the
  * generated pack does not claim coverage it does not have. See `README.md`
@@ -38,6 +37,7 @@ import { parseConditions } from './parseConditions.js';
 import { parseCreatures } from './parseCreatures.js';
 import { parseEquipment } from './parseEquipment.js';
 import { parseFeats } from './parseFeats.js';
+import { parseFeatures } from './parseFeatures.js';
 import { parseHazards } from './parseHazards.js';
 import { parseRules } from './parseRules.js';
 import { parseSpellClassLists, parseSpells } from './parseSpells.js';
@@ -90,6 +90,14 @@ export const MIN_EXPECTED_SRD_5_1_CLASSES = 12;
 export const MIN_EXPECTED_SRD_5_1_SUBCLASSES = 12;
 
 /**
+ * Minimum number of class/subclass-granted features a full SRD 5.1 import must
+ * yield. The real Classes chapter contains substantially more than one feature
+ * per class; this conservative floor catches empty or badly truncated feature
+ * parses without trying to be an exact coverage audit.
+ */
+export const MIN_EXPECTED_SRD_5_1_FEATURES = 12;
+
+/**
  * Thrown when the parsed creature set fails the coverage check (empty result,
  * or fewer creatures than `minCreatureCount`). Distinct from
  * `SectionNotFoundError` so callers can tell "the Monsters section was found
@@ -125,6 +133,17 @@ export class SubclassCoverageError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'SubclassCoverageError';
+  }
+}
+
+/**
+ * Thrown when the parsed feature set fails the coverage check (empty result, or
+ * fewer features than `minFeatureCount`).
+ */
+export class FeatureCoverageError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'FeatureCoverageError';
   }
 }
 
@@ -167,6 +186,13 @@ export interface RunImporterInput {
    * empty subclass result is always rejected regardless of this option.
    */
   readonly minSubclassCount?: number;
+  /**
+   * Minimum number of class/subclass-granted features the Classes section must
+   * yield for the run to be accepted. When set and the parsed count is below
+   * it, the importer throws `FeatureCoverageError` and writes nothing. An empty
+   * feature result is always rejected regardless of this option.
+   */
+  readonly minFeatureCount?: number;
 }
 
 /**
@@ -238,6 +264,27 @@ function validateSubclassCoverage(
   }
 }
 
+/**
+ * Fail closed on a feature result that can't be a faithful SRD 5.1 import: an
+ * empty set is always rejected; a non-empty set below `minFeatureCount` (when
+ * provided) is rejected too.
+ */
+function validateFeatureCoverage(
+  count: number,
+  minFeatureCount: number | undefined,
+): void {
+  if (count === 0) {
+    throw new FeatureCoverageError(
+      'SRD 5.1 feature coverage check failed: the Classes section was found but yielded 0 class/subclass features. The class progression tables or feature headings likely changed. Refusing to write a pack with no features.',
+    );
+  }
+  if (minFeatureCount !== undefined && count < minFeatureCount) {
+    throw new FeatureCoverageError(
+      `SRD 5.1 feature coverage check failed: parsed ${count} feature(s), expected at least ${minFeatureCount}. The Classes section may have been truncated or its progression tables changed.`,
+    );
+  }
+}
+
 export async function runImporter(
   input: RunImporterInput,
 ): Promise<ImporterRunResult> {
@@ -301,12 +348,17 @@ export async function runImporter(
   // kind, so a Classes section that yields base classes but no subclasses must
   // not silently produce a pack that omits `subclass` from the manifest.
   validateSubclassCoverage(subclasses.length, input.minSubclassCount);
+  // Class- and subclass-granted features parse from the same Classes-chapter
+  // slice (ADR 0009 / loreweaver-0m9.5.18).
+  const features = parseFeatures(classPages);
+  validateFeatureCoverage(features.length, input.minFeatureCount);
   const pack = buildPack({
     spells,
     classIndex,
     creatures,
     classes,
     subclasses,
+    features,
     conditions,
     feats,
     hazards,
@@ -326,6 +378,7 @@ export async function runImporter(
       creatures: creatures.length,
       classes: classes.length,
       subclasses: subclasses.length,
+      features: features.length,
       conditions: conditions.length,
       feats: feats.length,
       hazards: hazards.length,
