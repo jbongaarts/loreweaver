@@ -49,6 +49,18 @@ export type SpellClassIndex = ReadonlyMap<
   ReadonlySet<SpellCasterClass>
 >;
 
+/**
+ * Map from a base-class name (e.g. "Fighter") to its primary/key abilities, as
+ * read from the SRD 5.1 Multiclassing "Prerequisites" listing
+ * (loreweaver-0m9.5.19). Mirrors how `SpellClassIndex` carries the spell→class
+ * cross-reference parsed from a separate slice: the SRD's Class Features block
+ * does not print a per-class primary-ability line (ADR 0007), so this listing
+ * is the canonical source the class emitter merges into `data.primaryAbilities`.
+ * The ability list preserves source order (so "Strength 13 or Dexterity 13"
+ * yields `['Strength', 'Dexterity']`).
+ */
+export type ClassPrimaryAbilityIndex = ReadonlyMap<string, readonly string[]>;
+
 /** One level of the exhaustion condition (levels 1–6). */
 export interface ExhaustionLevel {
   readonly level: number;

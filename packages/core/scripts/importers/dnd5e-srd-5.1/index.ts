@@ -40,16 +40,22 @@ import { parseEquipment } from './parseEquipment.js';
 import { parseFeats } from './parseFeats.js';
 import { parseFeatures } from './parseFeatures.js';
 import { parseHazards } from './parseHazards.js';
+import { parseMulticlassing } from './parseMulticlassing.js';
 import { parseRules } from './parseRules.js';
 import { parseSpellClassLists, parseSpells } from './parseSpells.js';
 import { parseSubclasses } from './parseSubclasses.js';
 import { parseTables } from './parseTables.js';
 import {
   SRD_5_1_DEFAULT_SECTION_ANCHORS,
+  SectionNotFoundError,
   type Srd51SectionAnchors,
   sliceSection,
 } from './sections.js';
-import type { AncestryExtraction, ImporterRunResult } from './types.js';
+import type {
+  AncestryExtraction,
+  ClassPrimaryAbilityIndex,
+  ImporterRunResult,
+} from './types.js';
 
 /**
  * Minimum number of creature stat blocks a full SRD 5.1 import must yield. The
@@ -407,9 +413,24 @@ export async function runImporter(
   // slice (ADR 0009 / loreweaver-0m9.5.18).
   const features = parseFeatures(classPages);
   validateFeatureCoverage(features.length, input.minFeatureCount);
+  // Best-effort enrichment: the SRD Class Features block carries no primary-
+  // ability line, so per-class primary abilities come from the Multiclassing
+  // prerequisites listing (loreweaver-0m9.5.19). This is NOT fail-closed — per
+  // ADR 0007 a missing source value is left empty rather than authored, so a
+  // PDF without a locatable Multiclassing section simply yields empty
+  // primaryAbilities (the prior behavior) instead of throwing.
+  let primaryAbilityIndex: ClassPrimaryAbilityIndex = new Map();
+  try {
+    const multiclassingPages = sliceSection(pages, anchors.multiclassing);
+    primaryAbilityIndex = parseMulticlassing(multiclassingPages);
+  } catch (error) {
+    if (!(error instanceof SectionNotFoundError)) throw error;
+    // Multiclassing section absent: leave primaryAbilities empty.
+  }
   const pack = buildPack({
     spells,
     classIndex,
+    primaryAbilityIndex,
     creatures,
     classes,
     subclasses,

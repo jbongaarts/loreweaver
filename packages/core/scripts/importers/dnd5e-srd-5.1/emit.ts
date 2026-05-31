@@ -28,6 +28,7 @@ import type {
   ActionExtraction,
   AncestryExtraction,
   ClassExtraction,
+  ClassPrimaryAbilityIndex,
   ConditionExtraction,
   CreatureExtraction,
   EquipmentExtraction,
@@ -272,10 +273,13 @@ export function creatureExtractionsToRecords(
  * fixed (so emitted JSON is byte-stable) and matches the `dnd5e-srd` class
  * kindSchema's required keys; see `validateDnd5eClass` in `kindSchemas.ts`.
  */
-function buildClassData(cls: ClassExtraction): Record<string, unknown> {
+function buildClassData(
+  cls: ClassExtraction,
+  primaryAbilities: readonly string[],
+): Record<string, unknown> {
   return {
     hitDie: cls.hitDie,
-    primaryAbilities: [...cls.primaryAbilities],
+    primaryAbilities: [...primaryAbilities],
     savingThrowProficiencies: [...cls.savingThrowProficiencies],
     armorProficiencies: [...cls.armorProficiencies],
     weaponProficiencies: [...cls.weaponProficiencies],
@@ -284,14 +288,25 @@ function buildClassData(cls: ClassExtraction): Record<string, unknown> {
 
 export function classExtractionsToRecords(
   classes: readonly ClassExtraction[],
+  primaryAbilityIndex?: ClassPrimaryAbilityIndex,
 ): RulesRecord[] {
   const out: RulesRecord[] = classes.map((cls) => {
+    // The SRD Class Features block carries no primary-ability line, so the
+    // extraction's `primaryAbilities` is normally empty and the canonical
+    // source is the Multiclassing prerequisites map (loreweaver-0m9.5.19). A
+    // value the block DID carry (a variant/homebrew layout) is more specific
+    // and wins; otherwise the prerequisites map fills it; otherwise it stays
+    // empty (ADR 0007 — never authored from model knowledge).
+    const primaryAbilities =
+      cls.primaryAbilities.length > 0
+        ? cls.primaryAbilities
+        : (primaryAbilityIndex?.get(cls.name) ?? []);
     const record: RulesRecord = {
       systemId: SYSTEM_ID,
       kind: 'class',
       key: classKey(cls.name),
       name: cls.name,
-      data: buildClassData(cls),
+      data: buildClassData(cls, primaryAbilities),
       source: sourceLabelFor(cls.sourcePage),
       license: SRD_5_1_LICENSE,
       provenance: provenanceFor(cls.sourcePage),
@@ -630,6 +645,12 @@ export function ancestryExtractionsToRecords(
 export interface BuildPackInput {
   readonly spells: readonly SpellExtraction[];
   readonly classIndex: SpellClassIndex;
+  /**
+   * Per-class primary abilities read from the Multiclassing prerequisites
+   * listing (loreweaver-0m9.5.19). Optional: absent/empty when the Multiclassing
+   * section was not found, in which case class `primaryAbilities` stay empty.
+   */
+  readonly primaryAbilityIndex?: ClassPrimaryAbilityIndex;
   readonly creatures?: readonly CreatureExtraction[];
   readonly classes?: readonly ClassExtraction[];
   readonly subclasses?: readonly SubclassExtraction[];
@@ -656,7 +677,10 @@ export function buildPack(input: BuildPackInput): RulesPack {
   }
   const spellRecords = spellExtractionsToRecords(input.spells, classByName);
   const creatureRecords = creatureExtractionsToRecords(input.creatures ?? []);
-  const classRecords = classExtractionsToRecords(input.classes ?? []);
+  const classRecords = classExtractionsToRecords(
+    input.classes ?? [],
+    input.primaryAbilityIndex,
+  );
   const subclassRecords = subclassExtractionsToRecords(input.subclasses ?? []);
   const featureRecords = featureExtractionsToRecords(input.features ?? []);
   const conditionRecords = conditionExtractionsToRecords(input.conditions);

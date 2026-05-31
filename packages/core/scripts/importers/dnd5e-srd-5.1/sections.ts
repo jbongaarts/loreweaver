@@ -273,6 +273,24 @@ export const SRD_5_1_DEFAULT_SECTION_ANCHORS = {
     endHeading: /^Using (a )?Magic Items?$/i,
     requireEndHeading: true,
   },
+  // SRD 5.1 "Multiclassing" section. Only the "Prerequisites" listing at the top
+  // of the section is consumed (parseMulticlassing), so the end boundary is set
+  // to "Proficiencies" — the subsection that immediately follows the
+  // prerequisites table — to keep the slice tight. requireEndHeading is left off
+  // (best-effort): the prerequisites enrichment is NOT fail-closed (ADR 0007 —
+  // primaryAbilities is left empty when the source does not provide it), and the
+  // orchestrator already treats a missing Multiclassing section as "no
+  // enrichment available". The end alternation also lists plausible following
+  // top-level headings so a layout without a "Proficiencies" subsection still
+  // bounds reasonably (and the parser's exact class-name + ability-score row
+  // matching makes an over-wide slice harmless). Placement of the Multiclassing
+  // section varies by PDF layout; override via the `sectionAnchors` option if a
+  // future vendored PDF differs. See loreweaver-0m9.5.19 and ADR 0009.
+  multiclassing: {
+    startHeading: /^Multiclassing$/,
+    endHeading:
+      /^(Proficiencies|Using Ability Scores|Beyond 1st Level|Adventuring|Combat|Spell Lists?|Monsters|Appendix [A-Z]:)/i,
+  },
 } as const satisfies Record<string, SectionAnchorOptions>;
 
 export type Srd51SectionAnchors = {
@@ -288,4 +306,5 @@ export type Srd51SectionAnchors = {
   readonly hazards: SectionAnchorOptions;
   readonly equipment: SectionAnchorOptions;
   readonly treasureTables: SectionAnchorOptions;
+  readonly multiclassing: SectionAnchorOptions;
 };
