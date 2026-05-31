@@ -16,11 +16,10 @@
  * (or one below `minCreatureCount`) throws `CreatureCoverageError` and writes
  * nothing.
  *
- * Scope today: spells, creatures, base classes, subclasses, conditions, feats,
- * hazards, actions, rules, tables, equipment, and ancestries (races + subraces).
- * Subclasses (Champion, Life domain, …) parse from the same Classes-chapter
- * slice as base classes. Class features remain a separate record kind tracked
- * under loreweaver-0m9.5.18 (see ADR 0009) and are not parsed here.
+ * Scope today: spells, creatures, base classes, subclasses, features,
+ * conditions, feats, hazards, actions, rules, tables, equipment, and ancestries
+ * (races + subraces). Subclasses (Champion, Life domain, …) and class /
+ * subclass features parse from the same Classes-chapter slice as base classes.
  * Other SRD record kinds are tracked under `loreweaver-0m9.5` child issues;
  * until those parsers ship the importer deliberately omits them so the
  * generated pack does not claim coverage it does not have. See `README.md`
@@ -38,6 +37,7 @@ import { parseConditions } from './parseConditions.js';
 import { parseCreatures } from './parseCreatures.js';
 import { parseEquipment } from './parseEquipment.js';
 import { parseFeats } from './parseFeats.js';
+import { parseFeatures } from './parseFeatures.js';
 import { parseHazards } from './parseHazards.js';
 import { parseRules } from './parseRules.js';
 import { parseSpellClassLists, parseSpells } from './parseSpells.js';
@@ -301,12 +301,17 @@ export async function runImporter(
   // kind, so a Classes section that yields base classes but no subclasses must
   // not silently produce a pack that omits `subclass` from the manifest.
   validateSubclassCoverage(subclasses.length, input.minSubclassCount);
+  // Class- and subclass-granted features parse from the same Classes-chapter
+  // slice (ADR 0009 / loreweaver-0m9.5.18). No coverage floor today: feature
+  // completeness is the full-PDF audit's responsibility, not a per-run guard.
+  const features = parseFeatures(classPages);
   const pack = buildPack({
     spells,
     classIndex,
     creatures,
     classes,
     subclasses,
+    features,
     conditions,
     feats,
     hazards,
@@ -326,6 +331,7 @@ export async function runImporter(
       creatures: creatures.length,
       classes: classes.length,
       subclasses: subclasses.length,
+      features: features.length,
       conditions: conditions.length,
       feats: feats.length,
       hazards: hazards.length,

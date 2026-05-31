@@ -10,9 +10,9 @@
  * Scope (ADR 0009 / loreweaver-0m9.5.17): **subclasses only** (Champion, Life
  * domain, School of Evocation, …). Base classes are `class` records parsed by
  * `parseClasses` (loreweaver-0m9.5.2); class features are a separate `feature`
- * kind (loreweaver-0m9.5.18) and are NOT extracted here — a subclass's granted
- * features ride along in its re-flowed `description` prose for now, and the
- * optional `data.features` reference array is left for the feature parser.
+ * kind (loreweaver-0m9.5.18) and are NOT extracted here — subclass-granted
+ * features are parsed into separate feature records by `parseFeatures`; this
+ * parser only emits the subclass's own prose description.
  *
  * Boundary detection mirrors the conservative known-name approach used by the
  * ancestry / condition / hazard / action parsers: a line is a subclass heading
@@ -55,7 +55,7 @@ interface KnownSubclass {
 // Names are kept verbatim from the source headings; the parent relationship is
 // a structural fact of the SRD's organization (the subclass is printed inside
 // the parent class's section). Used as exact full-line heading anchors.
-const KNOWN_SUBCLASSES: readonly KnownSubclass[] = [
+export const KNOWN_SUBCLASSES: readonly KnownSubclass[] = [
   { name: 'Path of the Berserker', parent: 'Barbarian' },
   { name: 'College of Lore', parent: 'Bard' },
   { name: 'Life Domain', parent: 'Cleric' },
@@ -73,7 +73,9 @@ const KNOWN_SUBCLASSES: readonly KnownSubclass[] = [
 const SUBCLASS_BY_NAME = new Map(KNOWN_SUBCLASSES.map((s) => [s.name, s]));
 // The 12 base-class names. Used only as description boundaries (the start of
 // the next class's section ends the previous subclass's body).
-const PARENT_CLASS_NAMES = new Set(KNOWN_SUBCLASSES.map((s) => s.parent));
+export const PARENT_CLASS_NAMES = new Set(
+  KNOWN_SUBCLASSES.map((s) => s.parent),
+);
 
 interface FlatLine {
   readonly line: string;

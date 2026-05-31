@@ -551,7 +551,7 @@ const CLASSES_PAGE_NO_SUBCLASS: FixturePage = {
 };
 
 describe('runImporter — end-to-end against a fixture PDF', () => {
-  it('extracts spells, conditions, feats, hazards, actions, and rules — writes a pack that loads through loadRulesPackFromDirectory', async () => {
+  it('extracts implemented SRD kinds and writes a pack that loads through loadRulesPackFromDirectory', async () => {
     const workDir = makeTmpDir();
     const pdfPath = join(workDir, 'fixture.pdf');
     const outDir = join(workDir, 'pack');
@@ -579,6 +579,7 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(result.counts.creatures).toBe(1);
     expect(result.counts.classes).toBe(1);
     expect(result.counts.subclasses).toBe(1);
+    expect(result.counts.features).toBe(1);
     expect(result.counts.conditions).toBe(2);
     expect(result.counts.feats).toBe(1);
     expect(result.counts.hazards).toBe(1);
@@ -590,10 +591,11 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(result.sourceHash).toMatch(/^[0-9a-f]{64}$/);
 
     const pack = loadRulesPackFromDirectory(outDir);
-    expect(pack.records).toHaveLength(32);
+    expect(pack.records).toHaveLength(33);
     const keys = pack.records.map((r) => r.key).sort();
     expect(keys).toContain('class:fighter');
     expect(keys).toContain('subclass:champion');
+    expect(keys).toContain('feature:champion:improved-critical');
     expect(keys).toContain('action:attack');
     expect(keys).toContain('action:cast-a-spell');
     expect(keys).toContain('action:dash');
@@ -790,6 +792,22 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(championData.description).toMatch(/archetypal Champion/);
     // Base-class proficiency text must not bleed into the subclass body.
     expect(championData.description).not.toMatch(/Hit Dice/);
+
+    // The generated manifest must advertise feature as an included kind.
+    expect(pack.meta.description).toMatch(/Included record kinds:[^.]*feature/);
+
+    const improvedCritical = pack.records.find(
+      (r) => r.key === 'feature:champion:improved-critical',
+    );
+    expect(improvedCritical?.kind).toBe('feature');
+    expect(improvedCritical?.name).toBe('Improved Critical');
+    const improvedCriticalData = improvedCritical?.data as Record<
+      string,
+      unknown
+    >;
+    expect(improvedCriticalData.source).toBe('subclass:champion');
+    expect(improvedCriticalData.level).toBe(3);
+    expect(improvedCriticalData.description).toMatch(/critical hit/);
 
     const dagger = pack.records.find((r) => r.key === 'equipment:dagger');
     expect(dagger?.name).toBe('Dagger');

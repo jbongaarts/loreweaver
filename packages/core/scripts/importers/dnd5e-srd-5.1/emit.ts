@@ -32,6 +32,7 @@ import type {
   CreatureExtraction,
   EquipmentExtraction,
   FeatExtraction,
+  FeatureExtraction,
   HazardExtraction,
   RuleExtraction,
   SpellCasterClass,
@@ -335,6 +336,45 @@ export function subclassExtractionsToRecords(
   return out;
 }
 
+/**
+ * Build the `data` payload for one feature record. `source` is keyed to the
+ * granting class (`class:<slug>`) or subclass (`subclass:<slug>`) record (ADR
+ * 0009 data-side linkage, never `overrides`). Field insertion order is fixed
+ * for byte-stable output and matches the `dnd5e-srd` feature kindSchema
+ * (`validateDnd5eFeature`: source, level, description).
+ */
+function buildFeatureData(feature: FeatureExtraction): Record<string, unknown> {
+  const source =
+    feature.grantorKind === 'class'
+      ? classKey(feature.grantorName)
+      : subclassKey(feature.grantorName);
+  return {
+    source,
+    level: feature.level,
+    description: feature.description,
+  };
+}
+
+export function featureExtractionsToRecords(
+  features: readonly FeatureExtraction[],
+): RulesRecord[] {
+  const out: RulesRecord[] = features.map((feature) => {
+    const record: RulesRecord = {
+      systemId: SYSTEM_ID,
+      kind: 'feature',
+      key: `feature:${slug(feature.grantorName)}:${slug(feature.name)}`,
+      name: feature.name,
+      data: buildFeatureData(feature),
+      source: sourceLabelFor(feature.sourcePage),
+      license: SRD_5_1_LICENSE,
+      provenance: provenanceFor(feature.sourcePage),
+    };
+    return record;
+  });
+  out.sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+  return out;
+}
+
 export function conditionExtractionsToRecords(
   conditions: readonly ConditionExtraction[],
 ): RulesRecord[] {
@@ -593,6 +633,7 @@ export interface BuildPackInput {
   readonly creatures?: readonly CreatureExtraction[];
   readonly classes?: readonly ClassExtraction[];
   readonly subclasses?: readonly SubclassExtraction[];
+  readonly features?: readonly FeatureExtraction[];
   readonly conditions: readonly ConditionExtraction[];
   readonly feats?: readonly FeatExtraction[];
   readonly hazards?: readonly HazardExtraction[];
@@ -617,6 +658,7 @@ export function buildPack(input: BuildPackInput): RulesPack {
   const creatureRecords = creatureExtractionsToRecords(input.creatures ?? []);
   const classRecords = classExtractionsToRecords(input.classes ?? []);
   const subclassRecords = subclassExtractionsToRecords(input.subclasses ?? []);
+  const featureRecords = featureExtractionsToRecords(input.features ?? []);
   const conditionRecords = conditionExtractionsToRecords(input.conditions);
   const featRecords = featExtractionsToRecords(input.feats ?? []);
   const hazardRecords = hazardExtractionsToRecords(input.hazards ?? []);
@@ -630,6 +672,7 @@ export function buildPack(input: BuildPackInput): RulesPack {
     ...creatureRecords,
     ...classRecords,
     ...subclassRecords,
+    ...featureRecords,
     ...conditionRecords,
     ...featRecords,
     ...hazardRecords,

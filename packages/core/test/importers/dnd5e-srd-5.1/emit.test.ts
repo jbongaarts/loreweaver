@@ -17,6 +17,7 @@ import {
   actionExtractionsToRecords,
   ancestryExtractionsToRecords,
   buildPack,
+  featureExtractionsToRecords,
   spellExtractionsToRecords,
   subclassExtractionsToRecords,
   tableExtractionsToRecords,
@@ -25,6 +26,7 @@ import {
 import type {
   ActionExtraction,
   AncestryExtraction,
+  FeatureExtraction,
   RuleExtraction,
   SpellCasterClass,
   SpellExtraction,
@@ -145,6 +147,16 @@ const CHAMPION_SUBCLASS: SubclassExtraction = {
   parentClass: 'Fighter',
   description:
     'The archetypal Champion focuses on the development of raw physical power honed to deadly perfection.',
+  sourcePage: 72,
+};
+
+const IMPROVED_CRITICAL_FEATURE: FeatureExtraction = {
+  name: 'Improved Critical',
+  grantorKind: 'subclass',
+  grantorName: 'Champion',
+  level: 3,
+  description:
+    'Beginning when you choose this archetype at 3rd level, your weapon attacks score a critical hit on a roll of 19 or 20.',
   sourcePage: 72,
 };
 
@@ -278,6 +290,19 @@ describe('buildPack — validation', () => {
     );
   });
 
+  it('includes "feature" in included-kinds when feature records are present', () => {
+    const pack = buildPack({
+      spells: [ACID_SPLASH],
+      classIndex: makeIndex([]),
+      conditions: [],
+      features: [IMPROVED_CRITICAL_FEATURE],
+      sourceHash: FAKE_HASH,
+    });
+    expect(pack.meta.description).toMatch(
+      /Included record kinds: feature, spell\b/,
+    );
+  });
+
   it('includes "ancestry" in included-kinds when ancestry records are present', () => {
     const pack = buildPack({
       spells: [ACID_SPLASH],
@@ -374,6 +399,34 @@ describe('subclassExtractionsToRecords — record shape', () => {
 
   it('attaches provenance pointing at the SRD source page', () => {
     const [record] = subclassExtractionsToRecords([CHAMPION_SUBCLASS]);
+    expect(record.provenance.locator).toBe('p. 72');
+  });
+});
+
+describe('featureExtractionsToRecords — record shape', () => {
+  it('builds feature keys scoped by grantor and feature name', () => {
+    const [record] = featureExtractionsToRecords([IMPROVED_CRITICAL_FEATURE]);
+    expect(record.key).toBe('feature:champion:improved-critical');
+    expect(record.kind).toBe('feature');
+  });
+
+  it('keys the feature source to its granting subclass record', () => {
+    const [record] = featureExtractionsToRecords([IMPROVED_CRITICAL_FEATURE]);
+    expect((record.data as { source: string }).source).toBe(
+      'subclass:champion',
+    );
+  });
+
+  it('carries level and description through the dnd5e feature schema', () => {
+    const [record] = featureExtractionsToRecords([IMPROVED_CRITICAL_FEATURE]);
+    expect((record.data as { level: number }).level).toBe(3);
+    expect((record.data as { description: string }).description).toMatch(
+      /critical hit/,
+    );
+  });
+
+  it('attaches provenance pointing at the SRD source page', () => {
+    const [record] = featureExtractionsToRecords([IMPROVED_CRITICAL_FEATURE]);
     expect(record.provenance.locator).toBe('p. 72');
   });
 });

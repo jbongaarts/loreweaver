@@ -314,11 +314,46 @@ export interface SubclassExtraction {
   readonly sourcePage: number;
 }
 
+/**
+ * A class- or subclass-granted feature as extracted from the SRD source,
+ * before conversion to a `kind=feature` `RulesRecord`. Per ADR 0009 a feature
+ * links to its grantor through `data.source` (the granting class/subclass
+ * record key) and records the `data.level` at which it is gained; `emit.ts`
+ * keys the grantor from `grantorKind` + `grantorName` (mirroring how the
+ * subclass parser carries the parent class NAME for emit to key).
+ *
+ * The `dnd5e-srd` feature kindSchema (`validateDnd5eFeature`) requires a
+ * non-empty `description`, a `source` grantor key, and an integer `level >= 1`.
+ *
+ * Level note: most non-1st-level SRD features state the grant level in a
+ * leading clause ("Starting at 2nd level, ...", "Beginning when you choose this
+ * archetype at 3rd level, ..."). The 1st-level baseline features a class gains
+ * at character creation (Second Wind, Rage, ...) carry no such clause, so a
+ * feature with no leading level clause is recorded at level 1. The level is
+ * taken from the FIRST clause only, so a later in-body scaling mention (Rage's
+ * "At 3rd level your rage damage increases ...") is not mistaken for the grant
+ * level. Scope (ADR 0009 / loreweaver-0m9.5.18).
+ */
+export interface FeatureExtraction {
+  readonly name: string;
+  /** Whether the feature is granted by a base class or a subclass. */
+  readonly grantorKind: 'class' | 'subclass';
+  /** Grantor display name (e.g. "Fighter" or "Champion"); emit keys it. */
+  readonly grantorName: string;
+  /** Character level at which the feature is gained (1–20). */
+  readonly level: number;
+  /** Feature body prose, re-flowed into paragraphs. */
+  readonly description: string;
+  /** 1-based page in the source PDF where the feature heading begins. */
+  readonly sourcePage: number;
+}
+
 export interface ImporterCounts {
   readonly spells: number;
   readonly creatures: number;
   readonly classes: number;
   readonly subclasses: number;
+  readonly features: number;
   readonly conditions: number;
   readonly feats: number;
   readonly hazards: number;
