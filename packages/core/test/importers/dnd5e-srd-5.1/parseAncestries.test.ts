@@ -253,3 +253,46 @@ describe('parseAncestries — empty and no-match input', () => {
     expect(parseAncestries([p])).toEqual([]);
   });
 });
+
+describe('parseAncestries — halfling subrace canonical names', () => {
+  const results = parseAncestries([
+    page(26, [
+      'Halfling',
+      'The comforts of home are the goals of most halflings.',
+      'Halfling Traits',
+      'Your halfling character has a number of traits in common with all other halflings.',
+      'Ability Score Increase. Your Dexterity score increases by 2.',
+      'Size. Halflings average about 3 feet tall and weigh about 40 pounds. Your size is Small.',
+      'Speed. Your base walking speed is 25 feet.',
+      'Lucky. When you roll a 1 on an attack roll, ability check, or saving throw, you can reroll the die.',
+      'Subrace. The two main kinds of halfling are lightfoot and stout.',
+      'Lightfoot',
+      'As a lightfoot halfling, you can easily hide from notice.',
+      'Ability Score Increase. Your Charisma score increases by 1.',
+      'Naturally Stealthy. You can attempt to hide even when you are obscured only by a creature.',
+      'Stout',
+      "As a stout halfling, you're hardier than average.",
+      'Ability Score Increase. Your Constitution score increases by 1.',
+      'Stout Resilience. You have advantage on saving throws against poison.',
+    ]),
+  ]);
+
+  it('parent-qualifies bare SRD halfling subrace headings for records and lookup', () => {
+    expect(results.map((r) => r.name)).toEqual([
+      'Halfling',
+      'Lightfoot Halfling',
+      'Stout Halfling',
+    ]);
+
+    const halfling = results.find((r) => r.name === 'Halfling');
+    expect(halfling?.subraces).toEqual([
+      'Lightfoot Halfling',
+      'Stout Halfling',
+    ]);
+
+    const lightfoot = results.find((r) => r.name === 'Lightfoot Halfling');
+    expect(lightfoot?.subraceOf).toBe('Halfling');
+    expect(lightfoot?.size).toBe('Small');
+    expect(lightfoot?.speed).toBe(25);
+  });
+});

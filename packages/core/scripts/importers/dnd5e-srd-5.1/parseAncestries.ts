@@ -55,28 +55,51 @@ const KNOWN_RACES: readonly string[] = [
 ];
 
 interface KnownSubrace {
-  /** Exact heading text as printed in the SRD (also used as the record name). */
-  readonly name: string;
+  /** Exact heading text as printed in the SRD. */
+  readonly sourceName: string;
+  /** Canonical record display name. Usually the heading, except bare halflings. */
+  readonly recordName: string;
   readonly parent: string;
 }
 
-// The SRD 5.1 subraces and their parent races. Names are kept verbatim from the
-// source headings to honor the "preserve the source term" requirement; the
-// `subraceOf` reference plus `data.source = 'race'` provide the context.
+// The SRD 5.1 subraces and their parent races. Most record names are kept
+// verbatim from the source headings; the bare halfling headings are
+// parent-qualified so canonical name/key lookups match user-facing terms.
 const KNOWN_SUBRACES: readonly KnownSubrace[] = [
-  { name: 'Hill Dwarf', parent: 'Dwarf' },
-  { name: 'Mountain Dwarf', parent: 'Dwarf' },
-  { name: 'High Elf', parent: 'Elf' },
-  { name: 'Wood Elf', parent: 'Elf' },
-  { name: 'Dark Elf (Drow)', parent: 'Elf' },
-  { name: 'Lightfoot', parent: 'Halfling' },
-  { name: 'Stout', parent: 'Halfling' },
-  { name: 'Forest Gnome', parent: 'Gnome' },
-  { name: 'Rock Gnome', parent: 'Gnome' },
+  { sourceName: 'Hill Dwarf', recordName: 'Hill Dwarf', parent: 'Dwarf' },
+  {
+    sourceName: 'Mountain Dwarf',
+    recordName: 'Mountain Dwarf',
+    parent: 'Dwarf',
+  },
+  { sourceName: 'High Elf', recordName: 'High Elf', parent: 'Elf' },
+  { sourceName: 'Wood Elf', recordName: 'Wood Elf', parent: 'Elf' },
+  {
+    sourceName: 'Dark Elf (Drow)',
+    recordName: 'Dark Elf (Drow)',
+    parent: 'Elf',
+  },
+  {
+    sourceName: 'Lightfoot',
+    recordName: 'Lightfoot Halfling',
+    parent: 'Halfling',
+  },
+  {
+    sourceName: 'Stout',
+    recordName: 'Stout Halfling',
+    parent: 'Halfling',
+  },
+  { sourceName: 'Forest Gnome', recordName: 'Forest Gnome', parent: 'Gnome' },
+  { sourceName: 'Rock Gnome', recordName: 'Rock Gnome', parent: 'Gnome' },
 ];
 
 const RACE_SET = new Set(KNOWN_RACES);
-const SUBRACE_BY_NAME = new Map(KNOWN_SUBRACES.map((s) => [s.name, s]));
+const SUBRACE_BY_SOURCE_NAME = new Map(
+  KNOWN_SUBRACES.map((s) => [s.sourceName, s]),
+);
+const SUBRACE_BY_RECORD_NAME = new Map(
+  KNOWN_SUBRACES.map((s) => [s.recordName, s]),
+);
 
 // "Label. body" trait line: a short Title-Case noun-phrase label, then a
 // period, a space, and body text. Labels are letters with single internal
@@ -152,6 +175,7 @@ interface Boundary {
   readonly idx: number;
   readonly name: string;
   readonly isRace: boolean;
+  readonly parent?: string;
 }
 
 /** Parse a single race/subrace block body into description + traits. */
@@ -274,8 +298,16 @@ export function parseAncestries(
     const trimmed = flat[i].line.trim();
     if (RACE_SET.has(trimmed)) {
       boundaries.push({ idx: i, name: trimmed, isRace: true });
-    } else if (SUBRACE_BY_NAME.has(trimmed)) {
-      boundaries.push({ idx: i, name: trimmed, isRace: false });
+    } else {
+      const subrace = SUBRACE_BY_SOURCE_NAME.get(trimmed);
+      if (subrace !== undefined) {
+        boundaries.push({
+          idx: i,
+          name: subrace.recordName,
+          isRace: false,
+          parent: subrace.parent,
+        });
+      }
     }
   }
   if (boundaries.length === 0) return [];
@@ -300,7 +332,7 @@ export function parseAncestries(
   const childrenOf = new Map<string, string[]>();
   for (const b of boundaries) {
     if (b.isRace) continue;
-    const parent = SUBRACE_BY_NAME.get(b.name)?.parent;
+    const parent = b.parent;
     if (parent === undefined) continue;
     const list = childrenOf.get(parent) ?? [];
     list.push(b.name);
@@ -329,7 +361,7 @@ export function parseAncestries(
 
   // Subrace records (flattened with parent traits).
   for (const [name, block] of subraceBlocks) {
-    const parentName = SUBRACE_BY_NAME.get(name)?.parent;
+    const parentName = SUBRACE_BY_RECORD_NAME.get(name)?.parent;
     const parentBlock =
       parentName !== undefined ? raceBlocks.get(parentName) : undefined;
     const flattened =

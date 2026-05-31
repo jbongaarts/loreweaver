@@ -459,9 +459,10 @@ const CONDITIONS_PAGE: FixturePage = {
   ],
 };
 
-// Races fixture: mirrors the SRD "Races" chapter. Dwarf (with the Hill Dwarf
-// subrace) exercises the parent+subrace flattening; Human exercises a race with
-// no subraces. "Classes" below acts as the races section's end heading.
+// Races fixture: mirrors the SRD "Races" chapter's full expected ancestry
+// coverage with compact parser-focused bodies. Dwarf and Halfling exercise
+// parent+subrace flattening; Human exercises a race with no subraces. "Classes"
+// below acts as the races section's end heading.
 const RACES_PAGE: FixturePage = {
   lines: [
     'Races',
@@ -481,6 +482,43 @@ const RACES_PAGE: FixturePage = {
     'As a hill dwarf, you have keen senses and remarkable resilience.',
     'Ability Score Increase. Your Wisdom score increases by 1.',
     'Dwarven Toughness. Your hit point maximum increases by 1.',
+    'Mountain Dwarf',
+    "As a mountain dwarf, you're strong and hardy.",
+    'Ability Score Increase. Your Strength score increases by 2.',
+    'Dwarven Armor Training. You have proficiency with light and medium armor.',
+    'Elf',
+    'Elves are a magical people of otherworldly grace.',
+    'Elf Traits',
+    'Ability Score Increase. Your Dexterity score increases by 2.',
+    'Size. Elves range from under 5 to over 6 feet tall. Your size is Medium.',
+    'Speed. Your base walking speed is 30 feet.',
+    'Keen Senses. You have proficiency in the Perception skill.',
+    'Subrace. Ancient divides among the elven people resulted in three main subraces.',
+    'High Elf',
+    'As a high elf, you have a keen mind and a mastery of magic.',
+    'Ability Score Increase. Your Intelligence score increases by 1.',
+    'Wood Elf',
+    'As a wood elf, you have keen senses and intuition.',
+    'Ability Score Increase. Your Wisdom score increases by 1.',
+    'Dark Elf (Drow)',
+    'Descended from an earlier subrace of dark-skinned elves, the drow were banished.',
+    'Ability Score Increase. Your Charisma score increases by 1.',
+    'Halfling',
+    'The comforts of home are the goals of most halflings.',
+    'Halfling Traits',
+    'Ability Score Increase. Your Dexterity score increases by 2.',
+    'Size. Halflings average about 3 feet tall. Your size is Small.',
+    'Speed. Your base walking speed is 25 feet.',
+    'Lucky. When you roll a 1, you can reroll the die.',
+    'Subrace. The two main kinds of halfling are lightfoot and stout.',
+    'Lightfoot',
+    'As a lightfoot halfling, you can easily hide from notice.',
+    'Ability Score Increase. Your Charisma score increases by 1.',
+    'Naturally Stealthy. You can attempt to hide even when you are obscured only by a creature.',
+    'Stout',
+    "As a stout halfling, you're hardier than average.",
+    'Ability Score Increase. Your Constitution score increases by 1.',
+    'Stout Resilience. You have advantage on saving throws against poison.',
     'Human',
     'Humans are the youngest of the common races.',
     'Human Traits',
@@ -490,7 +528,58 @@ const RACES_PAGE: FixturePage = {
     'Size. Humans vary widely in height and build. Your size is Medium.',
     'Speed. Your base walking speed is 30 feet.',
     'Languages. You can speak, read, and write Common and one extra language.',
+    'Dragonborn',
+    'Dragonborn look very much like dragons standing erect in humanoid form.',
+    'Dragonborn Traits',
+    'Ability Score Increase. Your Strength score increases by 2, and your Charisma score increases by 1.',
+    'Size. Dragonborn are taller and heavier than humans. Your size is Medium.',
+    'Speed. Your base walking speed is 30 feet.',
+    'Draconic Ancestry. You have draconic ancestry.',
+    'Gnome',
+    'A constant hum of busy activity pervades the warrens and neighborhoods where gnomes form communities.',
+    'Gnome Traits',
+    'Ability Score Increase. Your Intelligence score increases by 2.',
+    'Size. Gnomes are between 3 and 4 feet tall. Your size is Small.',
+    'Speed. Your base walking speed is 25 feet.',
+    'Subrace. Two subraces of gnomes are found among the worlds of D&D.',
+    'Forest Gnome',
+    'As a forest gnome, you have a natural knack for illusion.',
+    'Ability Score Increase. Your Dexterity score increases by 1.',
+    'Rock Gnome',
+    'As a rock gnome, you have a natural inventiveness and hardiness.',
+    'Ability Score Increase. Your Constitution score increases by 1.',
+    'Half-Elf',
+    'Walking in two worlds but truly belonging to neither, half-elves combine qualities.',
+    'Half-Elf Traits',
+    'Ability Score Increase. Your Charisma score increases by 2.',
+    'Size. Half-elves are about the same size as humans. Your size is Medium.',
+    'Speed. Your base walking speed is 30 feet.',
+    'Half-Orc',
+    'Half-orcs inherit a tendency toward chaos from their orc parents.',
+    'Half-Orc Traits',
+    'Ability Score Increase. Your Strength score increases by 2.',
+    'Size. Half-orcs are somewhat larger and bulkier than humans. Your size is Medium.',
+    'Speed. Your base walking speed is 30 feet.',
+    'Tiefling',
+    'Tieflings are derived from human bloodlines.',
+    'Tiefling Traits',
+    'Ability Score Increase. Your Intelligence score increases by 1.',
+    'Size. Tieflings are about the same size and build as humans. Your size is Medium.',
+    'Speed. Your base walking speed is 30 feet.',
   ],
+};
+
+const RACES_PAGE_NO_ANCESTRIES: FixturePage = {
+  lines: [
+    'Races',
+    'This chapter heading extracted, but the race and subrace headings did not.',
+  ],
+};
+
+const RACES_PAGE_MISSING_STOUT: FixturePage = {
+  lines: RACES_PAGE.lines.filter(
+    (line) => typeof line !== 'string' || line !== 'Stout',
+  ),
 };
 
 // End heading for the races section AND the start of the Classes chapter. Now
@@ -612,11 +701,11 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(result.counts.rules).toBe(2);
     expect(result.counts.tables).toBe(4);
     expect(result.counts.equipment).toBe(4);
-    expect(result.counts.ancestries).toBe(3);
+    expect(result.counts.ancestries).toBe(18);
     expect(result.sourceHash).toMatch(/^[0-9a-f]{64}$/);
 
     const pack = loadRulesPackFromDirectory(outDir);
-    expect(pack.records).toHaveLength(33);
+    expect(pack.records).toHaveLength(48);
     const keys = pack.records.map((r) => r.key).sort();
     expect(keys).toContain('class:fighter');
     expect(keys).toContain('subclass:champion');
@@ -643,6 +732,8 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(keys).toContain('table:xp-thresholds-by-character-level');
     expect(keys).toContain('ancestry:dwarf');
     expect(keys).toContain('ancestry:hill-dwarf');
+    expect(keys).toContain('ancestry:lightfoot-halfling');
+    expect(keys).toContain('ancestry:stout-halfling');
     expect(keys).toContain('ancestry:human');
     // Assert the feat set is exactly Grappler — no bogus chapter headings
     // promoted as feat names by the heuristic.
@@ -687,9 +778,24 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     );
     const ancestryKeys = keys.filter((k) => k.startsWith('ancestry:'));
     expect(ancestryKeys).toEqual([
+      'ancestry:dark-elf-drow',
+      'ancestry:dragonborn',
       'ancestry:dwarf',
+      'ancestry:elf',
+      'ancestry:forest-gnome',
+      'ancestry:gnome',
+      'ancestry:half-elf',
+      'ancestry:half-orc',
+      'ancestry:halfling',
+      'ancestry:high-elf',
       'ancestry:hill-dwarf',
       'ancestry:human',
+      'ancestry:lightfoot-halfling',
+      'ancestry:mountain-dwarf',
+      'ancestry:rock-gnome',
+      'ancestry:stout-halfling',
+      'ancestry:tiefling',
+      'ancestry:wood-elf',
     ]);
 
     // Parent race: preserves the source 'race' term and references its subrace.
@@ -699,7 +805,10 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(dwarfData.source).toBe('race');
     expect(dwarfData.size).toBe('Medium');
     expect(dwarfData.speed).toBe(25);
-    expect(dwarfData.subraces).toEqual(['ancestry:hill-dwarf']);
+    expect(dwarfData.subraces).toEqual([
+      'ancestry:hill-dwarf',
+      'ancestry:mountain-dwarf',
+    ]);
     expect(dwarfData.subraceOf).toBeUndefined();
 
     // Subrace: flattened/self-contained, points back at the parent, inherits the
@@ -714,6 +823,24 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     ).map((t) => t.name);
     expect(hillTraitNames).toContain('Darkvision');
     expect(hillTraitNames).toContain('Dwarven Toughness');
+
+    // Bare SRD halfling subrace headings are parent-qualified in record names
+    // and keys so lookup by "Lightfoot Halfling" / "Stout Halfling" works.
+    const halfling = pack.records.find((r) => r.key === 'ancestry:halfling');
+    const halflingData = halfling?.data as Record<string, unknown>;
+    expect(halflingData.subraces).toEqual([
+      'ancestry:lightfoot-halfling',
+      'ancestry:stout-halfling',
+    ]);
+    const lightfoot = pack.records.find(
+      (r) => r.key === 'ancestry:lightfoot-halfling',
+    );
+    expect(lightfoot?.name).toBe('Lightfoot Halfling');
+    expect((lightfoot?.data as Record<string, unknown>).subraceOf).toBe(
+      'ancestry:halfling',
+    );
+    const stout = pack.records.find((r) => r.key === 'ancestry:stout-halfling');
+    expect(stout?.name).toBe('Stout Halfling');
 
     // Race without subraces.
     const human = pack.records.find((r) => r.key === 'ancestry:human');
@@ -1263,6 +1390,64 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     await expect(runImporter({ pdfPath, outDir })).rejects.toThrow(
       SectionNotFoundError,
     );
+  });
+
+  it('fails closed when the Races section yields no ancestry records', async () => {
+    const workDir = makeTmpDir();
+    const pdfPath = join(workDir, 'fixture.pdf');
+    const outDir = join(workDir, 'pack');
+    await writeFixturePdf(pdfPath, [
+      RACES_PAGE_NO_ANCESTRIES,
+      CLASSES_PAGE,
+      CORE_RULES_PAGE_ONE,
+      CORE_RULES_PAGE_TWO,
+      CORE_RULES_TABLES_PAGE,
+      SPELL_LISTS_PAGE,
+      SPELLS_PAGE,
+      MONSTERS_PAGE,
+      TREASURE_TABLES_PAGE,
+      MAGIC_ITEMS_PAGE,
+      COMBAT_ACTIONS_PAGE,
+      MAKING_AN_ATTACK_PAGE,
+      HAZARDS_PAGE,
+      FEATS_PAGE,
+      EQUIPMENT_PAGE,
+      CONDITIONS_PAGE,
+    ]);
+
+    await expect(runImporter({ pdfPath, outDir })).rejects.toThrow(
+      /SRD 5\.1 ancestry coverage check failed/,
+    );
+    expect(() => readFileSync(join(outDir, 'records.json'), 'utf8')).toThrow();
+  });
+
+  it('fails closed when an expected ancestry record is missing and names it', async () => {
+    const workDir = makeTmpDir();
+    const pdfPath = join(workDir, 'fixture.pdf');
+    const outDir = join(workDir, 'pack');
+    await writeFixturePdf(pdfPath, [
+      RACES_PAGE_MISSING_STOUT,
+      CLASSES_PAGE,
+      CORE_RULES_PAGE_ONE,
+      CORE_RULES_PAGE_TWO,
+      CORE_RULES_TABLES_PAGE,
+      SPELL_LISTS_PAGE,
+      SPELLS_PAGE,
+      MONSTERS_PAGE,
+      TREASURE_TABLES_PAGE,
+      MAGIC_ITEMS_PAGE,
+      COMBAT_ACTIONS_PAGE,
+      MAKING_AN_ATTACK_PAGE,
+      HAZARDS_PAGE,
+      FEATS_PAGE,
+      EQUIPMENT_PAGE,
+      CONDITIONS_PAGE,
+    ]);
+
+    await expect(runImporter({ pdfPath, outDir })).rejects.toThrow(
+      /Missing expected ancestry record\(s\): Stout Halfling/,
+    );
+    expect(() => readFileSync(join(outDir, 'records.json'), 'utf8')).toThrow();
   });
 
   it('fails closed when the monsters end heading is missing', async () => {

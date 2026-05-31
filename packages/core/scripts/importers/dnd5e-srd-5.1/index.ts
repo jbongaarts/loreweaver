@@ -14,7 +14,8 @@
  * unrelated chapters bleed into the last spell's body). The creature set is
  * additionally guarded by `validateCreatureCoverage`: an empty Monsters parse
  * (or one below `minCreatureCount`) throws `CreatureCoverageError` and writes
- * nothing.
+ * nothing. The ancestry set is guarded by exact SRD 5.1 expected-name coverage
+ * so a valid Races slice cannot silently under-extract race/subrace records.
  *
  * Scope today: spells, creatures, base classes, subclasses, features,
  * conditions, feats, hazards, actions, rules, tables, equipment, and ancestries
@@ -48,7 +49,7 @@ import {
   type Srd51SectionAnchors,
   sliceSection,
 } from './sections.js';
-import type { ImporterRunResult } from './types.js';
+import type { AncestryExtraction, ImporterRunResult } from './types.js';
 
 /**
  * Minimum number of creature stat blocks a full SRD 5.1 import must yield. The
@@ -97,6 +98,27 @@ export const MIN_EXPECTED_SRD_5_1_SUBCLASSES = 12;
  */
 export const MIN_EXPECTED_SRD_5_1_FEATURES = 12;
 
+export const EXPECTED_SRD_5_1_ANCESTRY_NAMES: readonly string[] = [
+  'Dragonborn',
+  'Dwarf',
+  'Elf',
+  'Gnome',
+  'Half-Elf',
+  'Half-Orc',
+  'Halfling',
+  'Human',
+  'Tiefling',
+  'Hill Dwarf',
+  'Mountain Dwarf',
+  'High Elf',
+  'Wood Elf',
+  'Dark Elf (Drow)',
+  'Lightfoot Halfling',
+  'Stout Halfling',
+  'Forest Gnome',
+  'Rock Gnome',
+];
+
 /**
  * Thrown when the parsed creature set fails the coverage check (empty result,
  * or fewer creatures than `minCreatureCount`). Distinct from
@@ -144,6 +166,19 @@ export class FeatureCoverageError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'FeatureCoverageError';
+  }
+}
+
+/**
+ * Thrown when the parsed ancestry set fails exact SRD 5.1 name-set coverage.
+ * Distinct from `SectionNotFoundError` so callers can tell "the Races section
+ * was found but produced too few ancestry records" apart from "the section
+ * anchor didn't match".
+ */
+export class AncestryCoverageError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'AncestryCoverageError';
   }
 }
 
@@ -285,6 +320,25 @@ function validateFeatureCoverage(
   }
 }
 
+/**
+ * Fail closed on ancestry under-extraction. Unlike the creature/class count
+ * floors, the SRD 5.1 race/subrace name set is small and stable enough to
+ * validate exactly. Runs after parsing and before any output is written.
+ */
+function validateAncestryCoverage(
+  ancestries: readonly AncestryExtraction[],
+): void {
+  const parsedNames = new Set(ancestries.map((ancestry) => ancestry.name));
+  const missing = EXPECTED_SRD_5_1_ANCESTRY_NAMES.filter(
+    (name) => !parsedNames.has(name),
+  );
+  if (missing.length === 0) return;
+
+  throw new AncestryCoverageError(
+    `SRD 5.1 ancestry coverage check failed: parsed ${ancestries.length} ancestry record(s), expected ${EXPECTED_SRD_5_1_ANCESTRY_NAMES.length}. Missing expected ancestry record(s): ${missing.join(', ')}. The Races section may have been truncated or its headings changed. Refusing to write a pack with incomplete ancestries.`,
+  );
+}
+
 export async function runImporter(
   input: RunImporterInput,
 ): Promise<ImporterRunResult> {
@@ -332,6 +386,7 @@ export async function runImporter(
   // emit a pack without races.
   const racePages = sliceSection(pages, anchors.races);
   const ancestries = parseAncestries(racePages);
+  validateAncestryCoverage(ancestries);
   // Throws SectionNotFoundError if the classes start OR end anchor doesn't
   // match — class is an implemented kind, so fail closed rather than emit a
   // pack without classes (the classes anchor sets requireEndHeading: true).
