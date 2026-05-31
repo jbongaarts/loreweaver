@@ -12,7 +12,6 @@ updates:
     versioning-strategy: increase-if-necessary
     labels:
       - dependencies
-      - npm
     commit-message:
       prefix: "deps"
     groups:
@@ -23,12 +22,27 @@ updates:
       model-provider-sdks:
         patterns:
           - "@anthropic-ai/*"
-      document-import-tooling:
+      # PDF extraction runtime. Kept separate from generation tooling so a
+      # risky pdfjs-dist major (e.g. 5.x -> 6.x lifecycle API removals that
+      # break the SRD importer) cannot ride along with routine pdfkit updates.
+      # Patch/minor only here; majors are ignored below and handled as a
+      # dedicated migration bead.
+      pdf-extraction-tooling:
         dependency-type: development
         patterns:
           - "pdfjs-dist"
+        update-types:
+          - "minor"
+          - "patch"
+      # PDF generation tooling (pdfkit and its types). Patch/minor only.
+      pdf-generation-tooling:
+        dependency-type: development
+        patterns:
           - "pdfkit"
           - "@types/pdfkit"
+        update-types:
+          - "minor"
+          - "patch"
       dev-tooling:
         dependency-type: development
         patterns:
@@ -49,6 +63,16 @@ updates:
         update-types:
           - "version-update:semver-major"
       - dependency-name: "typescript"
+        update-types:
+          - "version-update:semver-major"
+      # pdfjs-dist majors remove/change extraction lifecycle APIs the SRD
+      # importer depends on; open them only as an intentional migration bead.
+      - dependency-name: "pdfjs-dist"
+        update-types:
+          - "version-update:semver-major"
+      # pdfkit majors can change PDF generation output; review deliberately
+      # rather than as a routine grouped PR.
+      - dependency-name: "pdfkit"
         update-types:
           - "version-update:semver-major"
 
