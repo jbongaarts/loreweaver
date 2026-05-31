@@ -22,6 +22,7 @@ import { fileURLToPath } from 'node:url';
 import {
   MIN_EXPECTED_SRD_5_1_CLASSES,
   MIN_EXPECTED_SRD_5_1_CREATURES,
+  MIN_EXPECTED_SRD_5_1_FEATURES,
   MIN_EXPECTED_SRD_5_1_SUBCLASSES,
   runImporter,
 } from './index.js';
@@ -97,6 +98,7 @@ async function main(): Promise<void> {
     minCreatureCount: MIN_EXPECTED_SRD_5_1_CREATURES,
     minClassCount: MIN_EXPECTED_SRD_5_1_CLASSES,
     minSubclassCount: MIN_EXPECTED_SRD_5_1_SUBCLASSES,
+    minFeatureCount: MIN_EXPECTED_SRD_5_1_FEATURES,
   });
   const c = result.counts;
   console.log(

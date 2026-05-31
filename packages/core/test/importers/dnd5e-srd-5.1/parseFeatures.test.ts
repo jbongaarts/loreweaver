@@ -27,12 +27,16 @@ function page(pageNumber: number, lines: string[]): PageText {
 
 // ---------------------------------------------------------------------------
 // Simple class feature: Second Wind (Fighter). Its SRD prose carries no level
-// — the grant level (1) comes from the class progression, so the parser must
-// fall back to level 1 when no lead-in is present.
+// — the grant level comes from the class progression table rather than a
+// default.
 // ---------------------------------------------------------------------------
 
 const FIGHTER_SECOND_WIND = page(72, [
   'Fighter',
+  'The Fighter',
+  'Level Proficiency Bonus Features',
+  '1st +2 Fighting Style, Second Wind',
+  '2nd +2 Action Surge',
   'Class Features',
   'Hit Dice: 1d10 per fighter level',
   'Armor: All armor, shields',
@@ -57,7 +61,7 @@ describe('parseFeatures — simple class feature (Second Wind)', () => {
     expect(second.grantorName).toBe('Fighter');
   });
 
-  it('defaults to level 1 when the prose carries no level lead-in', () => {
+  it('reads level 1 from the progression table', () => {
     expect(second.level).toBe(1);
   });
 
@@ -71,6 +75,50 @@ describe('parseFeatures — simple class feature (Second Wind)', () => {
   });
 });
 
+const FIGHTER_NO_TABLE_SECOND_WIND = page(72, [
+  'Fighter',
+  'Class Features',
+  'Hit Dice: 1d10 per fighter level',
+  'Armor: All armor, shields',
+  'Weapons: Simple weapons, martial weapons',
+  'Saving Throws: Strength, Constitution',
+  'Second Wind',
+  'You have a limited well of stamina that you can draw on to protect',
+  'yourself from harm.',
+]);
+
+describe('parseFeatures — no unsafe default level without a table', () => {
+  it('does not emit a no-leadin class feature when the progression table is absent', () => {
+    expect(parseFeatures([FIGHTER_NO_TABLE_SECOND_WIND])).toEqual([]);
+  });
+});
+
+const FIGHTER_TABLE_ACTION_SURGE = page(72, [
+  'Fighter',
+  'The Fighter',
+  'Level Proficiency Bonus Features',
+  '1st +2 Fighting Style, Second Wind',
+  '2nd +2 Action Surge',
+  'Class Features',
+  'Hit Dice: 1d10 per fighter level',
+  'Armor: All armor, shields',
+  'Weapons: Simple weapons, martial weapons',
+  'Saving Throws: Strength, Constitution',
+  'Action Surge',
+  'You can push yourself beyond your normal limits for a moment.',
+]);
+
+describe('parseFeatures — table-driven class feature level', () => {
+  const [actionSurge] = parseFeatures([FIGHTER_TABLE_ACTION_SURGE]);
+
+  it('uses the progression table when class feature prose has no level lead-in', () => {
+    expect(actionSurge.name).toBe('Action Surge');
+    expect(actionSurge.grantorKind).toBe('class');
+    expect(actionSurge.grantorName).toBe('Fighter');
+    expect(actionSurge.level).toBe(2);
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Level-scaling class feature: Rage (Barbarian). Gained at 1st level, but the
 // body mentions a later scaling level. The parser must record the GRANT level
@@ -80,6 +128,10 @@ describe('parseFeatures — simple class feature (Second Wind)', () => {
 
 const BARBARIAN_RAGE = page(48, [
   'Barbarian',
+  'The Barbarian',
+  'Level Proficiency Bonus Features Rages Rage Damage',
+  '1st +2 Rage, Unarmored Defense 2 +2',
+  '2nd +2 Reckless Attack, Danger Sense 2 +2',
   'Class Features',
   'Hit Dice: 1d12 per barbarian level',
   'Armor: Light armor, medium armor, shields',
@@ -114,6 +166,9 @@ describe('parseFeatures — level-scaling class feature (Rage)', () => {
 
 const WIZARD_SPELLCASTING = page(114, [
   'Wizard',
+  'The Wizard',
+  'Level Proficiency Bonus Features Cantrips Known Spells Known',
+  '1st +2 Spellcasting, Arcane Recovery 3 6',
   'Class Features',
   'Hit Dice: 1d6 per wizard level',
   'Armor: None',
@@ -131,6 +186,36 @@ describe('parseFeatures — class feature named Spellcasting', () => {
     expect(spellcasting.name).toBe('Spellcasting');
     expect(spellcasting.grantorKind).toBe('class');
     expect(spellcasting.grantorName).toBe('Wizard');
+  });
+});
+
+const FIGHTER_FIGHTING_STYLE_OPTIONS = page(72, [
+  'Fighter',
+  'The Fighter',
+  'Level Proficiency Bonus Features',
+  '1st +2 Fighting Style, Second Wind',
+  'Class Features',
+  'Hit Dice: 1d10 per fighter level',
+  'Armor: All armor, shields',
+  'Weapons: Simple weapons, martial weapons',
+  'Saving Throws: Strength, Constitution',
+  'Fighting Style',
+  'You adopt a particular style of fighting as your specialty. Choose one',
+  'of the following options. You can’t take a Fighting Style option more',
+  'than once, even if you later get to choose again.',
+  'Archery',
+  'You gain a +2 bonus to attack rolls you make with ranged weapons.',
+  'Defense',
+  'While you are wearing armor, you gain a +1 bonus to AC.',
+]);
+
+describe('parseFeatures — title-case option subheadings', () => {
+  const features = parseFeatures([FIGHTER_FIGHTING_STYLE_OPTIONS]);
+
+  it('keeps option headings inside the parent feature body', () => {
+    expect(features.map((f) => f.name)).toEqual(['Fighting Style']);
+    expect(features[0]?.description).toMatch(/Archery/);
+    expect(features[0]?.description).toMatch(/Defense/);
   });
 });
 
@@ -207,6 +292,10 @@ describe('parseFeatures — subclass feature with an archetype lead-in (Improved
 describe('parseFeatures — class + subclass features in one slice', () => {
   const FIGHTER_FULL = page(72, [
     'Fighter',
+    'The Fighter',
+    'Level Proficiency Bonus Features',
+    '1st +2 Fighting Style, Second Wind',
+    '2nd +2 Action Surge',
     'Class Features',
     'Hit Dice: 1d10 per fighter level',
     'Armor: All armor, shields',
@@ -253,6 +342,9 @@ describe('parseFeatures — fail closed / empty input', () => {
   it('throws when a detected feature heading has no body text', () => {
     const malformed = page(72, [
       'Fighter',
+      'The Fighter',
+      'Level Proficiency Bonus Features',
+      '1st +2 Second Wind',
       'Class Features',
       'Hit Dice: 1d10 per fighter level',
       'Armor: All armor',

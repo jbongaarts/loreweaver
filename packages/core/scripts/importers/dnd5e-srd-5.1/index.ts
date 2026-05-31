@@ -90,6 +90,14 @@ export const MIN_EXPECTED_SRD_5_1_CLASSES = 12;
 export const MIN_EXPECTED_SRD_5_1_SUBCLASSES = 12;
 
 /**
+ * Minimum number of class/subclass-granted features a full SRD 5.1 import must
+ * yield. The real Classes chapter contains substantially more than one feature
+ * per class; this conservative floor catches empty or badly truncated feature
+ * parses without trying to be an exact coverage audit.
+ */
+export const MIN_EXPECTED_SRD_5_1_FEATURES = 12;
+
+/**
  * Thrown when the parsed creature set fails the coverage check (empty result,
  * or fewer creatures than `minCreatureCount`). Distinct from
  * `SectionNotFoundError` so callers can tell "the Monsters section was found
@@ -125,6 +133,17 @@ export class SubclassCoverageError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'SubclassCoverageError';
+  }
+}
+
+/**
+ * Thrown when the parsed feature set fails the coverage check (empty result, or
+ * fewer features than `minFeatureCount`).
+ */
+export class FeatureCoverageError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'FeatureCoverageError';
   }
 }
 
@@ -167,6 +186,13 @@ export interface RunImporterInput {
    * empty subclass result is always rejected regardless of this option.
    */
   readonly minSubclassCount?: number;
+  /**
+   * Minimum number of class/subclass-granted features the Classes section must
+   * yield for the run to be accepted. When set and the parsed count is below
+   * it, the importer throws `FeatureCoverageError` and writes nothing. An empty
+   * feature result is always rejected regardless of this option.
+   */
+  readonly minFeatureCount?: number;
 }
 
 /**
@@ -238,6 +264,27 @@ function validateSubclassCoverage(
   }
 }
 
+/**
+ * Fail closed on a feature result that can't be a faithful SRD 5.1 import: an
+ * empty set is always rejected; a non-empty set below `minFeatureCount` (when
+ * provided) is rejected too.
+ */
+function validateFeatureCoverage(
+  count: number,
+  minFeatureCount: number | undefined,
+): void {
+  if (count === 0) {
+    throw new FeatureCoverageError(
+      'SRD 5.1 feature coverage check failed: the Classes section was found but yielded 0 class/subclass features. The class progression tables or feature headings likely changed. Refusing to write a pack with no features.',
+    );
+  }
+  if (minFeatureCount !== undefined && count < minFeatureCount) {
+    throw new FeatureCoverageError(
+      `SRD 5.1 feature coverage check failed: parsed ${count} feature(s), expected at least ${minFeatureCount}. The Classes section may have been truncated or its progression tables changed.`,
+    );
+  }
+}
+
 export async function runImporter(
   input: RunImporterInput,
 ): Promise<ImporterRunResult> {
@@ -302,9 +349,9 @@ export async function runImporter(
   // not silently produce a pack that omits `subclass` from the manifest.
   validateSubclassCoverage(subclasses.length, input.minSubclassCount);
   // Class- and subclass-granted features parse from the same Classes-chapter
-  // slice (ADR 0009 / loreweaver-0m9.5.18). No coverage floor today: feature
-  // completeness is the full-PDF audit's responsibility, not a per-run guard.
+  // slice (ADR 0009 / loreweaver-0m9.5.18).
   const features = parseFeatures(classPages);
+  validateFeatureCoverage(features.length, input.minFeatureCount);
   const pack = buildPack({
     spells,
     classIndex,

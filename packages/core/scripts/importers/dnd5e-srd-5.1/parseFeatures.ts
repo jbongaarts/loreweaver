@@ -22,22 +22,19 @@
  * known-name anchors `parseSubclasses` uses; only structural anchors are
  * hard-coded (ADR 0007) — every field VALUE is extracted from the source.
  *
- * Feature-heading detection mirrors the conservative heuristic in
- * `parseFeats`: a feature name is a short title-case line that is not a label
- * ("Armor:", "Hit Dice: …"), not body prose (it must not open with a common
- * sentence starter), not a structural heading the Classes chapter prints
- * (Class Features, Proficiencies, the subclass-group headings like "Martial
- * Archetypes", or a known class/subclass name), and not a table line (digits).
- * A feature is only emitted once a class context is open, so the chapter
- * heading and the leading class-name line are never promoted.
+ * Feature-heading detection is table-driven where the source gives a table:
+ * class/subclass progression rows populate grant-level anchors, and only
+ * headings matching those anchors become feature records. Prose lead-ins such
+ * as "At 3rd level" are a secondary fallback for subclass features whose grant
+ * level is encoded directly in the body. Unanchored title-case option headings
+ * inside a feature body (for example Fighting Style options) remain part of the
+ * parent feature description rather than becoming records.
  *
- * Level: the grant level is read from a leading clause in the body
+ * Level: table anchors are the primary source. A leading clause in the body
  * ("Starting at 2nd level, …", "Beginning when you choose this archetype at
- * 3rd level, …", "At 2nd level, …"). The level is taken from the FIRST clause
- * only, so a later in-body scaling mention (Rage's "At 3rd level your rage
- * damage increases …") is not mistaken for the grant level. A feature whose
- * body opens with no such clause is a 1st-level baseline feature (Second Wind,
- * Rage, …) and is recorded at level 1. See `FeatureExtraction` in `types.ts`.
+ * 3rd level, …", "At 2nd level, …") is used only when no table anchor exists.
+ * A feature whose body opens with no such clause and lacks a table anchor is
+ * not emitted; silently defaulting to level 1 would corrupt `data.level`.
  *
  * Fail-closed: a detected feature heading whose body re-flows to an empty
  * string is malformed (the feature kindSchema requires a non-empty
@@ -68,8 +65,8 @@ const SUBCLASS_GROUP_HEADINGS = new Set([
   'Arcane Traditions',
 ]);
 
-// Class-block structural headings (the stat block before the feature list) and
-// common class-table column headers. Structural, never features.
+// Class-block structural headings (the stat block before the feature list).
+// Structural, never features.
 const STRUCTURAL_HEADINGS = new Set([
   'Class Features',
   'Hit Points',
@@ -77,8 +74,6 @@ const STRUCTURAL_HEADINGS = new Set([
   'Equipment',
   'Quick Build',
   'Multiclassing',
-  'Level',
-  'Features',
   'Proficiency Bonus',
 ]);
 
@@ -94,9 +89,25 @@ const PROSE_STARTER =
 const LEVEL_LEAD_IN =
   /^(?:Beginning|Starting|When you reach|When you choose|At)\b[^.]*?\b(\d{1,2})(?:st|nd|rd|th)\s+level\b/i;
 
+const PROGRESSION_ROW =
+  /^(\d{1,2})(?:st|nd|rd|th)\s+(?:(?:\+\d+|[+\u2212-]\d+)\s+)?(.+)$/;
+const TRAILING_TABLE_CELL =
+  /\s+(?:\d+|[-—]|\+\d+|[+\u2212-]\d+|\d+d\d+(?:\s*\([^)]*\))?)$/i;
+
 interface FlatLine {
   readonly line: string;
   readonly page: number;
+}
+
+interface FeatureAnchor {
+  readonly grantorKind: 'class' | 'subclass';
+  readonly grantorName: string;
+  readonly featureName: string;
+  readonly level: number;
+}
+
+interface FeatureStart {
+  readonly level: number;
 }
 
 /** Collapse internal whitespace runs to single spaces and trim. */
@@ -135,6 +146,26 @@ function joinParagraphs(lines: readonly string[]): string {
   return paragraphs.join('\n\n').trim();
 }
 
+function normalizeFeatureName(name: string): string {
+  return name
+    .replace(/\s*\([^)]*\)\s*$/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+function anchorKey(
+  grantorKind: 'class' | 'subclass',
+  grantorName: string,
+  featureName: string,
+): string {
+  return `${grantorKind}\0${grantorName}\0${normalizeFeatureName(featureName)}`;
+}
+
+function isTableHeaderLine(line: string): boolean {
+  return /^Level\b/.test(line) && /\bFeatures\b/.test(line);
+}
+
 /**
  * Is `line` a known structural anchor (class name, subclass name, subclass-
  * group heading, or class-block / table heading)? Such lines bound a feature
@@ -145,6 +176,7 @@ function isStructuralLine(line: string): boolean {
     PARENT_CLASS_NAMES.has(line) ||
     SUBCLASS_NAMES.has(line) ||
     SUBCLASS_GROUP_HEADINGS.has(line) ||
+    isTableHeaderLine(line) ||
     STRUCTURAL_HEADINGS.has(line)
   );
 }
@@ -164,10 +196,116 @@ function isFeatureHeading(line: string): boolean {
   return /^[A-Z][A-Za-z '\-/()]+$/.test(line);
 }
 
-/** Extract the grant level from a feature body; defaults to 1. */
-function levelOf(description: string): number {
-  const match = LEVEL_LEAD_IN.exec(description.trim());
-  return match === null ? 1 : Number.parseInt(match[1], 10);
+function splitFeatureCell(cell: string): readonly string[] {
+  return cell
+    .split(/\s*,\s*/)
+    .map((part) => part.replace(/\s*\([^)]*\)\s*$/g, '').trim())
+    .filter((part) => part.length > 0 && !/^[-—]+$/.test(part));
+}
+
+function progressionFeaturesFromLine(
+  line: string,
+): { readonly level: number; readonly features: readonly string[] } | null {
+  const match = PROGRESSION_ROW.exec(line);
+  if (match === null) return null;
+
+  let featureCell = match[2].trim();
+  while (TRAILING_TABLE_CELL.test(featureCell)) {
+    featureCell = featureCell.replace(TRAILING_TABLE_CELL, '').trim();
+  }
+
+  return {
+    level: Number.parseInt(match[1], 10),
+    features: splitFeatureCell(featureCell),
+  };
+}
+
+function collectFeatureAnchors(
+  flat: readonly FlatLine[],
+): ReadonlyMap<string, FeatureAnchor> {
+  const anchors = new Map<string, FeatureAnchor>();
+  let currentClass: string | null = null;
+  let currentSubclass: string | null = null;
+
+  for (const { line } of flat) {
+    if (PARENT_CLASS_NAMES.has(line)) {
+      currentClass = line;
+      currentSubclass = null;
+      continue;
+    }
+    if (SUBCLASS_NAMES.has(line)) {
+      currentSubclass = line;
+      continue;
+    }
+    if (currentClass === null) continue;
+
+    const parsed = progressionFeaturesFromLine(line);
+    if (parsed === null) continue;
+
+    const grantorKind = currentSubclass === null ? 'class' : 'subclass';
+    const grantorName = currentSubclass ?? currentClass;
+    for (const featureName of parsed.features) {
+      const key = anchorKey(grantorKind, grantorName, featureName);
+      if (anchors.has(key)) continue;
+      anchors.set(key, {
+        grantorKind,
+        grantorName,
+        featureName,
+        level: parsed.level,
+      });
+    }
+  }
+
+  return anchors;
+}
+
+function anchorFor(
+  anchors: ReadonlyMap<string, FeatureAnchor>,
+  grantorKind: 'class' | 'subclass',
+  grantorName: string,
+  featureName: string,
+): FeatureAnchor | undefined {
+  return anchors.get(anchorKey(grantorKind, grantorName, featureName));
+}
+
+function leadingLevelFromFollowingLines(
+  flat: readonly FlatLine[],
+  startIdx: number,
+): number | null {
+  const parts: string[] = [];
+  for (let i = startIdx; i < flat.length && parts.length < 3; i++) {
+    const line = flat[i].line.trim();
+    if (line.length === 0) continue;
+    if (isStructuralLine(line)) break;
+    parts.push(line);
+    if (/[.?!]/.test(line)) break;
+  }
+
+  const match = LEVEL_LEAD_IN.exec(parts.join(' ').trim());
+  return match === null ? null : Number.parseInt(match[1], 10);
+}
+
+function featureStartAt(
+  flat: readonly FlatLine[],
+  idx: number,
+  grantorKind: 'class' | 'subclass',
+  grantorName: string,
+  anchors: ReadonlyMap<string, FeatureAnchor>,
+): FeatureStart | null {
+  const line = flat[idx].line;
+  if (!isFeatureHeading(line)) return null;
+
+  const anchor = anchorFor(anchors, grantorKind, grantorName, line);
+  if (anchor !== undefined) {
+    return { level: anchor.level };
+  }
+
+  const proseLevel = leadingLevelFromFollowingLines(flat, idx + 1);
+  if (proseLevel !== null) {
+    return { level: proseLevel };
+  }
+
+  return null;
 }
 
 /**
@@ -179,6 +317,7 @@ export function parseFeatures(pages: readonly PageText[]): FeatureExtraction[] {
   const flat = flatten(pages);
   if (flat.length === 0) return [];
 
+  const anchors = collectFeatureAnchors(flat);
   const out: FeatureExtraction[] = [];
   let currentClass: string | null = null;
   let currentSubclass: string | null = null;
@@ -201,7 +340,10 @@ export function parseFeatures(pages: readonly PageText[]): FeatureExtraction[] {
     // Features only exist once a class context is open (so the chapter heading
     // and pre-class prose are never promoted).
     if (currentClass === null) continue;
-    if (!isFeatureHeading(line)) continue;
+    const grantorKind = currentSubclass === null ? 'class' : 'subclass';
+    const grantorName = currentSubclass ?? currentClass;
+    const start = featureStartAt(flat, i, grantorKind, grantorName, anchors);
+    if (start === null) continue;
 
     // Collect the body: every line up to the next structural anchor or the next
     // feature heading.
@@ -209,7 +351,10 @@ export function parseFeatures(pages: readonly PageText[]): FeatureExtraction[] {
     let j = i + 1;
     for (; j < flat.length; j++) {
       const next = flat[j].line;
-      if (isStructuralLine(next) || isFeatureHeading(next)) break;
+      if (isStructuralLine(next)) break;
+      if (featureStartAt(flat, j, grantorKind, grantorName, anchors) !== null) {
+        break;
+      }
       bodyLines.push(next);
     }
 
@@ -222,9 +367,9 @@ export function parseFeatures(pages: readonly PageText[]): FeatureExtraction[] {
 
     out.push({
       name: line,
-      grantorKind: currentSubclass === null ? 'class' : 'subclass',
-      grantorName: currentSubclass ?? currentClass,
-      level: levelOf(description),
+      grantorKind,
+      grantorName,
+      level: start.level,
       description,
       sourcePage: page,
     });

@@ -325,14 +325,12 @@ export interface SubclassExtraction {
  * The `dnd5e-srd` feature kindSchema (`validateDnd5eFeature`) requires a
  * non-empty `description`, a `source` grantor key, and an integer `level >= 1`.
  *
- * Level note: most non-1st-level SRD features state the grant level in a
- * leading clause ("Starting at 2nd level, ...", "Beginning when you choose this
- * archetype at 3rd level, ..."). The 1st-level baseline features a class gains
- * at character creation (Second Wind, Rage, ...) carry no such clause, so a
- * feature with no leading level clause is recorded at level 1. The level is
- * taken from the FIRST clause only, so a later in-body scaling mention (Rage's
- * "At 3rd level your rage damage increases ...") is not mistaken for the grant
- * level. Scope (ADR 0009 / loreweaver-0m9.5.18).
+ * Level note: `parseFeatures` treats class/subclass progression-table rows as
+ * the primary source for the grant level. Leading prose clauses ("Starting at
+ * 2nd level, ...", "Beginning when you choose this archetype at 3rd level,
+ * ...") are only a fallback when no table anchor exists. A no-leadin feature
+ * without a table anchor is not emitted, because silently defaulting to level 1
+ * would corrupt the canonical record. Scope (ADR 0009 / loreweaver-0m9.5.18).
  */
 export interface FeatureExtraction {
   readonly name: string;
