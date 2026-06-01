@@ -87,8 +87,9 @@ regarding Wizards other than that provided above. You may, however, include a
 statement on your work that it is 'compatible with fifth edition' or '5E
 compatible.'" The generated rules-pack license block at
 `packages/core/data/rules-packs/rules__dnd5e-srd-5.1/manifest.json` is the
-authoritative copy carried with redistributed records; `loreweaver-bnb` tracks
-aligning that pack's `attributionText` with the verbatim preamble quoted here.
+authoritative copy carried with redistributed records; its `attributionText`
+is aligned with and tested against the `attribution.text` pinned in
+`manifest.json`.
 
 ## Updating the vendored artifact
 
