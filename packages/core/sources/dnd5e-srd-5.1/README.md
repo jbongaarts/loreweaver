@@ -19,10 +19,10 @@ counterpart. If the two disagree, `manifest.json` is the source of truth.
 | Source version       | 5.1                                                                                                  |
 | Publisher            | Wizards of the Coast LLC                                                                             |
 | Source URL           | `https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf`                              |
-| Published            | 2023-01-12                                                                                           |
+| Licensed-released    | 2023-01-27 (Wizards' CC-BY-4.0 release announcement; underlying rules text predates this date)       |
 | Retrieved            | 2026-06-01                                                                                           |
 | License              | Creative Commons Attribution 4.0 International (CC-BY-4.0)                                           |
-| License URL          | `https://creativecommons.org/licenses/by/4.0/`                                                       |
+| License URL          | `https://creativecommons.org/licenses/by/4.0/legalcode`                                              |
 | Size (bytes)         | 3,158,713                                                                                            |
 | SHA-256              | `2504d2a0abb0a4d491a939be4f17910a2dde0312570ab8d208080225ccf0a1f0`                                   |
 
@@ -70,14 +70,25 @@ post-hoc as well.
 
 ## Attribution
 
-Any redistribution of records extracted from this PDF must carry the SRD 5.1
-attribution text:
+The SRD 5.1 PDF's first-page **Legal Information** section requires the
+following verbatim attribution statement on any redistribution of material
+taken from the SRD. Do not paraphrase, shorten, or reword it -- the wording
+below is quoted from the PDF preamble itself and is also pinned in
+`manifest.json` under `attribution.text` (the source of truth for tooling):
 
-> This work includes material from the System Reference Document 5.1 by
-> Wizards of the Coast LLC, available under CC-BY-4.0.
+> This work includes material taken from the System Reference Document 5.1
+> ("SRD 5.1") by Wizards of the Coast LLC and available at
+> `https://dnd.wizards.com/resources/systems-reference-document`. The SRD 5.1
+> is licensed under the Creative Commons Attribution 4.0 International License
+> available at `https://creativecommons.org/licenses/by/4.0/legalcode`.
 
-The generated pack license block carries this text per record; see
-`packages/core/data/rules-packs/rules__dnd5e-srd-5.1/manifest.json`.
+The same preamble also instructs: "Please do not include any other attribution
+regarding Wizards other than that provided above. You may, however, include a
+statement on your work that it is 'compatible with fifth edition' or '5E
+compatible.'" The generated rules-pack license block at
+`packages/core/data/rules-packs/rules__dnd5e-srd-5.1/manifest.json` is the
+authoritative copy carried with redistributed records; `loreweaver-bnb` tracks
+aligning that pack's `attributionText` with the verbatim preamble quoted here.
 
 ## Updating the vendored artifact
 

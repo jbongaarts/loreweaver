@@ -1,12 +1,13 @@
 {
   "sourceTitle": "System Reference Document 5.1",
   "sourceVersion": "5.1",
-  "sourceDate": "2023-01-12",
+  "sourceDate": "2023-01-27",
+  "sourceDateNote": "Date Wizards of the Coast released SRD 5.1 under CC-BY-4.0 (Dungeons & Dragons Beyond announcement, January 27 2023). The underlying rules text predates this date; sourceDate identifies the licensed artifact's publication moment, not the rules content's authorship.",
   "publisher": "Wizards of the Coast LLC",
   "license": {
     "name": "Creative Commons Attribution 4.0 International",
     "spdx": "CC-BY-4.0",
-    "url": "https://creativecommons.org/licenses/by/4.0/"
+    "url": "https://creativecommons.org/licenses/by/4.0/legalcode"
   },
   "artifact": {
     "filename": "SRD_CC_v5.1.pdf",
@@ -15,5 +16,10 @@
     "sizeBytes": 3158713,
     "sha256": "2504d2a0abb0a4d491a939be4f17910a2dde0312570ab8d208080225ccf0a1f0"
   },
-  "attribution": "This work includes material from the System Reference Document 5.1 by Wizards of the Coast LLC, available under CC-BY-4.0."
+  "attribution": {
+    "preamblePage": 1,
+    "preambleSection": "Legal Information",
+    "preambleNote": "The verbatim attribution text below is quoted from the SRD 5.1 PDF's first-page Legal Information section. Redistribution of records extracted from this artifact MUST carry this exact statement -- do not paraphrase, shorten, or reword it.",
+    "text": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode."
+  }
 }
