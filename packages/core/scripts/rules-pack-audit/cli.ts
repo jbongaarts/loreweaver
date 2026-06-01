@@ -1,10 +1,16 @@
 /**
  * CLI for generic rules-pack audit and diff.
  *
- * Usage:
+ * Usage via the root npm scripts (recommended — `audit` / `diff` is baked
+ * into each script, so callers only pass paths and flags):
  *
- *   npm run audit:rules-pack -- audit <packDir>
- *   npm run diff:rules-pack  -- diff  <baselineDir> <candidateDir>
+ *   npm run audit:rules-pack -- <packDir>
+ *   npm run diff:rules-pack  -- <baselineDir> <candidateDir>
+ *
+ * Usage invoking the script directly (each call must name the subcommand):
+ *
+ *   tsx packages/core/scripts/rules-pack-audit/cli.ts audit <packDir>
+ *   tsx packages/core/scripts/rules-pack-audit/cli.ts diff  <baselineDir> <candidateDir>
  *
  * Common flags:
  *   --json              Print the JSON form instead of the human-readable text.

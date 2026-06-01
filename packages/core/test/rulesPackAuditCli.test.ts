@@ -5,7 +5,13 @@
  */
 
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -17,6 +23,7 @@ const CLI_PATH = resolve(
   REPO_ROOT,
   'packages/core/scripts/rules-pack-audit/cli.ts',
 );
+const CLI_SCRIPT_RELATIVE = 'packages/core/scripts/rules-pack-audit/cli.ts';
 
 const tmpDirs: string[] = [];
 
@@ -196,5 +203,100 @@ describe('rules-pack-audit CLI', () => {
     const result = runCli([]);
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('Usage:');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Root npm-script wiring
+//
+// The CLI's documented usage is `npm run audit:rules-pack -- <packDir>` and
+// `npm run diff:rules-pack -- <baselineDir> <candidateDir>`. Both scripts bake
+// the audit/diff subcommand into the script body so callers only pass paths
+// and flags. This block protects that contract from regressing in two ways:
+//
+//   1. Asserts each script string targets this CLI and embeds the right
+//      subcommand. If somebody changes the script to a generic
+//      `tsx <cli>` without the subcommand (or drops `tsx`, or moves the CLI
+//      path), this trips immediately with a precise message.
+//   2. Spawns the parsed script command line plus user args directly, so the
+//      end-to-end "what `npm run …` actually runs" path is exercised without
+//      requiring npm itself to be on PATH (which would make the test
+//      environment-dependent).
+// ---------------------------------------------------------------------------
+
+interface RootPackageJson {
+  readonly scripts?: Readonly<Record<string, string>>;
+}
+
+function readRootScripts(): Readonly<Record<string, string>> {
+  const pkgPath = resolve(REPO_ROOT, 'package.json');
+  const pkg = JSON.parse(readFileSync(pkgPath, 'utf8')) as RootPackageJson;
+  return pkg.scripts ?? {};
+}
+
+function runNpmScript(
+  scriptCommand: string,
+  args: readonly string[],
+): { status: number; stdout: string; stderr: string } {
+  const tokens = scriptCommand.trim().split(/\s+/);
+  if (tokens.length === 0 || tokens[0] !== 'tsx') {
+    throw new Error(
+      `npm script must invoke tsx directly (got: ${scriptCommand}); ` +
+        'update this test if the script runner changed',
+    );
+  }
+  const result = spawnSync(
+    process.execPath,
+    ['--import', 'tsx', ...tokens.slice(1), ...args],
+    { encoding: 'utf8', cwd: REPO_ROOT },
+  );
+  return {
+    status: result.status ?? 0,
+    stdout: result.stdout,
+    stderr: result.stderr,
+  };
+}
+
+describe('rules-pack-audit CLI — root npm-script wiring', () => {
+  it('audit:rules-pack script bakes in the audit subcommand and points at this CLI', () => {
+    const scripts = readRootScripts();
+    const script = scripts['audit:rules-pack'];
+    expect(script).toBeDefined();
+    expect(script).toContain(CLI_SCRIPT_RELATIVE);
+    expect(script).toMatch(/\baudit\b/);
+  });
+
+  it('diff:rules-pack script bakes in the diff subcommand and points at this CLI', () => {
+    const scripts = readRootScripts();
+    const script = scripts['diff:rules-pack'];
+    expect(script).toBeDefined();
+    expect(script).toContain(CLI_SCRIPT_RELATIVE);
+    expect(script).toMatch(/\bdiff\b/);
+  });
+
+  it('audit:rules-pack runs end-to-end with only a packDir (no subcommand in user args)', () => {
+    const scripts = readRootScripts();
+    const packDir = join(makeTmpDir(), 'pack');
+    writePack(packDir, [record('spell:acid-splash')]);
+    // Mirrors `npm run audit:rules-pack -- <packDir>`.
+    const result = runNpmScript(scripts['audit:rules-pack'], [packDir]);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('Audit for pack: rules:fixture-srd');
+  });
+
+  it('diff:rules-pack runs end-to-end with only the two directories (no subcommand in user args)', () => {
+    const scripts = readRootScripts();
+    const baseDir = join(makeTmpDir(), 'a');
+    const candDir = join(makeTmpDir(), 'b');
+    writePack(baseDir, [record('spell:acid-splash')]);
+    writePack(candDir, [
+      record('spell:acid-splash'),
+      record('spell:fire-bolt', { name: 'Fire Bolt' }),
+    ]);
+    // Mirrors `npm run diff:rules-pack -- <baselineDir> <candidateDir>`.
+    const result = runNpmScript(scripts['diff:rules-pack'], [baseDir, candDir]);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('Records added: 1');
+    expect(result.stdout).toContain('+ spell:fire-bolt');
   });
 });
