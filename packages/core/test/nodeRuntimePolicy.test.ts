@@ -118,7 +118,14 @@ describe('Node runtime policy', () => {
     expect(gitignore).toContain(
       'packages/core/scripts/importers/*/.generated/',
     );
-    expect(gitignore).toContain('packages/core/sources/*/*.pdf');
+    // Vendored licensed source PDFs (e.g. SRD 5.1 under CC-BY-4.0) ARE committed
+    // per ADR 0007 / loreweaver-60z so the importer + audit tooling run against
+    // a pinned authoritative source on every clone and in CI; only non-PDF
+    // scratch artifacts (extracted text, local caches) stay ignored.
+    expect(gitignore).not.toMatch(/^packages\/core\/sources\/\*\/\*\.pdf$/m);
+    expect(gitignore).toContain('packages/core/sources/*/*.txt');
+    expect(gitignore).toContain('packages/core/sources/*/*.html');
+    expect(gitignore).toContain('packages/core/sources/*/.cache/');
   });
 
   it('runs Biome across the whole repo without omitting tracked root files', () => {
