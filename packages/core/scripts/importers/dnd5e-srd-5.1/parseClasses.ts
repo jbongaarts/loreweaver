@@ -44,11 +44,13 @@
  * data lives in the separate Multiclassing prerequisites table. Per ADR 0007,
  * where the source does not specify a field the importer leaves it empty rather
  * than supplying a value from general knowledge, so a class with no primary-
- * ability line in its block yields `primaryAbilities: []`. The labeled-line
+ * ability line in its block yields `primaryAbilities: []` here. The labeled-line
  * parse below still runs so a layout that DOES carry the line (a variant SRD
- * rendering, or a homebrew pack) populates it. Cross-referencing the
- * Multiclassing prerequisites table to fill this field is tracked as a separate
- * normalization-mapping bead (loreweaver-0m9.5.19; see ADR 0009).
+ * rendering, or a homebrew pack) populates it. For the canonical SRD 5.1, the
+ * empty value is filled downstream from the Multiclassing prerequisites listing:
+ * `parseMulticlassing` builds a class-name → abilities map and the class emitter
+ * (`classExtractionsToRecords`) merges it into `data.primaryAbilities` when this
+ * parser left the field empty (loreweaver-0m9.5.19; see ADR 0009).
  */
 
 import type { ClassExtraction, PageText } from './types.js';
