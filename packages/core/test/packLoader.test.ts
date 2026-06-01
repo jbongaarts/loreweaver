@@ -128,9 +128,7 @@ describe('loadRulesPackFromDirectory — seed pack (rules:dnd5e-srd-5.1)', () =>
 
   it('meta.source fields are preserved', () => {
     const pack = loadRulesPackFromDirectory(SEED_PACK_DIR);
-    expect(pack.meta.source.sourceTitle).toBe(
-      'D&D 5e System Reference Document 5.1',
-    );
+    expect(pack.meta.source.sourceTitle).toBe('System Reference Document 5.1');
     expect(pack.meta.source.sourceUrl).toBe(
       'https://dnd.wizards.com/resources/systems-reference-document',
     );

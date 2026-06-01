@@ -1,0 +1,119 @@
+# Path-gated SRD 5.1 importer reproducibility check (loreweaver-0m9.6).
+#
+# Runs `npm run verify:dnd5e-srd-pack` only when files that could change the
+# committed pack's expected content actually change. Default CI (`ci.yml`) does
+# NOT run the importer: by design, the SRD importer is a one-shot construction
+# tool, not a per-PR generator. This workflow is the path-gated supplement that
+# answers "would re-running the importer today produce the same pack?".
+#
+# Triggering paths intentionally include:
+#   - The SRD 5.1 importer code itself.
+#   - The vendored SRD 5.1 PDF + manifest.
+#   - The committed canonical pack directory.
+#   - Rules schemas / audit / pack loader (validate + audit + diff invariants).
+#   - The verify script.
+#   - The lockfile and root package.json (dependency or runtime drift).
+#   - This workflow file.
+#
+# Transitional informational behavior:
+#   The verify command's exit codes are:
+#     0 = importer output matches the committed pack byte-for-byte.
+#     1 = importer succeeded but its output differs from the committed pack.
+#     2 = verification could not produce a meaningful diff (importer/runtime
+#         failure, pack-loading failure, etc.).
+#
+#   Today (loreweaver-0m9.6): the importer's section anchors do not match the
+#   real vendored SRD 5.1 PDF, so the verify command exits 2 against the real
+#   PDF. Tracked as loreweaver-0m9.5.20.
+#
+#   After 0m9.5.20 is fixed but before the canonical-regen PR: the importer
+#   succeeds and produces the full SRD record set; the committed pack is still
+#   the 2-record seed, so the verify command exits 1 with a large diff.
+#
+#   After the canonical-regen PR replaces the seed pack with importer output:
+#   the verify command exits 0 unless importer/parser/source/schema/lockfile
+#   change drifts it.
+#
+#   Because exit 2 and exit 1 are both expected during the transitional
+#   period, the verify step below catches any nonzero exit, surfaces it as a
+#   GitHub warning annotation + step summary so reviewers see it, and then
+#   exits 0 so this path-gated workflow does not report a failed PR check
+#   while the verification is intentionally informational. The canonical-regen
+#   PR is responsible for removing that shell wrapper as part of that PR so
+#   future drift between the importer and the committed pack starts blocking
+#   PRs that touch the gated paths.
+#
+# Once strict, this job catches:
+#   - Accidental hand-edits to the committed pack that diverge from the
+#     importer (the diff is the audit trail).
+#   - Importer/parser changes that would silently alter pack content.
+#   - Vendored PDF or schema changes whose effect on the pack was not
+#     re-validated.
+
+name: SRD importer reproducibility
+
+on:
+  push:
+    paths:
+      - "packages/core/scripts/importers/dnd5e-srd-5.1/**"
+      - "packages/core/scripts/verify-dnd5e-srd-pack/**"
+      - "packages/core/sources/dnd5e-srd-5.1/**"
+      - "packages/core/data/rules-packs/rules__dnd5e-srd-5.1/**"
+      - "packages/core/src/rules/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/srd-importer-reproducibility.yml"
+  pull_request:
+    paths:
+      - "packages/core/scripts/importers/dnd5e-srd-5.1/**"
+      - "packages/core/scripts/verify-dnd5e-srd-pack/**"
+      - "packages/core/sources/dnd5e-srd-5.1/**"
+      - "packages/core/data/rules-packs/rules__dnd5e-srd-5.1/**"
+      - "packages/core/src/rules/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/srd-importer-reproducibility.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      npm_config_build_from_source: "false"
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Node 24 LTS
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Informational wrapper: see the header's "Transitional informational
+      # behavior" section. Nonzero exit becomes a GitHub warning + step
+      # summary, then the step exits 0 so the workflow does not show as a
+      # failed PR check. The canonical-regen PR removes this wrapper (replaces
+      # the `run:` body with a plain `npm run verify:dnd5e-srd-pack`).
+      - name: Verify SRD 5.1 pack reproducibility
+        run: |
+          set +e
+          npm run verify:dnd5e-srd-pack
+          status=$?
+          if [ "$status" -ne 0 ]; then
+            echo "::warning title=SRD importer reproducibility is informational for now::verify:dnd5e-srd-pack exited $status. This is expected until loreweaver-0m9.5.20 is fixed and the seed pack is replaced by the canonical generated SRD pack."
+            {
+              echo "## SRD importer reproducibility"
+              echo ""
+              echo "\`npm run verify:dnd5e-srd-pack\` exited with status \`$status\`."
+              echo ""
+              echo "This workflow is informational until:"
+              echo "- \`loreweaver-0m9.5.20\` fixes the real vendored-PDF importer failure, and"
+              echo "- the seed D&D SRD pack is replaced with the canonical generated pack."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
