@@ -340,7 +340,7 @@ function validateSpells(
   }
 }
 
-function classHasSpellcasting(className: string): boolean {
+function classHasSpellcasting(_className: string): boolean {
   // The fixture's Fighter has no spellcasting. Casters added later (Wizard,
   // Sorcerer, Cleric, etc.) should opt in here once their records exist.
   return false;

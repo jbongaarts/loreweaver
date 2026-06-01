@@ -11,7 +11,6 @@ import {
 } from '@loreweaver/core';
 import { validateMemoryConfig } from '@loreweaver/core/internal';
 import { ensureCharacterReady } from './playCharacter.js';
-import { gracefulClose } from './playClose.js';
 import { launch, resolveCampaign } from './playSession.js';
 import { turnLoop } from './playTurnLoop.js';
 import type { CliIO, PlayDeps, PlayOptions } from './playTypes.js';
