@@ -1,0 +1,83 @@
+# Path-gated SRD 5.1 importer reproducibility check (loreweaver-0m9.6).
+#
+# Runs `npm run verify:dnd5e-srd-pack` only when files that could change the
+# committed pack's expected content actually change. Default CI (`ci.yml`) does
+# NOT run the importer: by design, the SRD importer is a one-shot construction
+# tool, not a per-PR generator. This workflow is the path-gated supplement that
+# answers "would re-running the importer today produce the same pack?".
+#
+# Triggering paths intentionally include:
+#   - The SRD 5.1 importer code itself.
+#   - The vendored SRD 5.1 PDF + manifest.
+#   - The committed canonical pack directory.
+#   - Rules schemas / audit / pack loader (validate + audit + diff invariants).
+#   - The verify script.
+#   - The lockfile and root package.json (dependency or runtime drift).
+#   - This workflow file.
+#
+# continue-on-error policy:
+#   The committed pack is currently a 2-record seed; the importer (when 0m9.5.20
+#   is resolved) will produce the full SRD record set, so `verify:dnd5e-srd-pack`
+#   will exit non-zero with a large diff until the canonical-regen PR replaces
+#   the seed pack with importer output. While that's the case, this job runs
+#   informationally (`continue-on-error: true`) so reviewers can see the
+#   diff/error without the path-gated workflow blocking unrelated PRs that touch
+#   the gated paths. The canonical-regen PR is responsible for flipping
+#   `continue-on-error` to `false` (strict mode) as part of that PR.
+#
+# Once strict, this job catches:
+#   - Accidental hand-edits to the committed pack that diverge from the
+#     importer (the diff is the audit trail).
+#   - Importer/parser changes that would silently alter pack content.
+#   - Vendored PDF or schema changes whose effect on the pack was not
+#     re-validated.
+
+name: SRD importer reproducibility
+
+on:
+  push:
+    paths:
+      - "packages/core/scripts/importers/dnd5e-srd-5.1/**"
+      - "packages/core/scripts/verify-dnd5e-srd-pack/**"
+      - "packages/core/sources/dnd5e-srd-5.1/**"
+      - "packages/core/data/rules-packs/rules__dnd5e-srd-5.1/**"
+      - "packages/core/src/rules/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/srd-importer-reproducibility.yml"
+  pull_request:
+    paths:
+      - "packages/core/scripts/importers/dnd5e-srd-5.1/**"
+      - "packages/core/scripts/verify-dnd5e-srd-pack/**"
+      - "packages/core/sources/dnd5e-srd-5.1/**"
+      - "packages/core/data/rules-packs/rules__dnd5e-srd-5.1/**"
+      - "packages/core/src/rules/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/srd-importer-reproducibility.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    # See header: informational until the canonical-regen PR replaces the seed
+    # pack with importer output. The regen PR flips this to `false`.
+    continue-on-error: true
+    env:
+      npm_config_build_from_source: "false"
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Node 24 LTS
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify SRD 5.1 pack vs. importer output
+        run: npm run verify:dnd5e-srd-pack

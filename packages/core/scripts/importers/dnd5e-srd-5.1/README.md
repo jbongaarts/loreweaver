@@ -65,6 +65,46 @@ The CLI prints the source PDF's SHA-256 on each run. The pinned value lives in
 mismatch means the PDF in `sources/` was swapped without updating the manifest
 -- treat that as a vendoring change, not a routine importer run.
 
+## Canonical-regen PR checklist (loreweaver-0m9.6)
+
+Per the 0m9.6 design, the SRD importer is a one-shot construction tool, not a
+per-PR generator. The default vitest suite asserts the **committed** pack at
+`packages/core/data/rules-packs/rules__dnd5e-srd-5.1/` is well-formed
+(`packages/core/test/srdGeneratedPack.test.ts`); the importer is **not**
+re-run on every PR. Reproducibility against the vendored PDF is a separate,
+path-gated CI job (`.github/workflows/srd-importer-reproducibility.yml`).
+
+When you open the PR that replaces the seed pack with full importer output:
+
+1. Run the verification command and capture its output:
+
+   ```bash
+   npm run verify:dnd5e-srd-pack
+   ```
+
+   It re-runs the importer against the vendored PDF, diffs the result against
+   the committed pack via the rules-pack diff tooling, prints the source PDF
+   SHA-256 plus per-kind counts, and exits 0 only when the committed pack
+   matches importer output byte-for-byte.
+
+2. Paste into the PR description:
+   - The reported source PDF SHA-256 (must match
+     `packages/core/sources/dnd5e-srd-5.1/manifest.json` `artifact.sha256`).
+   - The importer's per-kind counts line.
+   - Confirmation that `verify:dnd5e-srd-pack` exited 0 (no diff).
+
+3. Update `EXPECTED_COUNTS_BY_KIND` and `EXPECTED_STABLE_KEYS` in
+   `packages/core/test/srdGeneratedPack.test.ts` to match the regenerated pack.
+   `auditPack` must continue to report zero suspicious records and zero
+   partially-populated fields — fix the parser or document a reviewed baseline
+   in that file before merging if any new findings appear.
+
+4. Flip the path-gated CI job in
+   `.github/workflows/srd-importer-reproducibility.yml` from
+   `continue-on-error: true` to `continue-on-error: false` (or remove the line)
+   so future drift between the importer and the committed pack blocks PRs that
+   touch the gated paths.
+
 ## Architecture
 
 ```

@@ -22,7 +22,7 @@
     "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
   },
   "source": {
-    "sourceTitle": "D&D 5e System Reference Document 5.1",
+    "sourceTitle": "System Reference Document 5.1",
     "sourceVersion": "5.1",
     "sourceUrl": "https://dnd.wizards.com/resources/systems-reference-document",
     "recordProvenancePolicy": "Each record names the SRD page it was extracted from when the upstream record carries a page; pageless records cite the SRD section as the locator."
