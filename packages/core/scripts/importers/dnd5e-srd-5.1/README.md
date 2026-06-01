@@ -242,26 +242,37 @@ dispatch. Each entry is a `SectionAnchorOptions` value:
 | `startHeading`       | Regex matched against `line.trim()` to find the section's first content line (heading itself excluded). |
 | `endHeading`         | Regex matched against any line after `startHeading` to mark the boundary (end line excluded).         |
 | `requireEndHeading`  | If `true`, an unmatched `endHeading` throws `SectionNotFoundError('end')` instead of slicing to EOF.   |
+| `matchHeadings`     | If `true`, anchors match only against `PageText.headings` (the subset of lines the extractor flagged as chapter/section headings by font height). Disambiguates a chapter title from a body-font line that happens to spell the same text — e.g. "Equipment" appears as a class-block subsection at body font in every base-class chapter. Fixtures with uniform font sizes have `headings` undefined and fall back to line matching. |
 
 `SRD_5_1_DEFAULT_SECTION_ANCHORS` is the live table consumed by the
-orchestrator. Today it covers eleven slices. Freestanding `table` records use
-the `coreRules` slice for simple reference tables and the `treasureTables`
-slice for treasure challenge tables.
+orchestrator. Freestanding `table` records use the `coreRules` slice for
+simple reference tables and the `treasureTables` slice for treasure challenge
+tables. Two anchors (`hazards`, `treasureTables`) target sections that do
+NOT exist in the SRD 5.1 PDF; the orchestrator wraps those slices in a
+best-effort try/catch and emits empty results when the start anchor doesn't
+match, so a missing canonical section is not a run-time failure.
 
-| Anchor key           | `startHeading`                                 | `endHeading`                                                | `requireEndHeading` |
-|----------------------|------------------------------------------------|-------------------------------------------------------------|---------------------|
-| `races`              | `/^Races$/`                                     | `/^Classes$/`                                               | `true`              |
-| `coreRules`          | `/^Using Ability Scores$/`                     | `/^Spell Lists$/`                                           | `true`              |
-| `spellLists`         | `/^Spell Lists$/`                              | `/^Spells$\|^Spell Descriptions$/`                          | `true`              |
-| `spellDescriptions`  | `/^Spells$\|^Spell Descriptions$/`             | `/^(Monsters\|Magic Items\|Creatures\|NPCs\|Treasure\|Appendix)$/` | `true`              |
-| `combatActions`      | `/^Actions in Combat$/`                        | `/^(Making an Attack\|Movement and Position\|Reactions?\|Bonus Actions?\|Mounted Combat\|Underwater Combat\|Contests in Combat\|Cover)$/i` | `true` |
-| `monsters`           | `/^Monsters$/`                                 | `/^(Nonplayer Characters\|NPCs\|Appendix\|Open Game License\|Legal Information)\b/i` | `true`              |
-| `conditions`         | `/^Appendix A: Conditions$\|^Conditions$/`     | `/^Appendix [B-Z]:\|^Open Game License\|^Legal Information\|^Monster (Statistics\|Lists?)$/i` | false (may run to EOF) |
-| `feats`              | `/^Feats?$\|^Feat Descriptions?$/`             | `/^(Using Ability Scores\|Adventuring\|Combat\|Equipment\|Monsters\|Magic Items\|Running the Game\|Chapter \d+\|Spell Lists?)$\|^Appendix\b/i` | `true` |
-| `hazards`            | `/^Dungeon Hazards$\|^Hazards$/`               | `/^(Traps\|Sample Traps\|Wilderness Hazards\|Monsters\|Magic Items\|Appendix\|Chapter \d+\|Open Game License\|Legal Information)$/i` | `true` |
-| `equipment`          | `/^Equipment$/`                                | `/^(Mounts and Vehicles\|Trade Goods\|Expenses\|Trinkets\|Multiclassing\|Spellcasting\|Using Ability Scores\|Adventuring\|Combat\|Monsters\|Magic Items\|Chapter \d+)$/i` | `true` |
-| `treasureTables`     | `/^Treasure$/`                                 | `/^Using (a )?Magic Items?$/i`                          | `true`              |
-| `multiclassing`      | `/^Multiclassing$/`                            | `/^(Proficiencies\|Using Ability Scores\|Beyond 1st Level\|Adventuring\|Combat\|Spell Lists?\|Monsters\|Appendix [A-Z]:)/i` | false (best-effort; sliced for `primaryAbilities` enrichment, not a record kind) |
+Real-PDF mapping note (`loreweaver-0m9.5.20`): the SRD 5.1 has no aggregate
+"Classes" chapter heading; each base class is its own h=25.9 chapter title
+("Barbarian" through "Wizard"). Multi-line chapter titles ("Using Ability" +
+"Scores", "Appendix PH-A:" + "Conditions") are re-joined into a single
+logical line by the extractor's heading-merge pass before slicing.
+
+| Anchor key           | `startHeading`                                 | `endHeading`                                                | `requireEndHeading` | `matchHeadings` |
+|----------------------|------------------------------------------------|-------------------------------------------------------------|---------------------|-----------------|
+| `races`              | `/^Races$/`                                     | `/^Barbarian$\|^Classes$/`                                  | `true`              | `true`          |
+| `classes`            | `/^Barbarian$\|^Classes$/`                      | `/^Beyond 1st Level$\|^Using Ability Scores$/`              | `true`              | `true`          |
+| `coreRules`          | `/^Using Ability Scores$/`                      | `/^Spellcasting$\|^Spell Lists$/`                           | `true`              | `true`          |
+| `spellLists`         | `/^Spell Lists$/`                              | `/^Spells$\|^Spell Descriptions$/`                          | `true`              | `true`          |
+| `spellDescriptions`  | `/^Spells$\|^Spell Descriptions$/`             | `/^(Monsters\|Magic Items\|Creatures\|NPCs\|Treasure\|Appendix)\b/` | `true`        | `true`          |
+| `combatActions`      | `/^Actions in Combat$/`                        | `/^(Making an Attack\|Movement and Position\|Reactions?\|Bonus Actions?\|Mounted Combat\|Underwater Combat\|Contests in Combat\|Cover)$/i` | `true` | `true` |
+| `monsters`           | `/^Monsters$/`                                 | `/^(Nonplayer Characters\|NPCs\|Appendix \|Open Game License\|Legal Information)/i` | `true`     | `true`          |
+| `conditions`         | `/^(Appendix [A-Z]{0,3}-?[A-Z]?:?\s*)?Conditions$\|^Appendix [A-Z]{0,3}-?[A-Z]?: Conditions$/` | `/^Appendix [A-Z]{0,3}-?[A-Z]?:\|^Open Game License\|^Legal Information/i` | false (may run to EOF) | `true` |
+| `feats`              | `/^Feats?$\|^Feat Descriptions?$/`             | `/^(Using Ability Scores\|...)$\|^Appendix\b/i`             | `true`              | `true`          |
+| `hazards`            | `/^Dungeon Hazards$\|^Hazards$/`               | `/^(Traps\|...)$/i`                                         | `true` (best-effort) | `true`         |
+| `equipment`          | `/^Equipment$/`                                | `/^(Mounts and Vehicles\|...\|Feats)$/i`                    | `true`              | `true`          |
+| `treasureTables`     | `/^Treasure$/`                                 | `/^Using (a )?Magic Items?$/i`                          | `true` (best-effort) | false          |
+| `multiclassing`      | `/^Multiclassing$/`                            | `/^(Proficiencies\|...)/i`                                  | false (best-effort) | `true`         |
 
 Anchors are deliberately tight (`^...$`) so a body-prose mention of a chapter
 title can't false-positive. Tests in `test/importers/dnd5e-srd-5.1/sections.test.ts`

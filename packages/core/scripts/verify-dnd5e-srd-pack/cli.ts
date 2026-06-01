@@ -21,16 +21,21 @@
  *   2  verification could not produce a meaningful diff — e.g. importer
  *      failure, pack-loading/validation failure, missing PDF.
  *
- * Three transitional states this command moves through:
+ * Transitional states this command moves through:
  *
- *   - Today (loreweaver-0m9.6 just landed): exit 2. The importer's section
- *     anchors (e.g. `coreRules`'s `/^Using Ability Scores$/`) do not match
- *     the actual text extracted from the vendored SRD 5.1 PDF, so
- *     `runImporter` throws `SectionNotFoundError`. Tracked as
- *     `loreweaver-0m9.5.20`.
- *   - After 0m9.5.20 is fixed but before the canonical-regen PR: exit 1. The
- *     importer succeeds and produces the full SRD record set; the committed
- *     pack is still the 2-record seed, so the diff lists the gap.
+ *   - 0m9.5.20 fixed (section anchors): exit 2 on a different / later error.
+ *     `runImporter` now slices the real PDF cleanly — chapter / subsection
+ *     anchors match, the extractor's heading-merge re-joins two-line chapter
+ *     titles like "Using Ability" + "Scores", and `hazards` / `treasureTables`
+ *     degrade to empty results when their sections are absent from the SRD
+ *     5.1 (which they are). The next failure is parser-level: the SRD spell
+ *     and creature pages render in a two-column layout that pdfjs returns
+ *     in y-interleaved order, and the kind parsers (parseSpells first)
+ *     expect a flat single-column flow. That work is tracked under the
+ *     `loreweaver-0m9.5.21` family.
+ *   - Once column-aware extraction / parsing lands: exit 1. The importer
+ *     succeeds and produces the full SRD record set; the committed pack is
+ *     still the 2-record seed, so the diff lists the gap.
  *   - After the canonical-regen PR replaces the seed pack with importer
  *     output: exit 0 unless importer code, parser code, the vendored PDF,
  *     the rules schemas/audit code, or the lockfile drifts.

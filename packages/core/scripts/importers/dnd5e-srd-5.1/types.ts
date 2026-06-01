@@ -8,6 +8,19 @@
 export interface PageText {
   readonly pageNumber: number;
   readonly lines: readonly string[];
+  /**
+   * The subset of `lines` the extractor identified as chapter / section
+   * headings, based on rendered font height. When present, section anchors
+   * with `matchHeadings: true` consider only these lines (so an `^Equipment$`
+   * line that appears as a class-block subsection at body font size does not
+   * shadow the actual "Equipment" chapter title at heading font size).
+   *
+   * Optional: fixture PDFs built with uniform font size (no heading
+   * differentiation) leave this undefined, in which case `matchHeadings`
+   * falls back to matching against `lines`. Real SRD 5.1 extraction always
+   * populates it.
+   */
+  readonly headings?: readonly string[];
 }
 
 /**

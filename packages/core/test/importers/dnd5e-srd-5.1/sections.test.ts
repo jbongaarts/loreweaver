@@ -243,4 +243,119 @@ describe('SRD_5_1_DEFAULT_SECTION_ANCHORS — sanity', () => {
     expect(anchor.endHeading?.test('Magic Items')).toBe(false);
     expect(anchor.requireEndHeading).toBe(true);
   });
+
+  // Real-PDF chapter mapping (loreweaver-0m9.5.20). The SRD 5.1 PDF has no
+  // aggregate "Classes" chapter heading — the races chapter closes at the
+  // first per-class chapter title ("Barbarian"), and the classes section
+  // spans 12 per-class chapters before the "Beyond 1st Level" chapter.
+  it('races anchor accepts both "Barbarian" (real SRD) and "Classes" (fixture) as end-heading', () => {
+    const anchor = SRD_5_1_DEFAULT_SECTION_ANCHORS.races;
+    expect(anchor.endHeading?.test('Barbarian')).toBe(true);
+    expect(anchor.endHeading?.test('Classes')).toBe(true);
+    // Body prose mentioning the words should not false-positive.
+    expect(anchor.endHeading?.test('A barbarian rages.')).toBe(false);
+    expect(anchor.matchHeadings).toBe(true);
+  });
+
+  it('classes anchor accepts the real-SRD per-class heading and the fixture aggregate', () => {
+    const anchor = SRD_5_1_DEFAULT_SECTION_ANCHORS.classes;
+    expect(anchor.startHeading.test('Barbarian')).toBe(true);
+    expect(anchor.startHeading.test('Classes')).toBe(true);
+    expect(anchor.endHeading?.test('Beyond 1st Level')).toBe(true);
+    expect(anchor.endHeading?.test('Using Ability Scores')).toBe(true);
+    expect(anchor.matchHeadings).toBe(true);
+  });
+
+  it('core-rules anchor end matches both "Spellcasting" (real SRD chapter) and "Spell Lists" (fixture)', () => {
+    const anchor = SRD_5_1_DEFAULT_SECTION_ANCHORS.coreRules;
+    expect(anchor.endHeading?.test('Spellcasting')).toBe(true);
+    expect(anchor.endHeading?.test('Spell Lists')).toBe(true);
+    expect(anchor.matchHeadings).toBe(true);
+  });
+
+  it('conditions anchor matches "Appendix PH-A: Conditions" (real SRD) and "Conditions" (fixture)', () => {
+    const anchor = SRD_5_1_DEFAULT_SECTION_ANCHORS.conditions;
+    expect(anchor.startHeading.test('Appendix PH-A: Conditions')).toBe(true);
+    expect(anchor.startHeading.test('Appendix A: Conditions')).toBe(true);
+    expect(anchor.startHeading.test('Conditions')).toBe(true);
+    expect(anchor.endHeading?.test('Appendix PH-B:')).toBe(true);
+    expect(anchor.endHeading?.test('Appendix B:')).toBe(true);
+    expect(anchor.matchHeadings).toBe(true);
+  });
+
+  it('matchHeadings is set on every implemented-kind chapter anchor', () => {
+    const a = SRD_5_1_DEFAULT_SECTION_ANCHORS;
+    expect(a.races.matchHeadings).toBe(true);
+    expect(a.classes.matchHeadings).toBe(true);
+    expect(a.coreRules.matchHeadings).toBe(true);
+    expect(a.spellLists.matchHeadings).toBe(true);
+    expect(a.spellDescriptions.matchHeadings).toBe(true);
+    expect(a.combatActions.matchHeadings).toBe(true);
+    expect(a.monsters.matchHeadings).toBe(true);
+    expect(a.conditions.matchHeadings).toBe(true);
+    expect(a.feats.matchHeadings).toBe(true);
+    expect(a.hazards.matchHeadings).toBe(true);
+    expect(a.equipment.matchHeadings).toBe(true);
+    expect(a.multiclassing.matchHeadings).toBe(true);
+  });
+});
+
+describe('sliceSection — matchHeadings', () => {
+  it('matches only against `headings` when a page declares them', () => {
+    // Body line spells the heading regex exactly, but is not in `headings`.
+    // matchHeadings: true must skip past it and land on the heading line.
+    const pages: PageText[] = [
+      {
+        pageNumber: 1,
+        lines: ['Equipment', 'class-block subsection prose', 'Equipment'],
+        headings: ['Equipment'],
+      },
+    ];
+    const sliced = sliceSection(pages, {
+      startHeading: /^Equipment$/,
+      matchHeadings: true,
+    });
+    // The slice starts AFTER the first "Equipment" line in `lines` (line 0),
+    // because that's the line whose trimmed text is in `headings`. The body
+    // "Equipment" later in the page is body prose, but with our fixture
+    // layout the first hit IS the heading line, so the slice begins after
+    // line 0.
+    expect(sliced[0].lines[0]).toBe('class-block subsection prose');
+  });
+
+  it('matchHeadings: true falls back to line matching when `headings` is undefined (fixture compatibility)', () => {
+    const pages: PageText[] = [{ pageNumber: 1, lines: ['Equipment', 'body'] }];
+    const sliced = sliceSection(pages, {
+      startHeading: /^Equipment$/,
+      matchHeadings: true,
+    });
+    expect(sliced[0].lines).toEqual(['body']);
+  });
+
+  it('disambiguates a chapter title from a same-text class subsection', () => {
+    // Real-PDF shape: page 8 has body-font "Equipment" as a class-block
+    // subsection. Page 62 has the actual h=25.9 "Equipment" chapter title.
+    // With matchHeadings: true the slicer skips the class-block occurrence
+    // and locks onto the chapter heading instead.
+    const pages: PageText[] = [
+      {
+        pageNumber: 8,
+        lines: ['Barbarian', 'Equipment', 'You start with...'],
+        headings: ['Barbarian'],
+      },
+      {
+        pageNumber: 62,
+        lines: ['Equipment', 'Common coins come in several denominations.'],
+        headings: ['Equipment'],
+      },
+    ];
+    const sliced = sliceSection(pages, {
+      startHeading: /^Equipment$/,
+      matchHeadings: true,
+    });
+    expect(sliced.map((p) => p.pageNumber)).toEqual([62]);
+    expect(sliced[0].lines[0]).toBe(
+      'Common coins come in several denominations.',
+    );
+  });
 });
