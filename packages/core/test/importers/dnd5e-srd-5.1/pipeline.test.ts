@@ -386,6 +386,22 @@ const EQUIPMENT_PAGE: FixturePage = {
   ],
 };
 
+// Multiclassing fixture: mirrors the SRD "Multiclassing" section's
+// Prerequisites table for one class (Fighter). The "Multiclassing" heading
+// matches the multiclassing startHeading anchor; "Proficiencies" is the
+// end-boundary subsection that immediately follows the table. This lets the
+// pipeline test exercise the full enrichment path:
+//   sliceSection(multiclassing) → parseMulticlassing → buildPack(primaryAbilityIndex)
+// → class record with primaryAbilities populated.
+const MULTICLASSING_PAGE: FixturePage = {
+  lines: [
+    'Multiclassing',
+    'Class Ability Score Minimum',
+    'Fighter Strength 13 or Dexterity 13',
+    'Proficiencies',
+  ],
+};
+
 // Equipment fixture without the chapter subsection that ends the section. With
 // requireEndHeading: true on the equipment anchor, the importer must fail
 // closed rather than slice to EOF.
@@ -685,6 +701,7 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       HAZARDS_PAGE,
       FEATS_PAGE,
       EQUIPMENT_PAGE,
+      MULTICLASSING_PAGE,
       CONDITIONS_PAGE,
     ]);
 
@@ -925,8 +942,8 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       'Strength',
       'Constitution',
     ]);
-    // SRD Class Features block carries no primary-ability line (ADR 0007).
-    expect(fighterData.primaryAbilities).toEqual([]);
+    // Primary abilities come from the Multiclassing prerequisites fixture (0m9.5.19).
+    expect(fighterData.primaryAbilities).toEqual(['Strength', 'Dexterity']);
 
     // The generated manifest must advertise subclass as an included kind.
     expect(pack.meta.description).toMatch(
@@ -1685,5 +1702,36 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     await expect(
       runImporter({ pdfPath, outDir, minFeatureCount: 2 }),
     ).rejects.toThrow(/parsed 1 feature\(s\), expected at least 2/);
+  });
+
+  it('succeeds when the Multiclassing section is absent and leaves primaryAbilities empty', async () => {
+    const workDir = makeTmpDir();
+    const pdfPath = join(workDir, 'fixture.pdf');
+    const outDir = join(workDir, 'pack');
+    // No MULTICLASSING_PAGE: the orchestrator's best-effort enrichment catches
+    // SectionNotFoundError and leaves primaryAbilities as [] (ADR 0007).
+    await writeFixturePdf(pdfPath, [
+      RACES_PAGE,
+      CLASSES_PAGE,
+      CORE_RULES_PAGE_ONE,
+      CORE_RULES_PAGE_TWO,
+      SPELL_LISTS_PAGE,
+      SPELLS_PAGE,
+      MONSTERS_PAGE,
+      TREASURE_TABLES_PAGE,
+      MAGIC_ITEMS_PAGE,
+      COMBAT_ACTIONS_PAGE,
+      MAKING_AN_ATTACK_PAGE,
+      HAZARDS_PAGE,
+      FEATS_PAGE,
+      EQUIPMENT_PAGE,
+      CONDITIONS_PAGE,
+    ]);
+
+    await runImporter({ pdfPath, outDir });
+    const pack = loadRulesPackFromDirectory(outDir);
+    const fighter = pack.records.find((r) => r.key === 'class:fighter');
+    const fighterData = fighter?.data as Record<string, unknown>;
+    expect(fighterData.primaryAbilities).toEqual([]);
   });
 });
