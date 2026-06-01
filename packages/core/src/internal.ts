@@ -246,6 +246,23 @@ export {
 export { withTransaction } from './persistence/db.js';
 // Built-in rules pack objects (pre-importer; superseded by 0m9 deterministic importer outputs).
 // Not on the stable public surface — use @loreweaver/core for consumer-facing API.
+export type {
+  ChangedRecord,
+  FieldDelta,
+  MissingFieldGroup,
+  PackAudit,
+  PackDiff,
+  RecordDelta,
+  SuspiciousRecord,
+} from './rules/audit.js';
+export {
+  auditHasFindings,
+  auditPack,
+  diffHasChanges,
+  diffPacks,
+  formatAuditReport,
+  formatDiffReport,
+} from './rules/audit.js';
 export { DND5E_SRD_RULES_PACK } from './rules/dnd5eSrd.js';
 export { validateRecordKindSchema } from './rules/kindSchemas.js';
 export type { RulesPackUsePolicy } from './rules/license.js';
