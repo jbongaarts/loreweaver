@@ -27,7 +27,14 @@ dist/
 # location. See packages/core/scripts/importers/dnd5e-srd-5.1/README.md.
 packages/core/scripts/importers/*/.generated/
 
-# Vendored licensed source artifacts: the PDFs themselves are not committed;
-# contributors download them locally. The directory README and .gitkeep are
-# tracked so the placement is documented. See ADR 0007.
-packages/core/sources/*/*.pdf
+# Vendored licensed source artifacts: approved open-licensed PDFs (e.g. the D&D
+# SRD 5.1 under CC-BY-4.0) ARE committed in-repo per ADR 0007 so importer
+# coverage and audit tooling can run against a pinned authoritative source on
+# every clone and in CI. Any non-PDF scratch files in those directories stay
+# ignored so contributors can't accidentally commit extracted text or local
+# regeneration output. See packages/core/sources/<system>/manifest.json for the
+# pinned URL/version/hash and packages/core/sources/<system>/README.md for the
+# placement policy.
+packages/core/sources/*/*.txt
+packages/core/sources/*/*.html
+packages/core/sources/*/.cache/

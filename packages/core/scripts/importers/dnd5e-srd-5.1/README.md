@@ -35,8 +35,10 @@ field lists the included kinds explicitly so downstream callers can tell.
 
 ## How to regenerate
 
-1. Vendor the SRD 5.1 PDF at `packages/core/sources/dnd5e-srd-5.1/SRD_CC_v5.1.pdf`
-   -- see that directory's `README.md` for the source URL and license posture.
+1. The SRD 5.1 PDF is vendored in-repo at
+   `packages/core/sources/dnd5e-srd-5.1/SRD_CC_v5.1.pdf` (CC-BY-4.0; pinned by
+   SHA-256 in `packages/core/sources/dnd5e-srd-5.1/manifest.json`). No download
+   step is required for a fresh clone.
 2. From the repo root:
 
    ```bash
@@ -58,9 +60,10 @@ field lists the included kinds explicitly so downstream callers can tell.
    overwriting the canonical pack drops the existing seed records without
    replacing them with full SRD coverage.
 
-The CLI prints the source PDF's SHA-256 on each run. Record that value in
-`packages/core/sources/dnd5e-srd-5.1/README.md` as the **Expected SHA-256** so
-future runs can detect a swapped artifact.
+The CLI prints the source PDF's SHA-256 on each run. The pinned value lives in
+`packages/core/sources/dnd5e-srd-5.1/manifest.json` (`artifact.sha256`); a
+mismatch means the PDF in `sources/` was swapped without updating the manifest
+-- treat that as a vendoring change, not a routine importer run.
 
 ## Architecture
 
