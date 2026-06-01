@@ -18,6 +18,7 @@ import {
   ancestryExtractionsToRecords,
   buildPack,
   featureExtractionsToRecords,
+  SRD_5_1_LICENSE,
   spellExtractionsToRecords,
   subclassExtractionsToRecords,
   tableExtractionsToRecords,
@@ -354,6 +355,47 @@ describe('spellExtractionsToRecords — record shape', () => {
       'https://dnd.wizards.com/resources/systems-reference-document',
     );
     expect(record.provenance.locator).toBe('p. 211');
+  });
+});
+
+describe('SRD_5_1_LICENSE — attribution text', () => {
+  it('attributionText matches the verbatim preamble pinned in the source manifest byte-for-byte', () => {
+    const sourceManifest = JSON.parse(
+      readFileSync(
+        join(
+          process.cwd(),
+          'packages/core/sources/dnd5e-srd-5.1/manifest.json',
+        ),
+        'utf8',
+      ),
+    ) as { attribution: { text: string } };
+    expect(SRD_5_1_LICENSE.attributionText).toBe(
+      sourceManifest.attribution.text,
+    );
+  });
+
+  it('pack manifest attributionText matches the source manifest attribution text byte-for-byte', () => {
+    const sourceManifest = JSON.parse(
+      readFileSync(
+        join(
+          process.cwd(),
+          'packages/core/sources/dnd5e-srd-5.1/manifest.json',
+        ),
+        'utf8',
+      ),
+    ) as { attribution: { text: string } };
+    const packManifest = JSON.parse(
+      readFileSync(
+        join(
+          process.cwd(),
+          'packages/core/data/rules-packs/rules__dnd5e-srd-5.1/manifest.json',
+        ),
+        'utf8',
+      ),
+    ) as { license: { attributionText: string } };
+    expect(packManifest.license.attributionText).toBe(
+      sourceManifest.attribution.text,
+    );
   });
 });
 
