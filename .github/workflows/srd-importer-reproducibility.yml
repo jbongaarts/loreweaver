@@ -15,15 +15,33 @@
 #   - The lockfile and root package.json (dependency or runtime drift).
 #   - This workflow file.
 #
-# continue-on-error policy:
-#   The committed pack is currently a 2-record seed; the importer (when 0m9.5.20
-#   is resolved) will produce the full SRD record set, so `verify:dnd5e-srd-pack`
-#   will exit non-zero with a large diff until the canonical-regen PR replaces
-#   the seed pack with importer output. While that's the case, this job runs
-#   informationally (`continue-on-error: true`) so reviewers can see the
-#   diff/error without the path-gated workflow blocking unrelated PRs that touch
-#   the gated paths. The canonical-regen PR is responsible for flipping
-#   `continue-on-error` to `false` (strict mode) as part of that PR.
+# Transitional informational behavior:
+#   The verify command's exit codes are:
+#     0 = importer output matches the committed pack byte-for-byte.
+#     1 = importer succeeded but its output differs from the committed pack.
+#     2 = verification could not produce a meaningful diff (importer/runtime
+#         failure, pack-loading failure, etc.).
+#
+#   Today (loreweaver-0m9.6): the importer's section anchors do not match the
+#   real vendored SRD 5.1 PDF, so the verify command exits 2 against the real
+#   PDF. Tracked as loreweaver-0m9.5.20.
+#
+#   After 0m9.5.20 is fixed but before the canonical-regen PR: the importer
+#   succeeds and produces the full SRD record set; the committed pack is still
+#   the 2-record seed, so the verify command exits 1 with a large diff.
+#
+#   After the canonical-regen PR replaces the seed pack with importer output:
+#   the verify command exits 0 unless importer/parser/source/schema/lockfile
+#   change drifts it.
+#
+#   Because exit 2 and exit 1 are both expected during the transitional
+#   period, the verify step below catches any nonzero exit, surfaces it as a
+#   GitHub warning annotation + step summary so reviewers see it, and then
+#   exits 0 so this path-gated workflow does not report a failed PR check
+#   while the verification is intentionally informational. The canonical-regen
+#   PR is responsible for removing that shell wrapper as part of that PR so
+#   future drift between the importer and the committed pack starts blocking
+#   PRs that touch the gated paths.
 #
 # Once strict, this job catches:
 #   - Accidental hand-edits to the committed pack that diverge from the
@@ -62,9 +80,6 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    # See header: informational until the canonical-regen PR replaces the seed
-    # pack with importer output. The regen PR flips this to `false`.
-    continue-on-error: true
     env:
       npm_config_build_from_source: "false"
     steps:
@@ -79,5 +94,26 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Verify SRD 5.1 pack vs. importer output
-        run: npm run verify:dnd5e-srd-pack
+      # Informational wrapper: see the header's "Transitional informational
+      # behavior" section. Nonzero exit becomes a GitHub warning + step
+      # summary, then the step exits 0 so the workflow does not show as a
+      # failed PR check. The canonical-regen PR removes this wrapper (replaces
+      # the `run:` body with a plain `npm run verify:dnd5e-srd-pack`).
+      - name: Verify SRD 5.1 pack reproducibility
+        run: |
+          set +e
+          npm run verify:dnd5e-srd-pack
+          status=$?
+          if [ "$status" -ne 0 ]; then
+            echo "::warning title=SRD importer reproducibility is informational for now::verify:dnd5e-srd-pack exited $status. This is expected until loreweaver-0m9.5.20 is fixed and the seed pack is replaced by the canonical generated SRD pack."
+            {
+              echo "## SRD importer reproducibility"
+              echo ""
+              echo "\`npm run verify:dnd5e-srd-pack\` exited with status \`$status\`."
+              echo ""
+              echo "This workflow is informational until:"
+              echo "- \`loreweaver-0m9.5.20\` fixes the real vendored-PDF importer failure, and"
+              echo "- the seed D&D SRD pack is replaced with the canonical generated pack."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi

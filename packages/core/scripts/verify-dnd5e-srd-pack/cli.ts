@@ -18,17 +18,26 @@
  * Exit codes:
  *   0  importer output equals the committed pack (no diff).
  *   1  importer ran and loaded but produced a diff against the committed pack.
- *   2  importer or pack-loading failed (e.g. PDF missing, validation error).
+ *   2  verification could not produce a meaningful diff — e.g. importer
+ *      failure, pack-loading/validation failure, missing PDF.
  *
- * Today (with the seed pack at canonical location) this command exits 1: the
- * importer produces the full SRD record set, the committed pack carries two
- * seed records, and the diff lists the gap. After the canonical-regen PR, it
- * should exit 0 until importer code, parser code, the vendored PDF, the rules
- * schemas/audit code, or the lockfile changes.
+ * Three transitional states this command moves through:
  *
- * The script also prints the source PDF SHA-256 and the importer's per-kind
- * counts so the regen PR can paste them into the PR description (see
- * `packages/core/scripts/importers/dnd5e-srd-5.1/README.md`).
+ *   - Today (loreweaver-0m9.6 just landed): exit 2. The importer's section
+ *     anchors (e.g. `coreRules`'s `/^Using Ability Scores$/`) do not match
+ *     the actual text extracted from the vendored SRD 5.1 PDF, so
+ *     `runImporter` throws `SectionNotFoundError`. Tracked as
+ *     `loreweaver-0m9.5.20`.
+ *   - After 0m9.5.20 is fixed but before the canonical-regen PR: exit 1. The
+ *     importer succeeds and produces the full SRD record set; the committed
+ *     pack is still the 2-record seed, so the diff lists the gap.
+ *   - After the canonical-regen PR replaces the seed pack with importer
+ *     output: exit 0 unless importer code, parser code, the vendored PDF,
+ *     the rules schemas/audit code, or the lockfile drifts.
+ *
+ * The script also prints the source PDF SHA-256 and (when the importer
+ * succeeds) the per-kind counts so the regen PR can paste them into the PR
+ * description (see `packages/core/scripts/importers/dnd5e-srd-5.1/README.md`).
  */
 
 import { mkdtempSync, rmSync } from 'node:fs';

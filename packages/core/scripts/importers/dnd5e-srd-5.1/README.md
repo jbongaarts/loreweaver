@@ -74,7 +74,26 @@ per-PR generator. The default vitest suite asserts the **committed** pack at
 re-run on every PR. Reproducibility against the vendored PDF is a separate,
 path-gated CI job (`.github/workflows/srd-importer-reproducibility.yml`).
 
-When you open the PR that replaces the seed pack with full importer output:
+`npm run verify:dnd5e-srd-pack` is the local-and-CI verification command. Its
+exit codes are strict:
+
+- `0` — importer output matches the committed pack byte-for-byte.
+- `1` — importer succeeded but its output differs from the committed pack.
+- `2` — verification could not produce a meaningful diff (importer/runtime
+  failure, pack-loading failure).
+
+Today (just after 0m9.6) the command exits 2 against the real vendored PDF
+because the importer's section anchors do not match the PDF text; that bug is
+`loreweaver-0m9.5.20`. After 0m9.5.20 lands the command will exit 1 (importer
+works; seed pack still committed). After the canonical-regen PR it will exit 0.
+
+The path-gated workflow wraps the command and converts a nonzero exit into a
+GitHub warning annotation + step summary so reviewers see the diagnostic
+without the path-gated workflow showing as a failed PR check while it is
+intentionally informational.
+
+When you open the PR that replaces the seed pack with full importer output
+(canonical-regen PR):
 
 1. Run the verification command and capture its output:
 
@@ -83,9 +102,9 @@ When you open the PR that replaces the seed pack with full importer output:
    ```
 
    It re-runs the importer against the vendored PDF, diffs the result against
-   the committed pack via the rules-pack diff tooling, prints the source PDF
-   SHA-256 plus per-kind counts, and exits 0 only when the committed pack
-   matches importer output byte-for-byte.
+   the committed pack, prints the source PDF SHA-256 plus per-kind counts,
+   and exits 0 only when the committed pack matches importer output
+   byte-for-byte.
 
 2. Paste into the PR description:
    - The reported source PDF SHA-256 (must match
@@ -99,11 +118,12 @@ When you open the PR that replaces the seed pack with full importer output:
    partially-populated fields — fix the parser or document a reviewed baseline
    in that file before merging if any new findings appear.
 
-4. Flip the path-gated CI job in
-   `.github/workflows/srd-importer-reproducibility.yml` from
-   `continue-on-error: true` to `continue-on-error: false` (or remove the line)
-   so future drift between the importer and the committed pack blocks PRs that
-   touch the gated paths.
+4. Make the path-gated workflow strict. In
+   `.github/workflows/srd-importer-reproducibility.yml`, replace the wrapped
+   `Verify SRD 5.1 pack reproducibility` step's `run:` body with a plain
+   `npm run verify:dnd5e-srd-pack` so future drift between the importer and
+   the committed pack blocks PRs that touch the gated paths (the shell
+   wrapper today swallows nonzero exits into a warning annotation).
 
 ## Architecture
 
