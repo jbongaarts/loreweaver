@@ -11,7 +11,6 @@ import {
   openScene,
   recordSceneSummary,
   renderContextMessage,
-  rollupArcSummary,
   rollupSessionRecap,
   stampSessionWithOpenArc,
 } from '../src/internal.js';

@@ -1,10 +1,9 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   type CampaignArcRecord,
   type CloseOpenArcAndOpenNextInput,
   type CloseOpenArcAndOpenNextResult,
   closeOpenArcAndOpenNext,
-  closeSession,
   getClosedArcCount,
   getClosedSessionsInOpenArc,
   getOpenArc,

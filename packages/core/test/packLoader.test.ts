@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -96,11 +96,6 @@ const VALID_RECORDS = JSON.stringify([
     },
   },
 ]);
-
-function writeValidPack(dir: string): void {
-  writeFileSync(join(dir, 'manifest.json'), VALID_MANIFEST, 'utf8');
-  writeFileSync(join(dir, 'records.json'), VALID_RECORDS, 'utf8');
-}
 
 // ---------------------------------------------------------------------------
 // Happy path: load the committed seed pack.
