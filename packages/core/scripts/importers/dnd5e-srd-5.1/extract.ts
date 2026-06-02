@@ -4,9 +4,21 @@
  * Uses pdfjs-dist's "legacy" Node-friendly build to extract per-page text
  * content. The extractor groups text items into lines by their y-coordinate
  * (in PDF user space, origin at lower-left of the page) and sorts each line
- * left-to-right by x-coordinate. This is enough for the SRD 5.1's
- * predominantly single-column flowing body text; multi-column tables are not
- * reconstructed faithfully but the spell parser does not depend on them.
+ * left-to-right by x-coordinate.
+ *
+ * Column-aware emission: SRD 5.1 body chapters (spell descriptions, monster
+ * stat blocks, …) render in two columns. pdfjs returns items in y-descending
+ * order regardless of column, and items from both columns can share an
+ * identical y-baseline (a wrap line at the bottom of one column lines up
+ * exactly with a stat-block heading at the top of the next column on the
+ * facing column). A naïve "bucket by y first" pass therefore concatenates
+ * across columns into a single line ("… one Speed 40 ft., …"), erasing the
+ * Speed row entirely. The extractor partitions ITEMS by x BEFORE bucketing
+ * by y, then emits column-by-column (top-to-bottom within each column,
+ * left-to-right between columns), which yields the natural reading order
+ * with each column's contents kept intact. Pages whose item x values
+ * collapse to a single cluster are emitted in their original y-descending
+ * order, so single-column body pages and fixture PDFs are unaffected.
  *
  * Heading awareness: the SRD 5.1 PDF renders chapter titles ("Races",
  * "Equipment", "Using Ability Scores", "Appendix PH-A: Conditions") at a
@@ -41,6 +53,14 @@ interface PdfTextItem {
   readonly str: string;
   readonly transform: readonly number[];
   readonly height: number;
+  /**
+   * Rendered width of the text run in PDF user-space points. pdfjs populates
+   * this for every text item and the line-joining pass uses it to detect a
+   * visible gap between adjacent items on the same baseline (e.g. a
+   * bold/regular font switch like "Armor Class" + "17 (natural armor)"
+   * where pdfjs reports two items with no whitespace between their strs).
+   */
+  readonly width?: number;
 }
 interface PdfTextContent {
   readonly items: readonly unknown[];
@@ -70,6 +90,64 @@ const HEADING_MERGE_H_THRESHOLD = 20;
 
 /** Tolerance in PDF user-space points for treating two items as same-column. */
 const COLUMN_X_TOLERANCE = 2;
+
+/**
+ * Minimum visible gap (in PDF user-space points) between adjacent items on
+ * the same baseline before the line-joining pass inserts a space between
+ * them. pdfjs returns each font-style run as a separate item, so SRD 5.1
+ * stat-block rows ("Armor Class" + "17 (natural armor)") arrive as two
+ * items with no whitespace between their `str` values; without this gap
+ * detection the joined text would read "Armor Class17 (natural armor)" and
+ * the `^Armor Class\s+(\d+)` parser regex would never match. A 1pt gap is
+ * tight enough not to inject spaces between truly abutting items (e.g.
+ * intra-word style changes) while still catching the ~10pt gutter between
+ * a stat label and its value.
+ */
+const ITEM_GAP_SPACE_THRESHOLD = 1;
+
+/**
+ * y-coordinate (PDF user space) at or below which a text item is treated as
+ * the running page footer. The SRD 5.1 body pages print a footer band
+ * ("System Reference Document 5.1" + page number) at y ≈ 31.9 on every page;
+ * with column-aware emission those items would otherwise concatenate with
+ * the bottom-of-column text and corrupt downstream parsers (e.g.
+ * `parseSpells` saw a "Components: V" row immediately followed by the
+ * footer and interpreted the SRD string as a continuation of the components
+ * field). SRD 5.1 body content never descends below y ≈ 96, so a 45pt
+ * cutoff drops the footer cleanly without risking any real content.
+ */
+const FOOTER_MAX_Y = 45;
+
+/**
+ * Minimum gap (in PDF user-space points) between adjacent sorted item x
+ * values before they're split into separate columns. SRD 5.1 two-column
+ * body pages have a left column at x ≈ 57 (continuation indents up to
+ * ~144) and a right column at x ≈ 328 — gap ≈ 184. The largest intra-
+ * column horizontal jump observed in the real PDF is the ability-score
+ * row gap (251 → 328 = 77pt), so 50pt cleanly separates intra-column
+ * tabbing from inter-column gutter.
+ */
+const COLUMN_GAP_THRESHOLD = 50;
+
+/**
+ * Minimum item count any candidate column must contain before
+ * `partitionItemsByColumn` accepts a column-cut. Real SRD body columns
+ * carry hundreds of items, so a min of 2 is comfortably permissive while
+ * still rejecting one-row stray splits.
+ */
+const MIN_ITEMS_PER_COLUMN = 2;
+
+/**
+ * Minimum number of distinct rounded x-coordinates a candidate column
+ * must contain. The real page-column gutter is the *only* gap in body
+ * content where items on each side draw from a rich set of x indents
+ * (left edge, wrap continuation, list-item dent, inline tabbing). A
+ * multi-row label/value layout has every label at the same x and every
+ * value at the same x, so each "side" of the candidate cut collapses to
+ * a single distinct x — that's the signature this guard rejects, even
+ * when the label/value x-gap exceeds `COLUMN_GAP_THRESHOLD`.
+ */
+const MIN_DISTINCT_X_PER_COLUMN = 2;
 
 export interface ExtractOptions {
   /**
@@ -166,6 +244,10 @@ function textContentToPage(content: PdfTextContent): {
   // y as the line's real text — those would corrupt the heading-height
   // checks below (an empty marker on the same row as a chapter title would
   // make row.every(h ≥ threshold) false), so they're dropped up front.
+  // Footer items (the persistent "System Reference Document 5.1 / <page#>"
+  // band at y ≈ 31.9) are also dropped here so they don't appear as a
+  // trailing line on every page's column-emit and corrupt parsers that
+  // treat unrecognized lines as continuations of the previous field.
   const items: PdfTextItem[] = content.items.filter(
     (item): item is PdfTextItem => {
       if (
@@ -177,21 +259,56 @@ function textContentToPage(content: PdfTextContent): {
       ) {
         return false;
       }
-      const a = item as { str: unknown; height: unknown };
-      return (
-        typeof a.str === 'string' &&
-        a.str.length > 0 &&
-        typeof a.height === 'number' &&
-        a.height > 0
-      );
+      const a = item as {
+        str: unknown;
+        height: unknown;
+        transform: unknown;
+      };
+      if (
+        typeof a.str !== 'string' ||
+        a.str.length === 0 ||
+        typeof a.height !== 'number' ||
+        a.height <= 0
+      ) {
+        return false;
+      }
+      const t = a.transform as readonly number[];
+      if (t.length < 6 || typeof t[5] !== 'number') return false;
+      return t[5] >= FOOTER_MAX_Y;
     },
   );
   if (items.length === 0) {
     return { lines: [], headingLineIndexes: [], hasHeadingItem: false };
   }
-  // Group by y-coordinate (rounded). pdfjs's transform is a 6-element matrix
-  // [a, b, c, d, e, f] where (e, f) is the translation; f is the y origin of
-  // the text run. Items on the same baseline share f (modulo rounding).
+  // Partition items into columns BEFORE y-bucketing. Two items on the same
+  // y but in different columns (e.g. SRD page 299, where the previous
+  // monster's body text ends in the left column at y=710.40 while Adult
+  // Gold Dragon's "Speed" line begins in the right column at y=710.40)
+  // must not share a row bucket — otherwise the joined line text becomes
+  // "Breath Weapons … one Speed 40 ft., …" and the speed regex misses.
+  const itemsByColumn = partitionItemsByColumn(items);
+  const ordered: LineRecord[] = [];
+  for (const columnItems of itemsByColumn) {
+    const records = bucketItemsIntoRecords(columnItems);
+    const merged = mergeWrappedHeadings(records, columnItems);
+    ordered.push(...merged);
+  }
+  const lines = ordered.map((r) => r.text);
+  const headingLineIndexes: number[] = [];
+  for (let idx = 0; idx < ordered.length; idx++) {
+    if (ordered[idx].isHeading) headingLineIndexes.push(idx);
+  }
+  const hasHeadingItem = items.some((it) => it.height >= HEADING_H_THRESHOLD);
+  return { lines, headingLineIndexes, hasHeadingItem };
+}
+
+/**
+ * Group items into y-buckets and build per-line records in y-descending
+ * (top-of-page-first) order. Operates on a single column's items; cross-
+ * column y-bucketing is the caller's responsibility.
+ */
+function bucketItemsIntoRecords(items: readonly PdfTextItem[]): LineRecord[] {
+  if (items.length === 0) return [];
   const byY = new Map<number, PdfTextItem[]>();
   for (const item of items) {
     const y = round(item.transform[5], Y_GROUP_PRECISION);
@@ -202,22 +319,14 @@ function textContentToPage(content: PdfTextContent): {
       bucket.push(item);
     }
   }
-  // Lines in reading order: high y first (top of page = greater y in PDF space).
   const yKeys = Array.from(byY.keys()).sort((a, b) => b - a);
   const records: LineRecord[] = [];
   for (const y of yKeys) {
     const row = byY.get(y);
-    if (row === undefined) {
-      continue;
-    }
+    if (row === undefined) continue;
     row.sort((a, b) => a.transform[4] - b.transform[4]);
-    const text = row
-      .map((item) => item.str)
-      .join('')
-      .trim();
-    if (text.length === 0) {
-      continue;
-    }
+    const text = joinRowText(row);
+    if (text.length === 0) continue;
     const minX = Math.min(...row.map((i) => i.transform[4]));
     const maxH = Math.max(...row.map((i) => i.height));
     records.push({
@@ -230,14 +339,118 @@ function textContentToPage(content: PdfTextContent): {
       isHeading: row.every((i) => i.height >= HEADING_H_THRESHOLD),
     });
   }
-  const merged = mergeWrappedHeadings(records, items);
-  const lines = merged.map((r) => r.text);
-  const headingLineIndexes: number[] = [];
-  for (let idx = 0; idx < merged.length; idx++) {
-    if (merged[idx].isHeading) headingLineIndexes.push(idx);
+  return records;
+}
+
+/**
+ * Pick at most one column cut — the LARGEST x-gap on the page — and
+ * return up to two columns of items in left-to-right order. Pages whose
+ * largest gap falls below `COLUMN_GAP_THRESHOLD` (or whose candidate
+ * split fails the per-column validation below) return a single bucket
+ * containing all items, so single-column pages and uniform-font fixture
+ * PDFs round-trip unchanged.
+ *
+ * Why item-level (not row-level) partitioning: a row spanning two columns
+ * (the previous spell's wrap line in the left column at the same y as the
+ * next spell's name in the right column) shares a y-bucket only because
+ * the items happen to share an identical baseline. Splitting at the item
+ * level keeps each column's reading order intact — the merged-text "Breath
+ * Weapons … one Speed 40 ft., …" was the exact symptom of partitioning
+ * after y-bucketing rather than before.
+ *
+ * Why a single largest cut (not every gap above the threshold): a
+ * repeated label/value layout (e.g. a stat block printing "Armor Class
+ * 17" / "Hit Points 178" / "Speed 40 ft." with labels at x=60 and
+ * values at x=130) has only one x-gap on the page, and that gap can
+ * easily exceed `COLUMN_GAP_THRESHOLD` even though it's an intra-column
+ * tab stop, not a page-column gutter. Picking the single largest gap
+ * and validating it (item count + distinct-x diversity on each side)
+ * rejects that case while still catching the real SRD two-column body.
+ */
+function partitionItemsByColumn(
+  items: readonly PdfTextItem[],
+): readonly (readonly PdfTextItem[])[] {
+  if (items.length <= 1) return [items];
+  const sortedXs = items
+    .map((it) => it.transform[4])
+    .slice()
+    .sort((a, b) => a - b);
+  let largestGap = 0;
+  let cutAt = -1;
+  for (let i = 1; i < sortedXs.length; i++) {
+    const gap = sortedXs[i] - sortedXs[i - 1];
+    if (gap > largestGap) {
+      largestGap = gap;
+      cutAt = (sortedXs[i] + sortedXs[i - 1]) / 2;
+    }
   }
-  const hasHeadingItem = items.some((it) => it.height >= HEADING_H_THRESHOLD);
-  return { lines, headingLineIndexes, hasHeadingItem };
+  if (largestGap < COLUMN_GAP_THRESHOLD) return [items];
+  const left: PdfTextItem[] = [];
+  const right: PdfTextItem[] = [];
+  for (const item of items) {
+    if (item.transform[4] < cutAt) left.push(item);
+    else right.push(item);
+  }
+  // Item-count guard: protects one-row fixtures and stray-item splits.
+  if (
+    left.length < MIN_ITEMS_PER_COLUMN ||
+    right.length < MIN_ITEMS_PER_COLUMN
+  ) {
+    return [items];
+  }
+  // Distinct-x guard: protects repeated label/value layouts. A real
+  // page column has body content at multiple x indents; a label or a
+  // value column collapses to a single distinct x.
+  if (
+    distinctRoundedXCount(left) < MIN_DISTINCT_X_PER_COLUMN ||
+    distinctRoundedXCount(right) < MIN_DISTINCT_X_PER_COLUMN
+  ) {
+    return [items];
+  }
+  return [left, right];
+}
+
+function distinctRoundedXCount(items: readonly PdfTextItem[]): number {
+  const xs = new Set<number>();
+  for (const item of items) {
+    xs.add(Math.round(item.transform[4]));
+  }
+  return xs.size;
+}
+
+/**
+ * Concatenate the strings of items on the same baseline, injecting a space
+ * between adjacent items when their visual x-gap exceeds
+ * `ITEM_GAP_SPACE_THRESHOLD` and neither end already carries whitespace.
+ * This is the join used to derive a line's text. The pre-existing naive
+ * `.join('')` was correct for items whose `str` carried their own
+ * inter-run spacing, but SRD 5.1 stat blocks render "Armor Class" (bold)
+ * and "17 (natural armor)" (regular) as two abutting items with no
+ * whitespace in either `str`; joining without a gap-aware space produces
+ * "Armor Class17 (natural armor)" and the stat-line regexes miss.
+ */
+function joinRowText(row: readonly PdfTextItem[]): string {
+  if (row.length === 0) return '';
+  let text = row[0].str;
+  for (let i = 1; i < row.length; i++) {
+    const prev = row[i - 1];
+    const curr = row[i];
+    const prevWidth = prev.width ?? 0;
+    const prevEndX = prev.transform[4] + prevWidth;
+    const currStartX = curr.transform[4];
+    const gap = currStartX - prevEndX;
+    const prevEndsWithSpace = /\s$/.test(prev.str);
+    const currStartsWithSpace = /^\s/.test(curr.str);
+    if (
+      gap > ITEM_GAP_SPACE_THRESHOLD &&
+      !prevEndsWithSpace &&
+      !currStartsWithSpace
+    ) {
+      text += ' ';
+    }
+    text += curr.str;
+  }
+  return text.trim();
 }
 
 /**
