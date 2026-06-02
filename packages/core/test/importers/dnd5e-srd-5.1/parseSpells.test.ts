@@ -285,6 +285,95 @@ describe('parseSpells — class-list bleed (regression)', () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// Real-PDF leveled-marker regression (loreweaver-qqc): in the SRD 5.1 PDF
+// every word-internal hyphen — including the "Nth-level <school>" marker — is
+// emitted by pdfjs as a four-character font-glyph cluster:
+//   U+002D HYPHEN-MINUS + U+00AD SOFT HYPHEN + U+2010 HYPHEN + U+2011 NB HYPHEN
+// The previous LEVELED_MARKER regex demanded a single ASCII hyphen, so no
+// leveled-spell heading in the real PDF matched. Every leveled spell after a
+// cantrip silently became part of that cantrip's body (Fire Bolt absorbed the
+// entire F-* and G-* leveled run up to the next cantrip "Guidance"). Parse
+// must accept the cluster and emit each leveled spell as its own record.
+// ---------------------------------------------------------------------------
+
+const REAL_PDF_HYPHEN_CLUSTER = '-­‐‑';
+
+describe('parseSpells — real-PDF hyphen cluster in leveled marker (regression)', () => {
+  const FIRE_BOLT_LINES = [
+    'Fire Bolt',
+    'Evocation cantrip',
+    'Casting Time: 1 action',
+    'Range: 120 feet',
+    'Components: V, S',
+    'Duration: Instantaneous',
+    'You hurl a mote of fire at a creature or object within',
+    'range. Make a ranged spell attack against the target.',
+    "This spell's damage increases by 1d10 when you reach",
+    '5th level (2d10), 11th level (3d10), and 17th level (4d10).',
+  ];
+  const FIRE_SHIELD_LINES = [
+    'Fire Shield',
+    `4th${REAL_PDF_HYPHEN_CLUSTER}level evocation`,
+    'Casting Time: 1 action',
+    'Range: Self',
+    'Components: V, S, M (a bit of phosphorus or a firefly)',
+    'Duration: 10 minutes',
+    'Thin and wispy flames wreathe your body, shedding',
+    `bright light in a 10${REAL_PDF_HYPHEN_CLUSTER}foot radius.`,
+  ];
+
+  it('emits the leveled spell as its own record (does not absorb into the preceding cantrip)', () => {
+    const merged = page(144, [...FIRE_BOLT_LINES, '', ...FIRE_SHIELD_LINES]);
+    const spells = parseSpells([merged]);
+    expect(spells.map((s) => s.name)).toEqual(['Fire Bolt', 'Fire Shield']);
+  });
+
+  it('keeps Fire Bolt body free of Fire Shield text', () => {
+    const merged = page(144, [...FIRE_BOLT_LINES, '', ...FIRE_SHIELD_LINES]);
+    const [fireBolt] = parseSpells([merged]);
+    expect(fireBolt.description).toMatch(/^You hurl a mote of fire/);
+    expect(fireBolt.description).not.toMatch(/Fire Shield/);
+    expect(fireBolt.description).not.toMatch(/wispy flames/);
+  });
+
+  it('extracts the leveled spell with level=4 and school=evocation', () => {
+    const merged = page(144, [...FIRE_BOLT_LINES, '', ...FIRE_SHIELD_LINES]);
+    const fireShield = parseSpells([merged]).find(
+      (s) => s.name === 'Fire Shield',
+    );
+    expect(fireShield).toBeDefined();
+    expect(fireShield?.level).toBe(4);
+    expect(fireShield?.school).toBe('evocation');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// SRD 5.1 PDF typo tolerance (loreweaver-qqc): Contagion's metadata block in
+// the published PDF says "Component:" (singular) instead of "Components:".
+// Without tolerance the parser throws "incomplete spell metadata" and the
+// importer aborts mid-pass. Other spells use the plural form.
+// ---------------------------------------------------------------------------
+
+describe('parseSpells — Contagion "Component:" typo (regression)', () => {
+  it('accepts the singular "Component:" form as the Components field', () => {
+    const contagionPage = page(129, [
+      'Contagion',
+      '5th-level necromancy',
+      'Casting Time: 1 action',
+      'Range: Touch',
+      'Component: V, S',
+      'Duration: 7 days',
+      'Your touch inflicts disease. Make a melee spell attack.',
+    ]);
+    const [spell] = parseSpells([contagionPage]);
+    expect(spell).toBeDefined();
+    expect(spell.name).toBe('Contagion');
+    expect(spell.components).toEqual(['V', 'S']);
+    expect(spell.duration).toBe('7 days');
+  });
+});
+
 describe('parseSpellClassLists', () => {
   it('extracts spell names per caster class', () => {
     const classListPage: PageText = page(289, [
