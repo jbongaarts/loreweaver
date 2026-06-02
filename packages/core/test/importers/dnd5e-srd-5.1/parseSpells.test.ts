@@ -297,7 +297,7 @@ describe('parseSpells — class-list bleed (regression)', () => {
 // must accept the cluster and emit each leveled spell as its own record.
 // ---------------------------------------------------------------------------
 
-const REAL_PDF_HYPHEN_CLUSTER = '-­‐‑';
+const REAL_PDF_HYPHEN_CLUSTER = '-\u00AD\u2010\u2011';
 
 describe('parseSpells — real-PDF hyphen cluster in leveled marker (regression)', () => {
   const FIRE_BOLT_LINES = [
@@ -345,6 +345,21 @@ describe('parseSpells — real-PDF hyphen cluster in leveled marker (regression)
     expect(fireShield).toBeDefined();
     expect(fireShield?.level).toBe(4);
     expect(fireShield?.school).toBe('evocation');
+  });
+
+  it('normalizes the cluster in body text to a clean ASCII hyphen', () => {
+    const merged = page(144, [...FIRE_BOLT_LINES, '', ...FIRE_SHIELD_LINES]);
+    const fireShield = parseSpells([merged]).find(
+      (s) => s.name === 'Fire Shield',
+    );
+    expect(fireShield).toBeDefined();
+    // The source line carried the four-glyph cluster in "10-foot radius";
+    // the parsed body must read with a plain ASCII hyphen.
+    expect(fireShield?.description).toContain('10-foot radius');
+    // …and must not leak any of the invisible PDF hyphen presentation
+    // characters (U+00AD soft hyphen, U+2010 hyphen, U+2011 non-breaking
+    // hyphen) into the normalized output.
+    expect(fireShield?.description).not.toMatch(/[\u00AD\u2010\u2011]/);
   });
 });
 
