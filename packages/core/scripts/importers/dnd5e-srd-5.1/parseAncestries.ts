@@ -62,9 +62,16 @@ interface KnownSubrace {
   readonly parent: string;
 }
 
-// The SRD 5.1 subraces and their parent races. Most record names are kept
-// verbatim from the source headings; the bare halfling headings are
-// parent-qualified so canonical name/key lookups match user-facing terms.
+// Known PHB subraces and their parent races. The SRD 5.1 PDF itself only
+// publishes one subrace per race-with-subraces (Hill Dwarf, High Elf,
+// Lightfoot Halfling, Rock Gnome); the others (Mountain Dwarf, Wood Elf,
+// Dark Elf/Drow, Stout Halfling, Forest Gnome) live in the PHB and appear
+// here so the parser still detects them in synthetic fixtures or a future
+// SRD revision that adds them. The orchestrator's coverage gate is
+// `EXPECTED_SRD_5_1_ANCESTRY_NAMES` (the actual SRD 5.1 13-name set),
+// kept separately in `index.ts`. Most record names are kept verbatim from
+// the source headings; the bare halfling headings are parent-qualified so
+// canonical name/key lookups match user-facing terms.
 const KNOWN_SUBRACES: readonly KnownSubrace[] = [
   { sourceName: 'Hill Dwarf', recordName: 'Hill Dwarf', parent: 'Dwarf' },
   {

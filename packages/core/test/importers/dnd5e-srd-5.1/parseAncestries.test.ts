@@ -11,8 +11,16 @@
  * separate records, and each subrace record is flattened/self-contained.
  */
 
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { extractPdfText } from '../../../scripts/importers/dnd5e-srd-5.1/extract.js';
+import { EXPECTED_SRD_5_1_ANCESTRY_NAMES } from '../../../scripts/importers/dnd5e-srd-5.1/index.js';
 import { parseAncestries } from '../../../scripts/importers/dnd5e-srd-5.1/parseAncestries.js';
+import {
+  SRD_5_1_DEFAULT_SECTION_ANCHORS,
+  sliceSection,
+} from '../../../scripts/importers/dnd5e-srd-5.1/sections.js';
 import type { PageText } from '../../../scripts/importers/dnd5e-srd-5.1/types.js';
 
 function page(pageNumber: number, lines: string[]): PageText {
@@ -295,4 +303,83 @@ describe('parseAncestries — halfling subrace canonical names', () => {
     expect(lightfoot?.size).toBe('Small');
     expect(lightfoot?.speed).toBe(25);
   });
+});
+
+// ---------------------------------------------------------------------------
+// Real-PDF coverage (loreweaver-3m1)
+// ---------------------------------------------------------------------------
+//
+// The SRD 5.1 PDF publishes 9 base races and exactly 4 subraces — Hill Dwarf,
+// High Elf, Lightfoot Halfling, Rock Gnome. The other PHB subraces (Mountain
+// Dwarf, Wood Elf, Dark Elf/Drow, Stout Halfling, Forest Gnome) are not part
+// of the CC-BY-4.0 SRD 5.1 at all. The orchestrator's
+// `EXPECTED_SRD_5_1_ANCESTRY_NAMES` constant originally claimed all 18, which
+// caused `verify:dnd5e-srd-pack` to fail closed against a perfectly correct
+// 13-record parse. These tests pin the 13-record reality so the constant
+// can't silently drift back to the PHB set, and prove the parser produces
+// exactly that set when run against the vendored PDF.
+
+describe('parseAncestries — real SRD 5.1 PDF coverage (loreweaver-3m1)', () => {
+  const SRD_PDF_PATH = join(
+    process.cwd(),
+    'packages/core/sources/dnd5e-srd-5.1/SRD_CC_v5.1.pdf',
+  );
+
+  it('EXPECTED_SRD_5_1_ANCESTRY_NAMES carries the 13 actual SRD 5.1 names', () => {
+    // The SRD 5.1 has 9 base races plus 4 subraces (one per race-with-subraces).
+    // A regression that re-adds Mountain Dwarf etc. to this list would make the
+    // ancestry coverage check fail against the real PDF.
+    expect([...EXPECTED_SRD_5_1_ANCESTRY_NAMES].sort()).toEqual(
+      [
+        'Dragonborn',
+        'Dwarf',
+        'Elf',
+        'Gnome',
+        'Half-Elf',
+        'Half-Orc',
+        'Halfling',
+        'Human',
+        'Tiefling',
+        'Hill Dwarf',
+        'High Elf',
+        'Lightfoot Halfling',
+        'Rock Gnome',
+      ].sort(),
+    );
+    expect(EXPECTED_SRD_5_1_ANCESTRY_NAMES).toHaveLength(13);
+    // Sanity guard: PHB-only subraces must NOT appear here. Adding them is
+    // exactly the bug loreweaver-3m1 fixed.
+    for (const phbOnly of [
+      'Mountain Dwarf',
+      'Wood Elf',
+      'Dark Elf (Drow)',
+      'Stout Halfling',
+      'Forest Gnome',
+    ]) {
+      expect(EXPECTED_SRD_5_1_ANCESTRY_NAMES).not.toContain(phbOnly);
+    }
+  });
+
+  it(
+    'parses exactly the EXPECTED set from the vendored SRD 5.1 PDF',
+    async () => {
+      // Narrow extraction to the races chapter (PDF pages 3-7) plus page 8
+      // where "Barbarian" first appears — the races endHeading anchor — so
+      // sliceSection's requireEndHeading guard is satisfied without paying for
+      // a 403-page extract. Keeps the test well under the suite's default
+      // timeout while still exercising real PDF text and column-aware layout.
+      const pdfBytes = readFileSync(SRD_PDF_PATH);
+      const pages = await extractPdfText(new Uint8Array(pdfBytes), {
+        pageRange: { start: 3, end: 8 },
+      });
+      const racePages = sliceSection(
+        pages,
+        SRD_5_1_DEFAULT_SECTION_ANCHORS.races,
+      );
+      const ancestries = parseAncestries(racePages);
+      const parsedNames = ancestries.map((a) => a.name).sort();
+      expect(parsedNames).toEqual([...EXPECTED_SRD_5_1_ANCESTRY_NAMES].sort());
+    },
+    20000,
+  );
 });

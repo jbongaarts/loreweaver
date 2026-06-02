@@ -109,6 +109,16 @@ export const MIN_EXPECTED_SRD_5_1_SUBCLASSES = 12;
  */
 export const MIN_EXPECTED_SRD_5_1_FEATURES = 12;
 
+/**
+ * Race + subrace records the SRD 5.1 PDF publishes. The SRD 5.1 includes the 9
+ * base PHB races but only ONE subrace per race-with-subraces (4 subraces total:
+ * Hill Dwarf, High Elf, Lightfoot Halfling, Rock Gnome) — the other PHB
+ * subraces (Mountain Dwarf, Wood Elf, Dark Elf/Drow, Stout Halfling, Forest
+ * Gnome) are not part of the CC-BY-4.0 SRD 5.1. The `parseAncestries`
+ * `KNOWN_SUBRACES` list is intentionally broader so the parser still detects
+ * those headings in synthetic fixtures or future SRD revisions; this constant
+ * is the coverage gate for the real vendored SRD 5.1 PDF specifically.
+ */
 export const EXPECTED_SRD_5_1_ANCESTRY_NAMES: readonly string[] = [
   'Dragonborn',
   'Dwarf',
@@ -120,13 +130,8 @@ export const EXPECTED_SRD_5_1_ANCESTRY_NAMES: readonly string[] = [
   'Human',
   'Tiefling',
   'Hill Dwarf',
-  'Mountain Dwarf',
   'High Elf',
-  'Wood Elf',
-  'Dark Elf (Drow)',
   'Lightfoot Halfling',
-  'Stout Halfling',
-  'Forest Gnome',
   'Rock Gnome',
 ];
 
