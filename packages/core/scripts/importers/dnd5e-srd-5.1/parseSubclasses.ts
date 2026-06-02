@@ -128,15 +128,33 @@ export function parseSubclasses(
   const flat = flatten(pages);
   if (flat.length === 0) return [];
 
-  // Boundary lines: any subclass heading OR any base-class name (both exact
-  // full-line matches). A subclass's description runs from its heading to the
-  // next boundary, so the next class's name + intro prose does not bleed into
-  // the previous subclass's body.
+  // Boundary lines: any base-class name (which also moves a "current parent"
+  // cursor) and any subclass heading whose known parent matches that cursor.
+  // The parent guard disambiguates stray subclass-name occurrences that fall
+  // inside the wrong chapter — e.g. the Barbarian level-20 capstone row
+  // "Primal Champion" column-wraps in the SRD 5.1 PDF so that "Champion"
+  // extracts on its own line, which has the same exact text as the Fighter
+  // subclass Champion's heading. Without the guard, the parser emits a
+  // duplicate `subclass:champion` record and the pack writer rejects it
+  // (loreweaver-9bu).
+  //
+  // The slice begins AFTER the "Barbarian" chapter heading (consumed by
+  // sectionAnchors.classes as the start anchor), so the implicit parent at
+  // the slice's leading content is Barbarian. Test fixtures that include the
+  // parent name explicitly as their first line override this default before
+  // any subclass-name line is reached.
   const boundaries: number[] = [];
+  let currentParent: string = 'Barbarian';
   for (let i = 0; i < flat.length; i++) {
     // `flat[i].line` is already whitespace-normalized (see `flatten`).
     const line = flat[i].line;
-    if (SUBCLASS_BY_NAME.has(line) || PARENT_CLASS_NAMES.has(line)) {
+    if (PARENT_CLASS_NAMES.has(line)) {
+      currentParent = line;
+      boundaries.push(i);
+      continue;
+    }
+    const sc = SUBCLASS_BY_NAME.get(line);
+    if (sc !== undefined && sc.parent === currentParent) {
       boundaries.push(i);
     }
   }
