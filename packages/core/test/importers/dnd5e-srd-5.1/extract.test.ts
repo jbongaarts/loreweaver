@@ -197,6 +197,127 @@ describe('extractPdfText — heading merge', () => {
     }
   });
 
+  it('emits two-column body pages column-by-column, not row-interleaved', async () => {
+    // Mimics the SRD spell-descriptions layout (page 114 in the real PDF):
+    // two columns of stat blocks where pdfjs returns items y-interleaved
+    // across columns. The extractor must produce a left-column-then-right-
+    // column reading order so a spell's name, level marker, and metadata
+    // stay contiguous instead of interleaving with the adjacent column's
+    // spell.
+    const pages = await extractFromOps([
+      // Left column spell.
+      { text: 'Acid Arrow', size: 11, x: 60, y: 200 },
+      { text: '2nd-level evocation', size: 11, x: 60, y: 220 },
+      { text: 'Casting Time: 1 action', size: 11, x: 60, y: 240 },
+      // Right column spell at roughly the same y as the left column, with
+      // a small offset that lands it in a different y-bucket.
+      { text: 'Alarm', size: 11, x: 330, y: 204 },
+      { text: '1st-level abjuration', size: 11, x: 330, y: 224 },
+      { text: 'Casting Time: 1 minute', size: 11, x: 330, y: 244 },
+    ]);
+    const flat = pages[0].lines;
+    // Left column lines come first, in their own reading order.
+    const acidArrowIdx = flat.indexOf('Acid Arrow');
+    const acidArrowMarkerIdx = flat.indexOf('2nd-level evocation');
+    const alarmIdx = flat.indexOf('Alarm');
+    expect(acidArrowIdx).toBeGreaterThanOrEqual(0);
+    expect(alarmIdx).toBeGreaterThan(acidArrowIdx);
+    // Critically: the left column's marker line must precede the right
+    // column's name (the pre-fix behavior interleaved them, so "Alarm"
+    // landed between "Acid Arrow" and "2nd-level evocation").
+    expect(acidArrowMarkerIdx).toBeGreaterThan(acidArrowIdx);
+    expect(acidArrowMarkerIdx).toBeLessThan(alarmIdx);
+  });
+
+  it('separates items at identical y but in different columns', async () => {
+    // Critical: SRD page 299 has the previous monster's wrap line in the
+    // left column at the SAME y baseline as the next monster's "Speed"
+    // line in the right column. A row-bucketing pass that didn't separate
+    // items by column first would join those into one line ("… one
+    // Speed 40 ft., …"), erasing the Speed line and causing parseCreatures
+    // to throw "missing a Speed line".
+    //
+    // The fixture has multiple items per column so `partitionItemsByColumn`
+    // doesn't fold the split back into a single column (the
+    // `MIN_ITEMS_PER_COLUMN` guard protects single-column rows whose
+    // label/value pair happens to gap > the column threshold).
+    const pages = await extractFromOps([
+      { text: 'left-col text', size: 11, x: 60, y: 200 },
+      { text: 'left col body line', size: 11, x: 60, y: 220 },
+      { text: 'right-col Speed', size: 11, x: 330, y: 200 },
+      { text: 'right col body line', size: 11, x: 330, y: 220 },
+    ]);
+    expect(pages[0].lines).toContain('left-col text');
+    expect(pages[0].lines).toContain('right-col Speed');
+    // The diagnostic regression: the two strings must never appear in a
+    // single concatenated line.
+    for (const line of pages[0].lines) {
+      expect(line).not.toMatch(/left-col text.*right-col Speed/);
+    }
+  });
+
+  it('inserts a space between same-baseline items separated by a visual gap', async () => {
+    // SRD stat-block label/value rows render as two pdfjs items at the
+    // same y with no whitespace inside either `str` (the bold-to-regular
+    // font switch breaks the run). The extractor must inject a space so
+    // downstream regexes like `^Armor Class\s+(\d+)` match.
+    const pages = await extractFromOps([
+      { text: 'Armor Class', size: 11, x: 60, y: 100 },
+      { text: '17 (natural armor)', size: 11, x: 130, y: 100 },
+    ]);
+    expect(pages[0].lines).toContain('Armor Class 17 (natural armor)');
+  });
+
+  it('drops the persistent SRD footer band so it does not bleed into spell metadata', async () => {
+    // The SRD 5.1 page footer ("System Reference Document 5.1" + page #)
+    // renders at PDF-native y ≈ 31.9 on every body page. Pre-fix, with
+    // column-aware emission, the footer ended up appended after the
+    // bottom of the right column and parseSpells consumed it as a
+    // continuation of the previous spell's Components field.
+    //
+    // pdfkit measures y from the top of the page; PDFs measure y from
+    // the bottom. To place a footer at PDF-native y ≈ 30, render at
+    // pdfkit y = pageHeight − ~40, i.e. y ≈ 755 on a LETTER page.
+    const pages = await extractFromOps([
+      { text: 'Body line', size: 11, x: 60, y: 200 },
+      { text: 'System Reference Document 5.1', size: 9, x: 380, y: 755 },
+      { text: '189', size: 9, x: 560, y: 755 },
+    ]);
+    expect(pages[0].lines).toContain('Body line');
+    for (const line of pages[0].lines) {
+      expect(line).not.toContain('System Reference Document 5.1');
+      expect(line).not.toBe('189');
+    }
+  });
+
+  it('leaves single-column pages in y-descending order', async () => {
+    // All items at the same x cluster — no column split, so the original
+    // y-descending order is preserved.
+    const pages = await extractFromOps([
+      { text: 'Line A', size: 11, x: 60, y: 100 },
+      { text: 'Line B', size: 11, x: 60, y: 120 },
+      { text: 'Line C', size: 11, x: 60, y: 140 },
+    ]);
+    // Higher y = top of page first.
+    expect(pages[0].lines).toEqual(['Line A', 'Line B', 'Line C']);
+  });
+
+  it('recomputes headingLineIndexes after column reordering', async () => {
+    // Two columns; the left column has a heading at the top. After the
+    // column-by-column emit, the heading still resolves through
+    // headingLineIndexes — the indexes must be recomputed against the
+    // re-ordered lines, not against the pre-partition order.
+    const pages = await extractFromOps([
+      { text: 'Left Heading', size: 26, x: 60, y: 60 },
+      { text: 'left body line', size: 11, x: 60, y: 120 },
+      { text: 'right body line A', size: 11, x: 330, y: 100 },
+      { text: 'right body line B', size: 11, x: 330, y: 140 },
+    ]);
+    const idxs = pages[0].headingLineIndexes ?? [];
+    expect(idxs.length).toBe(1);
+    expect(pages[0].lines[idxs[0]]).toBe('Left Heading');
+  });
+
   it('headingLineIndexes point at heading line POSITIONS, not just heading TEXT', async () => {
     // Two lines on the page both have text "Equipment" — one heading-sized,
     // one body-sized. The extractor must mark only the heading-sized
