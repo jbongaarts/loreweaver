@@ -181,6 +181,92 @@ describe('parseSubclasses — multiple subclasses across classes', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Real-PDF regression (loreweaver-9bu): the Barbarian progression table on
+// the SRD 5.1 PDF has its level-20 capstone row "Primal Champion" column-
+// wrapped so that "Champion" lands on its own extracted line — which is also
+// the exact heading text of the Fighter subclass "Champion". A naive parser
+// treats this stray line as a second Champion subclass heading and the pack
+// writer then rejects the duplicate `subclass:champion` key. Boundary
+// disambiguation: a subclass-name line is only a real heading when the
+// current parent-class section matches the subclass's known parent. The
+// slice begins AFTER the "Barbarian" chapter heading (consumed by the start
+// anchor in sectionAnchors.classes), so the implicit current parent at the
+// slice's leading content is Barbarian.
+// ---------------------------------------------------------------------------
+
+const BARBARIAN_THEN_FIGHTER_WITH_PRIMAL_COLUMN_WRAP = [
+  page(8, [
+    // Barbarian chapter content (its h=25.9 chapter heading was the slice's
+    // start anchor, so the heading itself is excluded — the slice's leading
+    // lines are implicitly Barbarian).
+    'Class Features',
+    'Hit Dice: 1d12 per barbarian level',
+    'Armor: Light armor, medium armor, shields',
+    'Weapons: Simple weapons, martial weapons',
+    'Saving Throws: Strength, Constitution',
+    'The Barbarian',
+    'Level Proficiency Bonus Features',
+    '1st +2 Rage, Unarmored Defense',
+    '19th +6 Ability Score',
+    'Improvement',
+    // The "Primal Champion" capstone row column-wraps so "Champion" lands on
+    // its own line — same exact text as the Fighter subclass heading.
+    '20th +6 Primal Unlimited +4',
+    'Champion',
+    'Rage',
+    'In battle, you fight with primal ferocity.',
+    'Path of the Berserker',
+    'For some barbarians, rage is a means to an end — that end being violence.',
+    'Frenzy',
+    'Starting when you choose this path at 3rd level, you can go into a frenzy.',
+  ]),
+  page(25, [
+    'Fighter',
+    'Class Features',
+    'Hit Dice: 1d10 per fighter level',
+    'Armor: All armor, shields',
+    'Weapons: Simple weapons, martial weapons',
+    'Saving Throws: Strength, Constitution',
+    'Martial Archetypes',
+    'Different fighters choose different approaches to perfecting their martial',
+    'prowess. The martial archetype you choose to emulate reflects your approach.',
+    'Champion',
+    'The archetypal Champion focuses on the development of raw physical power',
+    'honed to deadly perfection.',
+    'Improved Critical',
+    'Beginning when you choose this archetype at 3rd level, your weapon attacks',
+    'score a critical hit on a roll of 19 or 20.',
+  ]),
+];
+
+describe('parseSubclasses — "Primal Champion" column-wrap in Barbarian progression table', () => {
+  const subs = parseSubclasses(BARBARIAN_THEN_FIGHTER_WITH_PRIMAL_COLUMN_WRAP);
+  const champions = subs.filter((s) => s.name === 'Champion');
+
+  it('emits exactly one Champion record despite the bare "Champion" line in the Barbarian section', () => {
+    expect(champions).toHaveLength(1);
+  });
+
+  it('keeps the surviving Champion bound to the Fighter chapter', () => {
+    expect(champions[0].parentClass).toBe('Fighter');
+    expect(champions[0].sourcePage).toBe(25);
+    expect(champions[0].description).toMatch(/archetypal Champion focuses/);
+    expect(champions[0].description).toMatch(/Improved Critical/);
+  });
+
+  it('does not absorb Barbarian progression-table content into the Champion body', () => {
+    expect(champions[0].description).not.toMatch(/Primal Unlimited/);
+    expect(champions[0].description).not.toMatch(/primal ferocity/);
+  });
+
+  it('still extracts Path of the Berserker from the leading (implicit Barbarian) slice', () => {
+    const berserker = subs.find((s) => s.name === 'Path of the Berserker');
+    expect(berserker).toBeDefined();
+    expect(berserker?.parentClass).toBe('Barbarian');
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Fail-closed + empty-slice behavior.
 // ---------------------------------------------------------------------------
 
