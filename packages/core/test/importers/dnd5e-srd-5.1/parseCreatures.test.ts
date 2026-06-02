@@ -317,7 +317,7 @@ describe('parseCreatures — real-PDF resilience', () => {
     // character-class check. Before w8h these stat blocks (Will-o'-Wisp,
     // Half-Red Dragon Veteran, Saber-Toothed Tiger) were silently dropped.
     const saberTooth = [
-      'Saber-­‐Toothed Tiger',
+      'Saber-\u00AD\u2010Toothed Tiger',
       'Large beast, unaligned',
       'Armor Class 12',
       'Hit Points 52 (7d10 + 14)',

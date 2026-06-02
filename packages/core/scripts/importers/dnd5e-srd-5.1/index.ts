@@ -59,23 +59,23 @@ import type {
 } from './types.js';
 
 /**
- * Minimum number of creature stat blocks a full SRD 5.1 import must yield. The
- * SRD 5.1 CC PDF carries 296 creature stat blocks across two sections — the
- * alphabetic "Monsters" chapter (~201) and "Appendix MM-A: Miscellaneous
- * Creatures" (~95 beasts/animals/swarms). The orchestrator parses both
- * (loreweaver-w8h); the separate "Appendix MM-B: Nonplayer Characters" is
- * intentionally out of scope (see the `miscellaneousCreatures` anchor in
- * `sections.ts`). This floor catches a gross extraction regression — an empty
- * or badly-truncated run — when the importer is pointed at the real PDF. It
- * is deliberately a count floor rather than an exact name set: enumerating the
- * full name set by hand is error-prone, and exact-coverage validation is
- * tracked separately in `loreweaver-0m9.5.14`. The CLI passes this value;
- * fixture-based tests use the always-on empty-result guard instead (or pass a
- * smaller `minCreatureCount`). 280 leaves modest headroom under the 296
- * observed ceiling — large enough to flag a real regression, small enough
- * that a future PDF revision with a few renamed entries doesn't blow up CI.
+ * Reviewed creature count for the vendored SRD 5.1 CC PDF: 201 stat blocks
+ * in the alphabetic "Monsters" chapter plus 95 in "Appendix MM-A:
+ * Miscellaneous Creatures" (animals/beasts/swarms). "Appendix MM-B:
+ * Nonplayer Characters" is intentionally out of scope — see the
+ * `miscellaneousCreatures` anchor in `sections.ts`. Because the source
+ * PDF is vendored and hash-pinned (see `sources/dnd5e-srd-5.1/`), this is
+ * a fixed property of the input artifact: any change must be an
+ * intentional baseline update with re-review, not slack-headroom.
+ *
+ * The orchestrator's coverage gate compares against this exact count
+ * (loreweaver-w8h) so a parser regression that drops even a single
+ * creature trips immediately. Exact name-set coverage remains out of
+ * scope here and is tracked in `loreweaver-0m9.5.14`. The CLI passes
+ * this value; fixture-based tests use the always-on empty-result guard
+ * instead (or pass a smaller `minCreatureCount`).
  */
-export const MIN_EXPECTED_SRD_5_1_CREATURES = 280;
+export const MIN_EXPECTED_SRD_5_1_CREATURES = 296;
 
 /**
  * Minimum number of base classes a full SRD 5.1 import must yield. The SRD 5.1

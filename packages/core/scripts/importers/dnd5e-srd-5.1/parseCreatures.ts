@@ -93,18 +93,29 @@ interface FlatLine {
 
 /**
  * Normalize a raw extracted line so the parser's character-class regexes
- * see clean ASCII text. The SRD 5.1 PDF encodes compound creature names as
- * `-­‐` triples — an ASCII hyphen plus a soft hyphen (discretionary
- * break, U+00AD) plus a Unicode HYPHEN (U+2010) — which renders as one
- * hyphen visually but breaks the `isLikelyCreatureName` regex and
- * silently drops "Will-o'-Wisp", "Saber-Toothed Tiger", and
- * "Half-Red Dragon Veteran" (loreweaver-w8h). Strip the soft hyphen
- * entirely (it's a non-printing presentation mark), fold U+2010 onto the
- * ASCII hyphen, and collapse the resulting `-` run so the canonical
- * single-hyphen form is what the parser and output see.
+ * see clean ASCII text. The SRD 5.1 PDF encodes compound creature names
+ * as three-character sequences — ASCII hyphen (U+002D) plus a SOFT HYPHEN
+ * (U+00AD, a non-printing discretionary line-break mark) plus a
+ * Unicode HYPHEN (U+2010) — which renders as one hyphen visually but
+ * breaks the `isLikelyCreatureName` regex and silently drops
+ * "Will-o'-Wisp", "Saber-Toothed Tiger", and "Half-Red Dragon Veteran"
+ * (loreweaver-w8h). Strip U+00AD entirely (it's non-printing), fold
+ * U+2010 onto the ASCII hyphen, and collapse the resulting hyphen run so
+ * the canonical single-hyphen form is what the parser and output see.
+ *
+ * Hidden-Unicode hygiene: every U+00AD / U+2010 in this module is written
+ * as an explicit `\uXXXX` escape so source files contain no invisible
+ * presentation marks. The regex sources are likewise built from escapes.
  */
+const SOFT_HYPHEN_RE = /\u00AD/g;
+const UNICODE_HYPHEN_RE = /\u2010/g;
+const HYPHEN_RUN_RE = /-{2,}/g;
+
 function normalizeLine(line: string): string {
-  return line.replace(/­/g, '').replace(/‐/g, '-').replace(/-{2,}/g, '-');
+  return line
+    .replace(SOFT_HYPHEN_RE, '')
+    .replace(UNICODE_HYPHEN_RE, '-')
+    .replace(HYPHEN_RUN_RE, '-');
 }
 
 function flatten(pages: readonly PageText[]): readonly FlatLine[] {
