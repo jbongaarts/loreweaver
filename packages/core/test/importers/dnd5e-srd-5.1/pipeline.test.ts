@@ -592,9 +592,15 @@ const RACES_PAGE_NO_ANCESTRIES: FixturePage = {
   ],
 };
 
-const RACES_PAGE_MISSING_STOUT: FixturePage = {
+// Fixture variant that drops the bare "Lightfoot" heading so the comprehensive
+// RACES_PAGE no longer parses to a Lightfoot Halfling record. Used by the
+// coverage-failure test; "Lightfoot Halfling" is one of the actual SRD 5.1
+// subraces in `EXPECTED_SRD_5_1_ANCESTRY_NAMES`, so its absence trips the
+// ancestry coverage gate. (Stout was the original guard target; loreweaver-3m1
+// removed it from the SRD 5.1 expected set because it isn't in the real PDF.)
+const RACES_PAGE_MISSING_LIGHTFOOT: FixturePage = {
   lines: RACES_PAGE.lines.filter(
-    (line) => typeof line !== 'string' || line !== 'Stout',
+    (line) => typeof line !== 'string' || line !== 'Lightfoot',
   ),
 };
 
@@ -1515,7 +1521,7 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     const pdfPath = join(workDir, 'fixture.pdf');
     const outDir = join(workDir, 'pack');
     await writeFixturePdf(pdfPath, [
-      RACES_PAGE_MISSING_STOUT,
+      RACES_PAGE_MISSING_LIGHTFOOT,
       CLASSES_PAGE,
       CORE_RULES_PAGE_ONE,
       CORE_RULES_PAGE_TWO,
@@ -1534,7 +1540,7 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     ]);
 
     await expect(runImporter({ pdfPath, outDir })).rejects.toThrow(
-      /Missing expected ancestry record\(s\): Stout Halfling/,
+      /Missing expected ancestry record\(s\): Lightfoot Halfling/,
     );
     expect(() => readFileSync(join(outDir, 'records.json'), 'utf8')).toThrow();
   });
