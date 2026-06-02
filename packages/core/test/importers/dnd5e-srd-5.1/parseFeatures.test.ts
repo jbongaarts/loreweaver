@@ -335,6 +335,126 @@ describe('parseFeatures — class + subclass features in one slice', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Real-PDF regression: a feature whose body contains an in-body reference
+// table titled with the SAME feature name (e.g. Cleric's "Destroy Undead"
+// feature, whose body ends with a "Destroy Undead" CR-threshold table). The
+// table caption is heading-shaped and matches the same progression-table
+// anchor, so a naive parser emits the feature twice (loreweaver-8gp).
+// ---------------------------------------------------------------------------
+
+const CLERIC_DESTROY_UNDEAD = page(58, [
+  'Cleric',
+  'The Cleric',
+  'Level Proficiency Bonus Features',
+  '1st +2 Spellcasting, Divine Domain',
+  '2nd +2 Channel Divinity (1/rest), Divine Domain',
+  '5th +3 Destroy Undead (CR 1/2)',
+  '8th +3 Ability Score Improvement, Destroy Undead',
+  'Class Features',
+  'Hit Dice: 1d8 per cleric level',
+  'Armor: Light armor, medium armor, shields',
+  'Weapons: Simple weapons',
+  'Saving Throws: Wisdom, Charisma',
+  'Destroy Undead',
+  'Starting at 5th level, when an undead fails its saving',
+  'throw against your Turn Undead feature, the',
+  'creature is instantly destroyed if its challenge rating',
+  'is at or below a certain threshold, as shown in the',
+  'Destroy Undead table.',
+  'Destroy Undead',
+  'Cleric Level Destroys Undead of CR . . .',
+  '5th 1/2 or lower',
+  '8th 1 or lower',
+]);
+
+describe('parseFeatures — same-name in-body reference table (Destroy Undead)', () => {
+  const features = parseFeatures([CLERIC_DESTROY_UNDEAD]);
+
+  it('emits exactly one Destroy Undead record despite the in-body table caption', () => {
+    const destroyUndead = features.filter((f) => f.name === 'Destroy Undead');
+    expect(destroyUndead).toHaveLength(1);
+  });
+
+  it('records the grant level from the progression table (earliest row)', () => {
+    const [destroyUndead] = features.filter((f) => f.name === 'Destroy Undead');
+    expect(destroyUndead.grantorKind).toBe('class');
+    expect(destroyUndead.grantorName).toBe('Cleric');
+    expect(destroyUndead.level).toBe(5);
+  });
+
+  it('keeps the table contents inside the feature body', () => {
+    const [destroyUndead] = features.filter((f) => f.name === 'Destroy Undead');
+    expect(destroyUndead.description).toMatch(/challenge rating/);
+    expect(destroyUndead.description).toMatch(/Cleric Level/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Real-PDF regression: a feature whose option list is printed at the end of
+// the class chapter under a SECOND heading that re-states the feature name
+// (e.g. Warlock's "Eldritch Invocations" — granted at level 2, with the
+// per-invocation options listed at the end of the class chapter under a
+// second "Eldritch Invocations" heading). The repeat is not inside the
+// original feature's body (other features intervene), so the parser must
+// merge at output time rather than rely on body-level suppression.
+// ---------------------------------------------------------------------------
+
+const WARLOCK_ELDRITCH_INVOCATIONS = page(46, [
+  'Warlock',
+  'The Warlock',
+  'Level Proficiency Bonus Features',
+  '1st +2 Otherworldly Patron, Pact Magic',
+  '2nd +2 Eldritch Invocations',
+  '3rd +2 Pact Boon',
+  '20th +6 Eldritch Master',
+  'Class Features',
+  'Hit Dice: 1d8 per warlock level',
+  'Armor: Light armor',
+  'Weapons: Simple weapons',
+  'Saving Throws: Wisdom, Charisma',
+  'Eldritch Invocations',
+  'In your study of occult lore, you have unearthed eldritch invocations,',
+  'fragments of forbidden knowledge.',
+  'Eldritch Master',
+  'At 20th level, you can draw on your inner reserve of mystical power.',
+  'Eldritch Invocations',
+  'If an eldritch invocation has prerequisites, you must meet them to learn it.',
+  'Agonizing Blast',
+  'When you cast eldritch blast, add your Charisma modifier to the damage.',
+]);
+
+describe('parseFeatures — end-of-chapter option list re-uses the feature heading (Eldritch Invocations)', () => {
+  const features = parseFeatures([WARLOCK_ELDRITCH_INVOCATIONS]);
+
+  it('emits exactly one Eldritch Invocations record despite the option-list heading', () => {
+    const eldritch = features.filter((f) => f.name === 'Eldritch Invocations');
+    expect(eldritch).toHaveLength(1);
+  });
+
+  it('keeps the grant level from the progression table', () => {
+    const [eldritch] = features.filter(
+      (f) => f.name === 'Eldritch Invocations',
+    );
+    expect(eldritch.grantorKind).toBe('class');
+    expect(eldritch.grantorName).toBe('Warlock');
+    expect(eldritch.level).toBe(2);
+  });
+
+  it('merges the option-list body into the feature description', () => {
+    const [eldritch] = features.filter(
+      (f) => f.name === 'Eldritch Invocations',
+    );
+    expect(eldritch.description).toMatch(/study of occult lore/);
+    expect(eldritch.description).toMatch(/prerequisites/);
+    expect(eldritch.description).toMatch(/Agonizing Blast/);
+  });
+
+  it('still emits the intervening feature between the two heading occurrences', () => {
+    expect(features.map((f) => f.name)).toContain('Eldritch Master');
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Fail-closed + empty input.
 // ---------------------------------------------------------------------------
 
