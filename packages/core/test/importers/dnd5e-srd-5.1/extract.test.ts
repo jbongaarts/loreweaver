@@ -15,8 +15,8 @@
  * single column, (b) the merge of a multi-line chapter title even when a
  * different-column item interleaves in y-order, (c) leaving body prose
  * alone, (d) leaving subsection titles alone (they don't wrap in SRD 5.1),
- * and (e) the document-level fallback that leaves `headings` undefined for
- * uniform-font fixtures so existing tests still see all lines.
+ * and (e) the document-level fallback that leaves `headingLineIndexes`
+ * undefined for uniform-font fixtures so existing tests still see all lines.
  */
 
 import { createWriteStream, mkdtempSync, readFileSync, rmSync } from 'node:fs';
