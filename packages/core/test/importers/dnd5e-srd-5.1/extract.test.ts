@@ -204,16 +204,23 @@ describe('extractPdfText — heading merge', () => {
     // column reading order so a spell's name, level marker, and metadata
     // stay contiguous instead of interleaving with the adjacent column's
     // spell.
+    //
+    // Each column carries items at multiple x positions (left edge plus a
+    // small wrap indent) so the distinct-x diversity check in
+    // partitionItemsByColumn accepts the cut as a real page-column
+    // gutter rather than an intra-column label/value tab stop.
     const pages = await extractFromOps([
       // Left column spell.
       { text: 'Acid Arrow', size: 11, x: 60, y: 200 },
       { text: '2nd-level evocation', size: 11, x: 60, y: 220 },
       { text: 'Casting Time: 1 action', size: 11, x: 60, y: 240 },
+      { text: 'wrap continuation', size: 11, x: 70, y: 260 },
       // Right column spell at roughly the same y as the left column, with
       // a small offset that lands it in a different y-bucket.
       { text: 'Alarm', size: 11, x: 330, y: 204 },
       { text: '1st-level abjuration', size: 11, x: 330, y: 224 },
       { text: 'Casting Time: 1 minute', size: 11, x: 330, y: 244 },
+      { text: 'wrap continuation', size: 11, x: 340, y: 264 },
     ]);
     const flat = pages[0].lines;
     // Left column lines come first, in their own reading order.
@@ -229,6 +236,39 @@ describe('extractPdfText — heading merge', () => {
     expect(acidArrowMarkerIdx).toBeLessThan(alarmIdx);
   });
 
+  it('keeps a repeated label/value layout as a single column even when the label/value x-gap exceeds the column-gap threshold', async () => {
+    // The regression this guards: a stat-block-style layout that prints
+    // labels at one x and values at another x for many rows. The label/
+    // value x-gap can easily exceed COLUMN_GAP_THRESHOLD (here 60→130 =
+    // 70pt > 50pt), but it's an intra-column tab stop, not a page-column
+    // gutter. partitionItemsByColumn must keep the rows intact instead of
+    // emitting all labels first and then all values.
+    const pages = await extractFromOps([
+      { text: 'Armor Class', size: 11, x: 60, y: 100 },
+      { text: '17 (natural armor)', size: 11, x: 130, y: 100 },
+      { text: 'Hit Points', size: 11, x: 60, y: 115 },
+      { text: '178', size: 11, x: 130, y: 115 },
+      { text: 'Speed', size: 11, x: 60, y: 130 },
+      { text: '40 ft.', size: 11, x: 130, y: 130 },
+    ]);
+    const lines = pages[0].lines;
+    expect(lines).toContain('Armor Class 17 (natural armor)');
+    expect(lines).toContain('Hit Points 178');
+    expect(lines).toContain('Speed 40 ft.');
+    // Source order is preserved (no all-labels-then-all-values reorder).
+    const acIdx = lines.indexOf('Armor Class 17 (natural armor)');
+    const hpIdx = lines.indexOf('Hit Points 178');
+    const speedIdx = lines.indexOf('Speed 40 ft.');
+    expect(hpIdx).toBeGreaterThan(acIdx);
+    expect(speedIdx).toBeGreaterThan(hpIdx);
+    // And no label-cluster line slipped through (the pre-fix bug would
+    // have grouped "Armor Class" / "Hit Points" / "Speed" into a left
+    // "column" emitted before the values).
+    expect(lines).not.toContain('Armor Class');
+    expect(lines).not.toContain('Hit Points');
+    expect(lines).not.toContain('Speed');
+  });
+
   it('separates items at identical y but in different columns', async () => {
     // Critical: SRD page 299 has the previous monster's wrap line in the
     // left column at the SAME y baseline as the next monster's "Speed"
@@ -237,15 +277,16 @@ describe('extractPdfText — heading merge', () => {
     // Speed 40 ft., …"), erasing the Speed line and causing parseCreatures
     // to throw "missing a Speed line".
     //
-    // The fixture has multiple items per column so `partitionItemsByColumn`
-    // doesn't fold the split back into a single column (the
-    // `MIN_ITEMS_PER_COLUMN` guard protects single-column rows whose
-    // label/value pair happens to gap > the column threshold).
+    // Each column carries items at more than one x position so the
+    // distinct-x diversity guard accepts the cut as a real page-column
+    // gutter (not a label/value tab).
     const pages = await extractFromOps([
       { text: 'left-col text', size: 11, x: 60, y: 200 },
       { text: 'left col body line', size: 11, x: 60, y: 220 },
+      { text: 'wrap indent', size: 11, x: 70, y: 240 },
       { text: 'right-col Speed', size: 11, x: 330, y: 200 },
       { text: 'right col body line', size: 11, x: 330, y: 220 },
+      { text: 'wrap indent', size: 11, x: 340, y: 240 },
     ]);
     expect(pages[0].lines).toContain('left-col text');
     expect(pages[0].lines).toContain('right-col Speed');
@@ -307,11 +348,16 @@ describe('extractPdfText — heading merge', () => {
     // column-by-column emit, the heading still resolves through
     // headingLineIndexes — the indexes must be recomputed against the
     // re-ordered lines, not against the pre-partition order.
+    //
+    // Each column carries items at more than one x so the distinct-x
+    // diversity guard accepts the column split.
     const pages = await extractFromOps([
       { text: 'Left Heading', size: 26, x: 60, y: 60 },
       { text: 'left body line', size: 11, x: 60, y: 120 },
+      { text: 'left wrap indent', size: 11, x: 70, y: 140 },
       { text: 'right body line A', size: 11, x: 330, y: 100 },
       { text: 'right body line B', size: 11, x: 330, y: 140 },
+      { text: 'right wrap indent', size: 11, x: 340, y: 160 },
     ]);
     const idxs = pages[0].headingLineIndexes ?? [];
     expect(idxs.length).toBe(1);

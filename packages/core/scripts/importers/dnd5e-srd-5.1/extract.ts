@@ -131,14 +131,23 @@ const COLUMN_GAP_THRESHOLD = 50;
 
 /**
  * Minimum item count any candidate column must contain before
- * `partitionItemsByColumn` accepts a column-cut. Without this, a
- * single-column row with a label at x=60 and a value at x=130 (gap > 50)
- * would be split as if it were two columns — an obvious problem for any
- * stat-block-style "label / value" layout and for small test fixtures.
- * Real SRD body columns carry hundreds of items, so a min of 2 is
- * comfortably permissive while still rejecting stray-item splits.
+ * `partitionItemsByColumn` accepts a column-cut. Real SRD body columns
+ * carry hundreds of items, so a min of 2 is comfortably permissive while
+ * still rejecting one-row stray splits.
  */
 const MIN_ITEMS_PER_COLUMN = 2;
+
+/**
+ * Minimum number of distinct rounded x-coordinates a candidate column
+ * must contain. The real page-column gutter is the *only* gap in body
+ * content where items on each side draw from a rich set of x indents
+ * (left edge, wrap continuation, list-item dent, inline tabbing). A
+ * multi-row label/value layout has every label at the same x and every
+ * value at the same x, so each "side" of the candidate cut collapses to
+ * a single distinct x — that's the signature this guard rejects, even
+ * when the label/value x-gap exceeds `COLUMN_GAP_THRESHOLD`.
+ */
+const MIN_DISTINCT_X_PER_COLUMN = 2;
 
 export interface ExtractOptions {
   /**
@@ -334,20 +343,29 @@ function bucketItemsIntoRecords(items: readonly PdfTextItem[]): LineRecord[] {
 }
 
 /**
- * Cluster items by their `x` (transform[4]) and return one bucket per
- * detected column, in left-to-right order. Clustering walks the sorted
- * item x values and splits on any adjacent pair separated by more than
- * `COLUMN_GAP_THRESHOLD`. Pages whose item x values collapse to a single
- * cluster return a single bucket — so single-column pages and uniform-
- * font fixture PDFs round-trip unchanged through the rest of the pipeline.
+ * Pick at most one column cut — the LARGEST x-gap on the page — and
+ * return up to two columns of items in left-to-right order. Pages whose
+ * largest gap falls below `COLUMN_GAP_THRESHOLD` (or whose candidate
+ * split fails the per-column validation below) return a single bucket
+ * containing all items, so single-column pages and uniform-font fixture
+ * PDFs round-trip unchanged.
  *
  * Why item-level (not row-level) partitioning: a row spanning two columns
  * (the previous spell's wrap line in the left column at the same y as the
  * next spell's name in the right column) shares a y-bucket only because
  * the items happen to share an identical baseline. Splitting at the item
  * level keeps each column's reading order intact — the merged-text "Breath
- * Weapons … one Speed 40 ft., …" is the exact symptom of partitioning
+ * Weapons … one Speed 40 ft., …" was the exact symptom of partitioning
  * after y-bucketing rather than before.
+ *
+ * Why a single largest cut (not every gap above the threshold): a
+ * repeated label/value layout (e.g. a stat block printing "Armor Class
+ * 17" / "Hit Points 178" / "Speed 40 ft." with labels at x=60 and
+ * values at x=130) has only one x-gap on the page, and that gap can
+ * easily exceed `COLUMN_GAP_THRESHOLD` even though it's an intra-column
+ * tab stop, not a page-column gutter. Picking the single largest gap
+ * and validating it (item count + distinct-x diversity on each side)
+ * rejects that case while still catching the real SRD two-column body.
  */
 function partitionItemsByColumn(
   items: readonly PdfTextItem[],
@@ -357,29 +375,47 @@ function partitionItemsByColumn(
     .map((it) => it.transform[4])
     .slice()
     .sort((a, b) => a - b);
-  const cuts: number[] = [];
+  let largestGap = 0;
+  let cutAt = -1;
   for (let i = 1; i < sortedXs.length; i++) {
-    if (sortedXs[i] - sortedXs[i - 1] > COLUMN_GAP_THRESHOLD) {
-      cuts.push((sortedXs[i] + sortedXs[i - 1]) / 2);
+    const gap = sortedXs[i] - sortedXs[i - 1];
+    if (gap > largestGap) {
+      largestGap = gap;
+      cutAt = (sortedXs[i] + sortedXs[i - 1]) / 2;
     }
   }
-  if (cuts.length === 0) return [items];
-  const buckets: PdfTextItem[][] = [];
-  for (let i = 0; i <= cuts.length; i++) buckets.push([]);
+  if (largestGap < COLUMN_GAP_THRESHOLD) return [items];
+  const left: PdfTextItem[] = [];
+  const right: PdfTextItem[] = [];
   for (const item of items) {
-    const x = item.transform[4];
-    let idx = 0;
-    while (idx < cuts.length && x > cuts[idx]) idx++;
-    buckets[idx].push(item);
+    if (item.transform[4] < cutAt) left.push(item);
+    else right.push(item);
   }
-  // Reject the split when any candidate bucket is below the per-column
-  // minimum — that's the signature of a single-column row whose label
-  // and value happen to be spaced more than `COLUMN_GAP_THRESHOLD` apart,
-  // not a real multi-column layout.
-  if (buckets.some((b) => b.length < MIN_ITEMS_PER_COLUMN)) {
+  // Item-count guard: protects one-row fixtures and stray-item splits.
+  if (
+    left.length < MIN_ITEMS_PER_COLUMN ||
+    right.length < MIN_ITEMS_PER_COLUMN
+  ) {
     return [items];
   }
-  return buckets;
+  // Distinct-x guard: protects repeated label/value layouts. A real
+  // page column has body content at multiple x indents; a label or a
+  // value column collapses to a single distinct x.
+  if (
+    distinctRoundedXCount(left) < MIN_DISTINCT_X_PER_COLUMN ||
+    distinctRoundedXCount(right) < MIN_DISTINCT_X_PER_COLUMN
+  ) {
+    return [items];
+  }
+  return [left, right];
+}
+
+function distinctRoundedXCount(items: readonly PdfTextItem[]): number {
+  const xs = new Set<number>();
+  for (const item of items) {
+    xs.add(Math.round(item.transform[4]));
+  }
+  return xs.size;
 }
 
 /**
