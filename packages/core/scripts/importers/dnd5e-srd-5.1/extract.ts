@@ -17,11 +17,13 @@
  *      below it because the column is narrow) are merged back into a single
  *      logical line so `^Using Ability Scores$` anchors actually match.
  *
- *   2. Each `PageText` carries a `headings` array listing the chapter / section
- *      heading lines on that page. The section slicer can opt into matching
- *      anchors only against this subset (see `matchHeadings` in `sections.ts`),
- *      so an `^Equipment$` line that appears as a class-block subsection at
- *      body font size does not shadow the actual "Equipment" chapter title.
+ *   2. Each `PageText` carries a `headingLineIndexes` array — indexes into
+ *      `lines` for entries the extractor identified as chapter / section
+ *      headings. The section slicer can opt into matching anchors only at
+ *      these positions (see `matchHeadings` in `sections.ts`), so an
+ *      `^Equipment$` line that appears as a class-block subsection at body
+ *      font size does not shadow the actual "Equipment" chapter title even
+ *      when their trimmed text is identical.
  *
  * Pure function: same PDF buffer always yields the same `PageText[]`.
  */
@@ -95,7 +97,7 @@ export async function extractPdfText(
     interface RawPage {
       readonly pageNumber: number;
       readonly lines: readonly string[];
-      readonly headings: readonly string[];
+      readonly headingLineIndexes: readonly number[];
       readonly hasHeadingItem: boolean;
     }
     const raw: RawPage[] = [];
@@ -103,25 +105,33 @@ export async function extractPdfText(
       const page = await pdf.getPage(i);
       try {
         const content = await page.getTextContent();
-        const { lines, headings, hasHeadingItem } = textContentToPage(content);
-        raw.push({ pageNumber: i, lines, headings, hasHeadingItem });
+        const { lines, headingLineIndexes, hasHeadingItem } =
+          textContentToPage(content);
+        raw.push({
+          pageNumber: i,
+          lines,
+          headingLineIndexes,
+          hasHeadingItem,
+        });
       } finally {
         page.cleanup();
       }
     }
     // Document-level fall-back: when NO page contained any heading-class
     // item (e.g. fixture PDFs built with a uniform font size), don't carry
-    // an empty `headings` array on each page — leave it undefined so
-    // anchors with `matchHeadings: true` fall back to line matching. When
-    // even ONE page has heading info, every page gets a `headings` array
-    // (possibly empty for content-only pages); the anchor stays heading-
-    // scoped so a body line spelling the regex can't lock the slice onto
-    // the wrong place.
+    // an empty `headingLineIndexes` array on each page — leave it
+    // undefined so anchors with `matchHeadings: true` fall back to line
+    // matching. When even ONE page has heading info, every page gets a
+    // `headingLineIndexes` array (possibly empty for content-only pages);
+    // the anchor stays heading-scoped so a body line spelling the regex
+    // can't lock the slice onto the wrong place.
     const documentHasHeadings = raw.some((r) => r.hasHeadingItem);
     return raw.map((r) => ({
       pageNumber: r.pageNumber,
       lines: r.lines,
-      ...(documentHasHeadings ? { headings: r.headings } : {}),
+      ...(documentHasHeadings
+        ? { headingLineIndexes: r.headingLineIndexes }
+        : {}),
     }));
   } finally {
     await pdf.cleanup();
@@ -148,7 +158,7 @@ interface LineRecord {
 
 function textContentToPage(content: PdfTextContent): {
   lines: readonly string[];
-  headings: readonly string[];
+  headingLineIndexes: readonly number[];
   hasHeadingItem: boolean;
 } {
   // pdfjs gives mixed items. Only text items carry a string we want; pdfjs
@@ -177,7 +187,7 @@ function textContentToPage(content: PdfTextContent): {
     },
   );
   if (items.length === 0) {
-    return { lines: [], headings: [], hasHeadingItem: false };
+    return { lines: [], headingLineIndexes: [], hasHeadingItem: false };
   }
   // Group by y-coordinate (rounded). pdfjs's transform is a 6-element matrix
   // [a, b, c, d, e, f] where (e, f) is the translation; f is the y origin of
@@ -222,9 +232,12 @@ function textContentToPage(content: PdfTextContent): {
   }
   const merged = mergeWrappedHeadings(records, items);
   const lines = merged.map((r) => r.text);
-  const headings = merged.filter((r) => r.isHeading).map((r) => r.text);
+  const headingLineIndexes: number[] = [];
+  for (let idx = 0; idx < merged.length; idx++) {
+    if (merged[idx].isHeading) headingLineIndexes.push(idx);
+  }
   const hasHeadingItem = items.some((it) => it.height >= HEADING_H_THRESHOLD);
-  return { lines, headings, hasHeadingItem };
+  return { lines, headingLineIndexes, hasHeadingItem };
 }
 
 /**

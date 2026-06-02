@@ -301,29 +301,38 @@ describe('SRD_5_1_DEFAULT_SECTION_ANCHORS — sanity', () => {
 });
 
 describe('sliceSection — matchHeadings', () => {
-  it('matches only against `headings` when a page declares them', () => {
-    // Body line spells the heading regex exactly, but is not in `headings`.
-    // matchHeadings: true must skip past it and land on the heading line.
+  it('skips a body-font occurrence and locks onto the actual heading line when both share text', () => {
+    // Two "Equipment" lines on the same page: line 0 is the class-block
+    // subsection (body font, NOT in headingLineIndexes), line 2 is the
+    // actual chapter title (heading font, IS in headingLineIndexes). The
+    // slicer must skip line 0 and start the slice after line 2.
+    //
+    // Position-based heading matching is what makes this work — a
+    // text-only "headings contains 'Equipment'" check would accept line 0
+    // because its trimmed text is also "Equipment".
     const pages: PageText[] = [
       {
         pageNumber: 1,
-        lines: ['Equipment', 'class-block subsection prose', 'Equipment'],
-        headings: ['Equipment'],
+        lines: [
+          'Equipment', // body-font class-block subsection
+          'You start with the following equipment',
+          'Equipment', // actual chapter heading
+          'Common coins come in several denominations.',
+        ],
+        headingLineIndexes: [2],
       },
     ];
     const sliced = sliceSection(pages, {
       startHeading: /^Equipment$/,
       matchHeadings: true,
     });
-    // The slice starts AFTER the first "Equipment" line in `lines` (line 0),
-    // because that's the line whose trimmed text is in `headings`. The body
-    // "Equipment" later in the page is body prose, but with our fixture
-    // layout the first hit IS the heading line, so the slice begins after
-    // line 0.
-    expect(sliced[0].lines[0]).toBe('class-block subsection prose');
+    // Slice begins AFTER line 2 (the real heading), not after line 0.
+    expect(sliced[0].lines).toEqual([
+      'Common coins come in several denominations.',
+    ]);
   });
 
-  it('matchHeadings: true falls back to line matching when `headings` is undefined (fixture compatibility)', () => {
+  it('matchHeadings: true falls back to line matching when `headingLineIndexes` is undefined (fixture compatibility)', () => {
     const pages: PageText[] = [{ pageNumber: 1, lines: ['Equipment', 'body'] }];
     const sliced = sliceSection(pages, {
       startHeading: /^Equipment$/,
@@ -332,21 +341,23 @@ describe('sliceSection — matchHeadings', () => {
     expect(sliced[0].lines).toEqual(['body']);
   });
 
-  it('disambiguates a chapter title from a same-text class subsection', () => {
+  it('disambiguates a chapter title from a same-text class subsection across pages', () => {
     // Real-PDF shape: page 8 has body-font "Equipment" as a class-block
-    // subsection. Page 62 has the actual h=25.9 "Equipment" chapter title.
-    // With matchHeadings: true the slicer skips the class-block occurrence
-    // and locks onto the chapter heading instead.
+    // subsection — present in `lines`, absent from `headingLineIndexes`.
+    // Page 62 has the actual h=25.9 "Equipment" chapter title at line 0,
+    // which IS in headingLineIndexes. With matchHeadings: true the slicer
+    // skips the body occurrence on page 8 entirely and locks onto the
+    // chapter heading on page 62.
     const pages: PageText[] = [
       {
         pageNumber: 8,
         lines: ['Barbarian', 'Equipment', 'You start with...'],
-        headings: ['Barbarian'],
+        headingLineIndexes: [0],
       },
       {
         pageNumber: 62,
         lines: ['Equipment', 'Common coins come in several denominations.'],
-        headings: ['Equipment'],
+        headingLineIndexes: [0],
       },
     ];
     const sliced = sliceSection(pages, {
@@ -357,5 +368,29 @@ describe('sliceSection — matchHeadings', () => {
     expect(sliced[0].lines[0]).toBe(
       'Common coins come in several denominations.',
     );
+  });
+
+  it('falls through to a real heading on a later page when the start text only appears as body prose earlier', () => {
+    // Reverse failure mode of the previous test: a page-level
+    // `headingLineIndexes: []` declares "no headings on this page" rather
+    // than "no info"; the slicer must NOT match any line on that page and
+    // must reach the actual heading on a later page.
+    const pages: PageText[] = [
+      {
+        pageNumber: 1,
+        lines: ['Equipment', 'body prose mentioning equipment.'],
+        headingLineIndexes: [],
+      },
+      {
+        pageNumber: 2,
+        lines: ['Equipment', 'Common coins come in several denominations.'],
+        headingLineIndexes: [0],
+      },
+    ];
+    const sliced = sliceSection(pages, {
+      startHeading: /^Equipment$/,
+      matchHeadings: true,
+    });
+    expect(sliced.map((p) => p.pageNumber)).toEqual([2]);
   });
 });

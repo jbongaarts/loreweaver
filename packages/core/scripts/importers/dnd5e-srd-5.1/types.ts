@@ -9,18 +9,24 @@ export interface PageText {
   readonly pageNumber: number;
   readonly lines: readonly string[];
   /**
-   * The subset of `lines` the extractor identified as chapter / section
-   * headings, based on rendered font height. When present, section anchors
-   * with `matchHeadings: true` consider only these lines (so an `^Equipment$`
-   * line that appears as a class-block subsection at body font size does not
-   * shadow the actual "Equipment" chapter title at heading font size).
+   * Indexes into `lines` of the entries the extractor identified as
+   * chapter / section headings, based on rendered font height. When
+   * present, section anchors with `matchHeadings: true` match only at
+   * these line positions — so an `^Equipment$` body-font line that
+   * appears as a class-block subsection cannot shadow the actual
+   * "Equipment" chapter title at heading font size, even when both
+   * occurrences live on the same page.
+   *
+   * Indexes are used (not just heading text) because the same string can
+   * legitimately occur in `lines` both as a heading and as body prose; a
+   * text-only match would not distinguish them.
    *
    * Optional: fixture PDFs built with uniform font size (no heading
    * differentiation) leave this undefined, in which case `matchHeadings`
    * falls back to matching against `lines`. Real SRD 5.1 extraction always
    * populates it.
    */
-  readonly headings?: readonly string[];
+  readonly headingLineIndexes?: readonly number[];
 }
 
 /**

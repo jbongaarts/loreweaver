@@ -1358,6 +1358,78 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     );
   });
 
+  it('succeeds with hazards=0 when the hazards section is absent entirely (best-effort)', async () => {
+    // SRD 5.1 has no hazards chapter at all — the orchestrator must
+    // degrade to empty results when the START anchor doesn't match
+    // anywhere, rather than fail the run. (End-missing is still
+    // fail-closed; see the "hazards end heading is missing" test above.)
+    const workDir = makeTmpDir();
+    const pdfPath = join(workDir, 'fixture.pdf');
+    const outDir = join(workDir, 'pack');
+    await writeFixturePdf(pdfPath, [
+      RACES_PAGE,
+      CLASSES_PAGE,
+      CORE_RULES_PAGE_ONE,
+      CORE_RULES_PAGE_TWO,
+      CORE_RULES_TABLES_PAGE,
+      SPELL_LISTS_PAGE,
+      SPELLS_PAGE,
+      MONSTERS_PAGE,
+      TREASURE_TABLES_PAGE,
+      MAGIC_ITEMS_PAGE,
+      COMBAT_ACTIONS_PAGE,
+      MAKING_AN_ATTACK_PAGE,
+      // No HAZARDS_PAGE — the hazards start anchor must not match.
+      FEATS_PAGE,
+      EQUIPMENT_PAGE,
+      MULTICLASSING_PAGE,
+      CONDITIONS_PAGE,
+    ]);
+
+    const result = await runImporter({ pdfPath, outDir });
+    expect(result.counts.hazards).toBe(0);
+  });
+
+  it('succeeds with no treasure tables emitted when the treasure section is absent entirely (best-effort)', async () => {
+    // Same shape as the hazards-absent case for treasure tables. The
+    // tables that would otherwise come from the treasure slice are
+    // simply not emitted; rules and DC tables from coreRules still are.
+    const workDir = makeTmpDir();
+    const pdfPath = join(workDir, 'fixture.pdf');
+    const outDir = join(workDir, 'pack');
+    await writeFixturePdf(pdfPath, [
+      RACES_PAGE,
+      CLASSES_PAGE,
+      CORE_RULES_PAGE_ONE,
+      CORE_RULES_PAGE_TWO,
+      CORE_RULES_TABLES_PAGE,
+      SPELL_LISTS_PAGE,
+      SPELLS_PAGE,
+      MONSTERS_PAGE,
+      // No TREASURE_TABLES_PAGE — the treasureTables start anchor must
+      // not match.
+      MAGIC_ITEMS_PAGE,
+      COMBAT_ACTIONS_PAGE,
+      MAKING_AN_ATTACK_PAGE,
+      HAZARDS_PAGE,
+      FEATS_PAGE,
+      EQUIPMENT_PAGE,
+      MULTICLASSING_PAGE,
+      CONDITIONS_PAGE,
+    ]);
+
+    await runImporter({ pdfPath, outDir });
+    // coreRules supplies the two DC / XP tables; treasureTables would
+    // have added two more rows. None of those treasure rows show up.
+    const pack = loadRulesPackFromDirectory(outDir);
+    const tableKeys = pack.records
+      .filter((r) => r.kind === 'table')
+      .map((r) => r.key)
+      .sort();
+    expect(tableKeys).not.toContain('table:individual-treasure-challenge-0-4');
+    expect(tableKeys).not.toContain('table:treasure-hoard-challenge-0-4');
+  });
+
   it('fails closed when the combat-actions end heading is missing', async () => {
     const workDir = makeTmpDir();
     const pdfPath = join(workDir, 'fixture.pdf');

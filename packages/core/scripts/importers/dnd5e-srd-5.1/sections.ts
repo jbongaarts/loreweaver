@@ -51,18 +51,22 @@ export interface SectionAnchorOptions {
    */
   readonly requireEndHeading?: boolean;
   /**
-   * When true, the slicer's start- and end-heading patterns match only
-   * against `PageText.headings` (the subset of lines the extractor flagged as
-   * chapter / section headings based on font height). This is the disambig
-   * for anchors whose text also occurs as a class-block subsection at body
-   * font size — e.g. the SRD 5.1 chapter title "Equipment" (h=25.9) is
-   * shadowed in every base-class chapter by a body-font "Equipment"
-   * subheading; without `matchHeadings`, the slicer would lock onto the
-   * first class-block occurrence instead of the actual chapter.
+   * When true, the slicer's start- and end-heading patterns match only at
+   * line POSITIONS the extractor flagged as headings — i.e. only at
+   * indices listed in `PageText.headingLineIndexes`. This is the
+   * disambiguation for anchors whose text also occurs as a class-block
+   * subsection at body font size — e.g. the SRD 5.1 chapter title
+   * "Equipment" (h=25.9) is shadowed in every base-class chapter by a
+   * body-font "Equipment" subheading; without `matchHeadings`, the slicer
+   * would lock onto the first class-block occurrence instead of the actual
+   * chapter. Crucially, the same string can appear in `lines` as both a
+   * heading and as body prose, so the disambiguation has to be by line
+   * position, not by membership of a heading-text set.
    *
-   * Backward-compat fallback: if a page's `headings` array is undefined
-   * (uniform-font fixture PDFs), `matchHeadings: true` still falls back to
-   * line matching. Real SRD 5.1 extraction always populates `headings`.
+   * Backward-compat fallback: if a page's `headingLineIndexes` is
+   * undefined (uniform-font fixture PDFs), `matchHeadings: true` falls
+   * back to line matching. Real SRD 5.1 extraction always populates
+   * `headingLineIndexes`.
    *
    * Default: false (match against all lines).
    */
@@ -96,18 +100,25 @@ function findFirstMatch(
 ): Location | null {
   const startPage = startAfter?.pageIdx ?? 0;
   for (let p = startPage; p < pages.length; p++) {
-    const lines = pages[p].lines;
-    const headingSet =
-      matchHeadings && pages[p].headings !== undefined
-        ? new Set(pages[p].headings)
+    const page = pages[p];
+    const lines = page.lines;
+    // matchHeadings restricts matching to the line POSITIONS the extractor
+    // marked as headings, not just the heading TEXT. The same string can
+    // legitimately appear on a page as both a heading and as body prose
+    // (e.g. "Equipment" as a class-block subsection title and as a chapter
+    // title) — string-membership filtering would miss that distinction and
+    // accept the body occurrence. Position-based filtering does not.
+    const headingIdxSet =
+      matchHeadings && page.headingLineIndexes !== undefined
+        ? new Set<number>(page.headingLineIndexes)
         : null;
     const startLine =
       startAfter !== undefined && p === startAfter.pageIdx
         ? startAfter.lineIdx + 1
         : 0;
     for (let l = startLine; l < lines.length; l++) {
+      if (headingIdxSet !== null && !headingIdxSet.has(l)) continue;
       const trimmed = lines[l].trim();
-      if (headingSet !== null && !headingSet.has(trimmed)) continue;
       if (pattern.test(trimmed)) {
         return { pageIdx: p, lineIdx: l };
       }

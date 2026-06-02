@@ -481,10 +481,16 @@ function sha256Hex(bytes: Uint8Array | Buffer): string {
 
 /**
  * Slice a section and run its parser, but degrade to an empty result list if
- * the start anchor doesn't match. Used for kinds whose section is absent
- * from the SRD 5.1 PDF entirely (hazards, treasure tables) — fail-closed
- * parsing would refuse a perfectly valid run on the canonical source. Other
- * errors (CoverageError, schema errors, ...) still propagate.
+ * the section START heading is absent. Used for kinds whose section is
+ * absent from the SRD 5.1 PDF entirely (hazards, treasure tables) —
+ * fail-closed parsing would refuse a perfectly valid run on the canonical
+ * source.
+ *
+ * Critically, this only catches `SectionNotFoundError('start', ...)`. If
+ * the start anchor matches but the requireEndHeading guard fires (a real
+ * boundary failure that would let trailing content bleed into the parser),
+ * the error still propagates. Coverage / schema / other errors also
+ * propagate.
  */
 function sliceSectionOrEmpty<T>(
   pages: readonly import('./types.js').PageText[],
@@ -495,7 +501,9 @@ function sliceSectionOrEmpty<T>(
     const slice = sliceSection(pages, anchor);
     return parse(slice);
   } catch (error) {
-    if (error instanceof SectionNotFoundError) return [];
+    if (error instanceof SectionNotFoundError && error.which === 'start') {
+      return [];
+    }
     throw error;
   }
 }
@@ -503,6 +511,9 @@ function sliceSectionOrEmpty<T>(
 /**
  * Pages-only variant for `treasureTables` — it feeds into `parseTables`
  * alongside the core-rules slice rather than being parsed in isolation.
+ * Same fail-closed boundaries as `sliceSectionOrEmpty`: only a missing
+ * start heading degrades to empty; a missing required end heading still
+ * throws.
  */
 function sliceSectionOrEmptyPages(
   pages: readonly import('./types.js').PageText[],
@@ -511,7 +522,9 @@ function sliceSectionOrEmptyPages(
   try {
     return sliceSection(pages, anchor);
   } catch (error) {
-    if (error instanceof SectionNotFoundError) return [];
+    if (error instanceof SectionNotFoundError && error.which === 'start') {
+      return [];
+    }
     throw error;
   }
 }

@@ -242,7 +242,7 @@ dispatch. Each entry is a `SectionAnchorOptions` value:
 | `startHeading`       | Regex matched against `line.trim()` to find the section's first content line (heading itself excluded). |
 | `endHeading`         | Regex matched against any line after `startHeading` to mark the boundary (end line excluded).         |
 | `requireEndHeading`  | If `true`, an unmatched `endHeading` throws `SectionNotFoundError('end')` instead of slicing to EOF.   |
-| `matchHeadings`     | If `true`, anchors match only against `PageText.headings` (the subset of lines the extractor flagged as chapter/section headings by font height). Disambiguates a chapter title from a body-font line that happens to spell the same text — e.g. "Equipment" appears as a class-block subsection at body font in every base-class chapter. Fixtures with uniform font sizes have `headings` undefined and fall back to line matching. |
+| `matchHeadings`     | If `true`, anchors match only at the line positions the extractor flagged as chapter/section headings (`PageText.headingLineIndexes` — indexes into `lines`, not just heading text). Disambiguates a chapter title from a body-font line that happens to spell the same text — e.g. "Equipment" appears as a class-block subsection at body font in every base-class chapter, and a text-only check could not tell those two occurrences apart. Fixtures with uniform font sizes leave `headingLineIndexes` undefined and fall back to line matching. |
 
 `SRD_5_1_DEFAULT_SECTION_ANCHORS` is the live table consumed by the
 orchestrator. Freestanding `table` records use the `coreRules` slice for

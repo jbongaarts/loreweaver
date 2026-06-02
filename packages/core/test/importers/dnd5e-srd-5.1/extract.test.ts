@@ -25,6 +25,13 @@ import { join } from 'node:path';
 import PDFDocument from 'pdfkit';
 import { afterEach, describe, expect, it } from 'vitest';
 import { extractPdfText } from '../../../scripts/importers/dnd5e-srd-5.1/extract.js';
+import type { PageText } from '../../../scripts/importers/dnd5e-srd-5.1/types.js';
+
+function headingTexts(page: PageText): readonly string[] {
+  const idx = page.headingLineIndexes;
+  if (idx === undefined) return [];
+  return idx.map((i) => page.lines[i]);
+}
 
 const tmpDirs: string[] = [];
 
@@ -90,14 +97,19 @@ describe('extractPdfText — heading merge', () => {
       // Body line at small font on the same column further down.
       { text: 'Six abilities provide a description.', size: 11, x: 60, y: 160 },
     ]);
-    const headings = pages[0].headings;
-    expect(headings).toBeDefined();
-    expect(headings).toContain('Using Ability Scores');
+    expect(pages[0].headingLineIndexes).toBeDefined();
+    expect(headingTexts(pages[0])).toContain('Using Ability Scores');
     expect(pages[0].lines).toContain('Using Ability Scores');
     // The merge consumed the individual rows, so they should not also appear
     // as separate lines.
     expect(pages[0].lines).not.toContain('Using Ability');
     expect(pages[0].lines).not.toContain('Scores');
+    // Indexes resolve through `lines` — sanity check the pointer.
+    const headingIdxs = pages[0].headingLineIndexes ?? [];
+    expect(headingIdxs.length).toBeGreaterThan(0);
+    expect(headingIdxs.map((i) => pages[0].lines[i])).toContain(
+      'Using Ability Scores',
+    );
   });
 
   it('joins a three-line chapter title (Appendix PH-B style)', async () => {
@@ -107,7 +119,7 @@ describe('extractPdfText — heading merge', () => {
       { text: 'Pantheons', size: 26, x: 60, y: 140 },
       { text: 'Body prose paragraph.', size: 11, x: 60, y: 200 },
     ]);
-    expect(pages[0].headings).toContain(
+    expect(headingTexts(pages[0])).toContain(
       'Appendix PH-B: Fantasy-Historical Pantheons',
     );
   });
@@ -124,7 +136,7 @@ describe('extractPdfText — heading merge', () => {
       { text: '16–17 +3', size: 9, x: 400, y: 125 },
       { text: 'Body line.', size: 11, x: 60, y: 160 },
     ]);
-    expect(pages[0].headings).toContain('Using Ability Scores');
+    expect(headingTexts(pages[0])).toContain('Using Ability Scores');
   });
 
   it('does not merge a heading line across body prose in the SAME column', async () => {
@@ -136,9 +148,10 @@ describe('extractPdfText — heading merge', () => {
       { text: 'Some intervening prose.', size: 11, x: 60, y: 90 },
       { text: 'Heading Two', size: 26, x: 60, y: 130 },
     ]);
-    expect(pages[0].headings).toContain('Heading One');
-    expect(pages[0].headings).toContain('Heading Two');
-    expect(pages[0].headings).not.toContain('Heading One Heading Two');
+    const headings = headingTexts(pages[0]);
+    expect(headings).toContain('Heading One');
+    expect(headings).toContain('Heading Two');
+    expect(headings).not.toContain('Heading One Heading Two');
   });
 
   it('does not fold body prose into a heading', async () => {
@@ -149,9 +162,11 @@ describe('extractPdfText — heading merge', () => {
     ]);
     expect(pages[0].lines).toContain('Some Heading');
     expect(pages[0].lines).toContain('body paragraph one');
-    // The heading should be in `headings`; the body must not be.
-    expect(pages[0].headings).toContain('Some Heading');
-    expect(pages[0].headings).not.toContain('body paragraph one');
+    // The heading line index should resolve to 'Some Heading'; the body
+    // line index must not be present in headingLineIndexes.
+    const headings = headingTexts(pages[0]);
+    expect(headings).toContain('Some Heading');
+    expect(headings).not.toContain('body paragraph one');
   });
 
   it('does not merge subsection-level titles (only chapter-size headings wrap in SRD 5.1)', async () => {
@@ -161,22 +176,44 @@ describe('extractPdfText — heading merge', () => {
       { text: 'Subsection One', size: 18, x: 60, y: 60 },
       { text: 'Subsection Two', size: 18, x: 60, y: 100 },
     ]);
-    expect(pages[0].headings).toContain('Subsection One');
-    expect(pages[0].headings).toContain('Subsection Two');
-    expect(pages[0].headings).not.toContain('Subsection One Subsection Two');
+    const headings = headingTexts(pages[0]);
+    expect(headings).toContain('Subsection One');
+    expect(headings).toContain('Subsection Two');
+    expect(headings).not.toContain('Subsection One Subsection Two');
   });
 
-  it('leaves `headings` undefined when the document has no heading-class items (uniform-font fixture)', async () => {
+  it('leaves `headingLineIndexes` undefined when the document has no heading-class items (uniform-font fixture)', async () => {
     // Every line is body-size. The extractor should not pretend the page
-    // has a `headings` array (which would be empty) — leaving it undefined
-    // signals "no font info available" to `sliceSection`, which then falls
-    // back to line matching even for anchors with `matchHeadings: true`.
+    // has a `headingLineIndexes` array (which would be empty) — leaving
+    // it undefined signals "no font info available" to `sliceSection`,
+    // which then falls back to line matching even for anchors with
+    // `matchHeadings: true`.
     const pages = await extractFromOps([
       { text: 'Equipment', size: 11 },
       { text: 'Some body prose.', size: 11 },
     ]);
     for (const page of pages) {
-      expect(page.headings).toBeUndefined();
+      expect(page.headingLineIndexes).toBeUndefined();
     }
+  });
+
+  it('headingLineIndexes point at heading line POSITIONS, not just heading TEXT', async () => {
+    // Two lines on the page both have text "Equipment" — one heading-sized,
+    // one body-sized. The extractor must mark only the heading-sized
+    // occurrence's INDEX, even though their trimmed text is identical.
+    // This is what `sliceSection` relies on to skip body lines that
+    // happen to spell the same text as a chapter title.
+    const pages = await extractFromOps([
+      { text: 'Equipment', size: 26, x: 60, y: 60 },
+      { text: 'Equipment', size: 11, x: 60, y: 120 },
+    ]);
+    const page = pages[0];
+    const idxs = page.headingLineIndexes ?? [];
+    expect(idxs.length).toBe(1);
+    // The heading is rendered first (highest y in PDF space = top of
+    // page = first line in reading order), so it lands at line 0.
+    expect(idxs[0]).toBe(0);
+    expect(page.lines[0]).toBe('Equipment');
+    expect(page.lines[1]).toBe('Equipment');
   });
 });
