@@ -59,19 +59,23 @@ import type {
 } from './types.js';
 
 /**
- * Minimum number of creature stat blocks a full SRD 5.1 import must yield. The
- * SRD 5.1 "Monsters" chapter contains on the order of 300+ creature stat blocks
- * (the separate "Nonplayer Characters" section is intentionally out of scope —
- * see the `monsters` section anchor in `sections.ts`). This floor exists to
- * catch a gross extraction regression — an empty or badly-truncated run — when
- * the importer is pointed at the real PDF. It is deliberately a count floor
- * rather than an exact name set: enumerating the full name set by hand is
- * error-prone without the vendored PDF, and exact-coverage validation is
- * tracked separately in `loreweaver-0m9.5.14`. The CLI passes this value;
- * fixture-based tests use the always-on empty-result guard instead (or pass a
- * smaller `minCreatureCount`).
+ * Reviewed creature count for the vendored SRD 5.1 CC PDF: 201 stat blocks
+ * in the alphabetic "Monsters" chapter plus 95 in "Appendix MM-A:
+ * Miscellaneous Creatures" (animals/beasts/swarms). "Appendix MM-B:
+ * Nonplayer Characters" is intentionally out of scope — see the
+ * `miscellaneousCreatures` anchor in `sections.ts`. Because the source
+ * PDF is vendored and hash-pinned (see `sources/dnd5e-srd-5.1/`), this is
+ * a fixed property of the input artifact: any change must be an
+ * intentional baseline update with re-review, not slack-headroom.
+ *
+ * The orchestrator's coverage gate compares against this exact count
+ * (loreweaver-w8h) so a parser regression that drops even a single
+ * creature trips immediately. Exact name-set coverage remains out of
+ * scope here and is tracked in `loreweaver-0m9.5.14`. The CLI passes
+ * this value; fixture-based tests use the always-on empty-result guard
+ * instead (or pass a smaller `minCreatureCount`).
  */
-export const MIN_EXPECTED_SRD_5_1_CREATURES = 300;
+export const MIN_EXPECTED_SRD_5_1_CREATURES = 296;
 
 /**
  * Minimum number of base classes a full SRD 5.1 import must yield. The SRD 5.1
@@ -371,8 +375,21 @@ export async function runImporter(
   // match — creature is an implemented kind, so fail closed rather than emit a
   // pack without creatures or let trailing content bleed in (the monsters
   // anchor sets requireEndHeading: true); see the anchor comment in sections.ts.
+  //
+  // SRD 5.1 splits creature stat blocks across the main Monsters chapter
+  // (p254-357: the alphabetic A-Z entries) AND Appendix MM-A: Miscellaneous
+  // Creatures (p366-394: animals/beasts like Wolf, Cat, Bear that are not in
+  // the main chapter). Parse the union via a single parseCreatures call so
+  // both sets land in the same sorted output; the misc-creatures anchor is
+  // best-effort so fixture PDFs without that appendix still import cleanly
+  // (loreweaver-w8h). Appendix MM-B: Nonplayer Characters remains out of
+  // scope — the misc-creatures end anchor stops at it explicitly.
   const monsterPages = sliceSection(pages, anchors.monsters);
-  const creatures = parseCreatures(monsterPages);
+  const miscCreaturePages = sliceSectionOrEmptyPages(
+    pages,
+    anchors.miscellaneousCreatures,
+  );
+  const creatures = parseCreatures([...monsterPages, ...miscCreaturePages]);
   // Fail closed before any output is written if creature extraction is empty
   // or (when a floor is supplied) implausibly small.
   validateCreatureCoverage(creatures.length, input.minCreatureCount);

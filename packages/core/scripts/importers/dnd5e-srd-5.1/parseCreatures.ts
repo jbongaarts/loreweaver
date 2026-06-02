@@ -10,15 +10,20 @@
  * "<Size> <type>[ (subtype)], <alignment>" line that immediately follows the
  * creature's name (e.g. "Small humanoid (goblinoid), neutral evil"). The
  * parser then reads the keyed stat lines that follow (Armor Class, Hit Points,
- * Speed, the STR/DEX/CON/INT/WIS/CHA ability table, Challenge).
+ * Speed, the STR/DEX/CON/INT/WIS/CHA ability-score row, Challenge). Each
+ * keyed stat is identified by its own pattern via a first-match-wins scan,
+ * not by positional adjacency — real SRD 5.1 two-column extraction can
+ * interleave a prose line from the adjacent column between the
+ * "STR DEX CON INT WIS CHA" header and the score row, so the score row is
+ * recognized directly by its six "N (modifier)" cells (loreweaver-w8h).
  *
  * Two-tier confirmation (mirrors `parseSpells`):
  *   - A meta-line candidate is only confirmed as a creature when its body
  *     carries the structural signature of a stat block: an Armor Class line, a
- *     Hit Points line, AND the ability-score table. Body prose that merely
- *     reads like a meta line (e.g. "Large beasts, such as horses, …") lacks
- *     that signature and is silently skipped — defense-in-depth against a slice
- *     that wasn't perfectly narrowed.
+ *     Hit Points line, AND a recognizable ability-score row. Body prose that
+ *     merely reads like a meta line (e.g. "Large beasts, such as horses, …")
+ *     lacks that signature and is silently skipped — defense-in-depth against
+ *     a slice that wasn't perfectly narrowed.
  *   - A confirmed creature missing Speed or Challenge is a genuine malformed
  *     stat block, so the parser throws with the creature name + page rather
  *     than emit a record that can't satisfy the kindSchema.
@@ -86,11 +91,38 @@ interface FlatLine {
   readonly page: number;
 }
 
+/**
+ * Normalize a raw extracted line so the parser's character-class regexes
+ * see clean ASCII text. The SRD 5.1 PDF encodes compound creature names
+ * as three-character sequences — ASCII hyphen (U+002D) plus a SOFT HYPHEN
+ * (U+00AD, a non-printing discretionary line-break mark) plus a
+ * Unicode HYPHEN (U+2010) — which renders as one hyphen visually but
+ * breaks the `isLikelyCreatureName` regex and silently drops
+ * "Will-o'-Wisp", "Saber-Toothed Tiger", and "Half-Red Dragon Veteran"
+ * (loreweaver-w8h). Strip U+00AD entirely (it's non-printing), fold
+ * U+2010 onto the ASCII hyphen, and collapse the resulting hyphen run so
+ * the canonical single-hyphen form is what the parser and output see.
+ *
+ * Hidden-Unicode hygiene: every U+00AD / U+2010 in this module is written
+ * as an explicit `\uXXXX` escape so source files contain no invisible
+ * presentation marks. The regex sources are likewise built from escapes.
+ */
+const SOFT_HYPHEN_RE = /\u00AD/g;
+const UNICODE_HYPHEN_RE = /\u2010/g;
+const HYPHEN_RUN_RE = /-{2,}/g;
+
+function normalizeLine(line: string): string {
+  return line
+    .replace(SOFT_HYPHEN_RE, '')
+    .replace(UNICODE_HYPHEN_RE, '-')
+    .replace(HYPHEN_RUN_RE, '-');
+}
+
 function flatten(pages: readonly PageText[]): readonly FlatLine[] {
   const out: FlatLine[] = [];
   for (const page of pages) {
     for (const line of page.lines) {
-      out.push({ line, page: page.pageNumber });
+      out.push({ line: normalizeLine(line), page: page.pageNumber });
     }
   }
   return out;
@@ -225,17 +257,17 @@ function readStatBlock(lines: readonly string[]): StatBlockFields {
         continue;
       }
     }
-    if (abilityScores === undefined && ABILITY_HEADER_PATTERN.test(line)) {
-      // Scores are on the next non-blank line.
-      let j = i + 1;
-      while (j < lines.length && lines[j].trim().length === 0) j++;
-      if (j < lines.length) {
-        const parsed = parseAbilityScores(lines[j]);
-        if (parsed !== null) {
-          abilityScores = parsed;
-          i = j;
-          continue;
-        }
+    if (abilityScores === undefined) {
+      // Score row is highly specific (six "N (modifier)" cells) so we can
+      // recognize it directly without relying on positional adjacency to the
+      // STR/DEX/… header line. Real SRD 5.1 column-aware extraction can
+      // interleave a prose line from the adjacent column between the header
+      // and the score row, which broke the older "header then next non-blank"
+      // heuristic and silently dropped ~50% of stat blocks (loreweaver-w8h).
+      const parsed = parseAbilityScores(line);
+      if (parsed !== null) {
+        abilityScores = parsed;
+        continue;
       }
     }
     if (challengeRating === undefined) {

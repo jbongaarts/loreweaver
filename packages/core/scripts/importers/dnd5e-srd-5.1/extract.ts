@@ -120,14 +120,18 @@ const FOOTER_MAX_Y = 45;
 
 /**
  * Minimum gap (in PDF user-space points) between adjacent sorted item x
- * values before they're split into separate columns. SRD 5.1 two-column
- * body pages have a left column at x ≈ 57 (continuation indents up to
- * ~144) and a right column at x ≈ 328 — gap ≈ 184. The largest intra-
- * column horizontal jump observed in the real PDF is the ability-score
- * row gap (251 → 328 = 77pt), so 50pt cleanly separates intra-column
- * tabbing from inter-column gutter.
+ * values before they're considered as a column-cut candidate. SRD 5.1
+ * two-column body pages have a left column at x ≈ 57 (continuation
+ * indents up to ~144) and a right column starting at x ≈ 328, but the
+ * effective gutter width varies page-by-page — most monster pages have
+ * a ~78pt gutter (x≈251→329) while denser ones (e.g. pages 269, 320)
+ * narrow it to ~49pt. The widest intra-column jump observed on a real
+ * SRD 5.1 page is ≈37pt (intra-stat-block tabbing), so 45pt clears the
+ * intra-column noise floor while still catching the narrow-gutter
+ * monster pages. The per-side validation guards below (item count and
+ * distinct-x diversity) catch any false positive that slips through.
  */
-const COLUMN_GAP_THRESHOLD = 50;
+const COLUMN_GAP_THRESHOLD = 45;
 
 /**
  * Minimum item count any candidate column must contain before
@@ -343,12 +347,11 @@ function bucketItemsIntoRecords(items: readonly PdfTextItem[]): LineRecord[] {
 }
 
 /**
- * Pick at most one column cut — the LARGEST x-gap on the page — and
- * return up to two columns of items in left-to-right order. Pages whose
- * largest gap falls below `COLUMN_GAP_THRESHOLD` (or whose candidate
- * split fails the per-column validation below) return a single bucket
- * containing all items, so single-column pages and uniform-font fixture
- * PDFs round-trip unchanged.
+ * Pick at most one column cut and return up to two columns of items in
+ * left-to-right order. Pages whose candidate cuts all fall below
+ * `COLUMN_GAP_THRESHOLD` (or all fail the per-column validation below)
+ * return a single bucket containing all items, so single-column pages and
+ * uniform-font fixture PDFs round-trip unchanged.
  *
  * Why item-level (not row-level) partitioning: a row spanning two columns
  * (the previous spell's wrap line in the left column at the same y as the
@@ -358,14 +361,22 @@ function bucketItemsIntoRecords(items: readonly PdfTextItem[]): LineRecord[] {
  * Weapons … one Speed 40 ft., …" was the exact symptom of partitioning
  * after y-bucketing rather than before.
  *
- * Why a single largest cut (not every gap above the threshold): a
- * repeated label/value layout (e.g. a stat block printing "Armor Class
- * 17" / "Hit Points 178" / "Speed 40 ft." with labels at x=60 and
- * values at x=130) has only one x-gap on the page, and that gap can
- * easily exceed `COLUMN_GAP_THRESHOLD` even though it's an intra-column
- * tab stop, not a page-column gutter. Picking the single largest gap
- * and validating it (item count + distinct-x diversity on each side)
- * rejects that case while still catching the real SRD two-column body.
+ * Cut selection: we consider every x-gap that clears
+ * `COLUMN_GAP_THRESHOLD` and keep only those where each side passes the
+ * per-side guards (item count + distinct-x diversity). Among the
+ * surviving cuts we pick the LARGEST gap, which on a real two-column
+ * body page is the page gutter. Why not just the single absolute largest
+ * gap, validate, and bail on failure (the prior approach): on monster
+ * pages a far-right outlier item (e.g. a stray "The" at x=539 next to a
+ * right-column body at x=329) creates an isolated x-gap of ~90pt that
+ * exceeds the real gutter (~78pt at x≈251→329). The absolute-largest cut
+ * lands at the outlier, the right side fails the MIN_ITEMS guard, and
+ * the whole page falls back to unpartitioned y-bucketing — interleaving
+ * the two columns line-by-line and silently dropping ~50% of creature
+ * stat blocks (loreweaver-w8h). Scanning all qualifying gaps and keeping
+ * only valid ones survives the outlier and still rejects intra-column
+ * label/value tabbing (those gaps fail the distinct-x guard on both
+ * sides — single label x, single value x — so they're filtered out).
  */
 function partitionItemsByColumn(
   items: readonly PdfTextItem[],
@@ -375,39 +386,45 @@ function partitionItemsByColumn(
     .map((it) => it.transform[4])
     .slice()
     .sort((a, b) => a - b);
-  let largestGap = 0;
-  let cutAt = -1;
+  // Collect every candidate cut whose x-gap clears the threshold AND
+  // whose induced split passes the per-side validation. Among the
+  // survivors, the largest-gap cut is the page gutter.
+  let bestGap = 0;
+  let bestLeft: PdfTextItem[] | null = null;
+  let bestRight: PdfTextItem[] | null = null;
   for (let i = 1; i < sortedXs.length; i++) {
     const gap = sortedXs[i] - sortedXs[i - 1];
-    if (gap > largestGap) {
-      largestGap = gap;
-      cutAt = (sortedXs[i] + sortedXs[i - 1]) / 2;
+    if (gap < COLUMN_GAP_THRESHOLD) continue;
+    if (gap <= bestGap) continue;
+    const cutAt = (sortedXs[i] + sortedXs[i - 1]) / 2;
+    const left: PdfTextItem[] = [];
+    const right: PdfTextItem[] = [];
+    for (const item of items) {
+      if (item.transform[4] < cutAt) left.push(item);
+      else right.push(item);
     }
+    // Item-count guard: protects one-row fixtures and stray-item splits.
+    if (
+      left.length < MIN_ITEMS_PER_COLUMN ||
+      right.length < MIN_ITEMS_PER_COLUMN
+    ) {
+      continue;
+    }
+    // Distinct-x guard: protects repeated label/value layouts. A real
+    // page column has body content at multiple x indents; a label or a
+    // value column collapses to a single distinct x.
+    if (
+      distinctRoundedXCount(left) < MIN_DISTINCT_X_PER_COLUMN ||
+      distinctRoundedXCount(right) < MIN_DISTINCT_X_PER_COLUMN
+    ) {
+      continue;
+    }
+    bestGap = gap;
+    bestLeft = left;
+    bestRight = right;
   }
-  if (largestGap < COLUMN_GAP_THRESHOLD) return [items];
-  const left: PdfTextItem[] = [];
-  const right: PdfTextItem[] = [];
-  for (const item of items) {
-    if (item.transform[4] < cutAt) left.push(item);
-    else right.push(item);
-  }
-  // Item-count guard: protects one-row fixtures and stray-item splits.
-  if (
-    left.length < MIN_ITEMS_PER_COLUMN ||
-    right.length < MIN_ITEMS_PER_COLUMN
-  ) {
-    return [items];
-  }
-  // Distinct-x guard: protects repeated label/value layouts. A real
-  // page column has body content at multiple x indents; a label or a
-  // value column collapses to a single distinct x.
-  if (
-    distinctRoundedXCount(left) < MIN_DISTINCT_X_PER_COLUMN ||
-    distinctRoundedXCount(right) < MIN_DISTINCT_X_PER_COLUMN
-  ) {
-    return [items];
-  }
-  return [left, right];
+  if (bestLeft === null || bestRight === null) return [items];
+  return [bestLeft, bestRight];
 }
 
 function distinctRoundedXCount(items: readonly PdfTextItem[]): number {
