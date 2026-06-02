@@ -269,6 +269,43 @@ describe('extractPdfText — heading merge', () => {
     expect(lines).not.toContain('Speed');
   });
 
+  it('picks the real page gutter even when a far-right outlier opens a larger x-gap that fails the per-side guards', async () => {
+    // Regression for loreweaver-w8h. Real SRD 5.1 page 268 has the standard
+    // two-column body (gutter at x≈290) PLUS one stray item out at x≈540 —
+    // the absolute-largest x-gap is between the right-column body (x≈445)
+    // and that outlier (~94pt), bigger than the real gutter (~78pt). The
+    // older partitioner picked the absolute-largest gap, the right side
+    // failed the MIN_ITEMS guard, and the page fell back to unpartitioned
+    // y-bucketing — interleaving the two columns line-by-line and dropping
+    // creature stat blocks. The fix scans every above-threshold gap and
+    // keeps only valid cuts, so the page gutter wins.
+    const pages = await extractFromOps([
+      // Left column.
+      { text: 'left col line 1', size: 11, x: 60, y: 200 },
+      { text: 'left col line 2', size: 11, x: 60, y: 220 },
+      { text: 'left wrap', size: 11, x: 70, y: 240 },
+      // Right column.
+      { text: 'right col line 1', size: 11, x: 330, y: 204 },
+      { text: 'right col line 2', size: 11, x: 330, y: 224 },
+      { text: 'right wrap', size: 11, x: 340, y: 244 },
+      // Stray far-right outlier — opens a 100pt+ gap that would have
+      // captured the partition under the old algorithm.
+      { text: 'outlier', size: 11, x: 540, y: 260 },
+    ]);
+    const lines = pages[0].lines;
+    const leftIdx = lines.indexOf('left col line 1');
+    const rightIdx = lines.indexOf('right col line 1');
+    expect(leftIdx).toBeGreaterThanOrEqual(0);
+    expect(rightIdx).toBeGreaterThanOrEqual(0);
+    // The whole left column must precede the right column — the bug
+    // symptom was alternating left/right lines from the y-buckets.
+    expect(lines.indexOf('left col line 2')).toBeLessThan(rightIdx);
+    expect(lines.indexOf('left wrap')).toBeLessThan(rightIdx);
+    // The outlier is bucketed with the right column (it's on its side of
+    // the gutter cut) and follows it.
+    expect(lines.indexOf('outlier')).toBeGreaterThan(rightIdx);
+  });
+
   it('separates items at identical y but in different columns', async () => {
     // Critical: SRD page 299 has the previous monster's wrap line in the
     // left column at the SAME y baseline as the next monster's "Speed"

@@ -277,3 +277,60 @@ describe('parseCreatures — malformed confirmed stat block', () => {
     );
   });
 });
+
+// ---------------------------------------------------------------------------
+// Real-PDF resilience (loreweaver-w8h)
+// ---------------------------------------------------------------------------
+
+describe('parseCreatures — real-PDF resilience', () => {
+  it('parses ability scores even when prose from the adjacent column lands between the STR/DEX header and the score row', () => {
+    // Reproduces the real SRD page 268 (Cloaker) shape: column-aware extraction
+    // emits the right-column score row separated from its header by a
+    // left-column body line. Before w8h the parser only looked at the line
+    // immediately after the header and silently dropped the stat block.
+    const cloaker = [
+      'Cloaker',
+      'Large aberration, chaotic neutral',
+      'Armor Class 14 (natural armor)',
+      'Hit Points 78 (12d10 + 12)',
+      'Speed 10 ft., fly 40 ft.',
+      'STR DEX CON INT WIS CHA',
+      'attack or a harmful spell while a duplicate remains,',
+      '17 (+3) 15 (+2) 12 (+1) 13 (+1) 12 (+1) 14 (+2)',
+      'Skills Stealth +5',
+      'Senses darkvision 60 ft., passive Perception 11',
+      'Languages Deep Speech, Undercommon',
+      'Challenge 8 (3,900 XP)',
+    ];
+    const results = parseCreatures([page(268, cloaker)]);
+    expect(results).toHaveLength(1);
+    expect(results[0].name).toBe('Cloaker');
+    expect(results[0].abilityScores.strength).toBe(17);
+    expect(results[0].abilityScores.dexterity).toBe(15);
+    expect(results[0].abilityScores.charisma).toBe(14);
+  });
+
+  it('normalizes soft hyphens and U+2010 in compound creature names so PDF presentation marks do not drop the stat block', () => {
+    // Reproduces the real SRD page 388 (Saber-Toothed Tiger) shape: the
+    // compound name carries an ASCII hyphen + U+00AD soft hyphen + U+2010
+    // Unicode HYPHEN, which renders as one hyphen but breaks the name's
+    // character-class check. Before w8h these stat blocks (Will-o'-Wisp,
+    // Half-Red Dragon Veteran, Saber-Toothed Tiger) were silently dropped.
+    const saberTooth = [
+      'Saber-­‐Toothed Tiger',
+      'Large beast, unaligned',
+      'Armor Class 12',
+      'Hit Points 52 (7d10 + 14)',
+      'Speed 40 ft.',
+      'STR DEX CON INT WIS CHA',
+      '18 (+4) 14 (+2) 15 (+2) 3 (−4) 12 (+1) 8 (−1)',
+      'Senses passive Perception 13',
+      'Languages —',
+      'Challenge 2 (450 XP)',
+    ];
+    const [tiger] = parseCreatures([page(388, saberTooth)]);
+    expect(tiger.name).toBe('Saber-Toothed Tiger');
+    expect(tiger.size).toBe('Large');
+    expect(tiger.type).toBe('beast');
+  });
+});

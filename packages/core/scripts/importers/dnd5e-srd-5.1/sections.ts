@@ -323,13 +323,28 @@ export const SRD_5_1_DEFAULT_SECTION_ANCHORS = {
     matchHeadings: true,
   },
   // SRD 5.1 "Monsters" chapter (p254). End anchor matches the conditions
-  // appendix or the nonplayer-characters appendix that follow the monsters
-  // alphabetic chapter, so trailing NPC stat blocks and legal text don't
-  // leak into the creature parser.
+  // appendix that follows the monsters alphabetic chapter, so trailing
+  // appendix text doesn't leak into the creature parser.
   monsters: {
     startHeading: /^Monsters$/,
     endHeading:
       /^(Nonplayer Characters|NPCs|Appendix |Open Game License|Legal Information)/i,
+    requireEndHeading: true,
+    matchHeadings: true,
+  },
+  // SRD 5.1 "Appendix MM-A: Miscellaneous Creatures" (p366). This appendix
+  // holds the canonical animals/beasts (Cat, Wolf, Bear, Ape, Horse, …) and
+  // a handful of mounts and swarms — none of which appear in the main
+  // Monsters alphabetic chapter. The orchestrator parses this slice with
+  // the same `parseCreatures` and concatenates the result with the main
+  // Monsters slice. End anchor is the next appendix ("Appendix MM-B:
+  // Nonplayer Characters") so the NPC stat blocks (Bandit, Cultist, …)
+  // stay out of the import per the long-standing Nonplayer Characters
+  // exclusion. See loreweaver-w8h.
+  miscellaneousCreatures: {
+    startHeading: /^Appendix MM-A:\s*Miscellaneous Creatures$/,
+    endHeading:
+      /^(Appendix MM-B|Appendix [A-Z]{0,3}-?[A-Z]?:|Open Game License|Legal Information)/i,
     requireEndHeading: true,
     matchHeadings: true,
   },
@@ -368,6 +383,7 @@ export type Srd51SectionAnchors = {
   readonly spellDescriptions: SectionAnchorOptions;
   readonly combatActions: SectionAnchorOptions;
   readonly monsters: SectionAnchorOptions;
+  readonly miscellaneousCreatures: SectionAnchorOptions;
   readonly conditions: SectionAnchorOptions;
   readonly feats: SectionAnchorOptions;
   readonly hazards: SectionAnchorOptions;
