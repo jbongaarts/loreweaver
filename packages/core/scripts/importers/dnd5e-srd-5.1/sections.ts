@@ -50,6 +50,27 @@ export interface SectionAnchorOptions {
    * legitimately run to the end of the document).
    */
   readonly requireEndHeading?: boolean;
+  /**
+   * When true, the slicer's start- and end-heading patterns match only at
+   * line POSITIONS the extractor flagged as headings — i.e. only at
+   * indices listed in `PageText.headingLineIndexes`. This is the
+   * disambiguation for anchors whose text also occurs as a class-block
+   * subsection at body font size — e.g. the SRD 5.1 chapter title
+   * "Equipment" (h=25.9) is shadowed in every base-class chapter by a
+   * body-font "Equipment" subheading; without `matchHeadings`, the slicer
+   * would lock onto the first class-block occurrence instead of the actual
+   * chapter. Crucially, the same string can appear in `lines` as both a
+   * heading and as body prose, so the disambiguation has to be by line
+   * position, not by membership of a heading-text set.
+   *
+   * Backward-compat fallback: if a page's `headingLineIndexes` is
+   * undefined (uniform-font fixture PDFs), `matchHeadings: true` falls
+   * back to line matching. Real SRD 5.1 extraction always populates
+   * `headingLineIndexes`.
+   *
+   * Default: false (match against all lines).
+   */
+  readonly matchHeadings?: boolean;
 }
 
 export class SectionNotFoundError extends Error {
@@ -74,17 +95,31 @@ interface Location {
 function findFirstMatch(
   pages: readonly PageText[],
   pattern: RegExp,
-  startAfter?: Location,
+  startAfter: Location | undefined,
+  matchHeadings: boolean,
 ): Location | null {
   const startPage = startAfter?.pageIdx ?? 0;
   for (let p = startPage; p < pages.length; p++) {
-    const lines = pages[p].lines;
+    const page = pages[p];
+    const lines = page.lines;
+    // matchHeadings restricts matching to the line POSITIONS the extractor
+    // marked as headings, not just the heading TEXT. The same string can
+    // legitimately appear on a page as both a heading and as body prose
+    // (e.g. "Equipment" as a class-block subsection title and as a chapter
+    // title) — string-membership filtering would miss that distinction and
+    // accept the body occurrence. Position-based filtering does not.
+    const headingIdxSet =
+      matchHeadings && page.headingLineIndexes !== undefined
+        ? new Set<number>(page.headingLineIndexes)
+        : null;
     const startLine =
       startAfter !== undefined && p === startAfter.pageIdx
         ? startAfter.lineIdx + 1
         : 0;
     for (let l = startLine; l < lines.length; l++) {
-      if (pattern.test(lines[l].trim())) {
+      if (headingIdxSet !== null && !headingIdxSet.has(l)) continue;
+      const trimmed = lines[l].trim();
+      if (pattern.test(trimmed)) {
         return { pageIdx: p, lineIdx: l };
       }
     }
@@ -103,14 +138,20 @@ export function sliceSection(
   pages: readonly PageText[],
   anchors: SectionAnchorOptions,
 ): readonly PageText[] {
-  const start = findFirstMatch(pages, anchors.startHeading);
+  const matchHeadings = anchors.matchHeadings === true;
+  const start = findFirstMatch(
+    pages,
+    anchors.startHeading,
+    undefined,
+    matchHeadings,
+  );
   if (start === null) {
     throw new SectionNotFoundError('start', anchors.startHeading);
   }
   const end =
     anchors.endHeading === undefined
       ? null
-      : findFirstMatch(pages, anchors.endHeading, start);
+      : findFirstMatch(pages, anchors.endHeading, start, matchHeadings);
   if (
     anchors.endHeading !== undefined &&
     anchors.requireEndHeading === true &&
@@ -142,154 +183,180 @@ function buildSlice(
 }
 
 /**
- * Default section anchors for the SRD 5.1 PDF. The Wizards CC-BY 5.1 PDF
- * presents per-class spell lists under a "Spell Lists" chapter, immediately
- * followed by alphabetical "Spells" descriptions. The "Spells" descriptions
- * end where the next major chapter (usually "Monsters") begins.
+ * Default section anchors for the SRD 5.1 PDF (the CC-BY-4.0 vendored
+ * source at `packages/core/sources/dnd5e-srd-5.1/SRD_CC_v5.1.pdf`).
  *
- * These regexes are deliberately tight (`^...$`) so an occurrence of the
- * heading text inside body prose won't false-positive. If the actual SRD
- * heading text differs (variant cases, different chapter title), override
- * via the `sectionAnchors` option on `runImporter`.
+ * Real-PDF mapping (loreweaver-0m9.5.20): the SRD 5.1 PDF differs from the
+ * fixture-built layout the importer was originally drafted against in two
+ * important ways. (1) Each base class is its own h=25.9 chapter title
+ * ("Barbarian", "Bard", ..., "Wizard") — there is no aggregate "Classes"
+ * chapter heading. (2) "Hazards" and a separate "Treasure" chapter do not
+ * exist; orchestrator treats those sections as best-effort and emits empty
+ * results when the anchor doesn't match.
+ *
+ * Most anchors set `matchHeadings: true` so they only fire against lines the
+ * extractor flagged as chapter / section headings (font height ≥ heading
+ * threshold). This is essential for anchors whose text also occurs at body
+ * font size — e.g. the "Equipment" chapter title (h=25.9) is shadowed in
+ * every base-class chapter by a body-font "Equipment" subheading. Fixture
+ * PDFs built with a uniform font size have `headings` undefined, in which
+ * case `matchHeadings` falls back to line matching.
+ *
+ * `requireEndHeading: true` on implemented kinds means a missing end anchor
+ * is a hard error rather than a slice-to-EOF that could feed trailing
+ * chapters into the parser. Override via the `sectionAnchors` option on
+ * `runImporter` if a future vendored PDF differs.
  */
 export const SRD_5_1_DEFAULT_SECTION_ANCHORS = {
-  // SRD 5.1 opens with the "Races" chapter (Dwarf, Elf, ... Tiefling), which
-  // runs up to the "Classes" chapter. `requireEndHeading` is true because
-  // ancestry is an implemented kind: if the end boundary is missing the
-  // importer must fail closed rather than run the race parser over the class
-  // chapters (which could promote class headings as bogus ancestry records).
+  // SRD 5.1 opens with the "Races" chapter (Dwarf, Elf, ... Tiefling). It
+  // closes at the first base-class chapter heading "Barbarian" (the SRD has
+  // no aggregate "Classes" heading; each class is its own chapter title).
+  // requireEndHeading is true because ancestry is an implemented kind.
   races: {
     startHeading: /^Races$/,
-    endHeading: /^Classes$/,
+    // Real SRD: ends at "Barbarian" (first class chapter — no aggregate
+    // "Classes" heading exists in the PDF). Fixtures: end at "Classes",
+    // which the fixture authors put between the races and class pages.
+    endHeading: /^Barbarian$|^Classes$/,
     requireEndHeading: true,
+    matchHeadings: true,
   },
-  // SRD 5.1 "Classes" chapter (Barbarian … Wizard), bounded below by the
-  // core-rules chapter that opens at "Using Ability Scores". `requireEndHeading`
-  // is true because class is an implemented kind: if the end boundary is missing
-  // the importer must fail closed rather than run the class parser over the
-  // core-rules / spell chapters. The parser keys off each class's
-  // "Hit Dice: 1dN per <class> level" signature line, so a widened slice cannot
-  // promote arbitrary headings as classes, but failing closed keeps the slice
-  // honest. See ADR 0009 and loreweaver-0m9.5.2.
+  // SRD 5.1 base-classes span from "Barbarian" (first class chapter) to
+  // "Beyond 1st Level" (the multiclassing / customization chapter that
+  // immediately follows Wizard). The parser keys off each class's "Hit Dice:
+  // 1dN per <class> level" signature line, so an over-wide slice cannot
+  // promote arbitrary headings as classes, but failing closed keeps the
+  // slice honest. See ADR 0009 and loreweaver-0m9.5.2.
   classes: {
-    startHeading: /^Classes$/,
-    endHeading: /^Using Ability Scores$/,
+    // Real SRD: "Barbarian" is the first class chapter title. Fixtures use
+    // an aggregate "Classes" heading. The class parser keys off each class's
+    // "Hit Dice: 1dN per <class> level" signature line, so a slightly wider
+    // start can't promote arbitrary headings as classes.
+    startHeading: /^Barbarian$|^Classes$/,
+    // Real SRD: classes section closes at "Beyond 1st Level" (the chapter
+    // immediately after Wizard, containing Multiclassing). Fixtures put
+    // "Using Ability Scores" immediately after the classes page.
+    endHeading: /^Beyond 1st Level$|^Using Ability Scores$/,
     requireEndHeading: true,
+    matchHeadings: true,
   },
-  // Core-rules chapters (ability checks, adventuring, combat, etc.) begin at
-  // "Using Ability Scores" and run up to (but not including) "Spell Lists".
-  // This slice feeds the generic rule-text parser.
+  // Core-rules chapter (ability checks, adventuring, combat, etc.) begins
+  // at "Using Ability Scores" (which the extractor re-joins from its
+  // two-line "Using Ability" / "Scores" wrap on p76) and runs up to (but
+  // not including) the "Spellcasting" chapter.
   coreRules: {
     startHeading: /^Using Ability Scores$/,
-    endHeading: /^Spell Lists$/,
+    // Real SRD: closes at "Spellcasting" (the chapter title that introduces
+    // Spell Lists and Spell Descriptions). Fixtures jump straight from the
+    // core-rules pages into the "Spell Lists" subsection page.
+    endHeading: /^Spellcasting$|^Spell Lists$/,
     requireEndHeading: true,
+    matchHeadings: true,
   },
+  // "Spell Lists" and "Spell Descriptions" are subsection titles (h=18)
+  // inside the Spellcasting chapter — both appear at heading font, so they
+  // remain heading-matched but at the subsection level rather than the
+  // chapter level.
   spellLists: {
     startHeading: /^Spell Lists$/,
     endHeading: /^Spells$|^Spell Descriptions$/,
     requireEndHeading: true,
+    matchHeadings: true,
   },
   spellDescriptions: {
     startHeading: /^Spells$|^Spell Descriptions$/,
-    endHeading: /^(Monsters|Magic Items|Creatures|NPCs|Treasure|Appendix)$/,
+    endHeading: /^(Monsters|Magic Items|Creatures|NPCs|Treasure|Appendix)\b/,
     requireEndHeading: true,
+    matchHeadings: true,
   },
-  // SRD 5.1 "Actions in Combat" section. `requireEndHeading` is true because
-  // actions is an implemented kind: if the next-heading boundary is missing,
-  // fail closed rather than letting the slice run to EOF and absorb later
-  // combat chapter text into the final action description.
+  // SRD 5.1 "Actions in Combat" subsection (h=18 inside the core-rules
+  // chapter), bounded by the subsection that follows ("Making an Attack",
+  // "Movement and Position", etc.).
   combatActions: {
     startHeading: /^Actions in Combat$/,
     endHeading:
       /^(Making an Attack|Movement and Position|Reactions?|Bonus Actions?|Mounted Combat|Underwater Combat|Contests in Combat|Cover)$/i,
     requireEndHeading: true,
+    matchHeadings: true,
   },
-  // SRD 5.1 puts conditions in "Appendix A: Conditions" near the end of the
-  // document. The end heading is optional (the section may run to EOF in some
-  // PDF layouts), so requireEndHeading is not set.
+  // SRD 5.1 places conditions in "Appendix PH-A: Conditions" (one multi-
+  // line h=25.9 chapter heading — the extractor merges it on p358). The
+  // end anchor matches the following appendix heading.
   conditions: {
-    startHeading: /^Appendix A: Conditions$|^Conditions$/,
+    startHeading:
+      /^(Appendix [A-Z]{0,3}-?[A-Z]?:?\s*)?Conditions$|^Appendix [A-Z]{0,3}-?[A-Z]?: Conditions$/,
     endHeading:
-      /^Appendix [B-Z]:|^Open Game License|^Legal Information|^Monster (Statistics|Lists?)$/i,
+      /^Appendix [A-Z]{0,3}-?[A-Z]?:|^Open Game License|^Legal Information/i,
+    matchHeadings: true,
   },
-  // SRD 5.1 places feats under "Feats" in Chapter 6 (Customization Options).
-  // requireEndHeading is true because feats is an implemented kind: if the PDF
-  // changes such that the end anchor is not found, the importer must fail closed
-  // rather than silently run parseFeats over subsequent chapters (which could
-  // promote chapter headings as bogus feat records).
-  // Two alternatives cover different PDF layouts:
-  //   - The main alternation matches common chapter headings (full-line match).
-  //   - The ^Appendix\b alternative matches any "Appendix X: ..." heading
-  //     (which the $ anchor would prevent if written inside the group).
+  // SRD 5.1 "Feats" chapter (Grappler is the only entry in this edition).
+  // The chapter ends at "Using Ability Scores" — the next chapter title.
   feats: {
     startHeading: /^Feats?$|^Feat Descriptions?$/,
     endHeading:
-      /^(Using Ability Scores|Adventuring|Combat|Equipment|Monsters|Magic Items|Running the Game|Chapter \d+|Spell Lists?)$|^Appendix\b/i,
+      /^(Using Ability Scores|Adventuring|Combat|Equipment|Monsters|Magic Items|Running the Game|Spell Lists?|Spellcasting)$|^Appendix\b/i,
     requireEndHeading: true,
+    matchHeadings: true,
   },
-  // SRD 5.1 places hazards in "Dungeon Hazards" within the DM tools / running
-  // the game section. Hazards is an implemented kind, so the importer must
-  // fail closed if the next section heading is missing instead of letting the
-  // slice run to EOF and absorb later prose into the final hazard.
+  // SRD 5.1 has no "Dungeon Hazards" / "Hazards" chapter — the canonical
+  // hazard set (Brown Mold, Green Slime, Webs, Yellow Mold) is absent from
+  // the SRD 5.1 PDF entirely. The orchestrator wraps this anchor in a
+  // best-effort try/catch (like `multiclassing`); these regexes remain so a
+  // future SRD edition / fixture that DOES carry a hazards section is still
+  // sliced correctly. requireEndHeading is true to keep the failing-closed
+  // bound consistent with other implemented kinds when the section IS found.
   hazards: {
     startHeading: /^Dungeon Hazards$|^Hazards$/,
     endHeading:
-      /^(Traps|Sample Traps|Wilderness Hazards|Monsters|Magic Items|Appendix|Chapter \d+|Open Game License|Legal Information)$/i,
+      /^(Traps|Sample Traps|Wilderness Hazards|Monsters|Magic Items|Appendix|Open Game License|Legal Information)$/i,
     requireEndHeading: true,
+    matchHeadings: true,
   },
-  // SRD 5.1 places weapons, armor, and adventuring gear in the "Equipment"
-  // chapter. requireEndHeading is true because equipment is an implemented
-  // kind: if the next-section boundary is missing, fail closed rather than let
-  // the slice run to EOF and feed later chapters to the equipment parser. The
-  // end alternation covers the subsections that follow the Adventuring Gear
-  // table (Mounts and Vehicles, Trade Goods, ...) and the chapters that follow
-  // the Equipment chapter (Multiclassing, Spellcasting, ...).
+  // SRD 5.1 "Equipment" chapter (p62). matchHeadings is essential: every
+  // base-class chapter has a body-font "Equipment" subsection that would
+  // otherwise shadow the chapter title at h=25.9.
   equipment: {
     startHeading: /^Equipment$/,
     endHeading:
-      /^(Mounts and Vehicles|Trade Goods|Expenses|Trinkets|Multiclassing|Spellcasting|Using Ability Scores|Adventuring|Combat|Monsters|Magic Items|Chapter \d+)$/i,
+      /^(Mounts and Vehicles|Trade Goods|Expenses|Trinkets|Multiclassing|Spellcasting|Using Ability Scores|Adventuring|Combat|Monsters|Magic Items|Feats)$/i,
     requireEndHeading: true,
+    matchHeadings: true,
   },
-  // SRD 5.1 presents creature stat blocks alphabetically under the "Monsters"
-  // chapter, bounded below by the "Nonplayer Characters" section (NPC stat
-  // blocks, intentionally out of scope for the creature kind) and the license
-  // text. `requireEndHeading` is true: creature is an implemented kind, so a
-  // missing end boundary must fail closed rather than let the slice run to EOF
-  // and feed trailing appendix / NPC / legal content to the creature parser.
-  // The end alternation is kept tight to the sections that actually follow the
-  // Monsters chapter so a stray heading can't widen the slice.
+  // SRD 5.1 "Monsters" chapter (p254). End anchor matches the conditions
+  // appendix or the nonplayer-characters appendix that follow the monsters
+  // alphabetic chapter, so trailing NPC stat blocks and legal text don't
+  // leak into the creature parser.
   monsters: {
     startHeading: /^Monsters$/,
     endHeading:
-      /^(Nonplayer Characters|NPCs|Appendix|Open Game License|Legal Information)\b/i,
+      /^(Nonplayer Characters|NPCs|Appendix |Open Game License|Legal Information)/i,
     requireEndHeading: true,
+    matchHeadings: true,
   },
-  // SRD 5.1 treasure tables live in the "Treasure" section, before the
-  // following magic-item rules. Use the first rules heading inside that next
-  // section as the end boundary instead of "Magic Items" itself because
-  // "Magic Items" is also a treasure-hoard table column header.
+  // SRD 5.1 has no standalone "Treasure" chapter — magic items are under
+  // the "Magic Items" chapter, and the treasure tables that the original
+  // anchor targeted are not present in the SRD 5.1 PDF. Like `hazards`,
+  // the orchestrator treats this slice as best-effort and emits empty
+  // results when the anchor doesn't match. The regex is retained for
+  // fixtures and future editions.
   treasureTables: {
     startHeading: /^Treasure$/,
     endHeading: /^Using (a )?Magic Items?$/i,
     requireEndHeading: true,
   },
-  // SRD 5.1 "Multiclassing" section. Only the "Prerequisites" listing at the top
-  // of the section is consumed (parseMulticlassing), so the end boundary is set
-  // to "Proficiencies" — the subsection that immediately follows the
-  // prerequisites table — to keep the slice tight. requireEndHeading is left off
-  // (best-effort): the prerequisites enrichment is NOT fail-closed (ADR 0007 —
-  // primaryAbilities is left empty when the source does not provide it), and the
-  // orchestrator already treats a missing Multiclassing section as "no
-  // enrichment available". The end alternation also lists plausible following
-  // top-level headings so a layout without a "Proficiencies" subsection still
-  // bounds reasonably (and the parser's exact class-name + ability-score row
-  // matching makes an over-wide slice harmless). Placement of the Multiclassing
-  // section varies by PDF layout; override via the `sectionAnchors` option if a
-  // future vendored PDF differs. See loreweaver-0m9.5.19 and ADR 0009.
+  // SRD 5.1 "Multiclassing" subsection (h=18, inside "Beyond 1st Level"
+  // p56). Only the "Prerequisites" listing is consumed (parseMulticlassing),
+  // so the end boundary is the subsection that follows ("Proficiencies"
+  // or the next subsection). requireEndHeading is intentionally left off
+  // (best-effort): the prerequisites enrichment is NOT fail-closed (ADR
+  // 0007 — primaryAbilities is left empty when the source doesn't provide
+  // it), and the orchestrator already treats a missing Multiclassing
+  // section as "no enrichment available".
   multiclassing: {
     startHeading: /^Multiclassing$/,
     endHeading:
-      /^(Proficiencies|Using Ability Scores|Beyond 1st Level|Adventuring|Combat|Spell Lists?|Monsters|Appendix [A-Z]:)/i,
+      /^(Proficiencies|Class Features|Alignment|Using Ability Scores|Beyond 1st Level|Adventuring|Combat|Spell Lists?|Spellcasting|Monsters|Magic Items|Equipment|Languages|Inspiration|Backgrounds|Appendix\b)/i,
+    matchHeadings: true,
   },
 } as const satisfies Record<string, SectionAnchorOptions>;
 

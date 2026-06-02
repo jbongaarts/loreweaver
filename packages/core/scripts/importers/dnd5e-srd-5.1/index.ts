@@ -46,6 +46,7 @@ import { parseSpellClassLists, parseSpells } from './parseSpells.js';
 import { parseSubclasses } from './parseSubclasses.js';
 import { parseTables } from './parseTables.js';
 import {
+  type SectionAnchorOptions,
   SectionNotFoundError,
   SRD_5_1_DEFAULT_SECTION_ANCHORS,
   type Srd51SectionAnchors,
@@ -379,11 +380,18 @@ export async function runImporter(
   const actions = parseActions(combatActionPages);
   const featPages = sliceSection(pages, anchors.feats);
   const feats = parseFeats(featPages);
-  const hazardPages = sliceSection(pages, anchors.hazards);
-  const hazards = parseHazards(hazardPages);
+  // SRD 5.1 has no hazards chapter (the Brown Mold / Green Slime / Webs /
+  // Yellow Mold entries are not part of the SRD 5.1 PDF) — emit an empty
+  // hazard set when the anchor fails. Same shape as the multiclassing
+  // best-effort fall-through below.
+  const hazards = sliceSectionOrEmpty(pages, anchors.hazards, parseHazards);
   const equipmentPages = sliceSection(pages, anchors.equipment);
   const equipment = parseEquipment(equipmentPages);
-  const treasureTablePages = sliceSection(pages, anchors.treasureTables);
+  // SRD 5.1 has no standalone treasure-tables chapter either. Best-effort.
+  const treasureTablePages = sliceSectionOrEmptyPages(
+    pages,
+    anchors.treasureTables,
+  );
   const rules = parseRules(coreRulePages);
   const tables = parseTables([...coreRulePages, ...treasureTablePages]);
   // Sliced after the other sections so the existing fail-closed tests trip on
@@ -469,4 +477,54 @@ export async function runImporter(
 
 function sha256Hex(bytes: Uint8Array | Buffer): string {
   return createHash('sha256').update(bytes).digest('hex');
+}
+
+/**
+ * Slice a section and run its parser, but degrade to an empty result list if
+ * the section START heading is absent. Used for kinds whose section is
+ * absent from the SRD 5.1 PDF entirely (hazards, treasure tables) —
+ * fail-closed parsing would refuse a perfectly valid run on the canonical
+ * source.
+ *
+ * Critically, this only catches `SectionNotFoundError('start', ...)`. If
+ * the start anchor matches but the requireEndHeading guard fires (a real
+ * boundary failure that would let trailing content bleed into the parser),
+ * the error still propagates. Coverage / schema / other errors also
+ * propagate.
+ */
+function sliceSectionOrEmpty<T>(
+  pages: readonly import('./types.js').PageText[],
+  anchor: SectionAnchorOptions,
+  parse: (slice: readonly import('./types.js').PageText[]) => T[],
+): T[] {
+  try {
+    const slice = sliceSection(pages, anchor);
+    return parse(slice);
+  } catch (error) {
+    if (error instanceof SectionNotFoundError && error.which === 'start') {
+      return [];
+    }
+    throw error;
+  }
+}
+
+/**
+ * Pages-only variant for `treasureTables` — it feeds into `parseTables`
+ * alongside the core-rules slice rather than being parsed in isolation.
+ * Same fail-closed boundaries as `sliceSectionOrEmpty`: only a missing
+ * start heading degrades to empty; a missing required end heading still
+ * throws.
+ */
+function sliceSectionOrEmptyPages(
+  pages: readonly import('./types.js').PageText[],
+  anchor: SectionAnchorOptions,
+): readonly import('./types.js').PageText[] {
+  try {
+    return sliceSection(pages, anchor);
+  } catch (error) {
+    if (error instanceof SectionNotFoundError && error.which === 'start') {
+      return [];
+    }
+    throw error;
+  }
 }
