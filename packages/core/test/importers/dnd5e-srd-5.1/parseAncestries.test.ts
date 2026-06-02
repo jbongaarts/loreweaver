@@ -360,26 +360,22 @@ describe('parseAncestries — real SRD 5.1 PDF coverage (loreweaver-3m1)', () =>
     }
   });
 
-  it(
-    'parses exactly the EXPECTED set from the vendored SRD 5.1 PDF',
-    async () => {
-      // Narrow extraction to the races chapter (PDF pages 3-7) plus page 8
-      // where "Barbarian" first appears — the races endHeading anchor — so
-      // sliceSection's requireEndHeading guard is satisfied without paying for
-      // a 403-page extract. Keeps the test well under the suite's default
-      // timeout while still exercising real PDF text and column-aware layout.
-      const pdfBytes = readFileSync(SRD_PDF_PATH);
-      const pages = await extractPdfText(new Uint8Array(pdfBytes), {
-        pageRange: { start: 3, end: 8 },
-      });
-      const racePages = sliceSection(
-        pages,
-        SRD_5_1_DEFAULT_SECTION_ANCHORS.races,
-      );
-      const ancestries = parseAncestries(racePages);
-      const parsedNames = ancestries.map((a) => a.name).sort();
-      expect(parsedNames).toEqual([...EXPECTED_SRD_5_1_ANCESTRY_NAMES].sort());
-    },
-    20000,
-  );
+  it('parses exactly the EXPECTED set from the vendored SRD 5.1 PDF', async () => {
+    // Narrow extraction to the races chapter (PDF pages 3-7) plus page 8
+    // where "Barbarian" first appears — the races endHeading anchor — so
+    // sliceSection's requireEndHeading guard is satisfied without paying for
+    // a 403-page extract. Keeps the test well under the suite's default
+    // timeout while still exercising real PDF text and column-aware layout.
+    const pdfBytes = readFileSync(SRD_PDF_PATH);
+    const pages = await extractPdfText(new Uint8Array(pdfBytes), {
+      pageRange: { start: 3, end: 8 },
+    });
+    const racePages = sliceSection(
+      pages,
+      SRD_5_1_DEFAULT_SECTION_ANCHORS.races,
+    );
+    const ancestries = parseAncestries(racePages);
+    const parsedNames = ancestries.map((a) => a.name).sort();
+    expect(parsedNames).toEqual([...EXPECTED_SRD_5_1_ANCESTRY_NAMES].sort());
+  }, 20000);
 });
