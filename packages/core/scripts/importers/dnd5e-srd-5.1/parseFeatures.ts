@@ -319,6 +319,7 @@ export function parseFeatures(pages: readonly PageText[]): FeatureExtraction[] {
 
   const anchors = collectFeatureAnchors(flat);
   const out: FeatureExtraction[] = [];
+  const emittedIndexByKey = new Map<string, number>();
   let currentClass: string | null = null;
   let currentSubclass: string | null = null;
 
@@ -365,6 +366,28 @@ export function parseFeatures(pages: readonly PageText[]): FeatureExtraction[] {
       );
     }
 
+    // A given (grantor, name) pair may legitimately have its heading repeated
+    // in the source: an in-body reference table caption that re-states the
+    // feature name (e.g. Cleric's "Destroy Undead" CR-threshold table), or an
+    // end-of-chapter section heading that introduces a list of options (e.g.
+    // Warlock's "Eldritch Invocations" with all invocation choices listed at
+    // the end of the class chapter). Both legitimately belong to the original
+    // feature, so when the same anchor matches twice, merge the additional
+    // body into the existing record rather than emitting a duplicate that the
+    // pack writer would reject as a duplicate `feature:<class>:<name>` key.
+    const key = anchorKey(grantorKind, grantorName, line);
+    const existingIdx = emittedIndexByKey.get(key);
+    if (existingIdx !== undefined) {
+      const existing = out[existingIdx];
+      out[existingIdx] = {
+        ...existing,
+        description: `${existing.description}\n\n${description}`.trim(),
+      };
+      i = j - 1;
+      continue;
+    }
+
+    emittedIndexByKey.set(key, out.length);
     out.push({
       name: line,
       grantorKind,
