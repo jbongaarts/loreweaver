@@ -1626,6 +1626,77 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     ).rejects.toThrow(/parsed 1 creature stat block\(s\), expected at least 2/);
   });
 
+  // Exact creature name-set coverage (loreweaver-0m9.5.14). The real import CLI
+  // passes EXPECTED_SRD_5_1_CREATURE_NAMES; these fixture tests drive the same
+  // opt-in gate with a small expected set so a dropped/renamed creature or a
+  // bled-in unrelated stat block fails closed by name, not just on count.
+  const FULL_FIXTURE_PAGES = [
+    RACES_PAGE,
+    CLASSES_PAGE,
+    CORE_RULES_PAGE_ONE,
+    CORE_RULES_PAGE_TWO,
+    CORE_RULES_TABLES_PAGE,
+    SPELL_LISTS_PAGE,
+    SPELLS_PAGE,
+    MONSTERS_PAGE,
+    TREASURE_TABLES_PAGE,
+    MAGIC_ITEMS_PAGE,
+    COMBAT_ACTIONS_PAGE,
+    MAKING_AN_ATTACK_PAGE,
+    HAZARDS_PAGE,
+    FEATS_PAGE,
+    EQUIPMENT_PAGE,
+    CONDITIONS_PAGE,
+  ];
+
+  it('fails closed when an expected creature name is missing from the parse', async () => {
+    const workDir = makeTmpDir();
+    const pdfPath = join(workDir, 'fixture.pdf');
+    const outDir = join(workDir, 'pack');
+    // The fixture's Monsters section yields only Goblin; an expected set that
+    // also demands Aboleth must trip the exact-coverage gate naming the
+    // missing creature, and write nothing.
+    await writeFixturePdf(pdfPath, FULL_FIXTURE_PAGES);
+
+    await expect(
+      runImporter({
+        pdfPath,
+        outDir,
+        expectedCreatureNames: ['Aboleth', 'Goblin'],
+      }),
+    ).rejects.toThrow(/missing expected creature\(s\): Aboleth/);
+    expect(() => readFileSync(join(outDir, 'records.json'), 'utf8')).toThrow();
+  });
+
+  it('fails closed when the parse yields a creature not in the expected set', async () => {
+    const workDir = makeTmpDir();
+    const pdfPath = join(workDir, 'fixture.pdf');
+    const outDir = join(workDir, 'pack');
+    // Goblin is parsed but not in the expected set — exactly the column-wrap /
+    // NPC-bleed failure mode the exact gate is meant to catch.
+    await writeFixturePdf(pdfPath, FULL_FIXTURE_PAGES);
+
+    await expect(
+      runImporter({ pdfPath, outDir, expectedCreatureNames: ['Aboleth'] }),
+    ).rejects.toThrow(/unexpected creature\(s\): Goblin/);
+  });
+
+  it('accepts a parse whose creature names match the expected set exactly', async () => {
+    const workDir = makeTmpDir();
+    const pdfPath = join(workDir, 'fixture.pdf');
+    const outDir = join(workDir, 'pack');
+    // Goblin is the only creature the fixture yields; an expected set of exactly
+    // ['Goblin'] satisfies the gate and the import writes a pack.
+    await writeFixturePdf(pdfPath, FULL_FIXTURE_PAGES);
+
+    await expect(
+      runImporter({ pdfPath, outDir, expectedCreatureNames: ['Goblin'] }),
+    ).resolves.toBeDefined();
+    expect(readFileSync(join(outDir, 'records.json'), 'utf8')).toContain(
+      'creature:goblin',
+    );
+  });
+
   it('fails closed when the Classes section yields no classes', async () => {
     const workDir = makeTmpDir();
     const pdfPath = join(workDir, 'fixture.pdf');

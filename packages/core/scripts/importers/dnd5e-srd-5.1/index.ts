@@ -13,9 +13,12 @@
  * spell parser over the whole PDF (which would let class-list text and
  * unrelated chapters bleed into the last spell's body). The creature set is
  * additionally guarded by `validateCreatureCoverage`: an empty Monsters parse
- * (or one below `minCreatureCount`) throws `CreatureCoverageError` and writes
- * nothing. The ancestry set is guarded by exact SRD 5.1 expected-name coverage
- * so a valid Races slice cannot silently under-extract race/subrace records.
+ * always throws `CreatureCoverageError`, and the real import is validated
+ * against the exact SRD 5.1 creature name set (`EXPECTED_SRD_5_1_CREATURE_NAMES`)
+ * so a dropped, renamed, or spuriously-extracted creature trips immediately by
+ * name rather than only on gross truncation. The ancestry set is guarded the
+ * same way (exact expected-name coverage) so a valid Races slice cannot
+ * silently under-extract race/subrace records.
  *
  * Scope today: spells, creatures, base classes, subclasses, features,
  * conditions, feats, hazards, actions, rules, tables, equipment, and ancestries
@@ -55,6 +58,7 @@ import {
 import type {
   AncestryExtraction,
   ClassPrimaryAbilityIndex,
+  CreatureExtraction,
   ImporterRunResult,
 } from './types.js';
 
@@ -68,14 +72,341 @@ import type {
  * a fixed property of the input artifact: any change must be an
  * intentional baseline update with re-review, not slack-headroom.
  *
- * The orchestrator's coverage gate compares against this exact count
- * (loreweaver-w8h) so a parser regression that drops even a single
- * creature trips immediately. Exact name-set coverage remains out of
- * scope here and is tracked in `loreweaver-0m9.5.14`. The CLI passes
- * this value; fixture-based tests use the always-on empty-result guard
- * instead (or pass a smaller `minCreatureCount`).
+ * This is the documented count baseline for the vendored artifact. The real
+ * import is gated on the stronger exact name set below
+ * (`EXPECTED_SRD_5_1_CREATURE_NAMES`), whose length a test cross-checks against
+ * this constant so the two cannot drift. It remains a coarse opt-in floor
+ * (`minCreatureCount`) for fixture pipelines that exercise a reduced Monsters
+ * section without the full name set.
  */
 export const MIN_EXPECTED_SRD_5_1_CREATURES = 296;
+
+/**
+ * Reviewed, checked-in SRD 5.1 creature name-set baseline (loreweaver-0m9.5.14).
+ * The real import validates parsed creature names against this exact set, so
+ * `validateCreatureCoverage` fails closed naming any specific missing, renamed,
+ * or spuriously-extracted creature, not just gross truncation. Replaces the
+ * bare `MIN_EXPECTED_SRD_5_1_CREATURES` count floor for the real import.
+ *
+ * Provenance — this is a reviewed regression baseline, NOT runtime-derived
+ * expected data:
+ *   1. A candidate list was *generated* from the vendored SRD 5.1 PDF by
+ *      running the importer over it
+ *      (`npm run generate:dnd5e-srd-creature-names`). Hand-enumerating 296
+ *      Monsters-chapter names is the error-prone task the bead explicitly
+ *      warned against, so the candidate is machine-produced, not hand-typed.
+ *   2. That candidate was *reviewed against the SRD source* — the alphabetic
+ *      "Monsters" chapter (201 stat blocks) plus "Appendix MM-A: Miscellaneous
+ *      Creatures" (95 entries); "Appendix MM-B: Nonplayer Characters" is
+ *      intentionally out of scope for the `creature` kind.
+ *   3. The reviewed list is committed here as a fixed baseline.
+ *
+ * Its value is forward regression protection: it does not by itself prove the
+ * importer captured the SRD completely (the one-time review step did that).
+ * Once committed, a parser change that drops, adds, or renames a creature
+ * record fails closed against it. A test in `srdGeneratedPack.test.ts` compares
+ * the committed pack's creature record names against this baseline so the two
+ * cannot drift apart silently; an intentional coverage change re-runs the
+ * generator, re-reviews, and updates this constant in the same change.
+ */
+export const EXPECTED_SRD_5_1_CREATURE_NAMES: readonly string[] = [
+  'Aboleth',
+  'Adult Black Dragon',
+  'Adult Blue Dragon',
+  'Adult Brass Dragon',
+  'Adult Bronze Dragon',
+  'Adult Copper Dragon',
+  'Adult Gold Dragon',
+  'Adult Green Dragon',
+  'Adult Red Dragon',
+  'Adult Silver Dragon',
+  'Adult White Dragon',
+  'Air Elemental',
+  'Ancient Black Dragon',
+  'Ancient Blue Dragon',
+  'Ancient Brass Dragon',
+  'Ancient Bronze Dragon',
+  'Ancient Copper Dragon',
+  'Ancient Gold Dragon',
+  'Ancient Green Dragon',
+  'Ancient Red Dragon',
+  'Ancient Silver Dragon',
+  'Ancient White Dragon',
+  'Androsphinx',
+  'Animated Armor',
+  'Ankheg',
+  'Ape',
+  'Awakened Shrub',
+  'Awakened Tree',
+  'Axe Beak',
+  'Azer',
+  'Baboon',
+  'Badger',
+  'Balor',
+  'Barbed Devil',
+  'Basilisk',
+  'Bat',
+  'Bearded Devil',
+  'Behir',
+  'Black Bear',
+  'Black Dragon Wyrmling',
+  'Black Pudding',
+  'Blink Dog',
+  'Blood Hawk',
+  'Blue Dragon Wyrmling',
+  'Boar',
+  'Bone Devil',
+  'Brass Dragon Wyrmling',
+  'Bronze Dragon Wyrmling',
+  'Brown Bear',
+  'Bugbear',
+  'Bulette',
+  'Camel',
+  'Cat',
+  'Centaur',
+  'Chain Devil',
+  'Chimera',
+  'Chuul',
+  'Clay Golem',
+  'Cloaker',
+  'Cloud Giant',
+  'Cockatrice',
+  'Constrictor Snake',
+  'Copper Dragon Wyrmling',
+  'Couatl',
+  'Crab',
+  'Crocodile',
+  'Darkmantle',
+  'Death Dog',
+  'Deer',
+  'Deva',
+  'Dire Wolf',
+  'Djinni',
+  'Doppelganger',
+  'Draft Horse',
+  'Dragon Turtle',
+  'Dretch',
+  'Drider',
+  'Dryad',
+  'Duergar',
+  'Dust Mephit',
+  'Eagle',
+  'Earth Elemental',
+  'Efreeti',
+  'Elephant',
+  'Elf, Drow',
+  'Elk',
+  'Erinyes',
+  'Ettercap',
+  'Ettin',
+  'Fire Elemental',
+  'Fire Giant',
+  'Flesh Golem',
+  'Flying Snake',
+  'Flying Sword',
+  'Frog',
+  'Frost Giant',
+  'Gargoyle',
+  'Gelatinous Cube',
+  'Ghast',
+  'Ghost',
+  'Ghoul',
+  'Giant Ape',
+  'Giant Badger',
+  'Giant Bat',
+  'Giant Boar',
+  'Giant Centipede',
+  'Giant Constrictor Snake',
+  'Giant Crab',
+  'Giant Crocodile',
+  'Giant Eagle',
+  'Giant Elk',
+  'Giant Fire Beetle',
+  'Giant Frog',
+  'Giant Goat',
+  'Giant Hyena',
+  'Giant Lizard',
+  'Giant Octopus',
+  'Giant Owl',
+  'Giant Poisonous Snake',
+  'Giant Rat',
+  'Giant Scorpion',
+  'Giant Sea Horse',
+  'Giant Shark',
+  'Giant Spider',
+  'Giant Toad',
+  'Giant Vulture',
+  'Giant Wasp',
+  'Giant Weasel',
+  'Giant Wolf Spider',
+  'Gibbering Mouther',
+  'Glabrezu',
+  'Gnoll',
+  'Gnome, Deep (Svirfneblin)',
+  'Goat',
+  'Goblin',
+  'Gold Dragon Wyrmling',
+  'Gorgon',
+  'Gray Ooze',
+  'Green Dragon Wyrmling',
+  'Green Hag',
+  'Grick',
+  'Griffon',
+  'Grimlock',
+  'Guardian Naga',
+  'Gynosphinx',
+  'Half-Red Dragon Veteran',
+  'Harpy',
+  'Hawk',
+  'Hell Hound',
+  'Hezrou',
+  'Hill Giant',
+  'Hippogriff',
+  'Hobgoblin',
+  'Homunculus',
+  'Horned Devil',
+  'Hunter Shark',
+  'Hydra',
+  'Hyena',
+  'Ice Devil',
+  'Ice Mephit',
+  'Imp',
+  'Invisible Stalker',
+  'Iron Golem',
+  'Jackal',
+  'Killer Whale',
+  'Kobold',
+  'Kraken',
+  'Lamia',
+  'Lemure',
+  'Lich',
+  'Lion',
+  'Lizard',
+  'Lizardfolk',
+  'Magma Mephit',
+  'Magmin',
+  'Mammoth',
+  'Manticore',
+  'Marilith',
+  'Mastiff',
+  'Medusa',
+  'Merfolk',
+  'Merrow',
+  'Mimic',
+  'Minotaur',
+  'Minotaur Skeleton',
+  'Mule',
+  'Mummy',
+  'Mummy Lord',
+  'Nalfeshnee',
+  'Night Hag',
+  'Nightmare',
+  'Ochre Jelly',
+  'Octopus',
+  'Ogre',
+  'Ogre Zombie',
+  'Oni',
+  'Orc',
+  'Otyugh',
+  'Owl',
+  'Owlbear',
+  'Panther',
+  'Pegasus',
+  'Phase Spider',
+  'Pit Fiend',
+  'Planetar',
+  'Plesiosaurus',
+  'Poisonous Snake',
+  'Polar Bear',
+  'Pony',
+  'Pseudodragon',
+  'Purple Worm',
+  'Quasit',
+  'Quipper',
+  'Rakshasa',
+  'Rat',
+  'Raven',
+  'Red Dragon Wyrmling',
+  'Reef Shark',
+  'Remorhaz',
+  'Rhinoceros',
+  'Riding Horse',
+  'Roc',
+  'Roper',
+  'Rug of Smothering',
+  'Rust Monster',
+  'Saber-Toothed Tiger',
+  'Sahuagin',
+  'Salamander',
+  'Satyr',
+  'Scorpion',
+  'Sea Hag',
+  'Sea Horse',
+  'Shadow',
+  'Shambling Mound',
+  'Shield Guardian',
+  'Shrieker',
+  'Silver Dragon Wyrmling',
+  'Skeleton',
+  'Solar',
+  'Specter',
+  'Spider',
+  'Spirit Naga',
+  'Sprite',
+  'Steam Mephit',
+  'Stirge',
+  'Stone Giant',
+  'Stone Golem',
+  'Storm Giant',
+  'Succubus/Incubus',
+  'Swarm of Bats',
+  'Swarm of Insects',
+  'Swarm of Poisonous Snakes',
+  'Swarm of Quippers',
+  'Swarm of Rats',
+  'Swarm of Ravens',
+  'Tarrasque',
+  'Tiger',
+  'Treant',
+  'Triceratops',
+  'Troll',
+  'Tyrannosaurus Rex',
+  'Unicorn',
+  'Vampire',
+  'Vampire Spawn',
+  'Violet Fungus',
+  'Vrock',
+  'Vulture',
+  'Warhorse',
+  'Warhorse Skeleton',
+  'Water Elemental',
+  'Weasel',
+  'Werebear',
+  'Wereboar',
+  'Wererat',
+  'Weretiger',
+  'Werewolf',
+  'White Dragon Wyrmling',
+  'Wight',
+  'Will-o’-Wisp',
+  'Winter Wolf',
+  'Wolf',
+  'Worg',
+  'Wraith',
+  'Wyvern',
+  'Xorn',
+  'Young Black Dragon',
+  'Young Blue Dragon',
+  'Young Brass Dragon',
+  'Young Bronze Dragon',
+  'Young Copper Dragon',
+  'Young Gold Dragon',
+  'Young Green Dragon',
+  'Young Red Dragon',
+  'Young Silver Dragon',
+  'Young White Dragon',
+  'Zombie',
+];
 
 /**
  * Minimum number of base classes a full SRD 5.1 import must yield. The SRD 5.1
@@ -136,10 +467,12 @@ export const EXPECTED_SRD_5_1_ANCESTRY_NAMES: readonly string[] = [
 ];
 
 /**
- * Thrown when the parsed creature set fails the coverage check (empty result,
- * or fewer creatures than `minCreatureCount`). Distinct from
- * `SectionNotFoundError` so callers can tell "the Monsters section was found
- * but produced too few creatures" apart from "the section anchor didn't match".
+ * Thrown when the parsed creature set fails the coverage check: an empty
+ * result, a count below `minCreatureCount`, or — when the exact
+ * `expectedCreatureNames` set is supplied (the real import) — any missing or
+ * unexpected creature name. Distinct from `SectionNotFoundError` so callers can
+ * tell "the Monsters section was found but produced the wrong creatures" apart
+ * from "the section anchor didn't match".
  */
 export class CreatureCoverageError extends Error {
   constructor(message: string) {
@@ -213,12 +546,23 @@ export interface RunImporterInput {
    * Minimum number of creature stat blocks the Monsters section must yield for
    * the run to be accepted. When set and the parsed count is below it, the
    * importer throws `CreatureCoverageError` and writes nothing. The real-import
-   * CLI passes `MIN_EXPECTED_SRD_5_1_CREATURES`; fixture pipelines that exercise
-   * a reduced Monsters section either omit this (relying on the always-on
-   * empty-result guard) or pass a small value. An empty creature result is
-   * always rejected regardless of this option.
+   * CLI uses the stronger `expectedCreatureNames` gate instead; fixture
+   * pipelines that exercise a reduced Monsters section either omit this
+   * (relying on the always-on empty-result guard) or pass a small value. An
+   * empty creature result is always rejected regardless of this option.
    */
   readonly minCreatureCount?: number;
+  /**
+   * Exact set of creature names the Monsters section must yield for the run to
+   * be accepted. When provided and the parsed names don't match it exactly, the
+   * importer throws `CreatureCoverageError` naming the missing and/or
+   * unexpected creatures, and writes nothing. The real-import CLI passes
+   * `EXPECTED_SRD_5_1_CREATURE_NAMES`; fixture pipelines that exercise a reduced
+   * Monsters section omit this and rely on the empty-result guard (or the
+   * coarse `minCreatureCount` floor). An empty creature result is always
+   * rejected regardless of this option.
+   */
+  readonly expectedCreatureNames?: readonly string[];
   /**
    * Minimum number of base classes the Classes section must yield for the run
    * to be accepted. When set and the parsed count is below it, the importer
@@ -247,24 +591,51 @@ export interface RunImporterInput {
 }
 
 /**
- * Fail closed on a creature result that can't be a faithful SRD 5.1 import:
- * an empty set is always rejected; a non-empty set below `minCreatureCount`
- * (when provided) is rejected too. Runs after parsing and before any output is
- * written. Error messages are deterministic and name the observed/expected
- * counts so a CI failure is self-explanatory.
+ * Fail closed on a creature result that can't be a faithful SRD 5.1 import.
+ * An empty set is always rejected. When the exact `expectedCreatureNames` set
+ * is supplied (the real import), the parsed names must match it exactly —
+ * any missing or unexpected creature is rejected, naming the specific
+ * offenders so a dropped/renamed creature or a bled-in unrelated stat block
+ * trips by name, not just on gross truncation. The coarse `minCreatureCount`
+ * floor (when provided) is also enforced for fixture pipelines. Runs after
+ * parsing and before any output is written; messages are deterministic so a CI
+ * failure is self-explanatory.
  */
 function validateCreatureCoverage(
-  count: number,
+  creatures: readonly CreatureExtraction[],
   minCreatureCount: number | undefined,
+  expectedCreatureNames: readonly string[] | undefined,
 ): void {
-  if (count === 0) {
+  if (creatures.length === 0) {
     throw new CreatureCoverageError(
       'SRD 5.1 creature coverage check failed: the Monsters section was found but yielded 0 creature stat blocks. The Monsters layout likely changed. Refusing to write a pack with no creatures.',
     );
   }
-  if (minCreatureCount !== undefined && count < minCreatureCount) {
+  if (expectedCreatureNames !== undefined) {
+    const parsedNames = new Set(creatures.map((creature) => creature.name));
+    const expectedSet = new Set(expectedCreatureNames);
+    const missing = expectedCreatureNames.filter(
+      (name) => !parsedNames.has(name),
+    );
+    const unexpected = [...parsedNames].filter(
+      (name) => !expectedSet.has(name),
+    );
+    if (missing.length > 0 || unexpected.length > 0) {
+      const parts: string[] = [];
+      if (missing.length > 0) {
+        parts.push(`missing expected creature(s): ${missing.join(', ')}`);
+      }
+      if (unexpected.length > 0) {
+        parts.push(`unexpected creature(s): ${unexpected.join(', ')}`);
+      }
+      throw new CreatureCoverageError(
+        `SRD 5.1 creature coverage check failed: parsed ${creatures.length} creature stat block(s), expected exactly ${expectedCreatureNames.length}. ${parts.join('; ')}. The Monsters section may have been truncated, a creature renamed, or unrelated stat blocks bled in. Refusing to write a pack with a drifted creature set.`,
+      );
+    }
+  }
+  if (minCreatureCount !== undefined && creatures.length < minCreatureCount) {
     throw new CreatureCoverageError(
-      `SRD 5.1 creature coverage check failed: parsed ${count} creature stat block(s), expected at least ${minCreatureCount}. The Monsters section may have been truncated or its layout changed. (Exact name-set coverage is tracked in loreweaver-0m9.5.14.)`,
+      `SRD 5.1 creature coverage check failed: parsed ${creatures.length} creature stat block(s), expected at least ${minCreatureCount}. The Monsters section may have been truncated or its layout changed.`,
     );
   }
 }
@@ -395,9 +766,14 @@ export async function runImporter(
     anchors.miscellaneousCreatures,
   );
   const creatures = parseCreatures([...monsterPages, ...miscCreaturePages]);
-  // Fail closed before any output is written if creature extraction is empty
-  // or (when a floor is supplied) implausibly small.
-  validateCreatureCoverage(creatures.length, input.minCreatureCount);
+  // Fail closed before any output is written if creature extraction is empty,
+  // implausibly small (coarse floor), or — for the real import — does not match
+  // the exact expected SRD 5.1 creature name set.
+  validateCreatureCoverage(
+    creatures,
+    input.minCreatureCount,
+    input.expectedCreatureNames,
+  );
   const conditions = parseConditions(conditionPages);
   const actions = parseActions(combatActionPages);
   const featPages = sliceSection(pages, anchors.feats);
