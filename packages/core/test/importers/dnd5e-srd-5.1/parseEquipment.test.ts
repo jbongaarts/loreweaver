@@ -16,7 +16,10 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { parseEquipment } from '../../../scripts/importers/dnd5e-srd-5.1/parseEquipment.js';
+import {
+  EquipmentColumnMismatchError,
+  parseEquipment,
+} from '../../../scripts/importers/dnd5e-srd-5.1/parseEquipment.js';
 import type {
   EquipmentExtraction,
   PageText,
@@ -358,5 +361,52 @@ describe('parseEquipment — page boundaries and empty input', () => {
         page(1, ['Currency', 'The most common coins are gold.']),
       ]),
     ).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Fail-closed: the split-column reconstruction zips left and right column-
+// blocks positionally, which is only sound when both blocks pair one-to-one.
+// A mismatch means the extraction drifted, so the parser throws rather than
+// emit plausible-but-wrong records with guessed alignment.
+// ---------------------------------------------------------------------------
+
+describe('parseEquipment — column-block mismatch fails closed', () => {
+  it('throws on an armor table missing a right-side row', () => {
+    // Two left rows (Padded, Leather) but only one right row.
+    const armorPage = page(63, [
+      'Armor',
+      'Armor Cost Armor Class (AC)',
+      'Light Armor',
+      'Padded 5 gp 11 + Dex modifier',
+      'Leather 10 gp 11 + Dex modifier',
+      'Strength Stealth Weight',
+      '— Disadvantage 8 lb.',
+    ]);
+    expect(() => parseEquipment([armorPage])).toThrow(
+      EquipmentColumnMismatchError,
+    );
+    expect(() => parseEquipment([armorPage])).toThrow(
+      'Armor table column mismatch: left=2 right=1',
+    );
+  });
+
+  it('throws on a weapon table missing a right-side row', () => {
+    // Two left rows (Dagger, Mace) but only one right row.
+    const weaponPage = page(66, [
+      'Weapons',
+      'Name Cost Damage Weight Properties',
+      'Simple Melee Weapons',
+      'Dagger 2 gp 1d4 piercing',
+      'Mace 5 gp 1d6 bludgeoning',
+      'Adventuring Gear',
+      '1 lb. Finesse, light, thrown (range 20/60)',
+    ]);
+    expect(() => parseEquipment([weaponPage])).toThrow(
+      EquipmentColumnMismatchError,
+    );
+    expect(() => parseEquipment([weaponPage])).toThrow(
+      'Weapon table column mismatch: left=2 right=1',
+    );
   });
 });

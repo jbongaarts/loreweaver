@@ -39,6 +39,31 @@
 
 import type { EquipmentExtraction, PageText } from './types.js';
 
+/**
+ * Thrown when a split-column table's left and right column-blocks do not pair
+ * one-to-one. The Armor and Weapons tables are reconstructed by zipping their
+ * left rows (Name/Cost/AC or Name/Cost/Damage) with their right rows
+ * (Strength/Stealth/Weight or Weight/Properties) positionally, which is only
+ * sound when both blocks have the same length. A mismatch means the extraction
+ * drifted (a row was dropped, an extra line matched a column-block shape, or
+ * the page layout changed); rather than guess the alignment and emit plausible
+ * but wrong records, the parser fails closed per the SRD importer policy
+ * (ADR 0007). The message names the table and both counts.
+ */
+export class EquipmentColumnMismatchError extends Error {
+  constructor(
+    public readonly table: 'Armor' | 'Weapon',
+    public readonly leftCount: number,
+    public readonly rightCount: number,
+  ) {
+    super(
+      `${table} table column mismatch: left=${leftCount} right=${rightCount}. ` +
+        'The split-column extraction drifted; refusing to zip mismatched blocks.',
+    );
+    this.name = 'EquipmentColumnMismatchError';
+  }
+}
+
 interface FlatLine {
   readonly line: string;
   readonly page: number;
@@ -206,6 +231,10 @@ function collectArmor(flat: readonly FlatLine[]): EquipmentExtraction[] {
     }
   }
 
+  if (left.length !== right.length) {
+    throw new EquipmentColumnMismatchError('Armor', left.length, right.length);
+  }
+
   return left.map((row, i) => {
     const tail = right[i];
     return {
@@ -214,11 +243,11 @@ function collectArmor(flat: readonly FlatLine[]): EquipmentExtraction[] {
       cost: row.cost,
       ac: row.ac,
       armorType: row.armorType,
-      stealthDisadvantage: tail?.stealthDisadvantage ?? false,
-      ...(tail?.strengthRequirement === undefined
+      stealthDisadvantage: tail.stealthDisadvantage,
+      ...(tail.strengthRequirement === undefined
         ? {}
         : { strengthRequirement: tail.strengthRequirement }),
-      ...(tail?.weight === undefined ? {} : { weight: tail.weight }),
+      ...(tail.weight === undefined ? {} : { weight: tail.weight }),
       sourcePage: row.page,
     };
   });
@@ -290,6 +319,10 @@ function collectWeapons(flat: readonly FlatLine[]): EquipmentExtraction[] {
     });
   }
 
+  if (left.length !== right.length) {
+    throw new EquipmentColumnMismatchError('Weapon', left.length, right.length);
+  }
+
   return left.map((row, i) => {
     const tail = right[i];
     return {
@@ -298,8 +331,8 @@ function collectWeapons(flat: readonly FlatLine[]): EquipmentExtraction[] {
       cost: row.cost,
       ...(row.damageDie === undefined ? {} : { damageDie: row.damageDie }),
       ...(row.damageType === undefined ? {} : { damageType: row.damageType }),
-      properties: [...(tail?.properties ?? [])],
-      ...(tail?.weight === undefined ? {} : { weight: tail.weight }),
+      properties: [...tail.properties],
+      ...(tail.weight === undefined ? {} : { weight: tail.weight }),
       sourcePage: row.page,
     };
   });
