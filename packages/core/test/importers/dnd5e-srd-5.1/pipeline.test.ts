@@ -359,29 +359,39 @@ const FEATS_PAGE: FixturePage = {
   ],
 };
 
-// Equipment fixture: mirrors the SRD "Equipment" chapter with rows from each of
-// the three parsed tables (armor, weapons, adventuring gear). The Sling row is
-// the canonical em-dash-weight case (its Weight column is a dash, not "N lb.")
-// — kept here so the property-preservation fix is protected end-to-end through
-// the full extract → parse → emit pipeline. The trailing "Mounts and Vehicles"
-// line is the chapter subsection that closes the gear table and matches the
-// equipment endHeading anchor.
+// Equipment fixture: mirrors how the real SRD "Equipment" chapter extracts —
+// the Armor and Weapons tables arrive as a left column-block (Name/Cost/AC or
+// Name/Cost/Damage) and a separate right column-block (Strength/Stealth/Weight
+// or Weight/Properties), with the weapons' right block landing after the
+// "Adventuring Gear" heading (the right physical column of the weapons page);
+// the Tools table extracts row-major (loreweaver-3n6). The Sling row is the
+// canonical em-dash-weight case (its Weight cell is a dash, not "N lb.") — kept
+// so the property-preservation fix is protected end-to-end through the full
+// extract → parse → emit pipeline. The Adventuring Gear table itself is out of
+// scope; the trailing "Mounts and Vehicles" line closes the chapter and matches
+// the equipment endHeading anchor.
 const EQUIPMENT_PAGE: FixturePage = {
   lines: [
     'Equipment',
     'Armor',
-    'Armor Cost Armor Class (AC) Strength Stealth Weight',
+    'Armor Cost Armor Class (AC)',
     'Light Armor',
-    'Leather 10 gp 11 + Dex modifier 10 lb.',
+    'Leather 10 gp 11 + Dex modifier',
+    'Strength Stealth Weight',
+    '— — 10 lb.',
     'Weapons',
     'Name Cost Damage Weight Properties',
     'Simple Melee Weapons',
-    'Dagger 2 gp 1d4 piercing 1 lb. Finesse, light, thrown (range 20/60)',
+    'Dagger 2 gp 1d4 piercing',
     'Simple Ranged Weapons',
-    'Sling 1 sp 1d4 bludgeoning — Ammunition (range 30/120)',
+    'Sling 1 sp 1d4 bludgeoning',
     'Adventuring Gear',
+    '1 lb. Finesse, light, thrown (range 20/60)',
+    '— Ammunition (range 30/120)',
+    'Tools',
     'Item Cost Weight',
-    'Rope, hempen (50 feet) 1 gp 10 lb.',
+    'Smith’s tools 20 gp 8 lb.',
+    'Vehicles (land or water) * *',
     'Mounts and Vehicles',
   ],
 };
@@ -791,8 +801,8 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(equipmentKeys).toEqual([
       'equipment:dagger',
       'equipment:leather',
-      'equipment:rope-hempen-50-feet',
       'equipment:sling',
+      'equipment:smiths-tools',
     ]);
 
     // The generated manifest must advertise equipment as an included kind.

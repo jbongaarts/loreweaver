@@ -20,7 +20,7 @@ tracked as child issues).
 | `feature`   | Implemented. Parser extracts class- and subclass-granted features from the Classes-chapter slice into `kind=feature` records satisfying the `dnd5e-srd` feature kindSchema (`data.source` keyed to the grantor `class:<slug>` / `subclass:<slug>`, integer `data.level`, `data.description`). Grantor context is tracked by known base-class and subclass names (the same anchors `parseSubclasses` uses). Feature identity and grant level come primarily from class/subclass progression-table rows; leading prose clauses like "At 3rd level" are used only as a fallback when no table anchor exists. Unanchored title-case option subheadings inside feature bodies remain in the parent feature description. `runImporter` fails closed via a feature-coverage guard: an empty feature parse (or a count below `minFeatureCount`, which the CLI sets to `MIN_EXPECTED_SRD_5_1_FEATURES`) throws `FeatureCoverageError` and writes nothing. Shares the `classes` slice (ADR 0009 / loreweaver-0m9.5.18). |
 | `background`| SRD 5.1 does not publish backgrounds; see ADR 0005. |
 | `ancestry`  | Implemented. Parser extracts the SRD 5.1 races and subraces by known-name match into `kind=ancestry` records (`data.source = 'race'` per ADR 0005). Parents and subraces are **separate records**; each subrace record is **flattened/self-contained** — its `data.traits` merge the parent's shared traits with the subrace's own additions, with `data.subraceOf` back-referencing the parent and the parent's `data.subraces` listing its children (no `overrides`). Section anchor: `races` (`startHeading: /^Races$/`, `endHeading: /^Classes$/`, `requireEndHeading: true`). |
-| `equipment` | Implemented. Parser projects the Equipment chapter's three tables into per-item `kind=equipment` records: weapons (`damageDie`, `damageType`, `properties[]`), armor (`ac`, `armorType`, `stealthDisadvantage`, optional `strengthRequirement`), and adventuring gear. All carry `category` plus verbatim `cost`/`weight`. Section anchor: `equipment` (`startHeading: /^Equipment$/`, `requireEndHeading: true`). Assumes row-major table extraction; see `parseEquipment.ts`. |
+| `equipment` | Implemented. Parser projects three Equipment-chapter tables into per-item `kind=equipment` records: armor (13: `ac`, `armorType` derived from the AC cell, `stealthDisadvantage`, optional `strengthRequirement`), weapons (37: `damageDie`, `damageType`, `properties[]`), and tools (35: `category='tool'`). All carry `category` plus verbatim `cost`/`weight`. The real SRD 5.1 PDF extracts Armor and Weapons as two physical columns, so each arrives split into a left and right column-block that the parser zips positionally; Tools extracts row-major (see `parseEquipment.ts`). **Out of scope (loreweaver-3n6):** the Adventuring Gear table, Container Capacity / Equipment Packs, and Mounts and Vehicles — in the vendored PDF the Adventuring Gear table extracts as two interleaved physical columns whose item names are fully separated from (and unequal in count to) their cost/weight cells, so there is no reliable positional pairing and the fail-closed policy (ADR 0007) forbids guessing it. Section anchor: `equipment` (`startHeading: /^Equipment$/`, `requireEndHeading: true`). |
 | `feat`      | Implemented. Parser extracts feat entries (SRD 5.1: Grappler) with optional prerequisites and description text in `data.description`. Section anchor: `feats` (`startHeading: /^Feats?$\|^Feat Descriptions?$/`, `requireEndHeading: true`). |
 | `condition` | Implemented. Parser extracts all 15 SRD conditions (blinded, charmed, deafened, exhaustion, frightened, grappled, incapacitated, invisible, paralyzed, petrified, poisoned, prone, restrained, stunned, unconscious). Exhaustion carries a structured `levels` array (6 entries). Section anchor: `conditions` (`startHeading: /^Appendix A: Conditions$\|^Conditions$/`). |
 | `hazard`    | Implemented. Parser extracts the 4 SRD 5.1 environmental hazards by exact name match (Brown Mold, Green Slime, Webs, Yellow Mold). Each record carries a `description` field with re-flowed prose. Section anchor: `hazards` (`startHeading: /^Dungeon Hazards$\|^Hazards$/`, `requireEndHeading: true`). |
@@ -194,10 +194,15 @@ sources/dnd5e-srd-5.1/SRD_CC_v5.1.pdf
   for SRD treasure tables. Rows are emitted as structured arrays in
   `data.rows`.
 - `parseEquipment.ts` -- narrowed Equipment-chapter text ->
-  `EquipmentExtraction[]` via a state machine keyed on the three table titles
-  (Weapons, Armor, Adventuring Gear) and their sub-headers. Each row is
-  projected into a per-item record with category-specific structured fields.
-  Assumes row-major table extraction (one line per item row).
+  `EquipmentExtraction[]` for armor, weapons, and tools. The real SRD 5.1 PDF
+  lays out the Armor and Weapons tables as two physical columns, so each table
+  arrives split into a left column-block (Name/Cost/AC or Name/Cost/Damage) and
+  a right column-block (Strength/Stealth/Weight or Weight/Properties); the
+  parser collects both and zips them positionally. Tools extract row-major.
+  Armor weight class is derived from the AC cell (light/medium/heavy/shield),
+  not the table sub-headers, which the body prose duplicates. The Adventuring
+  Gear / Mounts and Vehicles tables are intentionally out of scope (see the
+  Scope table above and the file header).
 - `emit.ts` -- extraction arrays + class index -> validated `RulesPack`,
   written deterministically (records sorted by key, fixed field order, 2-space
   indent, trailing newline).

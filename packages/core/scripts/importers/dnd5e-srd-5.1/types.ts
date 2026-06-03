@@ -169,7 +169,7 @@ export interface TableExtraction {
 }
 
 /** Which Equipment-chapter table an extraction came from. */
-export type EquipmentCategory = 'weapon' | 'armor' | 'gear';
+export type EquipmentCategory = 'weapon' | 'armor' | 'tool' | 'gear';
 
 /**
  * An equipment entry as extracted from the SRD source, before conversion to a
