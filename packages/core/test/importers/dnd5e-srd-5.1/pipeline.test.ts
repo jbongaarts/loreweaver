@@ -916,7 +916,7 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(goblin?.name).toBe('Goblin');
     const goblinData = goblin?.data as Record<string, unknown>;
     expect(goblinData.size).toBe('Small');
-    expect(goblinData.type).toBe('humanoid');
+    expect(goblinData.type).toBe('humanoid (goblinoid)');
     expect(goblinData.alignment).toBe('neutral evil');
     expect(goblinData.armorClass).toBe(15);
     expect(goblinData.hitPoints).toBe(7);

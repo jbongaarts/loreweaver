@@ -153,6 +153,27 @@ const MIN_ITEMS_PER_COLUMN = 2;
  */
 const MIN_DISTINCT_X_PER_COLUMN = 2;
 
+/**
+ * x-gap (in PDF user-space points) at or above which a candidate cut is
+ * accepted as a genuine page-column gutter even if one side collapses to a
+ * single distinct x. The distinct-x guard (`MIN_DISTINCT_X_PER_COLUMN`)
+ * rejects intra-column label/value tab stops, whose two halves each sit at a
+ * single x; but the SRD 5.1 "Spell Lists" pages lay each class's spell names
+ * flush-left in two columns with NO wrap indent, so a real column legitimately
+ * draws from a single x. There the left column sits at x≈58 and the right at
+ * x≈329 — a ≈271pt gutter — and the single-x left column was being rejected,
+ * collapsing both columns into one y-interleaved flow that scrambled every
+ * class list after the first column (loreweaver-xbh: Sorcerer cantrips after
+ * "Acid Splash" were lost because the opposite column's "Ranger Spells" header
+ * interleaved into them). A label/value tab is a far narrower gap (≈70pt in
+ * the SRD stat blocks) and real two-column body gutters that DO need the
+ * distinct-x guard are narrower still (≈49–78pt on monster pages, where both
+ * columns carry rich indents anyway), so a 150pt floor cleanly separates the
+ * wide spell-list gutter from every gap the distinct-x guard must still
+ * scrutinize.
+ */
+const WIDE_GUTTER_GAP_THRESHOLD = 150;
+
 export interface ExtractOptions {
   /**
    * Page range to extract (1-based, inclusive). If omitted, extracts all
@@ -412,10 +433,13 @@ function partitionItemsByColumn(
     }
     // Distinct-x guard: protects repeated label/value layouts. A real
     // page column has body content at multiple x indents; a label or a
-    // value column collapses to a single distinct x.
+    // value column collapses to a single distinct x. Skipped for a
+    // wide-gutter cut, where a single-x column is a real flush-left list
+    // column (the SRD "Spell Lists" pages) rather than a tab stop.
     if (
-      distinctRoundedXCount(left) < MIN_DISTINCT_X_PER_COLUMN ||
-      distinctRoundedXCount(right) < MIN_DISTINCT_X_PER_COLUMN
+      gap < WIDE_GUTTER_GAP_THRESHOLD &&
+      (distinctRoundedXCount(left) < MIN_DISTINCT_X_PER_COLUMN ||
+        distinctRoundedXCount(right) < MIN_DISTINCT_X_PER_COLUMN)
     ) {
       continue;
     }
