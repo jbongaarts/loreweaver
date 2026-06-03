@@ -66,6 +66,44 @@ interface PdfTextContent {
   readonly items: readonly unknown[];
 }
 
+/**
+ * PDF hyphen-cluster normalization (applied to every extracted line, so all
+ * downstream parsers and `sections.ts` see one canonical hyphen form).
+ *
+ * The SRD 5.1 PDF's embedded font emits every word-internal hyphen as a
+ * presentation cluster of an ASCII hyphen plus invisible discretionary-break
+ * hyphens:
+ *   - U+002D HYPHEN-MINUS    (the only visible / ASCII member)
+ *   - U+00AD SOFT HYPHEN     (non-printing discretionary break)
+ *   - U+2010 HYPHEN
+ *   - U+2011 NON-BREAKING HYPHEN
+ * Rendered, the cluster looks like a single hyphen, but the raw extracted text
+ * carries the whole run — e.g. "appendix PH-A", "10-year-old", "self- expression".
+ * Left in place these invisible code points (1) break parser regexes that
+ * expect a lone ASCII hyphen (the `LEVELED_MARKER` spell-heading miss in
+ * loreweaver-qqc, the dropped compound creature names in loreweaver-w8h) and
+ * (2) leak into the durable generated pack as hidden-Unicode artifacts
+ * (loreweaver-6uy). Collapsing any run of these four code points to a single
+ * ASCII hyphen normalizes heading detection AND body text in one place, at the
+ * extraction boundary, so each parser no longer has to re-derive the same fix.
+ *
+ * The character class is written with explicit `\uXXXX` escapes so this source
+ * file never embeds the invisible code points the normalization is about. Lines
+ * that already carry a plain ASCII hyphen round-trip unchanged; en-dash (U+2013)
+ * and em-dash (U+2014) are deliberately NOT in the class and are preserved.
+ */
+const PDF_HYPHEN_CLUSTER_OR_HYPHEN_RUN = /[-\u00AD\u2010\u2011]+/g;
+
+/**
+ * Collapse PDF hyphen presentation clusters in `text` to a single ASCII
+ * hyphen. Exported so the committed-pack regression test and any parser that
+ * wants a defensive local pass can reuse the exact same definition rather than
+ * re-spelling the character class. Idempotent.
+ */
+export function normalizePdfHyphenCluster(text: string): string {
+  return text.replace(PDF_HYPHEN_CLUSTER_OR_HYPHEN_RUN, '-');
+}
+
 /** Round y to this many decimal places when grouping items into lines. */
 const Y_GROUP_PRECISION = 1;
 
@@ -318,7 +356,7 @@ function textContentToPage(content: PdfTextContent): {
     const merged = mergeWrappedHeadings(records, columnItems);
     ordered.push(...merged);
   }
-  const lines = ordered.map((r) => r.text);
+  const lines = ordered.map((r) => normalizePdfHyphenCluster(r.text));
   const headingLineIndexes: number[] = [];
   for (let idx = 0; idx < ordered.length; idx++) {
     if (ordered[idx].isHeading) headingLineIndexes.push(idx);

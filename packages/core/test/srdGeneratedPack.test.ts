@@ -164,6 +164,26 @@ const EXPECTED_PARTIAL_FIELDS: ReadonlyArray<{
 // features namespace the slug (`feature:bard:ability-score-improvement`).
 const KEY_PATTERN = /^[a-z][a-z0-9]*(?::[a-z0-9][a-z0-9-]*)+$/;
 
+/**
+ * PDF hyphen-cluster artifacts that must NOT survive into the durable pack.
+ * The SRD 5.1 PDF font renders every word-internal hyphen as an ASCII hyphen
+ * wrapped in invisible presentation hyphens (U+00AD SOFT HYPHEN, U+2010 HYPHEN,
+ * U+2011 NON-BREAKING HYPHEN). The extractor collapses those clusters to a lone
+ * ASCII hyphen (`normalizePdfHyphenCluster` in the importer's `extract.ts`), so
+ * a regenerated canonical pack must contain none of these code points
+ * (loreweaver-6uy). The class is written with explicit `\uXXXX` escapes so this
+ * test source embeds no invisible characters; en-dash (U+2013) and em-dash
+ * (U+2014) are legitimate SRD punctuation and intentionally excluded.
+ */
+const FORBIDDEN_HYPHEN_CODE_POINTS: ReadonlyArray<{
+  readonly name: string;
+  readonly codePoint: number;
+}> = [
+  { name: 'U+00AD SOFT HYPHEN', codePoint: 0x00ad },
+  { name: 'U+2010 HYPHEN', codePoint: 0x2010 },
+  { name: 'U+2011 NON-BREAKING HYPHEN', codePoint: 0x2011 },
+];
+
 describe('D&D 5e SRD 5.1 committed pack', () => {
   const pack = loadRulesPackFromDirectory(PACK_DIR);
 
@@ -241,6 +261,22 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
       }));
       expect(compact).toEqual(EXPECTED_PARTIAL_FIELDS);
     });
+  });
+
+  describe('hidden-Unicode hygiene', () => {
+    // Read the committed records.json verbatim (not the parsed pack) so the
+    // assertion covers the exact bytes that ship — the durable artifact a
+    // consumer downloads — rather than a post-load reconstruction.
+    const recordsJson = readFileSync(join(PACK_DIR, 'records.json'), 'utf8');
+
+    for (const { name, codePoint } of FORBIDDEN_HYPHEN_CODE_POINTS) {
+      it(`contains no ${name} (PDF hyphen-cluster artifact)`, () => {
+        const count = [...recordsJson].filter(
+          (ch) => ch.codePointAt(0) === codePoint,
+        ).length;
+        expect(count).toBe(0);
+      });
+    }
   });
 
   describe('source-manifest alignment with the vendored SRD artifact', () => {
