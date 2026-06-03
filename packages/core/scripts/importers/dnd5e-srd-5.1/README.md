@@ -49,81 +49,74 @@ field lists the included kinds explicitly so downstream callers can tell.
    directory at `packages/core/scripts/importers/dnd5e-srd-5.1/.generated/`.
    It does NOT overwrite the canonical pack location.
 
-3. Inspect the output. If you intend to publish the regenerated pack:
+3. Inspect the output. When a parser/source/schema change is intended to alter
+   pack content, overwrite the committed canonical pack:
 
    ```bash
    npm run import:dnd5e-srd -- --out packages/core/data/rules-packs/rules__dnd5e-srd-5.1
    ```
 
-   Today this is only appropriate when the importer's parser coverage is broad
-   enough that the resulting pack is reference-complete. Until then,
-   overwriting the canonical pack drops the existing seed records without
-   replacing them with full SRD coverage.
+   Then review the diff (`npm run audit:rules-pack` / `npm run diff:rules-pack`),
+   update the `srdGeneratedPack` baselines, and commit the regenerated pack so
+   `npm run verify:dnd5e-srd-pack` returns to exit 0 (see the regeneration
+   procedure below).
 
 The CLI prints the source PDF's SHA-256 on each run. The pinned value lives in
 `packages/core/sources/dnd5e-srd-5.1/manifest.json` (`artifact.sha256`); a
 mismatch means the PDF in `sources/` was swapped without updating the manifest
 -- treat that as a vendoring change, not a routine importer run.
 
-## Canonical-regen PR checklist (loreweaver-0m9.6)
+## Regenerating the committed pack
 
 Per the 0m9.6 design, the SRD importer is a one-shot construction tool, not a
-per-PR generator. The default vitest suite asserts the **committed** pack at
-`packages/core/data/rules-packs/rules__dnd5e-srd-5.1/` is well-formed
-(`packages/core/test/srdGeneratedPack.test.ts`); the importer is **not**
-re-run on every PR. Reproducibility against the vendored PDF is a separate,
-path-gated CI job (`.github/workflows/srd-importer-reproducibility.yml`).
+per-PR generator. The committed pack at
+`packages/core/data/rules-packs/rules__dnd5e-srd-5.1/` is the canonical
+importer output from the vendored SRD 5.1 PDF (regenerated under
+`loreweaver-1pw`). The default vitest suite asserts that committed pack is
+well-formed and matches its reviewed baselines
+(`packages/core/test/srdGeneratedPack.test.ts`); the importer is **not** re-run
+on every PR. Reproducibility against the vendored PDF is a separate, path-gated
+CI job (`.github/workflows/srd-importer-reproducibility.yml`) that runs
+`npm run verify:dnd5e-srd-pack` and **fails the PR check on any nonzero exit**.
 
 `npm run verify:dnd5e-srd-pack` is the local-and-CI verification command. Its
 exit codes are strict:
 
-- `0` — importer output matches the committed pack byte-for-byte.
+- `0` — importer output matches the committed pack byte-for-byte (steady state).
 - `1` — importer succeeded but its output differs from the committed pack.
 - `2` — verification could not produce a meaningful diff (importer/runtime
   failure, pack-loading failure).
 
-Today (just after 0m9.6) the command exits 2 against the real vendored PDF
-because the importer's section anchors do not match the PDF text; that bug is
-`loreweaver-0m9.5.20`. After 0m9.5.20 lands the command will exit 1 (importer
-works; seed pack still committed). After the canonical-regen PR it will exit 0.
+When a change to a gated path (importer/parser code, the vendored PDF + its
+manifest, the rules schemas/audit/loader, the verify script, or the lockfile)
+is intended to alter pack content, regenerate the committed pack in the same
+PR:
 
-The path-gated workflow wraps the command and converts a nonzero exit into a
-GitHub warning annotation + step summary so reviewers see the diagnostic
-without the path-gated workflow showing as a failed PR check while it is
-intentionally informational.
-
-When you open the PR that replaces the seed pack with full importer output
-(canonical-regen PR):
-
-1. Run the verification command and capture its output:
+1. Regenerate over the committed pack location:
 
    ```bash
-   npm run verify:dnd5e-srd-pack
+   npm run import:dnd5e-srd -- --out packages/core/data/rules-packs/rules__dnd5e-srd-5.1
    ```
 
-   It re-runs the importer against the vendored PDF, diffs the result against
-   the committed pack, prints the source PDF SHA-256 plus per-kind counts,
-   and exits 0 only when the committed pack matches importer output
-   byte-for-byte.
+2. Review the result with the audit/diff tooling:
 
-2. Paste into the PR description:
-   - The reported source PDF SHA-256 (must match
-     `packages/core/sources/dnd5e-srd-5.1/manifest.json` `artifact.sha256`).
-   - The importer's per-kind counts line.
-   - Confirmation that `verify:dnd5e-srd-pack` exited 0 (no diff).
+   ```bash
+   npm run audit:rules-pack -- packages/core/data/rules-packs/rules__dnd5e-srd-5.1
+   ```
 
-3. Update `EXPECTED_COUNTS_BY_KIND` and `EXPECTED_STABLE_KEYS` in
-   `packages/core/test/srdGeneratedPack.test.ts` to match the regenerated pack.
-   `auditPack` must continue to report zero suspicious records and zero
-   partially-populated fields — fix the parser or document a reviewed baseline
-   in that file before merging if any new findings appear.
+   `auditPack` must report zero suspicious records. Any partially-populated
+   optional field must be a genuinely-optional SRD field — fix the parser, or
+   add it to `EXPECTED_PARTIAL_FIELDS` in `srdGeneratedPack.test.ts` with a
+   one-line justification, before merging.
 
-4. Make the path-gated workflow strict. In
-   `.github/workflows/srd-importer-reproducibility.yml`, replace the wrapped
-   `Verify SRD 5.1 pack reproducibility` step's `run:` body with a plain
-   `npm run verify:dnd5e-srd-pack` so future drift between the importer and
-   the committed pack blocks PRs that touch the gated paths (the shell
-   wrapper today swallows nonzero exits into a warning annotation).
+3. Update `EXPECTED_COUNTS_BY_KIND`, `EXPECTED_STABLE_KEYS`, and
+   `EXPECTED_PARTIAL_FIELDS` in `packages/core/test/srdGeneratedPack.test.ts`
+   to match the regenerated pack.
+
+4. Run `npm run verify:dnd5e-srd-pack` and confirm it exits 0. Paste into the
+   PR description: the reported source PDF SHA-256 (must match
+   `packages/core/sources/dnd5e-srd-5.1/manifest.json` `artifact.sha256`), the
+   importer's per-kind counts line, and confirmation that the command exited 0.
 
 ## Architecture
 

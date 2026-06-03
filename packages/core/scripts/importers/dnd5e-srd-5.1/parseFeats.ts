@@ -5,12 +5,23 @@
  * the SRD; output is a `FeatExtraction[]` with stable shape, sorted by name.
  *
  * Feat boundary detection uses a two-pass approach:
- *   1. Identify feat-name lines using a heuristic: a short title-case line
- *      that appears at the start of the section or after a blank line, and is
- *      not itself a "Prerequisite(s):" line or obvious body prose.
+ *   1. Identify feat-name lines using a heuristic: a short title-case line that
+ *      either appears at the start of the section / after a blank line, OR is
+ *      immediately followed by a "Prerequisite(s):" line, and is not itself a
+ *      "Prerequisite(s):" line or obvious body prose.
  *   2. For each identified name, collect lines up to the next feat name as the
  *      feat body, then parse out any leading "Prerequisite(s):" line and the
  *      remaining benefit text.
+ *
+ * The blank-line boundary alone is not enough on the real vendored SRD 5.1 PDF:
+ * its Feats section (p75) opens with a 17-line intro paragraph that flows
+ * directly into the lone "Grappler" name line with no intervening blank line,
+ * so a pure blank-line heuristic both (a) promotes the intro's first line as a
+ * feat and (b) never reaches "Grappler". The word-count guard in `isFeatName`
+ * rejects multi-word prose lines like the intro, and the "Prerequisite:"
+ * lookahead recovers a name line that a missing blank line would otherwise hide
+ * (loreweaver-0m9.5.21). The pdfkit fixture is unaffected: its Grappler sits at
+ * the slice start with no intro prose.
  *
  * The parser is deliberately conservative: it only promotes a line to a feat
  * name when the candidate passes the `isFeatName` heuristic. The caller is
@@ -25,11 +36,27 @@ interface FlatLine {
   readonly page: number;
 }
 
+/**
+ * pdfjs renders word-internal hyphens in the SRD 5.1 PDF as a cluster of
+ * invisible presentation hyphens (U+00AD / U+2010 / U+2011) around the lone
+ * ASCII hyphen — e.g. the "close-quarters" in the Grappler benefit text.
+ * Collapse any run of these code points to a single ASCII hyphen so feat bodies
+ * read cleanly; plain-ASCII fixture input round-trips unchanged. Mirrors the
+ * same normalization in `parseSpells` / `parseCreatures`; the class is written
+ * with explicit `\uXXXX` escapes so this source never embeds the invisible
+ * code points the bug is about.
+ */
+const PDF_HYPHEN_CLUSTER_OR_HYPHEN_RUN = /[-\u00AD\u2010\u2011]+/g;
+
+function normalizeHyphenCluster(line: string): string {
+  return line.replace(PDF_HYPHEN_CLUSTER_OR_HYPHEN_RUN, '-');
+}
+
 function flatten(pages: readonly PageText[]): readonly FlatLine[] {
   const out: FlatLine[] = [];
   for (const page of pages) {
     for (const line of page.lines) {
-      out.push({ line, page: page.pageNumber });
+      out.push({ line: normalizeHyphenCluster(line), page: page.pageNumber });
     }
   }
   return out;
@@ -43,14 +70,36 @@ function isPrereqLine(line: string): RegExpExecArray | null {
 }
 
 /**
- * Heuristic: a feat name is a short (<= 60 chars), title-case line whose first
- * character is an uppercase letter. It must not look like a "Prerequisite:"
- * line, a bullet line, or obvious body prose (which starts with "You", "While",
- * "When", "If", "As", etc. - common benefit-text sentence starters).
+ * True when the first non-blank line after `idx` is a "Prerequisite(s):" line.
+ * A name line directly followed by a prerequisite is an unambiguous feat
+ * boundary even when no blank line precedes the name (real SRD 5.1 Feats page).
+ */
+function nextNonBlankIsPrereq(flat: readonly FlatLine[], idx: number): boolean {
+  for (let j = idx + 1; j < flat.length; j++) {
+    const t = flat[j].line.trim();
+    if (t.length === 0) continue;
+    return isPrereqLine(t) !== null;
+  }
+  return false;
+}
+
+/** Feat names are short noun phrases; the SRD/PHB longest is ~4 words. */
+const MAX_FEAT_NAME_WORDS = 6;
+
+/**
+ * Heuristic: a feat name is a short (<= 60 chars, <= 6 words), title-case line
+ * whose first character is an uppercase letter. It must not look like a
+ * "Prerequisite:" line, a bullet line, or obvious body prose (which starts with
+ * "You", "While", "When", "If", "As", etc. - common benefit-text sentence
+ * starters). The word-count cap rejects the SRD 5.1 Feats-section intro
+ * paragraph ("A feat represents a talent or an area of expertise that …"),
+ * whose first wrapped line is title-case and passes the other checks but is
+ * plainly prose, not a name (loreweaver-0m9.5.21).
  */
 function isFeatName(line: string): boolean {
   const t = line.trim();
   if (t.length === 0 || t.length > 60) return false;
+  if (t.split(/\s+/).length > MAX_FEAT_NAME_WORDS) return false;
   if (/^[•\-*]\s/.test(t)) return false;
   if (isPrereqLine(t) !== null) return false;
   if (/^[a-z]/.test(t)) return false;
@@ -142,7 +191,12 @@ export function parseFeats(pages: readonly PageText[]): FeatExtraction[] {
   // A line is treated as a feat name when it satisfies `isFeatName` AND either:
   //   - it is the first non-blank line in the section, or
   //   - the previous non-blank line was blank, or
-  //   - it starts a new page (page boundary resets the boundary state).
+  //   - it starts a new page (page boundary resets the boundary state), or
+  //   - its next non-blank line is a "Prerequisite(s):" line.
+  // The last clause recovers a name line that has no preceding blank line, as
+  // on the real SRD 5.1 Feats page where "Grappler" follows the intro prose
+  // directly (loreweaver-0m9.5.21). Blank-line and prerequisite signals can
+  // both point at the same line; the combined condition pushes it once.
   const entries: FeatEntry[] = [];
   let prevWasBoundary = true; // treat start-of-section as after a boundary
   let currentPage = flat[0]?.page;
@@ -162,7 +216,10 @@ export function parseFeats(pages: readonly PageText[]): FeatExtraction[] {
       continue;
     }
 
-    if (prevWasBoundary && isFeatName(trimmed)) {
+    if (
+      isFeatName(trimmed) &&
+      (prevWasBoundary || nextNonBlankIsPrereq(flat, i))
+    ) {
       entries.push({ nameIdx: i, name: trimmed });
     }
 

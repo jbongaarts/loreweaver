@@ -21,28 +21,20 @@
  *   2  verification could not produce a meaningful diff — e.g. importer
  *      failure, pack-loading/validation failure, missing PDF.
  *
- * Transitional states this command moves through:
+ * Steady state (loreweaver-1pw): the committed pack is the canonical importer
+ * output from the vendored SRD 5.1 PDF, so this command exits 0. A nonzero exit
+ * means drift — importer/parser code, the vendored PDF, the rules
+ * schemas/audit code, or the lockfile changed the importer's output without a
+ * matching regeneration of the committed pack (exit 1), or the importer/pack
+ * load failed outright (exit 2). The path-gated
+ * `.github/workflows/srd-importer-reproducibility.yml` runs this command and
+ * fails the PR check on any nonzero exit. To intentionally change pack content,
+ * regenerate the committed pack, review the diff, update the srdGeneratedPack
+ * baselines, and commit the regenerated pack in the same PR.
  *
- *   - 0m9.5.20 fixed (section anchors): exit 2 on a different / later error.
- *     `runImporter` now slices the real PDF cleanly — chapter / subsection
- *     anchors match, the extractor's heading-merge re-joins two-line chapter
- *     titles like "Using Ability" + "Scores", and `hazards` / `treasureTables`
- *     degrade to empty results when their sections are absent from the SRD
- *     5.1 (which they are). The next failure is parser-level: the SRD spell
- *     and creature pages render in a two-column layout that pdfjs returns
- *     in y-interleaved order, and the kind parsers (parseSpells first)
- *     expect a flat single-column flow. That work is tracked under the
- *     `loreweaver-0m9.5.21` family.
- *   - Once column-aware extraction / parsing lands: exit 1. The importer
- *     succeeds and produces the full SRD record set; the committed pack is
- *     still the 2-record seed, so the diff lists the gap.
- *   - After the canonical-regen PR replaces the seed pack with importer
- *     output: exit 0 unless importer code, parser code, the vendored PDF,
- *     the rules schemas/audit code, or the lockfile drifts.
- *
- * The script also prints the source PDF SHA-256 and (when the importer
- * succeeds) the per-kind counts so the regen PR can paste them into the PR
- * description (see `packages/core/scripts/importers/dnd5e-srd-5.1/README.md`).
+ * The script also prints the source PDF SHA-256 and the per-kind counts so an
+ * intentional regeneration PR can paste them into the PR description (see
+ * `packages/core/scripts/importers/dnd5e-srd-5.1/README.md`).
  */
 
 import { mkdtempSync, rmSync } from 'node:fs';

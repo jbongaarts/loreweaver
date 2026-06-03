@@ -12,9 +12,11 @@
  * The default `--out` is a scratch path that is NOT the canonical pack
  * location. Pointing `--out` at `packages/core/data/rules-packs/rules__dnd5e-srd-5.1/`
  * is the explicit "regenerate the canonical pack" path; it overwrites the
- * existing seed pack and should only be done once the importer's parser
- * coverage is broad enough that the result is reference-complete (today it
- * is not).
+ * committed canonical pack. Do this when a parser/source/schema change is
+ * intended to alter pack content: regenerate, review the diff with
+ * `npm run audit:rules-pack` / `npm run diff:rules-pack`, update the
+ * srdGeneratedPack baselines, and commit the regenerated pack so
+ * `npm run verify:dnd5e-srd-pack` returns to exit 0.
  */
 
 import { dirname, isAbsolute, resolve } from 'node:path';
