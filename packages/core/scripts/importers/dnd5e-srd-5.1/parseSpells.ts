@@ -75,11 +75,40 @@ interface FlatLine {
   readonly page: number;
 }
 
+/**
+ * pdfjs emits every word-internal hyphen in the SRD 5.1 PDF as a cluster of
+ * invisible presentation hyphens, corresponding to the embedded font's
+ * discretionary-break ligature. The cluster mixes:
+ *   - U+002D HYPHEN-MINUS (the only visible/ASCII member)
+ *   - U+00AD SOFT HYPHEN
+ *   - U+2010 HYPHEN
+ *   - U+2011 NON-BREAKING HYPHEN
+ * Because the non-ASCII members are invisible when rendered, the raw extracted
+ * text for a leveled-marker heading such as `4th-level evocation` actually
+ * carries the full cluster where the lone ASCII hyphen appears, and the
+ * `LEVELED_MARKER` regex (which demands a single ASCII hyphen) never matches.
+ * The effect: every leveled spell after a cantrip is silently absorbed into
+ * that cantrip's body (loreweaver-qqc: Fire Bolt swallowed the entire F-* / G-*
+ * leveled run up to the next cantrip "Guidance"), and reflowed description text
+ * reads with ugly clusters where a `10-foot` should be. Collapsing any run of
+ * these hyphen code points to a single ASCII hyphen normalizes both
+ * heading-detection and body text in one place. Fixture inputs that already
+ * carry a plain ASCII hyphen round-trip unchanged.
+ *
+ * The character class is written with explicit `\uXXXX` escapes so the source
+ * never embeds the invisible code points this bug is about.
+ */
+const PDF_HYPHEN_CLUSTER_OR_HYPHEN_RUN = /[-\u00AD\u2010\u2011]+/g;
+
+function normalizeHyphenCluster(line: string): string {
+  return line.replace(PDF_HYPHEN_CLUSTER_OR_HYPHEN_RUN, '-');
+}
+
 function flatten(pages: readonly PageText[]): readonly FlatLine[] {
   const out: FlatLine[] = [];
   for (const page of pages) {
     for (const line of page.lines) {
-      out.push({ line, page: page.pageNumber });
+      out.push({ line: normalizeHyphenCluster(line), page: page.pageNumber });
     }
   }
   return out;
@@ -115,17 +144,35 @@ function parseLevelSchoolMarker(line: string): MarkerParse {
   throw new Error(`not a level-school marker: ${line}`);
 }
 
-function isKeyedField(line: string): KeyedField | undefined {
+interface KeyedFieldMatch {
+  readonly field: KeyedField;
+  readonly value: string;
+}
+
+/**
+ * SRD 5.1 PDF typo: Contagion's metadata block uses "Component:" (singular)
+ * for its V/S list — a single-spell typesetting error in the published PDF.
+ * Mapping the singular form to the canonical Components field lets the spell
+ * parse; every other spell uses the plural form.
+ */
+const KEYED_FIELD_ALIASES: ReadonlyMap<string, KeyedField> = new Map([
+  ['Component', 'Components'],
+]);
+
+function matchKeyedField(line: string): KeyedFieldMatch | undefined {
   for (const key of KEYED_FIELDS) {
-    if (line.startsWith(`${key}:`)) {
-      return key;
+    const prefix = `${key}:`;
+    if (line.startsWith(prefix)) {
+      return { field: key, value: line.slice(prefix.length).trim() };
+    }
+  }
+  for (const [alias, field] of KEYED_FIELD_ALIASES) {
+    const prefix = `${alias}:`;
+    if (line.startsWith(prefix)) {
+      return { field, value: line.slice(prefix.length).trim() };
     }
   }
   return undefined;
-}
-
-function keyedFieldValue(line: string, key: KeyedField): string {
-  return line.slice(key.length + 1).trim();
 }
 
 interface MetadataParse {
@@ -150,10 +197,10 @@ function parseMetadataAndBody(lines: readonly string[]): MetadataParse {
       i++;
       continue;
     }
-    const field = isKeyedField(line);
-    if (field !== undefined) {
-      values[field] = keyedFieldValue(line, field);
-      lastField = field;
+    const keyed = matchKeyedField(line);
+    if (keyed !== undefined) {
+      values[keyed.field] = keyed.value;
+      lastField = keyed.field;
       i++;
       continue;
     }
@@ -275,7 +322,7 @@ function splitHigherLevels(description: string): {
 function isLikelySpellName(line: string): boolean {
   if (line.length === 0 || line.length > 80) return false;
   if (isLevelSchoolMarker(line)) return false;
-  if (isKeyedField(line) !== undefined) return false;
+  if (matchKeyedField(line) !== undefined) return false;
   // First non-space character must be an uppercase letter; we accept letters,
   // digits, spaces, hyphens, slashes, apostrophes, and parens.
   if (/^[A-Z]/.test(line) === false) return false;
