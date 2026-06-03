@@ -270,7 +270,9 @@ export interface CreatureAbilityScores {
  * `dnd5e-srd` creature kindSchema requires (see `kindSchemas.ts`):
  *   - `size` is the capitalized size word ("Small", "Large", …);
  *   - `type` is the lowercase creature type as printed, with the subtype
- *     parenthetical dropped ("humanoid", "dragon", "swarm of Tiny beasts");
+ *     parenthetical preserved ("humanoid (goblinoid)", "dragon", "swarm of
+ *     Tiny beasts"); validation is applied to the bare type word
+ *     (loreweaver-2ze);
  *   - `armorClass` / `hitPoints` are the leading integers of the stat-block
  *     lines (the parenthetical AC source and HP dice expression are dropped);
  *   - `speed` maps movement modes to feet, the unlabeled base speed keyed as
