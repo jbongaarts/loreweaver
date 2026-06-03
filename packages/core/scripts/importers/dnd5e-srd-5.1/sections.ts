@@ -263,9 +263,18 @@ export const SRD_5_1_DEFAULT_SECTION_ANCHORS = {
     requireEndHeading: true,
     matchHeadings: true,
   },
+  // The last spell in the SRD 5.1 alphabetic Spell Descriptions section is
+  // "Zone of Truth"; the heading-flagged line that immediately follows it is
+  // the gamemastering "Traps" subsection (then Diseases, Madness, Objects,
+  // Poisons, then "Magic Items"). Without "Traps" in the end anchor the slice
+  // ran on to the first match further down ("Magic Items", p206), absorbing the
+  // entire Traps→Poisons run into Zone of Truth's body (loreweaver-7ok). "Traps"
+  // is the true end boundary; the later headings stay in the alternation as
+  // defense-in-depth in case a future re-extraction shifts the first one.
   spellDescriptions: {
     startHeading: /^Spells$|^Spell Descriptions$/,
-    endHeading: /^(Monsters|Magic Items|Creatures|NPCs|Treasure|Appendix)\b/,
+    endHeading:
+      /^(Traps|Diseases|Madness|Monsters|Magic Items|Creatures|NPCs|Treasure|Appendix)\b/,
     requireEndHeading: true,
     matchHeadings: true,
   },
