@@ -47,9 +47,13 @@ const SYSTEM_ID = 'dnd5e-srd';
 const PACK_ID = 'rules:dnd5e-srd-5.1';
 const SOURCE_URL =
   'https://dnd.wizards.com/resources/systems-reference-document';
-const SOURCE_TITLE = 'D&D 5e System Reference Document 5.1';
+// Source title and release date are kept byte-for-byte aligned with the pinned
+// vendored source manifest at packages/core/sources/dnd5e-srd-5.1/manifest.json
+// (sourceTitle + the CC-BY-4.0 release date documented there). The
+// srdGeneratedPack committed-pack test asserts this alignment.
+const SOURCE_TITLE = 'System Reference Document 5.1';
 const SOURCE_VERSION = '5.1';
-const SOURCE_DATE = '2023-01-12';
+const SOURCE_DATE = '2023-01-27';
 
 const PROVENANCE_POLICY =
   'Each record names the SRD page it was extracted from when the upstream record carries a page; pageless records cite the SRD section as the locator.';

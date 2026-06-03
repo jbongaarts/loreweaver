@@ -8,11 +8,11 @@ import { loadRulesPackFromDirectory, RulesPackError } from '../src/internal.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 /**
- * Path to the seed pack shipped with the core package.
- * The directory name uses `__` in place of `:` (Windows-safe); the packId
- * inside manifest.json still carries the canonical colon form.
+ * Path to the committed canonical D&D SRD 5.1 pack shipped with the core
+ * package. The directory name uses `__` in place of `:` (Windows-safe); the
+ * packId inside manifest.json still carries the canonical colon form.
  */
-const SEED_PACK_DIR = join(
+const COMMITTED_PACK_DIR = join(
   __dirname,
   '../data/rules-packs/rules__dnd5e-srd-5.1',
 );
@@ -98,36 +98,38 @@ const VALID_RECORDS = JSON.stringify([
 ]);
 
 // ---------------------------------------------------------------------------
-// Happy path: load the committed seed pack.
+// Happy path: load the committed canonical pack.
+//
+// These tests exercise the loader against the real on-disk pack; they assert
+// loader behavior (validates, sorts, preserves provenance/source), not the
+// pack's exact per-kind coverage — that baseline lives in srdGeneratedPack.test.
 // ---------------------------------------------------------------------------
 
-describe('loadRulesPackFromDirectory — seed pack (rules:dnd5e-srd-5.1)', () => {
-  it('loads the seed pack and returns the correct packId', () => {
-    const pack = loadRulesPackFromDirectory(SEED_PACK_DIR);
+describe('loadRulesPackFromDirectory — committed pack (rules:dnd5e-srd-5.1)', () => {
+  it('loads the committed pack and returns the correct packId', () => {
+    const pack = loadRulesPackFromDirectory(COMMITTED_PACK_DIR);
     expect(pack.meta.packId).toBe('rules:dnd5e-srd-5.1');
   });
 
-  it('returns exactly 2 records from the seed pack', () => {
-    const pack = loadRulesPackFromDirectory(SEED_PACK_DIR);
-    expect(pack.records).toHaveLength(2);
+  it('returns the full record set sorted by key', () => {
+    const pack = loadRulesPackFromDirectory(COMMITTED_PACK_DIR);
+    expect(pack.records.length).toBeGreaterThan(1);
+    const keys = pack.records.map((r) => r.key);
+    expect(keys).toEqual([...keys].sort());
   });
 
-  it('first record is sorted first by key (creature:goblin < spell:fire-bolt)', () => {
-    const pack = loadRulesPackFromDirectory(SEED_PACK_DIR);
-    expect(pack.records[0].key).toBe('creature:goblin');
-    expect(pack.records[0].name).toBe('Goblin');
-    expect(pack.records[0].provenance.sourceRef).toBe(
+  it('contains known landmark records carrying SRD provenance', () => {
+    const pack = loadRulesPackFromDirectory(COMMITTED_PACK_DIR);
+    const goblin = pack.records.find((r) => r.key === 'creature:goblin');
+    expect(goblin?.name).toBe('Goblin');
+    expect(goblin?.provenance.sourceRef).toBe(
       'https://dnd.wizards.com/resources/systems-reference-document',
     );
-  });
-
-  it('second record is spell:fire-bolt', () => {
-    const pack = loadRulesPackFromDirectory(SEED_PACK_DIR);
-    expect(pack.records[1].key).toBe('spell:fire-bolt');
+    expect(pack.records.some((r) => r.key === 'spell:fire-bolt')).toBe(true);
   });
 
   it('meta.source fields are preserved', () => {
-    const pack = loadRulesPackFromDirectory(SEED_PACK_DIR);
+    const pack = loadRulesPackFromDirectory(COMMITTED_PACK_DIR);
     expect(pack.meta.source.sourceTitle).toBe('System Reference Document 5.1');
     expect(pack.meta.source.sourceUrl).toBe(
       'https://dnd.wizards.com/resources/systems-reference-document',
@@ -140,15 +142,19 @@ describe('loadRulesPackFromDirectory — seed pack (rules:dnd5e-srd-5.1)', () =>
 // ---------------------------------------------------------------------------
 
 describe('loadRulesPackFromDirectory — determinism', () => {
-  it('produces deeply equal packs on two independent loads of the seed pack', () => {
-    const packA = loadRulesPackFromDirectory(SEED_PACK_DIR);
-    const packB = loadRulesPackFromDirectory(SEED_PACK_DIR);
+  it('produces deeply equal packs on two independent loads of the committed pack', () => {
+    const packA = loadRulesPackFromDirectory(COMMITTED_PACK_DIR);
+    const packB = loadRulesPackFromDirectory(COMMITTED_PACK_DIR);
     expect(packA).toEqual(packB);
   });
 
   it('stable JSON serialization: two loads produce the same JSON string', () => {
-    const jsonA = JSON.stringify(loadRulesPackFromDirectory(SEED_PACK_DIR));
-    const jsonB = JSON.stringify(loadRulesPackFromDirectory(SEED_PACK_DIR));
+    const jsonA = JSON.stringify(
+      loadRulesPackFromDirectory(COMMITTED_PACK_DIR),
+    );
+    const jsonB = JSON.stringify(
+      loadRulesPackFromDirectory(COMMITTED_PACK_DIR),
+    );
     expect(jsonA).toBe(jsonB);
   });
 

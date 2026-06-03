@@ -9,19 +9,21 @@
  *
  * What this file guards:
  *   - The committed pack still loads and validates.
- *   - Per-kind counts match a small baseline literal (today the seed pack);
- *     the canonical-regen PR updates this literal.
+ *   - Per-kind counts match the canonical full-pack baseline literal
+ *     (loreweaver-1pw replaced the two-record seed pack with the importer's
+ *     full deterministic output from the vendored SRD 5.1 PDF).
  *   - Key shape is consistent and unique.
- *   - A handful of known stable keys are present.
- *   - The generic `auditPack` heuristic surfaces no suspicious records or
- *     partially-populated data fields (clean today; the regen PR fixes any
- *     new findings or documents a baseline before merging).
+ *   - A representative stable key from every kind is present.
+ *   - The generic `auditPack` heuristic surfaces no suspicious records, and the
+ *     set of partially-populated optional data fields matches an explicitly
+ *     reviewed baseline (these are genuinely-optional SRD fields — e.g. a spell
+ *     `ritual` flag or an ancestry `subraces` list — present on some records of
+ *     a kind and absent on others, not parser drift).
  *   - The pack's license/source manifest aligns with the vendored source
  *     manifest at `packages/core/sources/dnd5e-srd-5.1/manifest.json`.
  *
  * Out of scope (see bead notes):
  *   - Exact creature name-set validation → `loreweaver-0m9.5.14`.
- *   - Regenerating the canonical pack → future bead/PR.
  *   - Pathfinder coverage → `loreweaver-0m9.9`.
  */
 
@@ -67,32 +69,120 @@ function readSourceManifest(): SrdSourceManifest {
 }
 
 /**
- * Per-kind record-count baseline for the committed pack. The committed pack at
- * `packages/core/data/rules-packs/rules__dnd5e-srd-5.1/` is currently a seed
- * pack with two hand-curated records (the 0m9.5 importer's canonical-pack
- * regen has not landed yet). When that regen PR lands, this literal is updated
- * to the importer's per-kind counts and `EXPECTED_STABLE_KEYS` grows to match.
+ * Per-kind record-count baseline for the committed canonical pack at
+ * `packages/core/data/rules-packs/rules__dnd5e-srd-5.1/`. These are the exact
+ * per-kind counts the deterministic importer produces from the vendored
+ * SRD 5.1 PDF (loreweaver-1pw); `npm run verify:dnd5e-srd-pack` proves the
+ * committed pack equals importer output byte-for-byte.
  *
  * The match is exact: the test fails if a kind appears or disappears, or any
  * count drifts. That's the regression-guard intent — accidental edits to the
- * committed pack do not slip through unnoticed.
+ * committed pack, or an importer/parser change that silently alters coverage,
+ * do not slip through unnoticed. An intentional coverage change updates this
+ * literal (and re-runs the verify command) as part of that change.
  */
 const EXPECTED_COUNTS_BY_KIND: Readonly<Record<string, number>> = {
-  creature: 1,
-  spell: 1,
+  action: 10,
+  ancestry: 13,
+  class: 12,
+  condition: 15,
+  creature: 296,
+  equipment: 1,
+  feat: 1,
+  feature: 144,
+  rule: 10,
+  spell: 319,
+  subclass: 12,
+  table: 1,
 };
 
 /**
- * Selected stable keys that must be present in the committed pack. The list is
- * intentionally small while the pack is a seed; it expands alongside
- * `EXPECTED_COUNTS_BY_KIND` whenever the canonical-regen PR lands.
+ * One representative stable key per kind that must be present in the committed
+ * pack — a coarse spot-check that the parse for each kind produced its expected
+ * landmark records. Exact full-set coverage per kind lives in the importer's
+ * own coverage gates and per-parser tests, not here.
  */
 const EXPECTED_STABLE_KEYS: readonly string[] = [
+  'action:dodge',
+  'ancestry:elf',
+  'ancestry:hill-dwarf',
+  'class:wizard',
+  'condition:blinded',
+  'condition:exhaustion',
   'creature:goblin',
+  'creature:aboleth',
+  'equipment:padded',
+  'feat:grappler',
+  'feature:champion:improved-critical',
+  'rule:difficult-terrain',
   'spell:fire-bolt',
+  'spell:wish',
+  'subclass:champion',
+  'table:difficulty-classes',
 ];
 
-const KEY_PATTERN = /^[a-z][a-z0-9]*:[a-z0-9][a-z0-9-]*$/;
+/**
+ * Reviewed baseline of partially-populated optional `data` fields — fields
+ * present on some records of a kind and absent on others. Each entry here was
+ * reviewed (loreweaver-1pw) and is a genuinely-optional SRD field, NOT a
+ * parser-drift signal:
+ *   - ancestry.subraceOf / subraces: only subraces carry `subraceOf`; only
+ *     races-with-subraces carry `subraces`.
+ *   - condition.effects: present on all conditions except Exhaustion, whose
+ *     mechanics live in its per-level `levels` table.
+ *   - condition.levels: only Exhaustion has graded levels.
+ *   - spell.componentMaterials: only spells with a material (M) component.
+ *   - spell.higherLevels: only spells with an "At Higher Levels" entry.
+ *   - spell.ritual: only spells tagged as rituals.
+ * The audit reports `0 < missingCount < totalInKind` per field; we pin the
+ * compact {kind, field, missingCount, totalInKind} projection so a new
+ * partially-populated field (a real drift signal) fails the test, while the
+ * long `affectedKeys` lists stay out of the baseline to keep it maintainable.
+ */
+const EXPECTED_PARTIAL_FIELDS: ReadonlyArray<{
+  readonly kind: string;
+  readonly field: string;
+  readonly missingCount: number;
+  readonly totalInKind: number;
+}> = [
+  { kind: 'ancestry', field: 'subraceOf', missingCount: 9, totalInKind: 13 },
+  { kind: 'ancestry', field: 'subraces', missingCount: 9, totalInKind: 13 },
+  { kind: 'condition', field: 'effects', missingCount: 1, totalInKind: 15 },
+  { kind: 'condition', field: 'levels', missingCount: 14, totalInKind: 15 },
+  {
+    kind: 'spell',
+    field: 'componentMaterials',
+    missingCount: 135,
+    totalInKind: 319,
+  },
+  { kind: 'spell', field: 'higherLevels', missingCount: 227, totalInKind: 319 },
+  { kind: 'spell', field: 'ritual', missingCount: 290, totalInKind: 319 },
+];
+
+// `<kind>:<kebab-slug>` with one or more colon-separated slug segments. Most
+// kinds use a single segment (`spell:fire-bolt`); class/subclass-scoped
+// features namespace the slug (`feature:bard:ability-score-improvement`).
+const KEY_PATTERN = /^[a-z][a-z0-9]*(?::[a-z0-9][a-z0-9-]*)+$/;
+
+/**
+ * PDF hyphen-cluster artifacts that must NOT survive into the durable pack.
+ * The SRD 5.1 PDF font renders every word-internal hyphen as an ASCII hyphen
+ * wrapped in invisible presentation hyphens (U+00AD SOFT HYPHEN, U+2010 HYPHEN,
+ * U+2011 NON-BREAKING HYPHEN). The extractor collapses those clusters to a lone
+ * ASCII hyphen (`normalizePdfHyphenCluster` in the importer's `extract.ts`), so
+ * a regenerated canonical pack must contain none of these code points
+ * (loreweaver-6uy). The class is written with explicit `\uXXXX` escapes so this
+ * test source embeds no invisible characters; en-dash (U+2013) and em-dash
+ * (U+2014) are legitimate SRD punctuation and intentionally excluded.
+ */
+const FORBIDDEN_HYPHEN_CODE_POINTS: ReadonlyArray<{
+  readonly name: string;
+  readonly codePoint: number;
+}> = [
+  { name: 'U+00AD SOFT HYPHEN', codePoint: 0x00ad },
+  { name: 'U+2010 HYPHEN', codePoint: 0x2010 },
+  { name: 'U+2011 NON-BREAKING HYPHEN', codePoint: 0x2011 },
+];
 
 describe('D&D 5e SRD 5.1 committed pack', () => {
   const pack = loadRulesPackFromDirectory(PACK_DIR);
@@ -161,10 +251,32 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
       expect(audit.suspiciousRecords).toEqual([]);
     });
 
-    it('reports no partially-populated data fields', () => {
+    it('partially-populated optional fields match the reviewed baseline', () => {
       const audit = auditPack(pack);
-      expect(audit.missingFieldSummary).toEqual([]);
+      const compact = audit.missingFieldSummary.map((group) => ({
+        kind: group.kind,
+        field: group.field,
+        missingCount: group.missingCount,
+        totalInKind: group.totalInKind,
+      }));
+      expect(compact).toEqual(EXPECTED_PARTIAL_FIELDS);
     });
+  });
+
+  describe('hidden-Unicode hygiene', () => {
+    // Read the committed records.json verbatim (not the parsed pack) so the
+    // assertion covers the exact bytes that ship — the durable artifact a
+    // consumer downloads — rather than a post-load reconstruction.
+    const recordsJson = readFileSync(join(PACK_DIR, 'records.json'), 'utf8');
+
+    for (const { name, codePoint } of FORBIDDEN_HYPHEN_CODE_POINTS) {
+      it(`contains no ${name} (PDF hyphen-cluster artifact)`, () => {
+        const count = [...recordsJson].filter(
+          (ch) => ch.codePointAt(0) === codePoint,
+        ).length;
+        expect(count).toBe(0);
+      });
+    }
   });
 
   describe('source-manifest alignment with the vendored SRD artifact', () => {

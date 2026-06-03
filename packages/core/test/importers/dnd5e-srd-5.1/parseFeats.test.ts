@@ -8,8 +8,15 @@
  * to match the importer's extracted-line input shape.
  */
 
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { extractPdfText } from '../../../scripts/importers/dnd5e-srd-5.1/extract.js';
 import { parseFeats } from '../../../scripts/importers/dnd5e-srd-5.1/parseFeats.js';
+import {
+  SRD_5_1_DEFAULT_SECTION_ANCHORS,
+  sliceSection,
+} from '../../../scripts/importers/dnd5e-srd-5.1/sections.js';
 import type { PageText } from '../../../scripts/importers/dnd5e-srd-5.1/types.js';
 
 function page(pageNumber: number, lines: string[]): PageText {
@@ -192,4 +199,43 @@ describe('parseFeats — empty input', () => {
     const p = page(1, ['This is not a feat.', 'Some other text here.']);
     expect(parseFeats([p])).toEqual([]);
   });
+});
+
+// ---------------------------------------------------------------------------
+// Real SRD 5.1 PDF coverage (loreweaver-0m9.5.21).
+//
+// The vendored SRD 5.1 Feats section (PDF page 75) has no blank lines: a
+// 17-line intro paragraph flows directly into the lone "Grappler" name line.
+// A pure blank-line boundary heuristic both promotes the intro's first wrapped
+// line as a bogus feat AND never reaches "Grappler". This test pins the parser
+// to exactly { Grappler } on the real PDF so that regression can't return.
+// ---------------------------------------------------------------------------
+
+describe('parseFeats — real SRD 5.1 PDF coverage (loreweaver-0m9.5.21)', () => {
+  const SRD_PDF_PATH = join(
+    process.cwd(),
+    'packages/core/sources/dnd5e-srd-5.1/SRD_CC_v5.1.pdf',
+  );
+
+  it('parses exactly the Grappler feat from the vendored SRD 5.1 PDF', async () => {
+    // Narrow extraction to the Feats page (75) plus the following page so the
+    // section endHeading anchor is satisfied without paying for a full extract.
+    const pdfBytes = readFileSync(SRD_PDF_PATH);
+    const pages = await extractPdfText(new Uint8Array(pdfBytes), {
+      pageRange: { start: 75, end: 76 },
+    });
+    const featPages = sliceSection(
+      pages,
+      SRD_5_1_DEFAULT_SECTION_ANCHORS.feats,
+    );
+    const feats = parseFeats(featPages);
+
+    expect(feats.map((f) => f.name)).toEqual(['Grappler']);
+    const [grappler] = feats;
+    expect(grappler.prerequisites).toBe('Strength 13 or higher');
+    // The intro prose must not bleed into the feat body, and the soft-hyphen
+    // cluster in "close-quarters" must be normalized to a plain ASCII hyphen.
+    expect(grappler.description).not.toMatch(/A feat represents/);
+    expect(grappler.description).toMatch(/close-quarters grappling/);
+  }, 20000);
 });
