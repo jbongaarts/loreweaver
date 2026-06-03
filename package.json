@@ -21,6 +21,7 @@
     "generate:dnd5e-srd-creature-names": "tsx packages/core/scripts/generate-creature-name-baseline/cli.ts",
     "audit:rules-pack": "tsx packages/core/scripts/rules-pack-audit/cli.ts audit",
     "diff:rules-pack": "tsx packages/core/scripts/rules-pack-audit/cli.ts diff",
+    "audit-bundle:dnd5e-srd": "tsx packages/core/scripts/create-dnd5e-srd-audit-bundle/cli.ts",
     "format": "biome format --write .",
     "format:check": "biome format .",
     "lint": "biome lint .",
