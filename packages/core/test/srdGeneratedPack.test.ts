@@ -31,6 +31,10 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
+  EXPECTED_SRD_5_1_CREATURE_NAMES,
+  MIN_EXPECTED_SRD_5_1_CREATURES,
+} from '../scripts/importers/dnd5e-srd-5.1/index.js';
+import {
   auditPack,
   loadRulesPackFromDirectory,
   validateRulesPack,
@@ -242,6 +246,43 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
       for (const expected of EXPECTED_STABLE_KEYS) {
         expect(keys.has(expected)).toBe(true);
       }
+    });
+  });
+
+  // `EXPECTED_SRD_5_1_CREATURE_NAMES` (loreweaver-0m9.5.14) is a reviewed,
+  // checked-in baseline — a candidate generated from the vendored PDF, reviewed
+  // against the SRD source, then committed (see its doc comment and
+  // `npm run generate:dnd5e-srd-creature-names`). This test does NOT derive the
+  // expected names at runtime: it compares the committed pack's creature record
+  // names against that fixed baseline. Its purpose is regression protection —
+  // not a standalone proof of SRD completeness. Once the reviewed baseline is
+  // committed, a parser change that drops, adds, or renames a creature record
+  // breaks this test until the baseline is regenerated, re-reviewed, and updated
+  // in the same change.
+  describe('creature name-set regression baseline (loreweaver-0m9.5.14)', () => {
+    const packCreatureNames = pack.records
+      .filter((record) => record.kind === 'creature')
+      .map((record) => record.name);
+
+    it('committed pack creature names match the checked-in baseline exactly', () => {
+      expect([...packCreatureNames].sort()).toEqual(
+        [...EXPECTED_SRD_5_1_CREATURE_NAMES].sort(),
+      );
+    });
+
+    it('EXPECTED_SRD_5_1_CREATURE_NAMES has no duplicates', () => {
+      expect(new Set(EXPECTED_SRD_5_1_CREATURE_NAMES).size).toBe(
+        EXPECTED_SRD_5_1_CREATURE_NAMES.length,
+      );
+    });
+
+    it('the expected name-set length equals the documented count baseline', () => {
+      expect(EXPECTED_SRD_5_1_CREATURE_NAMES).toHaveLength(
+        MIN_EXPECTED_SRD_5_1_CREATURES,
+      );
+      expect(MIN_EXPECTED_SRD_5_1_CREATURES).toBe(
+        EXPECTED_COUNTS_BY_KIND.creature,
+      );
     });
   });
 

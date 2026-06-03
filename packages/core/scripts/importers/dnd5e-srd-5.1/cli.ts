@@ -22,8 +22,8 @@
 import { dirname, isAbsolute, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  EXPECTED_SRD_5_1_CREATURE_NAMES,
   MIN_EXPECTED_SRD_5_1_CLASSES,
-  MIN_EXPECTED_SRD_5_1_CREATURES,
   MIN_EXPECTED_SRD_5_1_FEATURES,
   MIN_EXPECTED_SRD_5_1_SUBCLASSES,
   runImporter,
@@ -97,7 +97,7 @@ async function main(): Promise<void> {
   const result = await runImporter({
     pdfPath: args.pdf,
     outDir: args.out,
-    minCreatureCount: MIN_EXPECTED_SRD_5_1_CREATURES,
+    expectedCreatureNames: EXPECTED_SRD_5_1_CREATURE_NAMES,
     minClassCount: MIN_EXPECTED_SRD_5_1_CLASSES,
     minSubclassCount: MIN_EXPECTED_SRD_5_1_SUBCLASSES,
     minFeatureCount: MIN_EXPECTED_SRD_5_1_FEATURES,

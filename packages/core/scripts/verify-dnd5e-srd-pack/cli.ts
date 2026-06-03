@@ -49,8 +49,8 @@ import {
   RulesPackError,
 } from '../../src/internal.js';
 import {
+  EXPECTED_SRD_5_1_CREATURE_NAMES,
   MIN_EXPECTED_SRD_5_1_CLASSES,
-  MIN_EXPECTED_SRD_5_1_CREATURES,
   MIN_EXPECTED_SRD_5_1_FEATURES,
   MIN_EXPECTED_SRD_5_1_SUBCLASSES,
   runImporter,
@@ -80,7 +80,7 @@ async function main(): Promise<void> {
       result = await runImporter({
         pdfPath: VENDORED_PDF,
         outDir: tmpDir,
-        minCreatureCount: MIN_EXPECTED_SRD_5_1_CREATURES,
+        expectedCreatureNames: EXPECTED_SRD_5_1_CREATURE_NAMES,
         minClassCount: MIN_EXPECTED_SRD_5_1_CLASSES,
         minSubclassCount: MIN_EXPECTED_SRD_5_1_SUBCLASSES,
         minFeatureCount: MIN_EXPECTED_SRD_5_1_FEATURES,
