@@ -91,7 +91,7 @@ const EXPECTED_COUNTS_BY_KIND: Readonly<Record<string, number>> = {
   class: 12,
   condition: 15,
   creature: 296,
-  equipment: 1,
+  equipment: 85,
   feat: 1,
   feature: 144,
   rule: 10,
@@ -116,6 +116,8 @@ const EXPECTED_STABLE_KEYS: readonly string[] = [
   'creature:goblin',
   'creature:aboleth',
   'equipment:padded',
+  'equipment:longsword',
+  'equipment:smiths-tools',
   'feat:grappler',
   'feature:champion:improved-critical',
   'rule:difficult-terrain',
@@ -135,6 +137,14 @@ const EXPECTED_STABLE_KEYS: readonly string[] = [
  *   - condition.effects: present on all conditions except Exhaustion, whose
  *     mechanics live in its per-level `levels` table.
  *   - condition.levels: only Exhaustion has graded levels.
+ *   - equipment.{ac,armorType,stealthDisadvantage,strengthRequirement}: armor-
+ *     only fields (13 armor records); strengthRequirement only the 3 heavy
+ *     armors that list a Str minimum.
+ *   - equipment.{damageDie,damageType,properties}: weapon-only fields (37
+ *     weapons); damageDie/damageType absent on the Net, whose damage cell is a
+ *     dash, while every weapon carries a (possibly empty) properties list.
+ *   - equipment.weight: absent on the 3 items the SRD lists with a "—" weight
+ *     (the Sling and the two gaming sets).
  *   - spell.componentMaterials: only spells with a material (M) component.
  *   - spell.higherLevels: only spells with an "At Higher Levels" entry.
  *   - spell.ritual: only spells tagged as rituals.
@@ -153,6 +163,24 @@ const EXPECTED_PARTIAL_FIELDS: ReadonlyArray<{
   { kind: 'ancestry', field: 'subraces', missingCount: 9, totalInKind: 13 },
   { kind: 'condition', field: 'effects', missingCount: 1, totalInKind: 15 },
   { kind: 'condition', field: 'levels', missingCount: 14, totalInKind: 15 },
+  { kind: 'equipment', field: 'ac', missingCount: 72, totalInKind: 85 },
+  { kind: 'equipment', field: 'armorType', missingCount: 72, totalInKind: 85 },
+  { kind: 'equipment', field: 'damageDie', missingCount: 49, totalInKind: 85 },
+  { kind: 'equipment', field: 'damageType', missingCount: 49, totalInKind: 85 },
+  { kind: 'equipment', field: 'properties', missingCount: 48, totalInKind: 85 },
+  {
+    kind: 'equipment',
+    field: 'stealthDisadvantage',
+    missingCount: 72,
+    totalInKind: 85,
+  },
+  {
+    kind: 'equipment',
+    field: 'strengthRequirement',
+    missingCount: 82,
+    totalInKind: 85,
+  },
+  { kind: 'equipment', field: 'weight', missingCount: 3, totalInKind: 85 },
   {
     kind: 'spell',
     field: 'componentMaterials',
@@ -283,6 +311,70 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
       expect(MIN_EXPECTED_SRD_5_1_CREATURES).toBe(
         EXPECTED_COUNTS_BY_KIND.creature,
       );
+    });
+  });
+
+  // loreweaver-3n6: the committed pack once collapsed to a single equipment
+  // record (an inaccurate `equipment:padded`) because the equipment parser
+  // assumed a row-major table layout the real SRD 5.1 PDF does not use — it
+  // splits the Armor and Weapons tables into separate column-blocks. These
+  // assertions guard the reconstructed per-category coverage so a parser
+  // regression that drops a table (or collapses back to one record) fails here.
+  describe('equipment coverage regression (loreweaver-3n6)', () => {
+    const equipment = pack.records.filter((r) => r.kind === 'equipment');
+
+    function category(key: string): string | undefined {
+      const data = pack.records.find((r) => r.key === key)?.data as
+        | { category?: unknown }
+        | undefined;
+      return typeof data?.category === 'string' ? data.category : undefined;
+    }
+
+    it('emits all three reconstructed equipment categories, not a single record', () => {
+      const counts = new Map<string, number>();
+      for (const record of equipment) {
+        const cat = (record.data as { category?: unknown }).category;
+        if (typeof cat === 'string') {
+          counts.set(cat, (counts.get(cat) ?? 0) + 1);
+        }
+      }
+      // The reviewed SRD 5.1 baseline: 13 armor, 37 weapons, 35 tools.
+      expect(Object.fromEntries(counts)).toEqual({
+        armor: 13,
+        weapon: 37,
+        tool: 35,
+      });
+    });
+
+    it('Padded armor matches the SRD armor table (stealth disadvantage + weight)', () => {
+      const padded = pack.records.find((r) => r.key === 'equipment:padded');
+      expect(padded?.data).toMatchObject({
+        category: 'armor',
+        cost: '5 gp',
+        ac: '11 + Dex modifier',
+        armorType: 'light',
+        stealthDisadvantage: true,
+        weight: '8 lb.',
+      });
+    });
+
+    it('carries landmark records from each reconstructed table', () => {
+      // One armor (heavy, with a strength requirement), one weapon (zipped
+      // damage + weight + properties), and one tool.
+      expect(category('equipment:plate')).toBe('armor');
+      expect(category('equipment:longsword')).toBe('weapon');
+      expect(category('equipment:smiths-tools')).toBe('tool');
+
+      const longsword = pack.records.find(
+        (r) => r.key === 'equipment:longsword',
+      );
+      expect(longsword?.data).toMatchObject({
+        category: 'weapon',
+        damageDie: '1d8',
+        damageType: 'slashing',
+        weight: '3 lb.',
+        properties: ['Versatile (1d10)'],
+      });
     });
   });
 
