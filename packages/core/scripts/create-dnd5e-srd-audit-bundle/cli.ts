@@ -621,8 +621,25 @@ async function main(): Promise<void> {
     'utf8',
   );
 
+  // 12. Zip the bundle directory
+  const zipPath = `${outDir}.zip`;
+  log(`Zipping bundle to: ${zipPath}`);
+  rmSync(zipPath, { force: true });
+  const zipResult = spawnSync(
+    `Compress-Archive -Path "${outDir}" -DestinationPath "${zipPath}"`,
+    [],
+    { shell: 'powershell.exe', encoding: 'utf8', timeout: 120_000 },
+  );
+  if (zipResult.status !== 0) {
+    log(`  WARNING: zip failed (exit ${zipResult.status ?? 'null'})`);
+    if (zipResult.stderr) log(`  ${zipResult.stderr.trim()}`);
+  } else {
+    log(`  Done: ${zipPath}`);
+  }
+
   log('');
   log(`Bundle complete: ${outDir}`);
+  log(`Archive:         ${zipPath}`);
   log(`  Commit: ${gitSha}`);
   log(`  Branch: ${gitBranch}`);
   log(`  PDF pages: ${pages.length}`);
