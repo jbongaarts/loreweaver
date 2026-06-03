@@ -286,6 +286,58 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
     });
   });
 
+  // loreweaver-7ok: the alphabetic Spell Descriptions section ends with "Zone
+  // of Truth", immediately followed by the gamemastering "Traps" subsection;
+  // and the SRD justifies paragraphs, so the "Wish" spell's right-aligned last
+  // word "wish" sat just left of the page gutter on p193. Two distinct bugs
+  // corrupted the final spell bodies: the spell-descriptions end anchor missed
+  // "Traps" (so "Zone of Truth" absorbed the entire Traps→Poisons run), and the
+  // column splitter swept "wish" into the right column (so "Word of Recall"
+  // gained a stray "wish" mid-sentence). Both are fixed at the importer; these
+  // assertions guard the committed pack against either regressing.
+  describe('spell-section boundary regression (loreweaver-7ok)', () => {
+    function spellDescription(key: string): string {
+      const record = pack.records.find((r) => r.key === key);
+      expect(record, `expected ${key} in the committed pack`).toBeDefined();
+      const data = record?.data as { description?: unknown };
+      expect(typeof data.description).toBe('string');
+      return data.description as string;
+    }
+
+    it('Word of Recall body matches the SRD and carries no neighboring-spell contamination', () => {
+      const description = spellDescription('spell:word-of-recall');
+      // The true SRD sentence runs straight from "isn't" to "dedicated".
+      expect(description).toContain(
+        'in an area that isn’t dedicated to your deity, the spell has no effect.',
+      );
+      expect(description.endsWith('the spell has no effect.')).toBe(true);
+      // The pre-fix artifact: the Wish spell's stray "wish" wedged between
+      // "isn't" and "dedicated". No standalone "wish" token may remain.
+      expect(description).not.toMatch(/\bwish\b/i);
+    });
+
+    it('Zone of Truth body ends at the spell boundary and excludes the Traps section', () => {
+      const description = spellDescription('spell:zone-of-truth');
+      expect(
+        description.endsWith('it remains within the boundaries of the truth.'),
+      ).toBe(true);
+      // The pre-fix artifact: the end anchor missed "Traps", so the body ran on
+      // through Traps, Diseases, Madness, Objects, and the Poisons table. None
+      // of those landmarks may appear in the spell body.
+      for (const leaked of [
+        'Traps can be found',
+        'Purple Worm Poison',
+        'Serpent Venom',
+        'Truth Serum',
+      ]) {
+        expect(description).not.toContain(leaked);
+      }
+      // A faithful Zone of Truth body is short; the contaminated one was
+      // ~38k characters of trailing gamemastering text.
+      expect(description.length).toBeLessThan(2000);
+    });
+  });
+
   describe('audit findings', () => {
     it('reports no suspicious records', () => {
       const audit = auditPack(pack);

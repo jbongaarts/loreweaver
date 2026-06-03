@@ -436,6 +436,22 @@ function bucketItemsIntoRecords(items: readonly PdfTextItem[]): LineRecord[] {
  * only valid ones survives the outlier and still rejects intra-column
  * label/value tabbing (those gaps fail the distinct-x guard on both
  * sides — single label x, single value x — so they're filtered out).
+ *
+ * Gutter-straggler correction (`reassignGutterStragglers`, applied to the
+ * chosen split): the SRD 5.1 body justifies paragraphs, so each paragraph's
+ * last word is pushed flush to its column's right edge. A left-column last
+ * word can therefore land close to the gutter, and the widest valid gap on
+ * the page may be an internal left-column gap whose midpoint falls to the
+ * LEFT of that word — sweeping it into the right column, where it buckets by
+ * y between real right-column lines and scrambles reading order. SRD 5.1 p193
+ * (end of the "Wish" spell): the widest valid gap is the internal left-column
+ * gap 162→242 (midpoint ≈202), left of the right-aligned word "wish" (x≈259);
+ * "wish" was swept into the right column and interleaved into "Word of
+ * Recall"'s body (loreweaver-7ok). The correction moves such lone stragglers
+ * back to the left column. It keys off line-start DENSITY rather than gap
+ * width because the true right-column margin (x≈328.6 throughout the SRD,
+ * 24–48 line-starts) is unmistakable next to a one-off justified word, while
+ * gap width alone cannot tell the two apart on a justified page.
  */
 function partitionItemsByColumn(
   items: readonly PdfTextItem[],
@@ -486,7 +502,51 @@ function partitionItemsByColumn(
     bestRight = right;
   }
   if (bestLeft === null || bestRight === null) return [items];
-  return [bestLeft, bestRight];
+  return reassignGutterStragglers(bestLeft, bestRight);
+}
+
+/**
+ * Move right-column items that sit left of the right column's true left margin
+ * back to the left column. See `partitionItemsByColumn` for the justified-text
+ * failure this corrects.
+ *
+ * The margin is the SMALLEST rounded x at which at least two lines begin: a
+ * genuine column edge always has multiple line-starts, whereas a justified
+ * left-column last word swept across the gutter sits alone (count 1) to its
+ * left. Defining the margin by line-start density (not by "most frequent x",
+ * which can be a deeper wrap indent, nor by the leftmost x, which can be the
+ * straggler itself) keeps clean pages untouched: when the right column's
+ * leftmost item already starts the densest margin, nothing lies left of it and
+ * the split is returned unchanged. Only stragglers — count-1 items more than
+ * `COLUMN_X_TOLERANCE` left of the margin — move. A final guard refuses any
+ * move that would shrink the right column below `MIN_ITEMS_PER_COLUMN`, so a
+ * genuinely small right column is never dismantled.
+ */
+function reassignGutterStragglers(
+  left: readonly PdfTextItem[],
+  right: readonly PdfTextItem[],
+): readonly (readonly PdfTextItem[])[] {
+  const counts = new Map<number, number>();
+  for (const it of right) {
+    const x = Math.round(it.transform[4]);
+    counts.set(x, (counts.get(x) ?? 0) + 1);
+  }
+  let margin: number | undefined;
+  for (const [x, c] of counts) {
+    if (c >= 2 && (margin === undefined || x < margin)) margin = x;
+  }
+  if (margin === undefined) return [left, right];
+  const threshold = margin - COLUMN_X_TOLERANCE;
+  const keptRight: PdfTextItem[] = [];
+  const movedLeft: PdfTextItem[] = [];
+  for (const it of right) {
+    if (it.transform[4] < threshold) movedLeft.push(it);
+    else keptRight.push(it);
+  }
+  if (movedLeft.length === 0 || keptRight.length < MIN_ITEMS_PER_COLUMN) {
+    return [left, right];
+  }
+  return [[...left, ...movedLeft], keptRight];
 }
 
 function distinctRoundedXCount(items: readonly PdfTextItem[]): number {

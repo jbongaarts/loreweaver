@@ -349,6 +349,70 @@ describe('extractPdfText — heading merge', () => {
     expect(lines.indexOf('outlier')).toBeGreaterThan(rightIdx);
   });
 
+  it('reassigns a justified left-column last word that the widest gap swept across the gutter', async () => {
+    // Regression for loreweaver-7ok. The SRD 5.1 body justifies paragraphs, so
+    // each paragraph's last word is pushed flush to its column's right edge. On
+    // page 193 (end of the "Wish" spell) the left column's right-aligned last
+    // word "wish" sits at x≈259, just left of the page gutter (x≈329). The
+    // WIDEST valid x-gap on that page is an internal left-column gap (≈80pt)
+    // whose midpoint falls LEFT of "wish", so the largest-gap cut sweeps "wish"
+    // into the right column, where it buckets by y between "Word of Recall"'s
+    // lines and corrupts that spell's body. The gutter-straggler correction
+    // keys off line-start density — the real right margin has many line-starts
+    // while the swept word is a lone count-1 item — and moves "wish" back to
+    // the left column, where it rejoins its own paragraph line.
+    //
+    // Layout below reproduces that shape: an internal left gap (160→258 = 98pt)
+    // wider than the gutter (258→330 = 72pt), with "wish" at x=258 sharing the
+    // baseline of its left-column line, and a dense three-line right column.
+    const pages = await extractFromOps([
+      { text: 'first left line', size: 11, x: 60, y: 200 },
+      // "for example a" + "wish" are one justified line: same baseline, with
+      // the last word flush to the column's right edge near the gutter.
+      { text: 'for example a', size: 11, x: 60, y: 220 },
+      { text: 'wish', size: 11, x: 258, y: 220 },
+      // A deeper-indent left-column line so the left side clears the distinct-x
+      // diversity guard and the 160→258 gap is the page's widest.
+      { text: 'deep indent line', size: 11, x: 160, y: 240 },
+      // Dense right column (the true gutter's right margin: three line-starts).
+      { text: 'right column one', size: 11, x: 330, y: 210 },
+      { text: 'right column two', size: 11, x: 330, y: 230 },
+      { text: 'right column three', size: 11, x: 330, y: 250 },
+    ]);
+    const lines = pages[0].lines;
+    // "wish" rejoined its left-column line; it never appears as its own line.
+    expect(lines).toContain('for example a wish');
+    expect(lines).not.toContain('wish');
+    // The right column is intact and contiguous — the pre-fix bug dropped
+    // "wish" between "right column one" and "right column two".
+    const r1 = lines.indexOf('right column one');
+    const r2 = lines.indexOf('right column two');
+    const r3 = lines.indexOf('right column three');
+    expect(r1).toBeGreaterThanOrEqual(0);
+    expect(r2).toBe(r1 + 1);
+    expect(r3).toBe(r2 + 1);
+    // The whole left column (including the rejoined word) precedes the right.
+    expect(lines.indexOf('for example a wish')).toBeLessThan(r1);
+  });
+
+  it('leaves a clean two-column page untouched (no straggler to reassign)', async () => {
+    // The correction must be a no-op when the right column has no item left of
+    // its dense margin: a normal two-column body page keeps its split exactly.
+    const pages = await extractFromOps([
+      { text: 'left body line', size: 11, x: 60, y: 200 },
+      { text: 'left wrap indent', size: 11, x: 70, y: 220 },
+      { text: 'right body line', size: 11, x: 330, y: 204 },
+      { text: 'right wrap indent', size: 11, x: 340, y: 224 },
+    ]);
+    const lines = pages[0].lines;
+    expect(lines).toContain('left body line');
+    expect(lines).toContain('right body line');
+    // Left column still precedes the right; nothing was shuffled.
+    expect(lines.indexOf('left wrap indent')).toBeLessThan(
+      lines.indexOf('right body line'),
+    );
+  });
+
   it('separates items at identical y but in different columns', async () => {
     // Critical: SRD page 299 has the previous monster's wrap line in the
     // left column at the SAME y baseline as the next monster's "Speed"
