@@ -93,44 +93,76 @@ function captureCommand(
 }
 
 // ---------------------------------------------------------------------------
-// PDF text extraction (simple flat extraction for human readability)
+// PDF text extraction
 // ---------------------------------------------------------------------------
 
-interface PageTextResult {
-  readonly pageNumber: number;
-  readonly text: string;
+export interface PdfItem {
+  readonly str: string;
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
 }
 
-async function extractPdfPages(pdfPath: string): Promise<PageTextResult[]> {
+interface PageExtractResult {
+  readonly pageNumber: number;
+  /** Human-readable text: y-groups sorted top-to-bottom, items within each
+   *  group sorted left-to-right by x-coordinate. Review aid only — not a
+   *  canonical parser output; multi-column and stat-block pages may still
+   *  interleave across columns at the same y-baseline. */
+  readonly text: string;
+  /** Raw coordinate-preserving items from pdfjs, in document stream order.
+   *  Use these (with x/y) for position-sensitive source-vs-pack review. */
+  readonly items: readonly PdfItem[];
+}
+
+async function extractPdfPages(pdfPath: string): Promise<PageExtractResult[]> {
   const buffer = readFileSync(pdfPath);
   const owned = new Uint8Array(buffer);
   const loadingTask = getDocument({ data: owned, verbosity: 0 });
   const pdf = await loadingTask.promise;
   try {
-    const pages: PageTextResult[] = [];
+    const pages: PageExtractResult[] = [];
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
       try {
         const content = await page.getTextContent();
-        // Group text items into lines by rounded y-coordinate (descending in
-        // PDF space = top-to-bottom visually), then join each line's items.
-        const lineMap = new Map<number, string[]>();
+        const items: PdfItem[] = [];
+        // Bucket by y, keeping {str, x} so we can sort left-to-right before
+        // joining. pdfjs stream order is not guaranteed to be left-to-right
+        // within a y-band — especially on two-column and stat-block pages.
+        const lineMap = new Map<number, Array<{ str: string; x: number }>>();
         for (const item of content.items) {
-          const it = item as { str?: string; transform?: number[] };
+          const it = item as {
+            str?: string;
+            transform?: number[];
+            width?: number;
+            height?: number;
+          };
           if (typeof it.str !== 'string' || !it.transform) continue;
-          const y = Math.round((it.transform[5] ?? 0) * 10) / 10;
-          const existing = lineMap.get(y);
-          if (existing === undefined) {
-            lineMap.set(y, [it.str]);
+          const x = it.transform[4] ?? 0;
+          const y = it.transform[5] ?? 0;
+          const width = it.width ?? 0;
+          const height = it.height ?? 0;
+          items.push({ str: it.str, x, y, width, height });
+          const yKey = Math.round(y * 10) / 10;
+          const bucket = lineMap.get(yKey);
+          if (bucket === undefined) {
+            lineMap.set(yKey, [{ str: it.str, x }]);
           } else {
-            existing.push(it.str);
+            bucket.push({ str: it.str, x });
           }
         }
         const sortedYs = [...lineMap.keys()].sort((a, b) => b - a);
-        const lines = sortedYs.map((y) =>
-          (lineMap.get(y) ?? []).join(' ').trimEnd(),
-        );
-        pages.push({ pageNumber: i, text: lines.join('\n') });
+        const lines = sortedYs.map((yKey) => {
+          const bucket = lineMap.get(yKey) ?? [];
+          bucket.sort((a, b) => a.x - b.x);
+          return bucket
+            .map((e) => e.str)
+            .join(' ')
+            .trimEnd();
+        });
+        pages.push({ pageNumber: i, text: lines.join('\n'), items });
       } finally {
         page.cleanup();
       }
@@ -311,8 +343,16 @@ function buildReadme(meta: {
     '- `test.txt` — full Vitest test suite',
     '',
     '### pdf-text/',
-    'Plain text extracted from the SRD 5.1 PDF using pdfjs-dist.',
-    '- `page-NNN.txt` — one file per page (1-based)',
+    'PDF content extracted by pdfjs-dist. Two artifacts per page:',
+    '',
+    '- `page-NNN.txt` — human-readable text: items grouped by y-coordinate,',
+    '  sorted left-to-right by x within each line. **Review aid only** — not a',
+    '  canonical parser output. On two-column and stat-block pages, items at',
+    '  the same y-baseline across columns may still interleave. Use the',
+    '  coordinate JSON (below) plus the original PDF for position-sensitive review.',
+    '- `page-NNN.items.json` — coordinate-preserving raw items: `[{str, x, y,',
+    '  width, height}, ...]` in pdfjs document stream order. Use x/y to',
+    '  reconstruct exact layout and verify field extraction from source.',
     '- `all-pages.txt` — concatenated pages with page-break markers',
     '',
     '### reports/',
@@ -503,13 +543,18 @@ async function main(): Promise<void> {
     `  ${unicodeFindings.length} records with invisible hyphens or control chars`,
   );
 
-  // 9. PDF text extraction
+  // 9. PDF text extraction — plain text (x-sorted) + coordinate JSON per page
   log('Extracting PDF text (this may take a moment)...');
   const pages = await extractPdfPages(PDF_PATH);
   const pageLines: string[] = [];
   for (const page of pages) {
-    const fileName = `page-${String(page.pageNumber).padStart(3, '0')}.txt`;
-    writeFileSync(join(outDir, `pdf-text/${fileName}`), page.text, 'utf8');
+    const base = `page-${String(page.pageNumber).padStart(3, '0')}`;
+    writeFileSync(join(outDir, `pdf-text/${base}.txt`), page.text, 'utf8');
+    writeFileSync(
+      join(outDir, `pdf-text/${base}.items.json`),
+      JSON.stringify(page.items, null, 2),
+      'utf8',
+    );
     pageLines.push(
       `\n\n${'='.repeat(72)}\nPAGE ${page.pageNumber}\n${'='.repeat(72)}\n\n${page.text}`,
     );
