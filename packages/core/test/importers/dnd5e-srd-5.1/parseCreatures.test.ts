@@ -89,9 +89,11 @@ describe('parseCreatures — Goblin (small humanoid)', () => {
     expect(goblin.sourcePage).toBe(310);
   });
 
-  it('parses size, type (subtype dropped), and alignment', () => {
+  it('parses size, type (with parenthetical subtype preserved), and alignment', () => {
     expect(goblin.size).toBe('Small');
-    expect(goblin.type).toBe('humanoid');
+    // The "(goblinoid)" race/subtype qualifier is retained on the type
+    // (loreweaver-2ze) rather than collapsed to a bare "humanoid".
+    expect(goblin.type).toBe('humanoid (goblinoid)');
     expect(goblin.alignment).toBe('neutral evil');
   });
 
@@ -202,7 +204,7 @@ describe('parseCreatures — multiple stat blocks on one page', () => {
     const goblin = results.find((c) => c.name === 'Goblin');
     const wyvern = results.find((c) => c.name === 'Wyvern');
     expect(bear?.type).toBe('beast');
-    expect(goblin?.type).toBe('humanoid');
+    expect(goblin?.type).toBe('humanoid (goblinoid)');
     expect(wyvern?.type).toBe('dragon');
     // Ability scores must come from each creature's own block.
     expect(goblin?.abilityScores.strength).toBe(8);

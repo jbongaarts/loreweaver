@@ -269,6 +269,49 @@ describe('extractPdfText — heading merge', () => {
     expect(lines).not.toContain('Speed');
   });
 
+  it('separates two flush-left single-x columns across a wide page gutter (spell-list layout)', async () => {
+    // Regression for loreweaver-xbh. The SRD 5.1 "Spell Lists" pages print
+    // each class's spell names flush-left in two columns with NO wrap indent,
+    // so each real column draws from a single x. The left column sits at
+    // x≈58 and the right at x≈329 — a ≈271pt gutter. The distinct-x guard
+    // (which rejects intra-column label/value tab stops) would reject this
+    // cut because each side has only one distinct x, collapsing both columns
+    // into one y-interleaved flow: the opposite column's "Ranger Spells"
+    // header dropped into the middle of Sorcerer's cantrip list and every
+    // cantrip after the first was lost from the class index. The wide-gutter
+    // escape hatch accepts the cut so each column stays intact.
+    const pages = await extractFromOps([
+      // Right column (Sorcerer), interleaved in y with the left column.
+      { text: 'Sorcerer Spells', size: 11, x: 330, y: 200 },
+      { text: 'Cantrips (0 Level)', size: 11, x: 330, y: 220 },
+      { text: 'Acid Splash', size: 11, x: 330, y: 240 },
+      { text: 'Fire Bolt', size: 11, x: 330, y: 260 },
+      // Left column (Ranger) — single x, baselines between the right column's.
+      { text: 'Ranger Spells', size: 11, x: 60, y: 210 },
+      { text: 'Alarm', size: 11, x: 60, y: 230 },
+      { text: 'Hunters Mark', size: 11, x: 60, y: 250 },
+    ]);
+    const lines = pages[0].lines;
+    // The whole left column must precede the whole right column — the bug
+    // symptom was the two columns alternating line-by-line so "Ranger
+    // Spells" landed between "Acid Splash" and "Fire Bolt".
+    const lastLeft = Math.max(
+      lines.indexOf('Ranger Spells'),
+      lines.indexOf('Alarm'),
+      lines.indexOf('Hunters Mark'),
+    );
+    const firstRight = Math.min(
+      lines.indexOf('Sorcerer Spells'),
+      lines.indexOf('Cantrips (0 Level)'),
+      lines.indexOf('Acid Splash'),
+      lines.indexOf('Fire Bolt'),
+    );
+    expect(firstRight).toBeGreaterThanOrEqual(0);
+    expect(lastLeft).toBeLessThan(firstRight);
+    // And the right column's own reading order is intact and contiguous.
+    expect(lines.indexOf('Fire Bolt')).toBe(lines.indexOf('Acid Splash') + 1);
+  });
+
   it('picks the real page gutter even when a far-right outlier opens a larger x-gap that fails the per-side guards', async () => {
     // Regression for loreweaver-w8h. Real SRD 5.1 page 268 has the standard
     // two-column body (gutter at x≈290) PLUS one stray item out at x≈540 —

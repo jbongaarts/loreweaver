@@ -70,7 +70,9 @@ const TYPE_WORD = new RegExp(`\\b(?:${CREATURE_TYPES.join('|')})s?\\b`);
 // and the type phrase lowercased exactly as the SRD prints them, so no `i`
 // flag — that keeps body prose ("In combat, …") from matching. The type phrase
 // is captured loosely and validated against TYPE_WORD; the optional
-// parenthetical subtype is dropped; a trailing period (if any) is stripped.
+// parenthetical subtype is preserved on the emitted type (e.g. Goblin's
+// "humanoid (goblinoid)" — loreweaver-2ze); a trailing period (if any) is
+// stripped.
 const META_PATTERN = new RegExp(
   `^(${SIZE_PATTERN})\\s+([^,()]+?)(?:\\s*\\(([^)]*)\\))?,\\s*(.+?)\\.?$`,
 );
@@ -137,8 +139,17 @@ interface MetaParse {
 function parseMetaLine(line: string): MetaParse | null {
   const match = META_PATTERN.exec(line.trim());
   if (match === null) return null;
-  const type = match[2].trim();
-  if (TYPE_WORD.test(type) === false) return null;
+  const baseType = match[2].trim();
+  if (TYPE_WORD.test(baseType) === false) return null;
+  // Preserve the parenthetical race/subtype qualifier on the emitted type so
+  // "Small humanoid (goblinoid), neutral evil" yields "humanoid (goblinoid)"
+  // rather than a bare "humanoid" (loreweaver-2ze). Validation runs against the
+  // bare kind word; the subtype is reattached only when present.
+  const subtype = match[3]?.trim();
+  const type =
+    subtype !== undefined && subtype.length > 0
+      ? `${baseType} (${subtype})`
+      : baseType;
   return {
     size: match[1],
     type,
