@@ -21,7 +21,8 @@
  * silently under-extract race/subrace records.
  *
  * Scope today: spells, creatures, base classes, subclasses, features,
- * conditions, feats, hazards, actions, rules, tables, equipment, and ancestries
+ * conditions, feats, hazards, traps (emitted under the `hazard` kind), actions,
+ * rules, tables, equipment, and ancestries
  * (races + subraces). Subclasses (Champion, Life domain, …) and class /
  * subclass features parse from the same Classes-chapter slice as base classes.
  * Other SRD record kinds are tracked under `loreweaver-0m9.5` child issues;
@@ -48,6 +49,7 @@ import { parseRules } from './parseRules.js';
 import { parseSpellClassLists, parseSpells } from './parseSpells.js';
 import { parseSubclasses } from './parseSubclasses.js';
 import { parseTables } from './parseTables.js';
+import { parseTraps } from './parseTraps.js';
 import {
   type SectionAnchorOptions,
   SectionNotFoundError,
@@ -60,6 +62,7 @@ import type {
   ClassPrimaryAbilityIndex,
   CreatureExtraction,
   ImporterRunResult,
+  TrapExtraction,
 } from './types.js';
 
 /**
@@ -467,6 +470,27 @@ export const EXPECTED_SRD_5_1_ANCESTRY_NAMES: readonly string[] = [
 ];
 
 /**
+ * Sample traps the SRD 5.1 "Traps" section publishes (loreweaver-hvp). The SRD
+ * presents eight alphabetic sample traps; "Pits" is a single entry describing
+ * four variants (Simple/Hidden/Locking/Spiked) under one "Mechanical trap"
+ * subtitle, so it is one record. The real import validates the parsed trap
+ * names against this exact set (like ancestries), so a dropped, renamed, or
+ * spuriously-extracted trap fails closed by name rather than only on gross
+ * truncation. Traps are emitted under the `hazard` record kind (see
+ * `trapExtractionsToRecords`).
+ */
+export const EXPECTED_SRD_5_1_TRAP_NAMES: readonly string[] = [
+  'Collapsing Roof',
+  'Falling Net',
+  'Fire-Breathing Statue',
+  'Pits',
+  'Poison Darts',
+  'Poison Needle',
+  'Rolling Sphere',
+  'Sphere of Annihilation',
+];
+
+/**
  * Thrown when the parsed creature set fails the coverage check: an empty
  * result, a count below `minCreatureCount`, or — when the exact
  * `expectedCreatureNames` set is supplied (the real import) — any missing or
@@ -531,6 +555,20 @@ export class AncestryCoverageError extends Error {
   }
 }
 
+/**
+ * Thrown when the parsed sample-trap set fails exact SRD 5.1 name-set coverage.
+ * Like the ancestry set, the trap name set is small and stable enough to
+ * validate exactly. Distinct from `SectionNotFoundError` so callers can tell
+ * "the Traps section was found but produced the wrong traps" apart from "the
+ * section anchor didn't match".
+ */
+export class TrapCoverageError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'TrapCoverageError';
+  }
+}
+
 export interface RunImporterInput {
   /** Absolute path to the vendored SRD 5.1 PDF. */
   readonly pdfPath: string;
@@ -588,6 +626,16 @@ export interface RunImporterInput {
    * feature result is always rejected regardless of this option.
    */
   readonly minFeatureCount?: number;
+  /**
+   * Exact set of sample-trap names the Traps section must yield for the run to
+   * be accepted. When provided and the parsed names don't match it exactly, the
+   * importer throws `TrapCoverageError` naming the missing and/or unexpected
+   * traps, and writes nothing. The real-import CLI passes
+   * `EXPECTED_SRD_5_1_TRAP_NAMES`; fixture pipelines that exercise a reduced
+   * Traps section omit this (the best-effort slice already degrades to empty
+   * when the section is absent). Sample traps emit under the `hazard` kind.
+   */
+  readonly expectedTrapNames?: readonly string[];
 }
 
 /**
@@ -726,6 +774,40 @@ function validateAncestryCoverage(
   );
 }
 
+/**
+ * Fail closed on a trap result that can't be a faithful SRD 5.1 import. When the
+ * exact `expectedTrapNames` set is supplied (the real import via the CLI), the
+ * parsed trap names must match it exactly — any missing or unexpected trap is
+ * rejected, naming the specific offenders so a dropped/renamed trap (e.g. a
+ * subtitle-detection regression) or a spuriously promoted prose line trips by
+ * name. Fixture pipelines that exercise a reduced Traps section omit the set, in
+ * which case no check runs (an absent Traps section already degrades to empty
+ * via the best-effort slice). Runs after parsing and before any output is
+ * written.
+ */
+function validateTrapCoverage(
+  traps: readonly TrapExtraction[],
+  expectedTrapNames: readonly string[] | undefined,
+): void {
+  if (expectedTrapNames === undefined) return;
+  const parsedNames = new Set(traps.map((trap) => trap.name));
+  const expectedSet = new Set(expectedTrapNames);
+  const missing = expectedTrapNames.filter((name) => !parsedNames.has(name));
+  const unexpected = [...parsedNames].filter((name) => !expectedSet.has(name));
+  if (missing.length === 0 && unexpected.length === 0) return;
+
+  const parts: string[] = [];
+  if (missing.length > 0) {
+    parts.push(`missing expected trap(s): ${missing.join(', ')}`);
+  }
+  if (unexpected.length > 0) {
+    parts.push(`unexpected trap(s): ${unexpected.join(', ')}`);
+  }
+  throw new TrapCoverageError(
+    `SRD 5.1 trap coverage check failed: parsed ${traps.length} sample trap(s), expected exactly ${expectedTrapNames.length}. ${parts.join('; ')}. The Traps section may have been truncated, a trap renamed, or unrelated prose promoted. Refusing to write a pack with a drifted trap set.`,
+  );
+}
+
 export async function runImporter(
   input: RunImporterInput,
 ): Promise<ImporterRunResult> {
@@ -783,6 +865,19 @@ export async function runImporter(
   // hazard set when the anchor fails. Same shape as the multiclassing
   // best-effort fall-through below.
   const hazards = sliceSectionOrEmpty(pages, anchors.hazards, parseHazards);
+  // SRD 5.1 gamemastering "Traps" section (loreweaver-hvp). Sample traps emit
+  // under the `hazard` kind; the two trap reference tables (Trap Save DCs and
+  // Attack Bonuses; Damage Severity by Level) are reconstructed by parseTables
+  // from the same slice. Best-effort START (a fixture without a Traps section
+  // degrades to no traps), but the anchor's requireEndHeading bound still fails
+  // closed if the section starts and its end boundary ("Diseases") is missing —
+  // so the last trap's body cannot run on into Diseases/Madness/Poisons (the
+  // contamination this bead removed from Zone of Truth, loreweaver-7ok).
+  const trapPages = sliceSectionOrEmptyPages(pages, anchors.traps);
+  const traps = parseTraps(trapPages);
+  // Fail closed before any output is written when the real import (CLI) supplies
+  // the exact expected trap-name set and the parse drifts from it.
+  validateTrapCoverage(traps, input.expectedTrapNames);
   const equipmentPages = sliceSection(pages, anchors.equipment);
   // Mounts and Vehicles sits just after the Equipment chapter's tables (the
   // equipment anchor's endHeading), so it is its own slice parsed by
@@ -807,7 +902,14 @@ export async function runImporter(
     anchors.treasureTables,
   );
   const rules = parseRules(coreRulePages);
-  const tables = parseTables([...coreRulePages, ...treasureTablePages]);
+  // The two trap reference tables live in the Traps slice (loreweaver-hvp); feed
+  // it alongside the core-rules and treasure slices so parseTables reconstructs
+  // them with the same anchored row rules.
+  const tables = parseTables([
+    ...coreRulePages,
+    ...treasureTablePages,
+    ...trapPages,
+  ]);
   // Sliced after the other sections so the existing fail-closed tests trip on
   // their own anchor first. Throws SectionNotFoundError if the races anchor
   // doesn't match — ancestry is an implemented kind, so fail closed rather than
@@ -860,6 +962,7 @@ export async function runImporter(
     conditions,
     feats,
     hazards,
+    traps,
     actions,
     rules,
     tables,
@@ -880,6 +983,7 @@ export async function runImporter(
       conditions: conditions.length,
       feats: feats.length,
       hazards: hazards.length,
+      traps: traps.length,
       actions: actions.length,
       rules: rules.length,
       tables: tables.length,

@@ -41,6 +41,7 @@ import type {
   SpellExtraction,
   SubclassExtraction,
   TableExtraction,
+  TrapExtraction,
 } from './types.js';
 
 const SYSTEM_ID = 'dnd5e-srd';
@@ -475,6 +476,43 @@ export function hazardExtractionsToRecords(
   return out;
 }
 
+/**
+ * Sample traps emit under the `hazard` record kind (loreweaver-hvp). Schema
+ * fit: the SRD's "Traps" section sits in the gamemastering chapter alongside
+ * Diseases/Madness/Poisons, and a trap is — like an environmental hazard — a
+ * description-only danger, so it satisfies the same `hazard` kindSchema
+ * (`validateDnd5eHazard` requires only `description`). The `trapType`
+ * discriminator ("mechanical" | "magic") preserves the SRD subtitle and marks
+ * the record as a trap. A dedicated `trap` record kind was considered and
+ * rejected: it would force changes across the exhaustive
+ * `Record<RulesRecordKind, …>` validators and stack indexes for no schema
+ * benefit. Keyed `hazard:<slug>`; the SRD 5.1 environmental-hazard set is empty
+ * (see `parseHazards`), so there is no key collision.
+ */
+export function trapExtractionsToRecords(
+  traps: readonly TrapExtraction[],
+): RulesRecord[] {
+  const out: RulesRecord[] = traps.map((trap) => {
+    const data: Record<string, unknown> = {
+      trapType: trap.trapType,
+      description: trap.description,
+    };
+    const record: RulesRecord = {
+      systemId: SYSTEM_ID,
+      kind: 'hazard',
+      key: hazardKey(trap.name),
+      name: trap.name,
+      data,
+      source: sourceLabelFor(trap.sourcePage),
+      license: SRD_5_1_LICENSE,
+      provenance: provenanceFor(trap.sourcePage),
+    };
+    return record;
+  });
+  out.sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+  return out;
+}
+
 export function ruleExtractionsToRecords(
   rules: readonly RuleExtraction[],
 ): RulesRecord[] {
@@ -680,6 +718,7 @@ export interface BuildPackInput {
   readonly conditions: readonly ConditionExtraction[];
   readonly feats?: readonly FeatExtraction[];
   readonly hazards?: readonly HazardExtraction[];
+  readonly traps?: readonly TrapExtraction[];
   readonly actions?: readonly ActionExtraction[];
   readonly rules?: readonly RuleExtraction[];
   readonly tables?: readonly TableExtraction[];
@@ -707,7 +746,12 @@ export function buildPack(input: BuildPackInput): RulesPack {
   const featureRecords = featureExtractionsToRecords(input.features ?? []);
   const conditionRecords = conditionExtractionsToRecords(input.conditions);
   const featRecords = featExtractionsToRecords(input.feats ?? []);
-  const hazardRecords = hazardExtractionsToRecords(input.hazards ?? []);
+  // Environmental hazards (empty for SRD 5.1) and sample traps both emit under
+  // the `hazard` kind (loreweaver-hvp); concatenate before the shared sort.
+  const hazardRecords = [
+    ...hazardExtractionsToRecords(input.hazards ?? []),
+    ...trapExtractionsToRecords(input.traps ?? []),
+  ];
   const actionRecords = actionExtractionsToRecords(input.actions ?? []);
   const ruleRecords = ruleExtractionsToRecords(input.rules ?? []);
   const tableRecords = tableExtractionsToRecords(input.tables ?? []);

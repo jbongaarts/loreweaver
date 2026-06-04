@@ -23,6 +23,7 @@ import {
   FeatureCoverageError,
   runImporter,
   SubclassCoverageError,
+  TrapCoverageError,
 } from '../../../scripts/importers/dnd5e-srd-5.1/index.js';
 import { SectionNotFoundError } from '../../../scripts/importers/dnd5e-srd-5.1/sections.js';
 import { loadRulesPackFromDirectory } from '../../../src/internal.js';
@@ -321,9 +322,14 @@ const COMBAT_ACTIONS_PAGE_MISSING_END: FixturePage = {
   ],
 };
 
-// Hazards fixture: mirrors the SRD "Dungeon Hazards" section (Brown Mold only
-// here; 4 hazards in the real SRD). The heading "Dungeon Hazards" matches the
-// hazards startHeading anchor; "Traps" below acts as the end heading.
+// Hazards + Traps fixture. The "Dungeon Hazards" heading matches the hazards
+// startHeading anchor (Brown Mold only here; 4 in the real SRD), and the "Traps"
+// heading below is BOTH the hazards end heading AND the traps startHeading
+// anchor (loreweaver-hvp) — mirroring the real SRD, where the gamemastering
+// "Traps" section immediately follows. The traps slice runs "Traps" → "Diseases"
+// and carries the two trap reference tables and the alphabetic sample traps
+// (one mechanical, one magic here; eight in the real SRD). Sample traps emit
+// under the `hazard` kind. En-dash ranges mirror the SRD typography.
 const HAZARDS_PAGE: FixturePage = {
   lines: [
     'Dungeon Hazards',
@@ -332,6 +338,25 @@ const HAZARDS_PAGE: FixturePage = {
     '',
     'Traps',
     'A trap can be either mechanical or magical in nature.',
+    'Trap Save DCs and Attack Bonuses',
+    'Trap Danger Save DC Attack Bonus',
+    'Setback 10–11 +3 to +5',
+    'Dangerous 12–15 +6 to +8',
+    'Deadly 16–20 +9 to +12',
+    'Damage Severity by Level',
+    'Character Level Setback Dangerous Deadly',
+    '1st–4th 1d10 2d10 4d10',
+    '5th–10th 2d10 4d10 10d10',
+    '11th–16th 4d10 10d10 18d10',
+    '17th–20th 10d10 18d10 24d10',
+    'Sample Traps',
+    'Collapsing Roof',
+    'Mechanical trap',
+    'This trap uses a trip wire to collapse an unstable section of ceiling.',
+    'Fire-Breathing Statue',
+    'Magic trap',
+    'This trap releases a magical gout of flame from a nearby statue.',
+    'Diseases',
   ],
 };
 
@@ -735,15 +760,18 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(result.counts.conditions).toBe(2);
     expect(result.counts.feats).toBe(1);
     expect(result.counts.hazards).toBe(1);
+    expect(result.counts.traps).toBe(2);
     expect(result.counts.actions).toBe(10);
     expect(result.counts.rules).toBe(2);
-    expect(result.counts.tables).toBe(4);
+    // 4 prior tables + the two trap reference tables (loreweaver-hvp).
+    expect(result.counts.tables).toBe(6);
     expect(result.counts.equipment).toBe(4);
     expect(result.counts.ancestries).toBe(18);
     expect(result.sourceHash).toMatch(/^[0-9a-f]{64}$/);
 
     const pack = loadRulesPackFromDirectory(outDir);
-    expect(pack.records).toHaveLength(48);
+    // 48 prior records + 2 sample traps + 2 trap tables (loreweaver-hvp).
+    expect(pack.records).toHaveLength(52);
     const keys = pack.records.map((r) => r.key).sort();
     expect(keys).toContain('class:fighter');
     expect(keys).toContain('subclass:champion');
@@ -777,9 +805,15 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     // promoted as feat names by the heuristic.
     const featKeys = keys.filter((k) => k.startsWith('feat:'));
     expect(featKeys).toEqual(['feat:grappler']);
-    // Assert the hazard set is exactly Brown Mold.
+    // The `hazard` kind now holds the environmental hazard (Brown Mold) plus the
+    // sample traps, which emit under `hazard` with a `trapType` discriminator
+    // (loreweaver-hvp).
     const hazardKeys = keys.filter((k) => k.startsWith('hazard:'));
-    expect(hazardKeys).toEqual(['hazard:brown-mold']);
+    expect(hazardKeys).toEqual([
+      'hazard:brown-mold',
+      'hazard:collapsing-roof',
+      'hazard:fire-breathing-statue',
+    ]);
     const actionKeys = keys.filter((k) => k.startsWith('action:'));
     expect(actionKeys).toEqual([
       'action:attack',
@@ -797,8 +831,10 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(ruleKeys).toEqual(['rule:cover', 'rule:resting']);
     const tableKeys = keys.filter((k) => k.startsWith('table:'));
     expect(tableKeys).toEqual([
+      'table:damage-severity-by-level',
       'table:difficulty-classes',
       'table:individual-treasure-challenge-0-4',
+      'table:trap-save-dcs-and-attack-bonuses',
       'table:treasure-hoard-challenge-0-4',
       'table:xp-thresholds-by-character-level',
     ]);
@@ -895,13 +931,63 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(acidData.classes).toEqual(['Sorcerer', 'Wizard']);
 
     const hazardRecords = pack.records.filter((r) => r.kind === 'hazard');
-    expect(hazardRecords.map((r) => r.key)).toEqual(['hazard:brown-mold']);
-    expect(hazardRecords.map((r) => r.name)).toEqual(['Brown Mold']);
-    const brown = hazardRecords[0];
+    expect(hazardRecords.map((r) => r.key)).toEqual([
+      'hazard:brown-mold',
+      'hazard:collapsing-roof',
+      'hazard:fire-breathing-statue',
+    ]);
+    // The environmental hazard (Brown Mold): no trapType, and the hazards slice
+    // ends at "Traps" so no trap prose bleeds into its body.
+    const brown = pack.records.find((r) => r.key === 'hazard:brown-mold');
     const brownData = brown?.data as Record<string, unknown>;
+    expect(brownData.trapType).toBeUndefined();
     expect(brownData.description).not.toMatch(
       /A trap can be either mechanical or magical in nature\./,
     );
+
+    // Sample traps emit under `hazard` with a `trapType` discriminator; the
+    // traps slice ends at "Diseases", so the magic trap's body stops there.
+    const collapsing = pack.records.find(
+      (r) => r.key === 'hazard:collapsing-roof',
+    );
+    expect(collapsing?.name).toBe('Collapsing Roof');
+    const collapsingData = collapsing?.data as Record<string, unknown>;
+    expect(collapsingData.trapType).toBe('mechanical');
+    expect(collapsingData.description).toMatch(/trip wire/);
+    const statue = pack.records.find(
+      (r) => r.key === 'hazard:fire-breathing-statue',
+    );
+    const statueData = statue?.data as Record<string, unknown>;
+    expect(statueData.trapType).toBe('magic');
+    expect(statueData.description).not.toMatch(/Diseases/);
+
+    // The two trap reference tables reconstruct from the same slice.
+    const trapSaveDcs = pack.records.find(
+      (r) => r.key === 'table:trap-save-dcs-and-attack-bonuses',
+    );
+    expect(trapSaveDcs?.kind).toBe('table');
+    const trapSaveData = trapSaveDcs?.data as Record<string, unknown>;
+    expect(trapSaveData.columns).toEqual([
+      'Trap Danger',
+      'Save DC',
+      'Attack Bonus',
+    ]);
+    expect(trapSaveData.rows).toEqual([
+      ['Setback', '10–11', '+3 to +5'],
+      ['Dangerous', '12–15', '+6 to +8'],
+      ['Deadly', '16–20', '+9 to +12'],
+    ]);
+    const damageSeverity = pack.records.find(
+      (r) => r.key === 'table:damage-severity-by-level',
+    );
+    const damageData = damageSeverity?.data as Record<string, unknown>;
+    expect(damageData.columns).toEqual([
+      'Character Level',
+      'Setback',
+      'Dangerous',
+      'Deadly',
+    ]);
+    expect((damageData.rows as unknown[]).length).toBe(4);
 
     const mm = pack.records.find((r) => r.key === 'spell:magic-missile');
     const mmData = mm?.data as Record<string, unknown>;
@@ -1409,6 +1495,80 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
 
     const result = await runImporter({ pdfPath, outDir });
     expect(result.counts.hazards).toBe(0);
+  });
+
+  it('succeeds with traps=0 when the Traps section is absent entirely (best-effort)', async () => {
+    // Like hazards, a Traps section absent from the source degrades to no traps
+    // rather than failing — the fixture omits HAZARDS_PAGE (which carries the
+    // "Traps" heading), so the traps start anchor must not match anywhere
+    // (loreweaver-hvp).
+    const workDir = makeTmpDir();
+    const pdfPath = join(workDir, 'fixture.pdf');
+    const outDir = join(workDir, 'pack');
+    await writeFixturePdf(pdfPath, [
+      RACES_PAGE,
+      CLASSES_PAGE,
+      CORE_RULES_PAGE_ONE,
+      CORE_RULES_PAGE_TWO,
+      CORE_RULES_TABLES_PAGE,
+      SPELL_LISTS_PAGE,
+      SPELLS_PAGE,
+      MONSTERS_PAGE,
+      TREASURE_TABLES_PAGE,
+      MAGIC_ITEMS_PAGE,
+      COMBAT_ACTIONS_PAGE,
+      MAKING_AN_ATTACK_PAGE,
+      // No HAZARDS_PAGE — neither the hazards nor the traps start anchor matches.
+      FEATS_PAGE,
+      EQUIPMENT_PAGE,
+      MULTICLASSING_PAGE,
+      CONDITIONS_PAGE,
+    ]);
+
+    const result = await runImporter({ pdfPath, outDir });
+    expect(result.counts.traps).toBe(0);
+  });
+
+  it('fails closed when the expected trap-name set is supplied but the parse drifts', async () => {
+    // The real import (CLI / verify) passes the exact EXPECTED_SRD_5_1_TRAP_NAMES
+    // set. The fixture's Traps section yields only two sample traps, so a run
+    // demanding the full eight-name set must throw and write nothing
+    // (loreweaver-hvp).
+    const workDir = makeTmpDir();
+    const pdfPath = join(workDir, 'fixture.pdf');
+    const outDir = join(workDir, 'pack');
+    await writeFixturePdf(pdfPath, [
+      RACES_PAGE,
+      CLASSES_PAGE,
+      CORE_RULES_PAGE_ONE,
+      CORE_RULES_PAGE_TWO,
+      CORE_RULES_TABLES_PAGE,
+      SPELL_LISTS_PAGE,
+      SPELLS_PAGE,
+      MONSTERS_PAGE,
+      TREASURE_TABLES_PAGE,
+      MAGIC_ITEMS_PAGE,
+      COMBAT_ACTIONS_PAGE,
+      MAKING_AN_ATTACK_PAGE,
+      HAZARDS_PAGE,
+      FEATS_PAGE,
+      EQUIPMENT_PAGE,
+      MULTICLASSING_PAGE,
+      CONDITIONS_PAGE,
+    ]);
+
+    await expect(
+      runImporter({
+        pdfPath,
+        outDir,
+        expectedTrapNames: [
+          'Collapsing Roof',
+          'Fire-Breathing Statue',
+          'Poison Needle',
+          'Sphere of Annihilation',
+        ],
+      }),
+    ).rejects.toThrow(TrapCoverageError);
   });
 
   it('succeeds with no treasure tables emitted when the treasure section is absent entirely (best-effort)', async () => {

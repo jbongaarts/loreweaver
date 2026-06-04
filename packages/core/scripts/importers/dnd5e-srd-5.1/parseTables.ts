@@ -5,13 +5,15 @@
  * deliberately narrow: row-regex reconstruction for the simple reference
  * tables and column-block reconstruction for the treasure challenge tables.
  *
- * Of the families below, only Difficulty Classes is actually present in the
- * vendored SRD 5.1 PDF ("Typical Difficulty Classes", p77). The XP-threshold
+ * Of the families below, three are actually present in the vendored SRD 5.1
+ * PDF: Difficulty Classes ("Typical Difficulty Classes", p77) and the two trap
+ * reference tables — Trap Save DCs and Attack Bonuses, and Damage Severity by
+ * Level (p196, fed in via the `traps` slice; loreweaver-hvp). The XP-threshold
  * and treasure-table reconstruction rules match no section in that source and
  * emit nothing for the canonical pack; they are retained (and unit-tested) for
- * fixtures and future editions, mirroring the retained `hazards` /
- * `treasureTables` section anchors. See the importer README's
- * "Reference-table coverage" section (loreweaver-46m).
+ * fixtures and future editions, mirroring the retained `treasureTables` section
+ * anchor. See the importer README's "Reference-table coverage" section
+ * (loreweaver-46m, loreweaver-hvp).
  */
 
 import type { PageText, TableExtraction } from './types.js';
@@ -93,6 +95,66 @@ function parseDifficultyClasses(
   return {
     name: 'Difficulty Classes',
     columns: ['Task Difficulty', 'DC'],
+    rows,
+    sourcePage: anchor.page,
+  };
+}
+
+// Both trap reference tables live in the gamemastering "Traps" section (p196),
+// fed into `parseTables` via the `traps` slice (loreweaver-hvp). Each is a
+// fixed-row table whose cells survive PDF extraction as one space-separated
+// line, so a per-row regex reconstructs them deterministically — the same shape
+// as Difficulty Classes. Cell text is preserved verbatim, including the en-dash
+// ranges ("10–11", "1st–4th"), which are legitimate SRD punctuation.
+const TRAP_SAVE_DCS_ANCHOR = /^Trap Save DCs and Attack Bonuses$/i;
+const TRAP_SAVE_DCS_ROW =
+  /^(Setback|Dangerous|Deadly)\s+(\d+\s*[-–—]\s*\d+)\s+(\+\d+ to \+\d+)$/i;
+
+function parseTrapSaveDcRow(
+  line: string,
+): readonly [string, string, string] | undefined {
+  const match = TRAP_SAVE_DCS_ROW.exec(line);
+  if (match === null) return undefined;
+  return [match[1], match[2], match[3]];
+}
+
+function parseTrapSaveDcs(
+  flat: readonly FlatLine[],
+): TableExtraction | undefined {
+  const anchor = findAnchor(flat, TRAP_SAVE_DCS_ANCHOR);
+  if (anchor === undefined) return undefined;
+  const rows = collectRows(flat, anchor.idx + 1, parseTrapSaveDcRow);
+  if (rows.length === 0) return undefined;
+  return {
+    name: 'Trap Save DCs and Attack Bonuses',
+    columns: ['Trap Danger', 'Save DC', 'Attack Bonus'],
+    rows,
+    sourcePage: anchor.page,
+  };
+}
+
+const DAMAGE_SEVERITY_ANCHOR = /^Damage Severity by Level$/i;
+const DAMAGE_SEVERITY_ROW =
+  /^(\d+(?:st|nd|rd|th)\s*[-–—]\s*\d+(?:st|nd|rd|th))\s+(\d+d\d+)\s+(\d+d\d+)\s+(\d+d\d+)$/i;
+
+function parseDamageSeverityRow(
+  line: string,
+): readonly [string, string, string, string] | undefined {
+  const match = DAMAGE_SEVERITY_ROW.exec(line);
+  if (match === null) return undefined;
+  return [match[1], match[2], match[3], match[4]];
+}
+
+function parseDamageSeverity(
+  flat: readonly FlatLine[],
+): TableExtraction | undefined {
+  const anchor = findAnchor(flat, DAMAGE_SEVERITY_ANCHOR);
+  if (anchor === undefined) return undefined;
+  const rows = collectRows(flat, anchor.idx + 1, parseDamageSeverityRow);
+  if (rows.length === 0) return undefined;
+  return {
+    name: 'Damage Severity by Level',
+    columns: ['Character Level', 'Setback', 'Dangerous', 'Deadly'],
     rows,
     sourcePage: anchor.page,
   };
@@ -297,6 +359,8 @@ export function parseTables(pages: readonly PageText[]): TableExtraction[] {
   const flat = flatten(pages);
   const tables = [
     parseDifficultyClasses(flat),
+    parseTrapSaveDcs(flat),
+    parseDamageSeverity(flat),
     parseXpThresholds(flat),
     ...parseTreasureTables(flat),
   ].filter((table): table is TableExtraction => table !== undefined);

@@ -37,6 +37,25 @@ const DIFFICULTY_CLASSES_PAGE = page(77, [
   'Every task that a character or monster might attempt is covered by one of the six abilities.',
 ]);
 
+// The two trap reference tables from the SRD 5.1 gamemastering "Traps" section
+// (p196). Both are present in the vendored SRD 5.1 source and emitted into the
+// canonical pack (loreweaver-hvp). En-dash ranges mirror the SRD typography.
+const TRAP_TABLES_PAGE = page(196, [
+  'Trap Save DCs and Attack Bonuses',
+  'Trap Danger Save DC Attack Bonus',
+  'Setback 10–11 +3 to +5',
+  'Dangerous 12–15 +6 to +8',
+  'Deadly 16–20 +9 to +12',
+  'Damage Severity by Level',
+  'Character Level Setback Dangerous Deadly',
+  '1st–4th 1d10 2d10 4d10',
+  '5th–10th 2d10 4d10 10d10',
+  '11th–16th 4d10 10d10 18d10',
+  '17th–20th 10d10 18d10 24d10',
+  'Complex Traps',
+  'Complex traps work like standard traps, except once activated they execute',
+]);
+
 const ENCOUNTER_THRESHOLDS_PAGE = page(84, [
   'XP Thresholds by Character Level',
   'Character Level',
@@ -139,6 +158,41 @@ describe('parseTables', () => {
         sourcePage: 77,
       },
     ]);
+  });
+
+  it('reconstructs the two trap reference tables (loreweaver-hvp)', () => {
+    const tables = parseTables([TRAP_TABLES_PAGE]);
+    // Sorted by name: Damage Severity by Level, then Trap Save DCs.
+    expect(tables).toEqual([
+      {
+        name: 'Damage Severity by Level',
+        columns: ['Character Level', 'Setback', 'Dangerous', 'Deadly'],
+        rows: [
+          ['1st–4th', '1d10', '2d10', '4d10'],
+          ['5th–10th', '2d10', '4d10', '10d10'],
+          ['11th–16th', '4d10', '10d10', '18d10'],
+          ['17th–20th', '10d10', '18d10', '24d10'],
+        ],
+        sourcePage: 196,
+      },
+      {
+        name: 'Trap Save DCs and Attack Bonuses',
+        columns: ['Trap Danger', 'Save DC', 'Attack Bonus'],
+        rows: [
+          ['Setback', '10–11', '+3 to +5'],
+          ['Dangerous', '12–15', '+6 to +8'],
+          ['Deadly', '16–20', '+9 to +12'],
+        ],
+        sourcePage: 196,
+      },
+    ]);
+  });
+
+  it('stops each trap table at the next heading (no row over-capture)', () => {
+    const tables = parseTables([TRAP_TABLES_PAGE]);
+    const damage = tables.find((t) => t.name === 'Damage Severity by Level');
+    // "Complex Traps" and its prose must not be captured as rows.
+    expect(damage?.rows).toHaveLength(4);
   });
 
   it('extracts the multi-column encounter XP threshold table', () => {
