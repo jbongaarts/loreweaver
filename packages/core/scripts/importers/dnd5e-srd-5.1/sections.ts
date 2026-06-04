@@ -331,6 +331,25 @@ export const SRD_5_1_DEFAULT_SECTION_ANCHORS = {
     requireEndHeading: true,
     matchHeadings: true,
   },
+  // SRD 5.1 "Mounts and Vehicles" section (p71), which sits immediately after
+  // the Equipment chapter's tables (the `equipment` anchor ends here). It holds
+  // the Mounts and Other Animals, Tack/Harness/Drawn Vehicles, and Waterborne
+  // Vehicles tables, and closes at the next section heading "Trade Goods" (the
+  // end anchor narrows the slice when present). The string "Mounts and Vehicles"
+  // also occurs as body prose later (p84), so matchHeadings keeps the anchor on
+  // the real section heading. Unlike the fail-closed kinds, requireEndHeading is
+  // intentionally left off: `parseMountsAndVehicles` is internally header-bounded
+  // (each sub-table is keyed off its own "Item Cost …" column header and stops
+  // at the next sub-table title or first non-matching row), so a slice that runs
+  // to EOF cannot over-extract. This also lets reduced fixture PDFs that carry a
+  // bare "Mounts and Vehicles" chapter terminator (with no Trade Goods after)
+  // degrade to no records instead of throwing.
+  mountsAndVehicles: {
+    startHeading: /^Mounts and Vehicles$/,
+    endHeading:
+      /^(Trade Goods|Expenses|Selling Treasure|Spellcasting|Using Ability Scores|Adventuring|Combat|Monsters|Magic Items|Feats)$/i,
+    matchHeadings: true,
+  },
   // SRD 5.1 "Monsters" chapter (p254). End anchor matches the conditions
   // appendix that follows the monsters alphabetic chapter, so trailing
   // appendix text doesn't leak into the creature parser.
@@ -393,6 +412,7 @@ export type Srd51SectionAnchors = {
   readonly combatActions: SectionAnchorOptions;
   readonly monsters: SectionAnchorOptions;
   readonly miscellaneousCreatures: SectionAnchorOptions;
+  readonly mountsAndVehicles: SectionAnchorOptions;
   readonly conditions: SectionAnchorOptions;
   readonly feats: SectionAnchorOptions;
   readonly hazards: SectionAnchorOptions;

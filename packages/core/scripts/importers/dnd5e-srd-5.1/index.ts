@@ -39,7 +39,7 @@ import { parseAncestries } from './parseAncestries.js';
 import { parseClasses } from './parseClasses.js';
 import { parseConditions } from './parseConditions.js';
 import { parseCreatures } from './parseCreatures.js';
-import { parseEquipment } from './parseEquipment.js';
+import { parseEquipment, parseMountsAndVehicles } from './parseEquipment.js';
 import { parseFeats } from './parseFeats.js';
 import { parseFeatures } from './parseFeatures.js';
 import { parseHazards } from './parseHazards.js';
@@ -784,7 +784,23 @@ export async function runImporter(
   // best-effort fall-through below.
   const hazards = sliceSectionOrEmpty(pages, anchors.hazards, parseHazards);
   const equipmentPages = sliceSection(pages, anchors.equipment);
-  const equipment = parseEquipment(equipmentPages);
+  // Mounts and Vehicles sits just after the Equipment chapter's tables (the
+  // equipment anchor's endHeading), so it is its own slice parsed by
+  // parseMountsAndVehicles and concatenated with the equipment records
+  // (loreweaver-4zu). Best-effort like hazards/treasure: reduced fixture PDFs
+  // that carry the Equipment chapter but no Mounts and Vehicles section degrade
+  // to no mount/vehicle records (a missing START anchor returns empty). The
+  // anchor leaves requireEndHeading off because parseMountsAndVehicles is
+  // internally header-bounded (see sections.ts), so a missing end cannot
+  // over-extract.
+  const equipment = [
+    ...parseEquipment(equipmentPages),
+    ...sliceSectionOrEmpty(
+      pages,
+      anchors.mountsAndVehicles,
+      parseMountsAndVehicles,
+    ),
+  ];
   // SRD 5.1 has no standalone treasure-tables chapter either. Best-effort.
   const treasureTablePages = sliceSectionOrEmptyPages(
     pages,

@@ -13,12 +13,21 @@
  * column-block (Strength/Stealth/Weight or Weight/Properties), with descriptive
  * prose interleaved between them; the Tools table extracts row-major. See the
  * header comment in `parseEquipment.ts`.
+ *
+ * Adventuring Gear / Container Capacity / Equipment Packs / Mounts and Vehicles
+ * (loreweaver-4zu): the Adventuring Gear table interleaves the LEFT column's
+ * cost/weight values with the RIGHT column's complete rows after a bare name
+ * run; the gear fixtures below reproduce that shape. Packs are prose bundles,
+ * and Mounts and Vehicles is parsed from its own slice by
+ * `parseMountsAndVehicles`.
  */
 
 import { describe, expect, it } from 'vitest';
 import {
+  ContainerCapacityError,
   EquipmentColumnMismatchError,
   parseEquipment,
+  parseMountsAndVehicles,
 } from '../../../scripts/importers/dnd5e-srd-5.1/parseEquipment.js';
 import type {
   EquipmentExtraction,
@@ -138,10 +147,14 @@ describe('parseEquipment — full multi-table excerpt', () => {
     }
   });
 
-  it('does not emit adventuring-gear rows (intentionally out of scope)', () => {
-    // The gear table is documented out of scope; nothing from it is emitted.
+  it('emits no gear from a fixture that has no Adventuring Gear table', () => {
+    // This excerpt carries only the armor/weapons/tools tables (no gear name
+    // run, packs, or container table), so the gear/pack collectors find nothing
+    // even though the Adventuring Gear *heading* appears as a weapons-column
+    // anchor. Gear reconstruction itself is covered by its own fixtures below.
     const categories = new Set(items.map((i) => i.category));
     expect(categories.has('gear')).toBe(false);
+    expect(categories.has('pack')).toBe(false);
   });
 
   it('records the source page for every entry', () => {
@@ -408,5 +421,253 @@ describe('parseEquipment — column-block mismatch fails closed', () => {
     expect(() => parseEquipment([weaponPage])).toThrow(
       'Weapon table column mismatch: left=2 right=1',
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Adventuring Gear (loreweaver-4zu): a bare item-name run, then the LEFT
+// column's "<cost> <weight>" values interleaved — line by line — with the RIGHT
+// column's complete rows. Four reviewed category headers (here: Ammunition,
+// Arcane focus) carry no value and are removed before the de-headered names are
+// zipped with the values. The Container Capacity table that follows is attached
+// as a verbatim `capacity` to the matching gear record.
+// ---------------------------------------------------------------------------
+
+const GEAR_PAGE = page(69, [
+  'Adventuring Gear',
+  'Item',
+  'Abacus',
+  'Acid (vial)',
+  'Ammunition', // category header — no cost cell
+  'Arrows (20)',
+  'Arcane focus', // category header — no cost cell
+  'Crystal',
+  'Backpack',
+  // Interleave region: the literal left column-header prefixes the first right
+  // row; then each line is an optional left value + an optional right row.
+  'Cost Weight Hourglass 25 gp 1 lb.',
+  '2 gp 2 lb. Hunting trap 5 gp 25 lb.', // left=Abacus, right=Hunting trap
+  '25 gp 1 lb. Ink (1 ounce bottle) 10 gp —', // left=Acid, right=Ink (dash wt)
+  '1 gp 1 lb.', // left=Arrows (20)
+  '10 gp 1 lb.', // left=Crystal
+  '2 gp 5 lb.', // left=Backpack
+  'Container Capacity',
+  'Backpack* 1 cubic foot/30 pounds of gear',
+  'Equipment Packs', // bounds the value region
+]);
+
+describe('parseEquipment — Adventuring Gear', () => {
+  const items = parseEquipment([GEAR_PAGE]);
+  const gear = items.filter((i) => i.category === 'gear');
+
+  it('zips de-headered left names with their interleaved left values', () => {
+    expect(byName(gear, 'Abacus')).toMatchObject({
+      category: 'gear',
+      cost: '2 gp',
+      weight: '2 lb.',
+    });
+    expect(byName(gear, 'Acid (vial)')).toMatchObject({
+      category: 'gear',
+      cost: '25 gp',
+      weight: '1 lb.',
+    });
+    // Sub-item under the "Arcane focus" header, value arrives several lines
+    // after its name in the interleave.
+    expect(byName(gear, 'Crystal')).toMatchObject({
+      category: 'gear',
+      cost: '10 gp',
+      weight: '1 lb.',
+    });
+  });
+
+  it('emits the right column-block rows as complete gear records', () => {
+    expect(byName(gear, 'Hunting trap')).toMatchObject({
+      category: 'gear',
+      cost: '5 gp',
+      weight: '25 lb.',
+    });
+    // Right row whose weight cell is a dash.
+    const ink = byName(gear, 'Ink (1 ounce bottle)');
+    expect(ink).toMatchObject({ category: 'gear', cost: '10 gp' });
+    expect(ink?.weight).toBeUndefined();
+  });
+
+  it('does not promote category headers or the column header to records', () => {
+    const names = new Set(gear.map((g) => g.name));
+    expect(names.has('Ammunition')).toBe(false);
+    expect(names.has('Arcane focus')).toBe(false);
+    expect(names.has('Cost Weight')).toBe(false);
+    expect(names.has('Container Capacity')).toBe(false);
+  });
+
+  it('attaches Container Capacity to the matching gear record', () => {
+    expect(byName(gear, 'Backpack')).toMatchObject({
+      category: 'gear',
+      cost: '2 gp',
+      weight: '5 lb.',
+      capacity: '1 cubic foot/30 pounds of gear',
+    });
+  });
+
+  it('throws when names and values disagree in count (extraction drift)', () => {
+    // Three de-headered names (Abacus, Acid, Arrows) but only two left values:
+    // a dropped or merged value cell must fail closed, not silently misalign.
+    const drifted = page(69, [
+      'Item',
+      'Abacus',
+      'Acid (vial)',
+      'Arrows (20)',
+      'Cost Weight Hourglass 25 gp 1 lb.',
+      '2 gp 2 lb.',
+      '25 gp 1 lb.',
+      'Equipment Packs',
+    ]);
+    expect(() => parseEquipment([drifted])).toThrow(
+      EquipmentColumnMismatchError,
+    );
+    expect(() => parseEquipment([drifted])).toThrow(
+      'Gear table column mismatch: left=3 right=2',
+    );
+  });
+
+  it('throws when a Container Capacity row matches no gear item', () => {
+    const orphanContainer = page(69, [
+      'Item',
+      'Abacus',
+      '2 gp 2 lb.',
+      'Container Capacity',
+      'Portable hole 1 cubic foot/300 pounds of gear',
+      'Equipment Packs',
+    ]);
+    expect(() => parseEquipment([orphanContainer])).toThrow(
+      ContainerCapacityError,
+    );
+    expect(() => parseEquipment([orphanContainer])).toThrow('Portable hole');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Equipment Packs: prose bundles ("<Name> Pack (<cost>). Includes <contents>.")
+// wrapped across lines; each becomes a category 'pack' record carrying the
+// price as `cost` and the (re-flowed) contents sentence as `description`.
+// ---------------------------------------------------------------------------
+
+describe('parseEquipment — Equipment Packs', () => {
+  const PACKS_PAGE = page(70, [
+    'Equipment Packs',
+    'The starting equipment you get from your class includes a',
+    'collection of useful adventuring gear, put together in a pack.',
+    'Burglar’s Pack (16 gp). Includes a backpack, a bag of 1,000',
+    'ball bearings, and a waterskin. The pack also has 50 feet of',
+    'hempen rope strapped to the side of it.',
+    'Explorer’s Pack (10 gp). Includes a backpack, a bedroll, and',
+    'a waterskin.',
+    'Tools',
+  ]);
+  const packs = parseEquipment([PACKS_PAGE]).filter(
+    (i) => i.category === 'pack',
+  );
+
+  it('emits one record per pack with the bundled price', () => {
+    expect(packs.map((p) => p.name)).toEqual([
+      'Burglar’s Pack',
+      'Explorer’s Pack',
+    ]);
+    expect(byName(packs, 'Burglar’s Pack')?.cost).toBe('16 gp');
+    expect(byName(packs, 'Explorer’s Pack')?.cost).toBe('10 gp');
+  });
+
+  it('joins wrapped continuation lines into the verbatim contents', () => {
+    expect(byName(packs, 'Burglar’s Pack')?.description).toBe(
+      'Includes a backpack, a bag of 1,000 ball bearings, and a waterskin. ' +
+        'The pack also has 50 feet of hempen rope strapped to the side of it.',
+    );
+  });
+
+  it('skips the introductory paragraph before the first pack', () => {
+    for (const p of packs) {
+      expect(p.description).not.toContain('The starting equipment');
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Mounts and Vehicles (loreweaver-4zu): parsed from its own slice. Three
+// sub-tables map to per-table categories — mounts (cost/speed/capacity),
+// tack/harness/drawn vehicles (cost/weight → gear), and waterborne vehicles
+// (cost/speed → vehicle). The non-priced "Barding ×4 ×2" row is skipped and the
+// "Saddle" sub-header's bare variants are qualified.
+// ---------------------------------------------------------------------------
+
+describe('parseMountsAndVehicles', () => {
+  const MOUNTS_PAGE = page(71, [
+    'Mounts and Vehicles',
+    'A good mount can help you move more quickly.',
+    'Mounts and Other Animals',
+    'Carrying',
+    'Item Cost Speed Capacity',
+    'Camel 50 gp 50 ft. 480 lb.',
+    'Elephant 200 gp 40 ft. 1,320 lb.',
+    'Warhorse 400 gp 60 ft. 540 lb.',
+    'Tack, Harness, and Drawn Vehicles',
+    'Item Cost Weight',
+    'Barding ×4 ×2',
+    'Bit and bridle 2 gp 1 lb.',
+    'Carriage 100 gp 600 lb.',
+    'Saddle',
+    'Military 20 gp 30 lb.',
+    'Saddlebags 4 gp 8 lb.',
+    'Stabling (per day) 5 sp —',
+    'Waterborne Vehicles',
+    'Item Cost Speed',
+    'Galley 30,000 gp 4 mph',
+    'Rowboat 50 gp 1½ mph',
+  ]);
+  const items = parseMountsAndVehicles([MOUNTS_PAGE]);
+
+  it('parses mounts with cost, speed, and carrying capacity', () => {
+    expect(byName(items, 'Camel')).toMatchObject({
+      category: 'mount',
+      cost: '50 gp',
+      speed: '50 ft.',
+      carryingCapacity: '480 lb.',
+    });
+    expect(byName(items, 'Elephant')?.carryingCapacity).toBe('1,320 lb.');
+  });
+
+  it('parses waterborne vehicles with cost and speed (mph)', () => {
+    expect(byName(items, 'Galley')).toMatchObject({
+      category: 'vehicle',
+      cost: '30,000 gp',
+      speed: '4 mph',
+    });
+    expect(byName(items, 'Rowboat')?.speed).toBe('1½ mph');
+  });
+
+  it('emits tack/harness/drawn vehicles as cost/weight gear', () => {
+    expect(byName(items, 'Carriage')).toMatchObject({
+      category: 'gear',
+      cost: '100 gp',
+      weight: '600 lb.',
+    });
+    expect(byName(items, 'Bit and bridle')?.category).toBe('gear');
+    // Dash-weight tack row carries no weight.
+    expect(byName(items, 'Stabling (per day)')?.weight).toBeUndefined();
+  });
+
+  it('qualifies Saddle sub-header variants and skips the Barding multiplier', () => {
+    expect(byName(items, 'Saddle, Military')).toMatchObject({
+      category: 'gear',
+      cost: '20 gp',
+      weight: '30 lb.',
+    });
+    // "Military" must not survive as a bare record name.
+    expect(byName(items, 'Military')).toBeUndefined();
+    // "Barding ×4 ×2" is a relative multiplier, not a priced line item.
+    expect(byName(items, 'Barding')).toBeUndefined();
+  });
+
+  it('returns an empty array for empty input', () => {
+    expect(parseMountsAndVehicles([])).toEqual([]);
   });
 });

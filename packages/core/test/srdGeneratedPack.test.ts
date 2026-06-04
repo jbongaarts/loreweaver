@@ -91,7 +91,7 @@ const EXPECTED_COUNTS_BY_KIND: Readonly<Record<string, number>> = {
   class: 12,
   condition: 15,
   creature: 296,
-  equipment: 85,
+  equipment: 218,
   feat: 1,
   feature: 144,
   rule: 10,
@@ -143,8 +143,18 @@ const EXPECTED_STABLE_KEYS: readonly string[] = [
  *   - equipment.{damageDie,damageType,properties}: weapon-only fields (37
  *     weapons); damageDie/damageType absent on the Net, whose damage cell is a
  *     dash, while every weapon carries a (possibly empty) properties list.
- *   - equipment.weight: absent on the 3 items the SRD lists with a "—" weight
- *     (the Sling and the two gaming sets).
+ *   - equipment.capacity: Container Capacity, attached to the 13 gear
+ *     containers (loreweaver-4zu).
+ *   - equipment.{speed,carryingCapacity}: Mounts and Vehicles fields —
+ *     `speed` on the 8 mounts + 6 waterborne vehicles (14), `carryingCapacity`
+ *     on the 8 mounts only (loreweaver-4zu).
+ *   - equipment.description: the 7 Equipment Pack bundles (their verbatim
+ *     contents sentence); no other equipment record carries a description
+ *     (loreweaver-4zu).
+ *   - equipment.weight: absent on the 44 records the SRD lists with no weight
+ *     cell — the items with a "—" weight (Sling, gaming sets, and many
+ *     adventuring-gear/tack rows) plus the 7 packs, 8 mounts, and 6 waterborne
+ *     vehicles (priced by speed/capacity, not weight).
  *   - spell.componentMaterials: only spells with a material (M) component.
  *   - spell.higherLevels: only spells with an "At Higher Levels" entry.
  *   - spell.ritual: only spells tagged as rituals.
@@ -163,24 +173,58 @@ const EXPECTED_PARTIAL_FIELDS: ReadonlyArray<{
   { kind: 'ancestry', field: 'subraces', missingCount: 9, totalInKind: 13 },
   { kind: 'condition', field: 'effects', missingCount: 1, totalInKind: 15 },
   { kind: 'condition', field: 'levels', missingCount: 14, totalInKind: 15 },
-  { kind: 'equipment', field: 'ac', missingCount: 72, totalInKind: 85 },
-  { kind: 'equipment', field: 'armorType', missingCount: 72, totalInKind: 85 },
-  { kind: 'equipment', field: 'damageDie', missingCount: 49, totalInKind: 85 },
-  { kind: 'equipment', field: 'damageType', missingCount: 49, totalInKind: 85 },
-  { kind: 'equipment', field: 'properties', missingCount: 48, totalInKind: 85 },
+  { kind: 'equipment', field: 'ac', missingCount: 205, totalInKind: 218 },
+  {
+    kind: 'equipment',
+    field: 'armorType',
+    missingCount: 205,
+    totalInKind: 218,
+  },
+  { kind: 'equipment', field: 'capacity', missingCount: 205, totalInKind: 218 },
+  {
+    kind: 'equipment',
+    field: 'carryingCapacity',
+    missingCount: 210,
+    totalInKind: 218,
+  },
+  {
+    kind: 'equipment',
+    field: 'damageDie',
+    missingCount: 182,
+    totalInKind: 218,
+  },
+  {
+    kind: 'equipment',
+    field: 'damageType',
+    missingCount: 182,
+    totalInKind: 218,
+  },
+  {
+    kind: 'equipment',
+    field: 'description',
+    missingCount: 211,
+    totalInKind: 218,
+  },
+  {
+    kind: 'equipment',
+    field: 'properties',
+    missingCount: 181,
+    totalInKind: 218,
+  },
+  { kind: 'equipment', field: 'speed', missingCount: 204, totalInKind: 218 },
   {
     kind: 'equipment',
     field: 'stealthDisadvantage',
-    missingCount: 72,
-    totalInKind: 85,
+    missingCount: 205,
+    totalInKind: 218,
   },
   {
     kind: 'equipment',
     field: 'strengthRequirement',
-    missingCount: 82,
-    totalInKind: 85,
+    missingCount: 215,
+    totalInKind: 218,
   },
-  { kind: 'equipment', field: 'weight', missingCount: 3, totalInKind: 85 },
+  { kind: 'equipment', field: 'weight', missingCount: 44, totalInKind: 218 },
   {
     kind: 'spell',
     field: 'componentMaterials',
@@ -330,7 +374,7 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
       return typeof data?.category === 'string' ? data.category : undefined;
     }
 
-    it('emits all three reconstructed equipment categories, not a single record', () => {
+    it('emits every reconstructed equipment category, not a single record', () => {
       const counts = new Map<string, number>();
       for (const record of equipment) {
         const cat = (record.data as { category?: unknown }).category;
@@ -338,11 +382,18 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
           counts.set(cat, (counts.get(cat) ?? 0) + 1);
         }
       }
-      // The reviewed SRD 5.1 baseline: 13 armor, 37 weapons, 35 tools.
+      // The reviewed SRD 5.1 baseline (loreweaver-3n6 + loreweaver-4zu):
+      // 13 armor, 37 weapons, 35 tools, 112 gear (99 Adventuring Gear + 13
+      // Tack/Harness/Drawn Vehicles), 7 Equipment Packs, 8 mounts, 6 waterborne
+      // vehicles.
       expect(Object.fromEntries(counts)).toEqual({
         armor: 13,
         weapon: 37,
         tool: 35,
+        gear: 112,
+        pack: 7,
+        mount: 8,
+        vehicle: 6,
       });
     });
 
@@ -375,6 +426,74 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
         weight: '3 lb.',
         properties: ['Versatile (1d10)'],
       });
+    });
+
+    // loreweaver-4zu: the Adventuring Gear table is reconstructed from two
+    // interleaved physical columns whose item names are fully separated from
+    // their cost/weight cells; these spot-checks guard the deterministic
+    // name↔value zip (a left-column item, a right-column item, a sub-item under
+    // a category header, and a Container Capacity attachment).
+    it('reconstructs Adventuring Gear cost/weight and container capacity', () => {
+      // Left-column item (its value arrives interleaved with right-column rows).
+      expect(category('equipment:backpack')).toBe('gear');
+      expect(
+        pack.records.find((r) => r.key === 'equipment:backpack')?.data,
+      ).toMatchObject({
+        category: 'gear',
+        cost: '2 gp',
+        weight: '5 lb.',
+        capacity: '1 cubic foot/30 pounds of gear',
+      });
+      // Right-column complete row.
+      expect(
+        pack.records.find((r) => r.key === 'equipment:potion-of-healing')?.data,
+      ).toMatchObject({ category: 'gear', cost: '50 gp', weight: '1/2 lb.' });
+      // Sub-item under the "Arcane focus" category header (header itself has no
+      // cost cell and must not become a record).
+      expect(
+        pack.records.find((r) => r.key === 'equipment:crystal')?.data,
+      ).toMatchObject({ category: 'gear', cost: '10 gp', weight: '1 lb.' });
+      expect(pack.records.some((r) => r.key === 'equipment:arcane-focus')).toBe(
+        false,
+      );
+    });
+
+    it('imports Mounts and Vehicles with per-table categories (loreweaver-4zu)', () => {
+      expect(
+        pack.records.find((r) => r.key === 'equipment:warhorse')?.data,
+      ).toMatchObject({
+        category: 'mount',
+        cost: '400 gp',
+        speed: '60 ft.',
+        carryingCapacity: '540 lb.',
+      });
+      expect(
+        pack.records.find((r) => r.key === 'equipment:galley')?.data,
+      ).toMatchObject({
+        category: 'vehicle',
+        cost: '30,000 gp',
+        speed: '4 mph',
+      });
+      // The Tack/Harness/Drawn Vehicles table is cost/weight gear; the "Saddle"
+      // sub-header's bare variants are qualified to "Saddle, <variant>".
+      expect(
+        pack.records.find((r) => r.key === 'equipment:saddle-military')?.data,
+      ).toMatchObject({ category: 'gear', cost: '20 gp', weight: '30 lb.' });
+      expect(
+        pack.records.find((r) => r.key === 'equipment:carriage')?.data,
+      ).toMatchObject({ category: 'gear', cost: '100 gp', weight: '600 lb.' });
+    });
+
+    it('imports Equipment Packs as priced bundles with verbatim contents', () => {
+      const burglars = pack.records.find(
+        (r) => r.key === 'equipment:burglars-pack',
+      );
+      expect(burglars?.data).toMatchObject({ category: 'pack', cost: '16 gp' });
+      const description = (burglars?.data as { description?: unknown })
+        .description;
+      expect(typeof description).toBe('string');
+      expect(description).toContain('Includes a backpack');
+      expect(description).toContain('strapped to the side of it');
     });
   });
 
