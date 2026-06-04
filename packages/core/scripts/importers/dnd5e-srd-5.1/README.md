@@ -23,8 +23,8 @@ tracked as child issues).
 | `equipment` | Implemented (218 records). Parser projects the Equipment chapter and the Mounts and Vehicles section into per-item `kind=equipment` records, all carrying `category` plus verbatim `cost`/`weight` where the source lists them: armor (13: `ac`, `armorType` from the AC cell, `stealthDisadvantage`, optional `strengthRequirement`), weapons (37: `damageDie`, `damageType`, `properties[]`), tools (35), Adventuring Gear (99) + Tack/Harness/Drawn Vehicles (13) as `category='gear'`, Equipment Packs (7: `category='pack'`, verbatim contents `description`), mounts (8: `category='mount'`, `speed`, `carryingCapacity`), and waterborne vehicles (6: `category='vehicle'`, `speed`). The real SRD 5.1 PDF extracts Armor and Weapons as two physical columns (left/right blocks zipped positionally) while Tools extracts row-major. **Adventuring Gear (loreweaver-4zu)** is the hard case: its left column's item names arrive as one bare run, then the left cost/weight values interleave line-by-line with the right column's complete rows, and four category-header rows (Ammunition, Arcane focus, Druidic focus, Holy symbol) carry no value. Reconstruction removes those four reviewed headers from the name run, then length-checks and zips the de-headered names against the left values (a mismatch throws `EquipmentColumnMismatchError('Gear', …)`); the right column's rows are self-contained. The **Container Capacity** table is attached as a verbatim `capacity` field to the matching gear record via a reviewed name-alias map (an unmatched row throws `ContainerCapacityError`). The Tack table's "Saddle" sub-header variants are qualified to "Saddle, <variant>"; its non-priced "Barding ×4 ×2" multiplier row is skipped. Section anchors: `equipment` (`startHeading: /^Equipment$/`, `requireEndHeading: true`) and `mountsAndVehicles` (`startHeading: /^Mounts and Vehicles$/`; end-bounded by "Trade Goods" but `requireEndHeading` is off because `parseMountsAndVehicles` is internally header-bounded). |
 | `feat`      | Implemented. Parser extracts feat entries (SRD 5.1: Grappler) with optional prerequisites and description text in `data.description`. Section anchor: `feats` (`startHeading: /^Feats?$\|^Feat Descriptions?$/`, `requireEndHeading: true`). |
 | `condition` | Implemented. Parser extracts all 15 SRD conditions (blinded, charmed, deafened, exhaustion, frightened, grappled, incapacitated, invisible, paralyzed, petrified, poisoned, prone, restrained, stunned, unconscious). Exhaustion carries a structured `levels` array (6 entries). Section anchor: `conditions` (`startHeading: /^Appendix A: Conditions$\|^Conditions$/`). |
-| `hazard`    | Implemented. Parser extracts the 4 SRD 5.1 environmental hazards by exact name match (Brown Mold, Green Slime, Webs, Yellow Mold). Each record carries a `description` field with re-flowed prose. Section anchor: `hazards` (`startHeading: /^Dungeon Hazards$\|^Hazards$/`, `requireEndHeading: true`). |
-| `table`     | Implemented for Difficulty Classes, XP Thresholds by Character Level, and SRD treasure challenge tables emitted as interleaved column blocks. `loreweaver-0m9.5.13` wires those treasure tables through `runImporter`; broader table completeness remains the responsibility of the full-PDF coverage audit. |
+| `hazard`    | Implemented, but emits nothing for SRD 5.1: the vendored PDF has no hazards chapter, so the canonical pack contains **zero** `hazard` records. The parser extracts environmental hazards by exact name match (Brown Mold, Green Slime, Webs, Yellow Mold), each with a `description` field of re-flowed prose, and is retained for fixtures and future editions — the orchestrator wraps the `hazards` slice in a best-effort try/catch that degrades to no records when the start anchor is absent. Section anchor: `hazards` (`startHeading: /^Dungeon Hazards$\|^Hazards$/`, `requireEndHeading: true`). |
+| `table`     | Implemented. The vendored SRD 5.1 source contains exactly one reconstructable reference table — Difficulty Classes (`table:difficulty-classes`, p77) — which is the sole `table` record in the canonical pack. The parser also retains reviewed reconstruction rules for XP Thresholds by Character Level and SRD-style treasure challenge tables (`loreweaver-0m9.5.13` wired the latter through `runImporter`), but those families are absent from the SRD 5.1 PDF and emit nothing for this source; they exist for fixtures and future editions. See "Reference-table coverage" below (loreweaver-46m). Broader table completeness remains the responsibility of the full-PDF coverage audit. |
 | `rule`      | Implemented. Parser extracts labeled rule-text sections from the SRD core-rules chapters (e.g., Cover, Resting) and stores full body text in `data.text`. Section anchor: `coreRules` (`startHeading: /^Using Ability Scores$/`, `endHeading: /^Spell Lists$/`, `requireEndHeading: true`). |
 
 The importer does **not** emit empty stubs for unimplemented kinds. Per the
@@ -220,16 +220,43 @@ sources/dnd5e-srd-5.1/SRD_CC_v5.1.pdf
 ## Reference-table coverage
 
 The table parser intentionally covers only cases whose extracted text has a
-reviewed deterministic reconstruction rule:
+reviewed deterministic reconstruction rule. Coverage splits into table families
+that are **present in the vendored SRD 5.1 source** (and therefore emitted into
+the committed canonical pack) and reconstruction rules that are **wired and
+tested but match no section in the SRD 5.1 PDF**. The latter emit nothing for
+this source; they exist for fixtures and future editions, mirroring the retained
+`hazards` / `treasureTables` section anchors (see the section-anchor notes
+below). This split is the resolution of `loreweaver-46m`: the SRD 5.1 PDF
+contains exactly one reconstructable reference table, so the earlier flat list
+over-claimed the canonical pack's coverage.
 
-| Table | Record key | Reason it is covered |
-|-------|------------|----------------------|
-| Difficulty Classes | `table:difficulty-classes` | Two-column label/DC rows reconstruct cleanly from line text. |
+### Present in the committed SRD 5.1 pack
+
+| Table | Record key | Reconstruction rule |
+|-------|------------|---------------------|
+| Difficulty Classes | `table:difficulty-classes` | Two-column label/DC rows reconstruct cleanly from line text. This is the only reference table the SRD 5.1 PDF actually contains ("Typical Difficulty Classes", p77). |
+
+The committed pack holds exactly this one `table` record.
+`srdGeneratedPack.test.ts` pins the table key/name set (and the per-kind
+`table: 1` count) so coverage cannot silently collapse or grow without a
+reviewed baseline update.
+
+### Reconstruction-capable but absent from SRD 5.1
+
+These are DM-reference / encounter-building tables that the Creative-Commons SRD
+5.1 does **not** include (they live in non-SRD sourcebooks). The parser keeps a
+reviewed reconstruction rule for each, exercised by `parseTables.test.ts` unit
+fixtures and the `pipeline.test.ts` end-to-end fixture, so a future SRD edition —
+or any other source — that *does* carry them is imported without new parser
+work. None of them emit a record from the vendored SRD 5.1 PDF.
+
+| Table | Record key | Reconstruction rule |
+|-------|------------|---------------------|
 | XP Thresholds by Character Level | `table:xp-thresholds-by-character-level` | Fixed five-column numeric threshold rows reconstruct cleanly from line text. |
 | Individual Treasure challenge tables | `table:individual-treasure-challenge-<range>` | The `treasureTables` slice is wired through `runImporter`; d100 ranges form a leading block and each currency column forms an equal-length block that can be pivoted into rows. |
 | Treasure Hoard challenge tables | `table:treasure-hoard-challenge-<range>` | The `treasureTables` slice is wired through `runImporter`; d100 ranges, coin columns, gems/art-object column, and magic-item column can be reconstructed from equal-length column blocks. Empty dash cells are stored as `null`. |
 
-Tables not covered by the current parser:
+Tables not covered by the current parser at all:
 
 | Table family | Reason deferred | Follow-up |
 |--------------|-----------------|-----------|
