@@ -385,14 +385,36 @@ export const SRD_5_1_DEFAULT_SECTION_ANCHORS = {
   // Monsters alphabetic chapter. The orchestrator parses this slice with
   // the same `parseCreatures` and concatenates the result with the main
   // Monsters slice. End anchor is the next appendix ("Appendix MM-B:
-  // Nonplayer Characters") so the NPC stat blocks (Bandit, Cultist, …)
-  // stay out of the import per the long-standing Nonplayer Characters
-  // exclusion. See loreweaver-w8h.
+  // Nonplayer Characters"), which keeps the NPC stat blocks (Bandit, Cultist,
+  // …) out of THIS slice — they are imported separately via the
+  // `nonplayerCharacters` anchor below and tagged `category: 'npc'`
+  // (loreweaver-bn0). Keeping the boundary here means the monster coverage
+  // baseline (exactly 296) is unaffected by the NPC import. See loreweaver-w8h.
   miscellaneousCreatures: {
     startHeading: /^Appendix MM-A:\s*Miscellaneous Creatures$/,
     endHeading:
       /^(Appendix MM-B|Appendix [A-Z]{0,3}-?[A-Z]?:|Open Game License|Legal Information)/i,
     requireEndHeading: true,
+    matchHeadings: true,
+  },
+  // SRD 5.1 "Appendix MM-B: Nonplayer Characters" (p395-403). This appendix
+  // holds the 21 generic NPC stat blocks (Acolyte, Bandit, Bandit Captain,
+  // Berserker, Commoner, Cultist, Druid, Guard, Knight, Mage, Noble, Priest,
+  // Scout, Spy, Thug, Veteran, …) — encounter-usable stat blocks in the exact
+  // same AC/HP/speed/ability/CR shape as the Monsters chapter, so the
+  // orchestrator parses this slice with the same `parseCreatures` (tagging the
+  // results `category: 'npc'`) and concatenates them with the monster set
+  // (loreweaver-bn0). MM-B is the SRD's last content section — the only thing
+  // after Veteran (p403) is the Open Game License / Legal Information back
+  // matter, which the extractor does not flag as a heading — so there is no
+  // trailing heading to bound the slice and it legitimately runs to EOF
+  // (requireEndHeading omitted). The trailing license prose carries no
+  // stat-block signature, so `parseCreatures` ignores it; the exact NPC
+  // name-set coverage gate (`EXPECTED_SRD_5_1_NPC_NAMES`) is what fails closed
+  // if the slice ever over- or under-extracts. matchHeadings keeps the start
+  // anchor on the real appendix heading rather than a body/TOC mention.
+  nonplayerCharacters: {
+    startHeading: /^Appendix MM-B:\s*Nonplayer Characters$/,
     matchHeadings: true,
   },
   // SRD 5.1 has no standalone "Treasure" chapter — magic items are under
@@ -431,6 +453,7 @@ export type Srd51SectionAnchors = {
   readonly combatActions: SectionAnchorOptions;
   readonly monsters: SectionAnchorOptions;
   readonly miscellaneousCreatures: SectionAnchorOptions;
+  readonly nonplayerCharacters: SectionAnchorOptions;
   readonly mountsAndVehicles: SectionAnchorOptions;
   readonly conditions: SectionAnchorOptions;
   readonly feats: SectionAnchorOptions;

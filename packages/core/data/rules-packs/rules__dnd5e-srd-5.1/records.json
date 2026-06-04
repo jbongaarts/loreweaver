@@ -2536,6 +2536,53 @@
   {
     "systemId": "dnd5e-srd",
     "kind": "creature",
+    "key": "creature:acolyte",
+    "name": "Acolyte",
+    "data": {
+      "category": "npc",
+      "size": "Medium",
+      "type": "humanoid (any race)",
+      "alignment": "any alignment",
+      "armorClass": 10,
+      "hitPoints": 9,
+      "speed": {
+        "walk": 30
+      },
+      "challengeRating": "1/4",
+      "abilityScores": {
+        "strength": 10,
+        "dexterity": 10,
+        "constitution": 10,
+        "intelligence": 10,
+        "wisdom": 14,
+        "charisma": 11
+      }
+    },
+    "source": "SRD 5.1 p. 395",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 395"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "creature",
     "key": "creature:adult-black-dragon",
     "name": "Adult Black Dragon",
     "data": {
@@ -3730,6 +3777,100 @@
   {
     "systemId": "dnd5e-srd",
     "kind": "creature",
+    "key": "creature:archmage",
+    "name": "Archmage",
+    "data": {
+      "category": "npc",
+      "size": "Medium",
+      "type": "humanoid (any race)",
+      "alignment": "any alignment",
+      "armorClass": 12,
+      "hitPoints": 99,
+      "speed": {
+        "walk": 30
+      },
+      "challengeRating": "12",
+      "abilityScores": {
+        "strength": 10,
+        "dexterity": 14,
+        "constitution": 12,
+        "intelligence": 20,
+        "wisdom": 15,
+        "charisma": 16
+      }
+    },
+    "source": "SRD 5.1 p. 395",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 395"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "creature",
+    "key": "creature:assassin",
+    "name": "Assassin",
+    "data": {
+      "category": "npc",
+      "size": "Medium",
+      "type": "humanoid (any race)",
+      "alignment": "any non-good alignment",
+      "armorClass": 15,
+      "hitPoints": 78,
+      "speed": {
+        "walk": 30
+      },
+      "challengeRating": "8",
+      "abilityScores": {
+        "strength": 11,
+        "dexterity": 16,
+        "constitution": 14,
+        "intelligence": 13,
+        "wisdom": 11,
+        "charisma": 10
+      }
+    },
+    "source": "SRD 5.1 p. 396",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 396"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "creature",
     "key": "creature:awakened-shrub",
     "name": "Awakened Shrub",
     "data": {
@@ -4055,6 +4196,100 @@
   {
     "systemId": "dnd5e-srd",
     "kind": "creature",
+    "key": "creature:bandit",
+    "name": "Bandit",
+    "data": {
+      "category": "npc",
+      "size": "Medium",
+      "type": "humanoid (any race)",
+      "alignment": "any non-lawful",
+      "armorClass": 12,
+      "hitPoints": 11,
+      "speed": {
+        "walk": 30
+      },
+      "challengeRating": "1/8",
+      "abilityScores": {
+        "strength": 11,
+        "dexterity": 12,
+        "constitution": 12,
+        "intelligence": 10,
+        "wisdom": 10,
+        "charisma": 10
+      }
+    },
+    "source": "SRD 5.1 p. 396",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 396"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "creature",
+    "key": "creature:bandit-captain",
+    "name": "Bandit Captain",
+    "data": {
+      "category": "npc",
+      "size": "Medium",
+      "type": "humanoid (any race)",
+      "alignment": "any non-lawful",
+      "armorClass": 15,
+      "hitPoints": 65,
+      "speed": {
+        "walk": 30
+      },
+      "challengeRating": "2",
+      "abilityScores": {
+        "strength": 15,
+        "dexterity": 16,
+        "constitution": 14,
+        "intelligence": 14,
+        "wisdom": 11,
+        "charisma": 14
+      }
+    },
+    "source": "SRD 5.1 p. 397",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 397"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "creature",
     "key": "creature:barbed-devil",
     "name": "Barbed Devil",
     "data": {
@@ -4282,6 +4517,53 @@
     "provenance": {
       "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
       "locator": "p. 265"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "creature",
+    "key": "creature:berserker",
+    "name": "Berserker",
+    "data": {
+      "category": "npc",
+      "size": "Medium",
+      "type": "humanoid (any race)",
+      "alignment": "any chaotic alignment",
+      "armorClass": 13,
+      "hitPoints": 67,
+      "speed": {
+        "walk": 30
+      },
+      "challengeRating": "2",
+      "abilityScores": {
+        "strength": 16,
+        "dexterity": 12,
+        "constitution": 17,
+        "intelligence": 9,
+        "wisdom": 11,
+        "charisma": 9
+      }
+    },
+    "source": "SRD 5.1 p. 397",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 397"
     }
   },
   {
@@ -5364,6 +5646,53 @@
   {
     "systemId": "dnd5e-srd",
     "kind": "creature",
+    "key": "creature:commoner",
+    "name": "Commoner",
+    "data": {
+      "category": "npc",
+      "size": "Medium",
+      "type": "humanoid (any race)",
+      "alignment": "any alignment",
+      "armorClass": 10,
+      "hitPoints": 4,
+      "speed": {
+        "walk": 30
+      },
+      "challengeRating": "0",
+      "abilityScores": {
+        "strength": 10,
+        "dexterity": 10,
+        "constitution": 10,
+        "intelligence": 10,
+        "wisdom": 10,
+        "charisma": 10
+      }
+    },
+    "source": "SRD 5.1 p. 398",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 398"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "creature",
     "key": "creature:constrictor-snake",
     "name": "Constrictor Snake",
     "data": {
@@ -5595,6 +5924,100 @@
     "provenance": {
       "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
       "locator": "p. 370"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "creature",
+    "key": "creature:cult-fanatic",
+    "name": "Cult Fanatic",
+    "data": {
+      "category": "npc",
+      "size": "Medium",
+      "type": "humanoid (any race)",
+      "alignment": "any non-good alignment",
+      "armorClass": 13,
+      "hitPoints": 33,
+      "speed": {
+        "walk": 30
+      },
+      "challengeRating": "2",
+      "abilityScores": {
+        "strength": 11,
+        "dexterity": 14,
+        "constitution": 12,
+        "intelligence": 10,
+        "wisdom": 13,
+        "charisma": 14
+      }
+    },
+    "source": "SRD 5.1 p. 398",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 398"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "creature",
+    "key": "creature:cultist",
+    "name": "Cultist",
+    "data": {
+      "category": "npc",
+      "size": "Medium",
+      "type": "humanoid (any race)",
+      "alignment": "any non-good alignment",
+      "armorClass": 12,
+      "hitPoints": 9,
+      "speed": {
+        "walk": 30
+      },
+      "challengeRating": "1/8",
+      "abilityScores": {
+        "strength": 11,
+        "dexterity": 12,
+        "constitution": 10,
+        "intelligence": 10,
+        "wisdom": 11,
+        "charisma": 10
+      }
+    },
+    "source": "SRD 5.1 p. 398",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 398"
     }
   },
   {
@@ -6106,6 +6529,53 @@
     "provenance": {
       "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
       "locator": "p. 304"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "creature",
+    "key": "creature:druid",
+    "name": "Druid",
+    "data": {
+      "category": "npc",
+      "size": "Medium",
+      "type": "humanoid (any race)",
+      "alignment": "any alignment",
+      "armorClass": 11,
+      "hitPoints": 27,
+      "speed": {
+        "walk": 30
+      },
+      "challengeRating": "2",
+      "abilityScores": {
+        "strength": 10,
+        "dexterity": 12,
+        "constitution": 13,
+        "intelligence": 12,
+        "wisdom": 15,
+        "charisma": 11
+      }
+    },
+    "source": "SRD 5.1 p. 398",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 398"
     }
   },
   {
@@ -8628,6 +9098,53 @@
   {
     "systemId": "dnd5e-srd",
     "kind": "creature",
+    "key": "creature:gladiator",
+    "name": "Gladiator",
+    "data": {
+      "category": "npc",
+      "size": "Medium",
+      "type": "humanoid (any race)",
+      "alignment": "any alignment",
+      "armorClass": 16,
+      "hitPoints": 112,
+      "speed": {
+        "walk": 30
+      },
+      "challengeRating": "5",
+      "abilityScores": {
+        "strength": 18,
+        "dexterity": 15,
+        "constitution": 16,
+        "intelligence": 10,
+        "wisdom": 12,
+        "charisma": 15
+      }
+    },
+    "source": "SRD 5.1 p. 399",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 399"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "creature",
     "key": "creature:gnoll",
     "name": "Gnoll",
     "data": {
@@ -9182,6 +9699,53 @@
     "provenance": {
       "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
       "locator": "p. 318"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "creature",
+    "key": "creature:guard",
+    "name": "Guard",
+    "data": {
+      "category": "npc",
+      "size": "Medium",
+      "type": "humanoid (any race)",
+      "alignment": "any alignment",
+      "armorClass": 16,
+      "hitPoints": 11,
+      "speed": {
+        "walk": 30
+      },
+      "challengeRating": "1/8",
+      "abilityScores": {
+        "strength": 13,
+        "dexterity": 12,
+        "constitution": 12,
+        "intelligence": 10,
+        "wisdom": 11,
+        "charisma": 10
+      }
+    },
+    "source": "SRD 5.1 p. 399",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 399"
     }
   },
   {
@@ -10211,6 +10775,53 @@
   {
     "systemId": "dnd5e-srd",
     "kind": "creature",
+    "key": "creature:knight",
+    "name": "Knight",
+    "data": {
+      "category": "npc",
+      "size": "Medium",
+      "type": "humanoid (any race)",
+      "alignment": "any alignment",
+      "armorClass": 18,
+      "hitPoints": 52,
+      "speed": {
+        "walk": 30
+      },
+      "challengeRating": "3",
+      "abilityScores": {
+        "strength": 16,
+        "dexterity": 11,
+        "constitution": 14,
+        "intelligence": 11,
+        "wisdom": 11,
+        "charisma": 15
+      }
+    },
+    "source": "SRD 5.1 p. 400",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 400"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "creature",
     "key": "creature:kobold",
     "name": "Kobold",
     "data": {
@@ -10577,6 +11188,53 @@
     "provenance": {
       "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
       "locator": "p. 326"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "creature",
+    "key": "creature:mage",
+    "name": "Mage",
+    "data": {
+      "category": "npc",
+      "size": "Medium",
+      "type": "humanoid (any race)",
+      "alignment": "any alignment",
+      "armorClass": 12,
+      "hitPoints": 40,
+      "speed": {
+        "walk": 30
+      },
+      "challengeRating": "6",
+      "abilityScores": {
+        "strength": 9,
+        "dexterity": 14,
+        "constitution": 11,
+        "intelligence": 17,
+        "wisdom": 12,
+        "charisma": 11
+      }
+    },
+    "source": "SRD 5.1 p. 400",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 400"
     }
   },
   {
@@ -11411,6 +12069,53 @@
     "provenance": {
       "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
       "locator": "p. 336"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "creature",
+    "key": "creature:noble",
+    "name": "Noble",
+    "data": {
+      "category": "npc",
+      "size": "Medium",
+      "type": "humanoid (any race)",
+      "alignment": "any alignment",
+      "armorClass": 15,
+      "hitPoints": 9,
+      "speed": {
+        "walk": 30
+      },
+      "challengeRating": "1/8",
+      "abilityScores": {
+        "strength": 11,
+        "dexterity": 12,
+        "constitution": 11,
+        "intelligence": 12,
+        "wisdom": 14,
+        "charisma": 16
+      }
+    },
+    "source": "SRD 5.1 p. 401",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 401"
     }
   },
   {
@@ -12251,6 +12956,53 @@
     "provenance": {
       "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
       "locator": "p. 386"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "creature",
+    "key": "creature:priest",
+    "name": "Priest",
+    "data": {
+      "category": "npc",
+      "size": "Medium",
+      "type": "humanoid (any race)",
+      "alignment": "any alignment",
+      "armorClass": 13,
+      "hitPoints": 27,
+      "speed": {
+        "walk": 25
+      },
+      "challengeRating": "2",
+      "abilityScores": {
+        "strength": 10,
+        "dexterity": 10,
+        "constitution": 12,
+        "intelligence": 13,
+        "wisdom": 16,
+        "charisma": 13
+      }
+    },
+    "source": "SRD 5.1 p. 401",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 401"
     }
   },
   {
@@ -13233,6 +13985,53 @@
   {
     "systemId": "dnd5e-srd",
     "kind": "creature",
+    "key": "creature:scout",
+    "name": "Scout",
+    "data": {
+      "category": "npc",
+      "size": "Medium",
+      "type": "humanoid (any race)",
+      "alignment": "any alignment",
+      "armorClass": 13,
+      "hitPoints": 16,
+      "speed": {
+        "walk": 30
+      },
+      "challengeRating": "1/2",
+      "abilityScores": {
+        "strength": 11,
+        "dexterity": 14,
+        "constitution": 12,
+        "intelligence": 11,
+        "wisdom": 13,
+        "charisma": 11
+      }
+    },
+    "source": "SRD 5.1 p. 401",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 401"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "creature",
     "key": "creature:sea-hag",
     "name": "Sea Hag",
     "data": {
@@ -13834,6 +14633,53 @@
     "provenance": {
       "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
       "locator": "p. 348"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "creature",
+    "key": "creature:spy",
+    "name": "Spy",
+    "data": {
+      "category": "npc",
+      "size": "Medium",
+      "type": "humanoid (any race)",
+      "alignment": "any alignment",
+      "armorClass": 12,
+      "hitPoints": 27,
+      "speed": {
+        "walk": 30
+      },
+      "challengeRating": "1",
+      "abilityScores": {
+        "strength": 10,
+        "dexterity": 15,
+        "constitution": 10,
+        "intelligence": 12,
+        "wisdom": 14,
+        "charisma": 16
+      }
+    },
+    "source": "SRD 5.1 p. 402",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 402"
     }
   },
   {
@@ -14446,6 +15292,53 @@
   {
     "systemId": "dnd5e-srd",
     "kind": "creature",
+    "key": "creature:thug",
+    "name": "Thug",
+    "data": {
+      "category": "npc",
+      "size": "Medium",
+      "type": "humanoid (any race)",
+      "alignment": "any non-good alignment",
+      "armorClass": 11,
+      "hitPoints": 32,
+      "speed": {
+        "walk": 30
+      },
+      "challengeRating": "1/2",
+      "abilityScores": {
+        "strength": 15,
+        "dexterity": 11,
+        "constitution": 14,
+        "intelligence": 10,
+        "wisdom": 10,
+        "charisma": 11
+      }
+    },
+    "source": "SRD 5.1 p. 402",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 402"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "creature",
     "key": "creature:tiger",
     "name": "Tiger",
     "data": {
@@ -14533,6 +15426,53 @@
     "provenance": {
       "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
       "locator": "p. 351"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "creature",
+    "key": "creature:tribal-warrior",
+    "name": "Tribal Warrior",
+    "data": {
+      "category": "npc",
+      "size": "Medium",
+      "type": "humanoid (any race)",
+      "alignment": "any alignment",
+      "armorClass": 12,
+      "hitPoints": 11,
+      "speed": {
+        "walk": 30
+      },
+      "challengeRating": "1/8",
+      "abilityScores": {
+        "strength": 13,
+        "dexterity": 11,
+        "constitution": 12,
+        "intelligence": 8,
+        "wisdom": 11,
+        "charisma": 8
+      }
+    },
+    "source": "SRD 5.1 p. 402",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 402"
     }
   },
   {
@@ -14809,6 +15749,53 @@
     "provenance": {
       "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
       "locator": "p. 354"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "creature",
+    "key": "creature:veteran",
+    "name": "Veteran",
+    "data": {
+      "category": "npc",
+      "size": "Medium",
+      "type": "humanoid (any race)",
+      "alignment": "any alignment",
+      "armorClass": 17,
+      "hitPoints": 58,
+      "speed": {
+        "walk": 30
+      },
+      "challengeRating": "3",
+      "abilityScores": {
+        "strength": 16,
+        "dexterity": 13,
+        "constitution": 14,
+        "intelligence": 10,
+        "wisdom": 11,
+        "charisma": 10
+      }
+    },
+    "source": "SRD 5.1 p. 403",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 403"
     }
   },
   {

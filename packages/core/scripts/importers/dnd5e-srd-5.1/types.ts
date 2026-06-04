@@ -302,6 +302,20 @@ export interface AncestryExtraction {
 }
 
 /**
+ * Whether a parsed stat block came from the main Monsters chapter / Appendix
+ * MM-A (`monster`) or from Appendix MM-B: Nonplayer Characters (`npc`). Both
+ * emit under the `creature` record kind (a stat block is a stat block — AC, HP,
+ * speed, ability scores, CR — and is equally encounter-usable), but the NPC
+ * provenance is preserved on the emitted record as a `data.category`
+ * discriminator so callers can tell the two sets apart and so the monster
+ * coverage baseline (`EXPECTED_SRD_5_1_CREATURE_NAMES`, exactly 296) stays
+ * distinct from the NPC coverage baseline (`EXPECTED_SRD_5_1_NPC_NAMES`). See
+ * loreweaver-bn0. Monster records carry no `category` field (the absence means
+ * "monster"); only NPC records carry `category: 'npc'`.
+ */
+export type CreatureCategory = 'monster' | 'npc';
+
+/**
  * The six 5e ability scores. Each is the raw score (1–30), not the modifier;
  * the SRD stat block prints both ("8 (−1)") but the canonical creature record
  * stores only the score.
@@ -333,6 +347,13 @@ export interface CreatureAbilityScores {
  */
 export interface CreatureExtraction {
   readonly name: string;
+  /**
+   * Provenance discriminator: `monster` for the Monsters chapter / Appendix
+   * MM-A, `npc` for Appendix MM-B: Nonplayer Characters (loreweaver-bn0). Only
+   * the `npc` value is emitted onto the record (`data.category`); monster
+   * records carry no category field.
+   */
+  readonly category: CreatureCategory;
   readonly size: string;
   readonly type: string;
   readonly alignment: string;
@@ -433,6 +454,14 @@ export interface FeatureExtraction {
 export interface ImporterCounts {
   readonly spells: number;
   readonly creatures: number;
+  /**
+   * Count of Appendix MM-B Nonplayer-Character stat blocks (loreweaver-bn0).
+   * These emit under the `creature` record kind too, so the pack's
+   * `creature` per-kind count is `creatures + npcs`; this field reports the NPC
+   * subset separately so the Monsters baseline and the NPC baseline stay
+   * legible in the importer's count output.
+   */
+  readonly npcs: number;
   readonly classes: number;
   readonly subclasses: number;
   readonly features: number;
