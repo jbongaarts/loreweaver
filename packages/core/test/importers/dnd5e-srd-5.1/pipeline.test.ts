@@ -367,9 +367,14 @@ const FEATS_PAGE: FixturePage = {
 // the Tools table extracts row-major (loreweaver-3n6). The Sling row is the
 // canonical em-dash-weight case (its Weight cell is a dash, not "N lb.") — kept
 // so the property-preservation fix is protected end-to-end through the full
-// extract → parse → emit pipeline. The Adventuring Gear table itself is out of
-// scope; the trailing "Mounts and Vehicles" line closes the chapter and matches
-// the equipment endHeading anchor.
+// extract → parse → emit pipeline. This fixture deliberately omits the
+// Adventuring Gear / Container Capacity / Equipment Packs tables and the Mounts
+// and Vehicles section; those parsers are now implemented (loreweaver-4zu) but
+// exercised by their own fixtures in `parseEquipment.test.ts`. Here the
+// "Adventuring Gear" line is only the weapons-column anchor, and the trailing
+// "Mounts and Vehicles" line just closes the chapter (it matches the equipment
+// endHeading anchor; with no Mounts content and no "Trade Goods" after it, the
+// best-effort mountsAndVehicles slice yields no records).
 const EQUIPMENT_PAGE: FixturePage = {
   lines: [
     'Equipment',

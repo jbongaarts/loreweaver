@@ -168,8 +168,24 @@ export interface TableExtraction {
   readonly sourcePage: number;
 }
 
-/** Which Equipment-chapter table an extraction came from. */
-export type EquipmentCategory = 'weapon' | 'armor' | 'tool' | 'gear';
+/**
+ * Which Equipment-chapter table an extraction came from.
+ *   - `weapon` / `armor` / `tool` / `gear`: the four Equipment-chapter tables.
+ *   - `mount`: the Mounts and Other Animals table (cost / speed / carrying
+ *     capacity), from the separate Mounts and Vehicles section.
+ *   - `vehicle`: the Waterborne Vehicles table (cost / speed). The land
+ *     "Tack, Harness, and Drawn Vehicles" table shares the gear cost/weight
+ *     shape and is emitted as `gear` (loreweaver-4zu decision).
+ *   - `pack`: an Equipment Pack bundle (cost + verbatim contents description).
+ */
+export type EquipmentCategory =
+  | 'weapon'
+  | 'armor'
+  | 'tool'
+  | 'gear'
+  | 'mount'
+  | 'vehicle'
+  | 'pack';
 
 /**
  * An equipment entry as extracted from the SRD source, before conversion to a
@@ -178,7 +194,11 @@ export type EquipmentCategory = 'weapon' | 'armor' | 'tool' | 'gear';
  * fields are present only for the matching `category`:
  *   - weapons carry `damageDie`, `damageType`, and `properties`;
  *   - armor carries `ac`, `armorType`, `stealthDisadvantage`, and (when the
- *     table lists one) `strengthRequirement`.
+ *     table lists one) `strengthRequirement`;
+ *   - gear may carry `capacity` (attached from the Container Capacity table);
+ *   - mounts carry `speed` (e.g. "50 ft.") and `carryingCapacity` (e.g.
+ *     "480 lb."); waterborne vehicles carry `speed` (e.g. "4 mph");
+ *   - packs carry a `description` (the verbatim bundled-contents sentence).
  */
 export interface EquipmentExtraction {
   readonly name: string;
@@ -201,6 +221,17 @@ export interface EquipmentExtraction {
   readonly stealthDisadvantage?: boolean;
   /** Minimum Strength score the armor requires, e.g. 15 for plate. */
   readonly strengthRequirement?: number;
+  /**
+   * Verbatim Container Capacity cell, e.g. "1 cubic foot/30 pounds of gear".
+   * Attached to the matching `gear` record from the Container Capacity table.
+   */
+  readonly capacity?: string;
+  /** Mount/vehicle speed cell, verbatim: "50 ft." (mounts) or "4 mph" (ships). */
+  readonly speed?: string;
+  /** Mount carrying-capacity cell, verbatim: "480 lb.". */
+  readonly carryingCapacity?: string;
+  /** Equipment-pack bundled-contents sentence, verbatim. */
+  readonly description?: string;
   /** 1-based page in the source PDF where the entry's row appears. */
   readonly sourcePage: number;
 }

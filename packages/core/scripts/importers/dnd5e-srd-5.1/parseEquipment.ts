@@ -2,10 +2,16 @@
  * Equipment-table parser for the D&D 5e SRD 5.1 importer.
  *
  * SRD 5.1 presents equipment as tabular data, not stat-block prose. This parser
- * projects four Equipment-chapter tables into per-item records:
+ * projects the Equipment-chapter tables (plus the separate Mounts and Vehicles
+ * section) into per-item records:
  *   - the Armor table   (Armor, Cost, Armor Class, Strength, Stealth, Weight)
  *   - the Weapons table  (Name, Cost, Damage, Weight, Properties)
  *   - the Tools table    (Item, Cost, Weight — artisan's tools, instruments, …)
+ *   - the Adventuring Gear table (Item, Cost, Weight) + Container Capacity
+ *   - the Equipment Packs prose bundles (category `pack`)
+ *   - the Mounts and Vehicles section (mounts, tack/harness/drawn vehicles,
+ *     waterborne vehicles) — parsed from a separate slice (see
+ *     `parseMountsAndVehicles`).
  *
  * Extracted-text shape (the real vendored PDF, loreweaver-3n6): the SRD 5.1
  * Armor and Weapons tables are laid out as two *physical columns* on the page,
@@ -24,17 +30,25 @@
  * The Tools table, by contrast, extracts row-major ("Smith's tools 20 gp 8 lb.")
  * and is parsed line-by-line.
  *
- * Out of scope (documented on loreweaver-3n6): the Adventuring Gear table, the
- * Container Capacity / Equipment Packs lists, and the Mounts and Vehicles
- * section. In the vendored SRD 5.1 PDF the Adventuring Gear table extracts as
- * two interleaved physical columns whose item NAMES are fully separated from
- * their cost/weight cells (the names arrive as a bare run — "Abacus", "Acid
- * (vial)", … — then the cost/weight cells arrive interleaved with the adjacent
- * column's complete rows), and several rows are category headers with no cost
- * cell at all, so the name list and the value list have different lengths.
- * There is no reliable positional pairing, and the importer's fail-closed
- * principle (ADR 0007) forbids guessing the alignment, so gear is intentionally
- * omitted rather than emitted with fabricated cost/weight pairings.
+ * Adventuring Gear (loreweaver-4zu): the gear table is the hardest of the
+ * Equipment chapter. Its two physical columns extract such that the LEFT
+ * column's item NAMES arrive first as one bare run ("Abacus", "Acid (vial)",
+ * …, "Holy water (flask)"), then the LEFT column's cost/weight cells arrive
+ * interleaved — line by line, by vertical position — with the RIGHT column's
+ * *complete* rows ("Hourglass 25 gp 1 lb."). Four of the left names are
+ * category headers with NO cost cell at all (Ammunition, Arcane focus, Druidic
+ * focus, Holy symbol), so the name run (56) is longer than the left-value run
+ * (52). Reconstruction (`collectGear`): collect the left name run; collect the
+ * left values as the leading bare "<cost> <weight>" token of each line in the
+ * interleave region; collect the right complete rows as the remainder of each
+ * line; remove the four reviewed category-header names from the name run; then
+ * the de-headered names and the left values MUST be equal in length and are
+ * zipped positionally (both preserve top-to-bottom column order). A length
+ * mismatch throws `EquipmentColumnMismatchError('Gear', …)` rather than
+ * guessing (ADR 0007). The Container Capacity table that follows is attached as
+ * a verbatim `capacity` field to the matching gear record via a reviewed
+ * name-alias map; an unmatched container row fails closed
+ * (`ContainerCapacityError`).
  */
 
 import type { EquipmentExtraction, PageText } from './types.js';
@@ -43,16 +57,18 @@ import type { EquipmentExtraction, PageText } from './types.js';
  * Thrown when a split-column table's left and right column-blocks do not pair
  * one-to-one. The Armor and Weapons tables are reconstructed by zipping their
  * left rows (Name/Cost/AC or Name/Cost/Damage) with their right rows
- * (Strength/Stealth/Weight or Weight/Properties) positionally, which is only
- * sound when both blocks have the same length. A mismatch means the extraction
- * drifted (a row was dropped, an extra line matched a column-block shape, or
- * the page layout changed); rather than guess the alignment and emit plausible
- * but wrong records, the parser fails closed per the SRD importer policy
- * (ADR 0007). The message names the table and both counts.
+ * (Strength/Stealth/Weight or Weight/Properties) positionally; the Adventuring
+ * Gear table zips its de-headered left names with its left cost/weight values.
+ * Each is only sound when both blocks have the same length. A mismatch means
+ * the extraction drifted (a row was dropped, an extra line matched a
+ * column-block shape, the page layout changed, or a gear category header was
+ * added/removed); rather than guess the alignment and emit plausible but wrong
+ * records, the parser fails closed per the SRD importer policy (ADR 0007). The
+ * message names the table and both counts.
  */
 export class EquipmentColumnMismatchError extends Error {
   constructor(
-    public readonly table: 'Armor' | 'Weapon',
+    public readonly table: 'Armor' | 'Weapon' | 'Gear',
     public readonly leftCount: number,
     public readonly rightCount: number,
   ) {
@@ -61,6 +77,25 @@ export class EquipmentColumnMismatchError extends Error {
         'The split-column extraction drifted; refusing to zip mismatched blocks.',
     );
     this.name = 'EquipmentColumnMismatchError';
+  }
+}
+
+/**
+ * Thrown when a Container Capacity row names a container that does not match any
+ * Adventuring Gear item (after the reviewed name-alias normalization). The
+ * Container Capacity table is a fixed, reviewed set of 13 containers that all
+ * also appear in the gear table; an unmatched row means the extraction drifted
+ * or the alias map is stale. Per ADR 0007 the parser fails closed rather than
+ * silently dropping a capacity it could not attach.
+ */
+export class ContainerCapacityError extends Error {
+  constructor(public readonly container: string) {
+    super(
+      `Container Capacity row "${container}" matched no Adventuring Gear item. ` +
+        'The gear/container extraction drifted or the alias map is stale; ' +
+        'refusing to drop an unattached capacity.',
+    );
+    this.name = 'ContainerCapacityError';
   }
 }
 
@@ -103,9 +138,10 @@ function armorTypeFromAc(ac: string): ArmorType {
 // carry thousands separators.
 const COST = /\d{1,3}(?:,\d{3})*\s*(?:cp|sp|ep|gp|pp)/i;
 const COST_ANCHORED = new RegExp(`\\b(${COST.source})`, 'i');
-// A weight cell, e.g. "1 lb.", "1/4 lb.", "3 lb". Fractions appear for light
-// gear/weapons (dart, sling bullets, etc.).
-const WEIGHT_CELL = /\d+(?:\/\d+)?(?:\.\d+)?\s*lb\.?/i;
+// A weight cell, e.g. "1 lb.", "1/4 lb.", "3 lb", "1½ lb.". Fractions appear
+// for light gear/weapons (dart, sling bullets, etc.) as both ASCII ("1/2") and
+// the vulgar-fraction glyphs the SRD typesets ("½", "¼", "¾").
+const WEIGHT_CELL = /(?:\d+(?:\/\d+)?[½¼¾]?|[½¼¾])(?:\.\d+)?\s*lb\.?/i;
 const WEIGHT_OR_DASH = new RegExp(`^(${WEIGHT_CELL.source}|[—–-])`, 'i');
 
 // Armor LEFT-block row tail: everything after "<name> <cost> " must be exactly
@@ -374,9 +410,397 @@ function collectTools(flat: readonly FlatLine[]): EquipmentExtraction[] {
   return out;
 }
 
+// === Adventuring Gear =====================================================
+
+// The four Adventuring Gear category-header rows carry no cost/weight cell;
+// they label the sub-items below them (Arrows, Crystal, Sprig of mistletoe,
+// Amulet, …). They appear in the left name run but have no left value, so they
+// are removed before the de-headered names are zipped with the values. This is
+// a reviewed name-set baseline (the header structure is small and fixed); if it
+// drifts the length check in `collectGear` fails closed.
+const GEAR_CATEGORY_HEADERS: ReadonlySet<string> = new Set([
+  'Ammunition',
+  'Arcane focus',
+  'Druidic focus',
+  'Holy symbol',
+]);
+
+// Section titles that bound the gear name run / value region. The name run
+// begins at the bare "Item" column header (unique to the gear table — the Tools
+// and Mounts tables print "Item Cost …") and ends at the first cost-bearing
+// line. The value/right-row interleave region ends at "Equipment Packs" (the
+// left column's values run on, by vertical position, past the gear right rows
+// and the Container Capacity rows, but stop before the Packs prose).
+const GEAR_ITEM_HEADER = /^Item$/;
+const GEAR_VALUE_REGION_END = /^(Equipment Packs|Tools)$/;
+// A left value is the leading "<cost> <weight-or-dash>" of a line in the
+// interleave region. The remainder (if any) is a right-column complete row.
+const GEAR_LEFT_VALUE = new RegExp(
+  `^(${COST.source})\\s+(${WEIGHT_CELL.source}|[—–-])`,
+  'i',
+);
+// The literal left column-header that prefixes the first interleaved line
+// ("Cost Weight Hourglass 25 gp 1 lb.").
+const GEAR_COST_WEIGHT_HEADER = /^Cost Weight\s*/;
+// A Container Capacity row: "<name>[*] <capacity>", where the capacity cell
+// carries a volume/mass-of-contents phrase and (unlike a gear row) no cost.
+const CONTAINER_ROW =
+  /^([A-Za-z][A-Za-z,'’ ]*?)\*?\s+((?:\d|[½¼¾]).*(?:cubic|gallon|pint|ounce|pounds of gear|liquid|solid).*)$/i;
+// Reviewed alias map: Container Capacity names that differ from their gear-item
+// name. Only "Bottle" (gear lists it as "Bottle, glass") differs; the other 12
+// containers match by name after the trailing "*" is stripped.
+const CONTAINER_NAME_ALIASES: ReadonlyMap<string, string> = new Map([
+  ['Bottle', 'Bottle, glass'],
+]);
+
+interface GearLeftValue {
+  readonly cost: string;
+  readonly weight?: string;
+  readonly page: number;
+}
+
+/**
+ * Collect the Adventuring Gear table and attach the Container Capacity cells.
+ *
+ * See the file header for the extracted-text shape. In one document-order pass
+ * over the interleave region this collects (a) the left column's bare values,
+ * (b) the right column's complete rows, and (c) the Container Capacity rows.
+ * The left name run is collected separately (it precedes the values). The four
+ * reviewed category headers are removed from the names, the de-headered names
+ * and the left values are length-checked and zipped, and the capacities are
+ * attached to their matching gear records.
+ */
+function collectGear(flat: readonly FlatLine[]): EquipmentExtraction[] {
+  const headerIdx = flat.findIndex(
+    (f, i) =>
+      GEAR_ITEM_HEADER.test(f.line) &&
+      i + 1 < flat.length &&
+      !COST_ANCHORED.test(flat[i + 1].line),
+  );
+  if (headerIdx === -1) {
+    return [];
+  }
+
+  // Left name run: contiguous non-empty, cost-free lines after the "Item"
+  // header, up to the first line that carries a cost cell.
+  const names: { name: string; page: number }[] = [];
+  let i = headerIdx + 1;
+  for (; i < flat.length; i++) {
+    const { line, page } = flat[i];
+    if (line.length === 0) continue;
+    if (COST_ANCHORED.test(line)) break;
+    names.push({ name: line, page });
+  }
+
+  const endIdx = flat.findIndex(
+    (f, idx) => idx >= i && GEAR_VALUE_REGION_END.test(f.line),
+  );
+  const regionEnd = endIdx === -1 ? flat.length : endIdx;
+
+  const leftValues: GearLeftValue[] = [];
+  const rightRows: EquipmentExtraction[] = [];
+  const capacities = new Map<string, string>();
+  for (let j = i; j < regionEnd; j++) {
+    const { line, page } = flat[j];
+    if (line.length === 0) continue;
+    let rest = line;
+    if (GEAR_COST_WEIGHT_HEADER.test(rest)) {
+      rest = rest.replace(GEAR_COST_WEIGHT_HEADER, '');
+    } else {
+      const value = GEAR_LEFT_VALUE.exec(rest);
+      if (value !== null) {
+        const weight = WEIGHT_CELL.test(value[2])
+          ? normalize(value[2])
+          : undefined;
+        leftValues.push({
+          cost: normalize(value[1]),
+          ...(weight === undefined ? {} : { weight }),
+          page,
+        });
+        rest = rest.slice(value[0].length).trim();
+      }
+    }
+    if (rest.length === 0) continue;
+    // A right-column gear row: "<name> <cost> <weight-or-dash>".
+    const split = splitNameAndCost(rest);
+    if (split !== undefined && WEIGHT_OR_DASH.test(split.rest)) {
+      const weight = WEIGHT_CELL.test(split.rest)
+        ? normalize(split.rest)
+        : undefined;
+      rightRows.push({
+        name: split.name,
+        category: 'gear',
+        cost: split.cost,
+        ...(weight === undefined ? {} : { weight }),
+        sourcePage: page,
+      });
+      continue;
+    }
+    // Otherwise it may be a Container Capacity row; everything else (the
+    // "Container Capacity" header, the footnote) is ignored.
+    const container = CONTAINER_ROW.exec(rest);
+    if (container !== null) {
+      const name = container[1].trim();
+      const resolved = CONTAINER_NAME_ALIASES.get(name) ?? name;
+      capacities.set(resolved, normalize(container[2]));
+    }
+  }
+
+  const items = names.filter(({ name }) => !GEAR_CATEGORY_HEADERS.has(name));
+  if (items.length !== leftValues.length) {
+    throw new EquipmentColumnMismatchError(
+      'Gear',
+      items.length,
+      leftValues.length,
+    );
+  }
+
+  const gear: EquipmentExtraction[] = items.map((item, idx) => {
+    const value = leftValues[idx];
+    return {
+      name: item.name,
+      category: 'gear',
+      cost: value.cost,
+      ...(value.weight === undefined ? {} : { weight: value.weight }),
+      sourcePage: item.page,
+    };
+  });
+  gear.push(...rightRows);
+
+  // Attach capacities; every Container Capacity row must match a gear item.
+  const byName = new Map(gear.map((g, idx) => [g.name, idx] as const));
+  for (const [name, capacity] of capacities) {
+    const idx = byName.get(name);
+    if (idx === undefined) {
+      throw new ContainerCapacityError(name);
+    }
+    gear[idx] = { ...gear[idx], capacity };
+  }
+
+  return gear;
+}
+
+// === Equipment Packs ======================================================
+
+// The Equipment Packs prose lists each pack as "<Name> Pack (<cost>). Includes
+// <contents…>." wrapped across several lines. A new pack begins at any line
+// matching this shape; lines between are continuation text joined with spaces.
+const PACK_START = /^(.+? Pack) \((\d{1,3}(?:,\d{3})*\s*gp)\)\.\s*(.*)$/;
+const PACKS_TITLE = /^Equipment Packs$/;
+const PACKS_END = /^Tools$/;
+
+/**
+ * Collect the Equipment Packs as `category: 'pack'` records. Each pack carries
+ * its verbatim bundled price as `cost` and the contents sentence as
+ * `description`. The contents are prose, not a structured table, so they are
+ * preserved verbatim (re-flowed) rather than parsed into a contents list.
+ */
+function collectEquipmentPacks(
+  flat: readonly FlatLine[],
+): EquipmentExtraction[] {
+  const titleIdx = flat.findIndex((f) => PACKS_TITLE.test(f.line));
+  if (titleIdx === -1) {
+    return [];
+  }
+  const endIdx = flat.findIndex(
+    (f, idx) => idx > titleIdx && PACKS_END.test(f.line),
+  );
+  const regionEnd = endIdx === -1 ? flat.length : endIdx;
+
+  const out: EquipmentExtraction[] = [];
+  let current:
+    | { name: string; cost: string; page: number; parts: string[] }
+    | undefined;
+  const flush = (): void => {
+    if (current === undefined) return;
+    out.push({
+      name: current.name,
+      category: 'pack',
+      cost: current.cost,
+      description: normalize(current.parts.join(' ')),
+      sourcePage: current.page,
+    });
+  };
+  for (let j = titleIdx + 1; j < regionEnd; j++) {
+    const { line, page } = flat[j];
+    if (line.length === 0) continue;
+    const start = PACK_START.exec(line);
+    if (start !== null) {
+      flush();
+      current = {
+        name: normalize(start[1]),
+        cost: normalize(start[2]),
+        page,
+        parts: start[3].length > 0 ? [start[3]] : [],
+      };
+      continue;
+    }
+    // Continuation of the current pack's contents. Lines before the first pack
+    // (the introductory paragraph) are skipped because `current` is undefined.
+    if (current !== undefined) {
+      current.parts.push(line);
+    }
+  }
+  flush();
+  return out;
+}
+
+// === Mounts and Vehicles ==================================================
+
+// The three Mounts-and-Vehicles sub-tables, each identified by its column
+// header. Mounts add a Speed and Carrying Capacity column; waterborne vehicles
+// add a Speed (in mph) column; the tack/harness/drawn-vehicle table is plain
+// cost/weight (emitted as `gear`).
+const MOUNTS_HEADER = /^Item Cost Speed Capacity$/;
+const TACK_TITLE = /^Tack, Harness, and Drawn Vehicles$/;
+const TACK_HEADER = /^Item Cost Weight$/;
+const WATERBORNE_TITLE = /^Waterborne Vehicles$/;
+const WATERBORNE_HEADER = /^Item Cost Speed$/;
+const SPEED_FT = /\d+(?:\/\d+)?[½¼¾]?\s*ft\.?/i;
+const SPEED_MPH = /\d+(?:\/\d+)?[½¼¾]?\s*mph/i;
+const CAPACITY_LB = /\d{1,3}(?:,\d{3})*[½¼¾]?\s*lb\.?/i;
+const MOUNT_ROW = new RegExp(
+  `^(.+?)\\s+(${COST.source})\\s+(${SPEED_FT.source})\\s+(${CAPACITY_LB.source})$`,
+  'i',
+);
+const WATERBORNE_ROW = new RegExp(
+  `^(.+?)\\s+(${COST.source})\\s+(${SPEED_MPH.source})$`,
+  'i',
+);
+// The "Saddle" sub-header groups four variants printed by bare adjective; each
+// is qualified to "Saddle, <variant>" so the standalone record name is
+// meaningful. Reviewed fixed set (loreweaver-4zu).
+const SADDLE_VARIANTS: ReadonlySet<string> = new Set([
+  'Exotic',
+  'Military',
+  'Pack',
+  'Riding',
+]);
+
+/** Collect the Mounts and Other Animals table (cost / speed / capacity). */
+function collectMounts(flat: readonly FlatLine[]): EquipmentExtraction[] {
+  const headerIdx = flat.findIndex((f) => MOUNTS_HEADER.test(f.line));
+  if (headerIdx === -1) {
+    return [];
+  }
+  const out: EquipmentExtraction[] = [];
+  for (let j = headerIdx + 1; j < flat.length; j++) {
+    const { line, page } = flat[j];
+    if (line.length === 0) continue;
+    const row = MOUNT_ROW.exec(line);
+    if (row === null) break;
+    out.push({
+      name: normalize(row[1]),
+      category: 'mount',
+      cost: normalize(row[2]),
+      speed: normalize(row[3]),
+      carryingCapacity: normalize(row[4]),
+      sourcePage: page,
+    });
+  }
+  return out;
+}
+
+/**
+ * Collect the Tack, Harness, and Drawn Vehicles table as `category: 'gear'`.
+ * The non-priced "Barding ×4 ×2" multiplier row (cost/weight are relative to
+ * the equivalent armor, not absolute) is skipped; the "Saddle" sub-header's
+ * four variants are qualified to "Saddle, <variant>".
+ */
+function collectTack(flat: readonly FlatLine[]): EquipmentExtraction[] {
+  const titleIdx = flat.findIndex((f) => TACK_TITLE.test(f.line));
+  if (titleIdx === -1) {
+    return [];
+  }
+  const headerIdx = flat.findIndex(
+    (f, idx) => idx > titleIdx && TACK_HEADER.test(f.line),
+  );
+  if (headerIdx === -1) {
+    return [];
+  }
+  const out: EquipmentExtraction[] = [];
+  for (let j = headerIdx + 1; j < flat.length; j++) {
+    const { line, page } = flat[j];
+    if (line.length === 0) continue;
+    if (WATERBORNE_TITLE.test(line)) break;
+    // Rows with no cost cell (the "Saddle" sub-header, "Barding ×4 ×2") are
+    // skipped: the former labels the variants below it, the latter is a
+    // multiplier note rather than a priced line item.
+    const split = splitNameAndCost(line);
+    if (split === undefined || !WEIGHT_OR_DASH.test(split.rest)) {
+      continue;
+    }
+    const weight = WEIGHT_CELL.test(split.rest)
+      ? normalize(split.rest)
+      : undefined;
+    const name = SADDLE_VARIANTS.has(split.name)
+      ? `Saddle, ${split.name}`
+      : split.name;
+    out.push({
+      name,
+      category: 'gear',
+      cost: split.cost,
+      ...(weight === undefined ? {} : { weight }),
+      sourcePage: page,
+    });
+  }
+  return out;
+}
+
+/** Collect the Waterborne Vehicles table (cost / speed in mph). */
+function collectWaterborne(flat: readonly FlatLine[]): EquipmentExtraction[] {
+  const titleIdx = flat.findIndex((f) => WATERBORNE_TITLE.test(f.line));
+  if (titleIdx === -1) {
+    return [];
+  }
+  const headerIdx = flat.findIndex(
+    (f, idx) => idx > titleIdx && WATERBORNE_HEADER.test(f.line),
+  );
+  if (headerIdx === -1) {
+    return [];
+  }
+  const out: EquipmentExtraction[] = [];
+  for (let j = headerIdx + 1; j < flat.length; j++) {
+    const { line, page } = flat[j];
+    if (line.length === 0) continue;
+    const row = WATERBORNE_ROW.exec(line);
+    if (row === null) break;
+    out.push({
+      name: normalize(row[1]),
+      category: 'vehicle',
+      cost: normalize(row[2]),
+      speed: normalize(row[3]),
+      sourcePage: page,
+    });
+  }
+  return out;
+}
+
+/**
+ * Parse the Mounts and Vehicles section from its own narrowed `PageText[]`
+ * (the `mountsAndVehicles` slice — this section sits after the Equipment
+ * chapter's `endHeading`, so it is not part of the Equipment slice). Returns
+ * mounts (`category: 'mount'`), tack/harness/drawn vehicles (`category:
+ * 'gear'`), and waterborne vehicles (`category: 'vehicle'`), sorted by name.
+ */
+export function parseMountsAndVehicles(
+  pages: readonly PageText[],
+): EquipmentExtraction[] {
+  const flat = flatten(pages);
+  const out: EquipmentExtraction[] = [
+    ...collectMounts(flat),
+    ...collectTack(flat),
+    ...collectWaterborne(flat),
+  ];
+  out.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+  return out;
+}
+
 /**
  * Parse equipment entries from the narrowed Equipment-section `PageText[]`.
- * Returns an `EquipmentExtraction[]` sorted by name.
+ * Returns an `EquipmentExtraction[]` sorted by name. The Mounts and Vehicles
+ * section is parsed separately via `parseMountsAndVehicles` (it lives outside
+ * the Equipment slice) and concatenated by the orchestrator.
  */
 export function parseEquipment(
   pages: readonly PageText[],
@@ -386,6 +810,8 @@ export function parseEquipment(
     ...collectArmor(flat),
     ...collectWeapons(flat),
     ...collectTools(flat),
+    ...collectGear(flat),
+    ...collectEquipmentPacks(flat),
   ];
   out.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
   return out;

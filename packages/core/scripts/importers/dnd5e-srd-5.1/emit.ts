@@ -580,8 +580,26 @@ function buildEquipmentData(
       data.strengthRequirement = item.strengthRequirement;
     }
   }
+  // Mounts (cost/speed/carrying-capacity) and waterborne vehicles (cost/speed)
+  // carry a verbatim `speed` cell; mounts additionally carry `carryingCapacity`.
+  if (item.category === 'mount' || item.category === 'vehicle') {
+    if (item.speed !== undefined) {
+      data.speed = item.speed;
+    }
+    if (item.carryingCapacity !== undefined) {
+      data.carryingCapacity = item.carryingCapacity;
+    }
+  }
   if (item.weight !== undefined) {
     data.weight = item.weight;
+  }
+  // Container Capacity, attached verbatim to the matching gear record.
+  if (item.capacity !== undefined) {
+    data.capacity = item.capacity;
+  }
+  // Equipment-pack bundled contents (prose), preserved verbatim.
+  if (item.category === 'pack' && item.description !== undefined) {
+    data.description = item.description;
   }
   return data;
 }
