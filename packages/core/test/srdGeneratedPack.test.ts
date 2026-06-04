@@ -94,10 +94,14 @@ const EXPECTED_COUNTS_BY_KIND: Readonly<Record<string, number>> = {
   equipment: 218,
   feat: 1,
   feature: 144,
+  // The 8 SRD 5.1 sample traps emit under the `hazard` kind (loreweaver-hvp);
+  // SRD 5.1 has no environmental hazards, so all 8 hazard records are traps.
+  hazard: 8,
   rule: 10,
   spell: 319,
   subclass: 12,
-  table: 1,
+  // Difficulty Classes + the two trap reference tables (loreweaver-hvp).
+  table: 3,
 };
 
 /**
@@ -120,11 +124,14 @@ const EXPECTED_STABLE_KEYS: readonly string[] = [
   'equipment:smiths-tools',
   'feat:grappler',
   'feature:champion:improved-critical',
+  'hazard:fire-breathing-statue',
+  'hazard:sphere-of-annihilation',
   'rule:difficult-terrain',
   'spell:fire-bolt',
   'spell:wish',
   'subclass:champion',
   'table:difficulty-classes',
+  'table:trap-save-dcs-and-attack-bonuses',
 ];
 
 /**
@@ -549,28 +556,34 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
     });
   });
 
-  // loreweaver-46m: the SRD 5.1 PDF contains exactly one reconstructable
-  // reference table — "Typical Difficulty Classes" (p77). The table parser also
-  // carries reviewed reconstruction rules for XP-threshold and treasure
+  // loreweaver-46m / loreweaver-hvp: the SRD 5.1 PDF contains exactly three
+  // reconstructable reference tables — "Typical Difficulty Classes" (p77) and
+  // the two trap tables "Trap Save DCs and Attack Bonuses" and "Damage Severity
+  // by Level" (p196, from the gamemastering Traps section). The table parser
+  // also carries reviewed reconstruction rules for XP-threshold and treasure
   // challenge tables, but those families are absent from the Creative-Commons
   // SRD 5.1 source (non-SRD DM-reference content), so none of them emit a record
   // here — they are exercised only by the importer's fixture-based unit and
   // pipeline tests. This block pins the exact committed table key/name set so
-  // coverage cannot silently collapse (Difficulty Classes dropped) or grow (an
-  // XP/treasure table appearing would mean a source or parser change that must
-  // be reviewed and rebaselined here, alongside EXPECTED_COUNTS_BY_KIND.table).
-  describe('table coverage regression baseline (loreweaver-46m)', () => {
+  // coverage cannot silently collapse (a table dropped) or grow (an XP/treasure
+  // table appearing would mean a source or parser change that must be reviewed
+  // and rebaselined here, alongside EXPECTED_COUNTS_BY_KIND.table).
+  describe('table coverage regression baseline (loreweaver-46m, loreweaver-hvp)', () => {
     const tables = pack.records.filter((record) => record.kind === 'table');
 
     it('contains exactly the reviewed table key set', () => {
       expect(tables.map((record) => record.key).sort()).toEqual([
+        'table:damage-severity-by-level',
         'table:difficulty-classes',
+        'table:trap-save-dcs-and-attack-bonuses',
       ]);
     });
 
     it('contains exactly the reviewed table name set', () => {
       expect(tables.map((record) => record.name).sort()).toEqual([
+        'Damage Severity by Level',
         'Difficulty Classes',
+        'Trap Save DCs and Attack Bonuses',
       ]);
     });
 

@@ -307,6 +307,25 @@ export const SRD_5_1_DEFAULT_SECTION_ANCHORS = {
     requireEndHeading: true,
     matchHeadings: true,
   },
+  // SRD 5.1 gamemastering "Traps" subsection. It is the heading-flagged line
+  // that immediately follows the alphabetic Spell Descriptions section (the
+  // spell slice ends here — see `spellDescriptions` and loreweaver-7ok). The
+  // section carries the general trap-running guidance, the two trap reference
+  // tables (Trap Save DCs and Attack Bonuses; Damage Severity by Level), and the
+  // alphabetic Sample Traps (Collapsing Roof … Sphere of Annihilation). It ends
+  // at the next gamemastering subsection heading ("Diseases"); the later
+  // headings stay in the alternation as defense-in-depth. requireEndHeading is
+  // true because trap (emitted as `hazard`) is now an implemented kind, so a
+  // missing end boundary must fail closed rather than run the parser past the
+  // section. matchHeadings keeps `^Traps$` on the real subsection heading rather
+  // than a body-prose mention.
+  traps: {
+    startHeading: /^Traps$/,
+    endHeading:
+      /^(Diseases|Madness|Objects|Poisons|Monsters|Magic Items|Appendix)\b/,
+    requireEndHeading: true,
+    matchHeadings: true,
+  },
   // SRD 5.1 has no "Dungeon Hazards" / "Hazards" chapter — the canonical
   // hazard set (Brown Mold, Green Slime, Webs, Yellow Mold) is absent from
   // the SRD 5.1 PDF entirely. The orchestrator wraps this anchor in a
@@ -415,6 +434,7 @@ export type Srd51SectionAnchors = {
   readonly mountsAndVehicles: SectionAnchorOptions;
   readonly conditions: SectionAnchorOptions;
   readonly feats: SectionAnchorOptions;
+  readonly traps: SectionAnchorOptions;
   readonly hazards: SectionAnchorOptions;
   readonly equipment: SectionAnchorOptions;
   readonly treasureTables: SectionAnchorOptions;

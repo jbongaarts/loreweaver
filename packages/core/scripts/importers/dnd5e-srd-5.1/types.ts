@@ -132,6 +132,26 @@ export interface HazardExtraction {
   readonly sourcePage: number;
 }
 
+/** Whether the SRD labels a sample trap "Mechanical trap" or "Magic trap". */
+export type TrapKind = 'mechanical' | 'magic';
+
+/**
+ * A sample-trap entry as extracted from the SRD 5.1 "Traps" section, before
+ * conversion to a `RulesRecord`. Traps are emitted under the `hazard` record
+ * kind (schema fit: both are description-only environmental dangers; see the
+ * importer README's hazard/trap decision note), with `trapType` preserving the
+ * SRD's "Mechanical trap" / "Magic trap" subtitle. `description` is the full
+ * body text, re-flowed into paragraphs.
+ */
+export interface TrapExtraction {
+  readonly name: string;
+  readonly trapType: TrapKind;
+  /** Full body text, re-flowed into paragraphs. */
+  readonly description: string;
+  /** 1-based page in the source PDF where the trap entry begins. */
+  readonly sourcePage: number;
+}
+
 /**
  * A rule-text entry as extracted from the SRD source, before conversion to a
  * `RulesRecord`. `text` is the full rule body, re-flowed into paragraphs.
@@ -419,6 +439,7 @@ export interface ImporterCounts {
   readonly conditions: number;
   readonly feats: number;
   readonly hazards: number;
+  readonly traps: number;
   readonly actions: number;
   readonly rules: number;
   readonly tables: number;

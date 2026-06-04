@@ -23,8 +23,8 @@ tracked as child issues).
 | `equipment` | Implemented (218 records). Parser projects the Equipment chapter and the Mounts and Vehicles section into per-item `kind=equipment` records, all carrying `category` plus verbatim `cost`/`weight` where the source lists them: armor (13: `ac`, `armorType` from the AC cell, `stealthDisadvantage`, optional `strengthRequirement`), weapons (37: `damageDie`, `damageType`, `properties[]`), tools (35), Adventuring Gear (99) + Tack/Harness/Drawn Vehicles (13) as `category='gear'`, Equipment Packs (7: `category='pack'`, verbatim contents `description`), mounts (8: `category='mount'`, `speed`, `carryingCapacity`), and waterborne vehicles (6: `category='vehicle'`, `speed`). The real SRD 5.1 PDF extracts Armor and Weapons as two physical columns (left/right blocks zipped positionally) while Tools extracts row-major. **Adventuring Gear (loreweaver-4zu)** is the hard case: its left column's item names arrive as one bare run, then the left cost/weight values interleave line-by-line with the right column's complete rows, and four category-header rows (Ammunition, Arcane focus, Druidic focus, Holy symbol) carry no value. Reconstruction removes those four reviewed headers from the name run, then length-checks and zips the de-headered names against the left values (a mismatch throws `EquipmentColumnMismatchError('Gear', …)`); the right column's rows are self-contained. The **Container Capacity** table is attached as a verbatim `capacity` field to the matching gear record via a reviewed name-alias map (an unmatched row throws `ContainerCapacityError`). The Tack table's "Saddle" sub-header variants are qualified to "Saddle, <variant>"; its non-priced "Barding ×4 ×2" multiplier row is skipped. Section anchors: `equipment` (`startHeading: /^Equipment$/`, `requireEndHeading: true`) and `mountsAndVehicles` (`startHeading: /^Mounts and Vehicles$/`; end-bounded by "Trade Goods" but `requireEndHeading` is off because `parseMountsAndVehicles` is internally header-bounded). |
 | `feat`      | Implemented. Parser extracts feat entries (SRD 5.1: Grappler) with optional prerequisites and description text in `data.description`. Section anchor: `feats` (`startHeading: /^Feats?$\|^Feat Descriptions?$/`, `requireEndHeading: true`). |
 | `condition` | Implemented. Parser extracts all 15 SRD conditions (blinded, charmed, deafened, exhaustion, frightened, grappled, incapacitated, invisible, paralyzed, petrified, poisoned, prone, restrained, stunned, unconscious). Exhaustion carries a structured `levels` array (6 entries). Section anchor: `conditions` (`startHeading: /^Appendix A: Conditions$\|^Conditions$/`). |
-| `hazard`    | Implemented, but emits nothing for SRD 5.1: the vendored PDF has no hazards chapter, so the canonical pack contains **zero** `hazard` records. The parser extracts environmental hazards by exact name match (Brown Mold, Green Slime, Webs, Yellow Mold), each with a `description` field of re-flowed prose, and is retained for fixtures and future editions — the orchestrator wraps the `hazards` slice in a best-effort try/catch that degrades to no records when the start anchor is absent. Section anchor: `hazards` (`startHeading: /^Dungeon Hazards$\|^Hazards$/`, `requireEndHeading: true`). |
-| `table`     | Implemented. The vendored SRD 5.1 source contains exactly one reconstructable reference table — Difficulty Classes (`table:difficulty-classes`, p77) — which is the sole `table` record in the canonical pack. The parser also retains reviewed reconstruction rules for XP Thresholds by Character Level and SRD-style treasure challenge tables (`loreweaver-0m9.5.13` wired the latter through `runImporter`), but those families are absent from the SRD 5.1 PDF and emit nothing for this source; they exist for fixtures and future editions. See "Reference-table coverage" below (loreweaver-46m). Broader table completeness remains the responsibility of the full-PDF coverage audit. |
+| `hazard`    | Implemented. The canonical SRD 5.1 pack carries **8** `hazard` records, all from the gamemastering "Traps" section (loreweaver-hvp): the eight alphabetic sample traps (Collapsing Roof, Falling Net, Fire-Breathing Statue, Pits, Poison Darts, Poison Needle, Rolling Sphere, Sphere of Annihilation). Traps emit under the `hazard` kind (decision below) with a `data.trapType` discriminator (`"mechanical"` \| `"magic"`, the SRD subtitle) plus a re-flowed `data.description`; "Pits" is one record describing its four inlined variants. `parseTraps` keys each entry off its name line + standalone `Mechanical trap` / `Magic trap` subtitle, so the leading trap-running guidance prose is not promoted. Section anchor: `traps` (`startHeading: /^Traps$/`, `endHeading` at `Diseases`, `requireEndHeading: true`). The real import fails closed against `EXPECTED_SRD_5_1_TRAP_NAMES` (a missing/renamed/spurious trap throws `TrapCoverageError`). The two trap reference tables emit as `table` records (see Reference-table coverage). **No `trap` record kind:** traps fit the `hazard` kindSchema exactly (a description-only environmental danger; the SRD groups Traps with Diseases/Madness/Poisons), and a new kind would force changes across the exhaustive `Record<RulesRecordKind, …>` validators/indexes for no schema benefit. SRD 5.1 has no environmental-hazard chapter (Brown Mold / Green Slime / Webs / Yellow Mold are absent), but the environmental-hazard parser (`parseHazards`, exact-name match, best-effort `hazards` anchor `/^Dungeon Hazards$\|^Hazards$/`) is retained for fixtures and future editions; it emits zero records here. The general trap-running guidance prose (Traps in Play, Triggering/Detecting/Disabling a Trap, Trap Effects, Complex Traps) is intentionally **not** emitted — DM-facing procedure, not a lookupable game entity. |
+| `table`     | Implemented. The vendored SRD 5.1 source contains exactly three reconstructable reference tables — Difficulty Classes (`table:difficulty-classes`, p77) and the two trap tables Trap Save DCs and Attack Bonuses (`table:trap-save-dcs-and-attack-bonuses`, p196) and Damage Severity by Level (`table:damage-severity-by-level`, p196, both from the gamemastering Traps slice; loreweaver-hvp) — the three `table` records in the canonical pack. The parser also retains reviewed reconstruction rules for XP Thresholds by Character Level and SRD-style treasure challenge tables (`loreweaver-0m9.5.13` wired the latter through `runImporter`), but those families are absent from the SRD 5.1 PDF and emit nothing for this source; they exist for fixtures and future editions. See "Reference-table coverage" below (loreweaver-46m, loreweaver-hvp). Broader table completeness remains the responsibility of the full-PDF coverage audit. |
 | `rule`      | Implemented. Parser extracts labeled rule-text sections from the SRD core-rules chapters (e.g., Cover, Resting) and stores full body text in `data.text`. Section anchor: `coreRules` (`startHeading: /^Using Ability Scores$/`, `endHeading: /^Spell Lists$/`, `requireEndHeading: true`). |
 
 The importer does **not** emit empty stubs for unimplemented kinds. Per the
@@ -163,8 +163,14 @@ sources/dnd5e-srd-5.1/SRD_CC_v5.1.pdf
   match against the 15 known condition names. Bullet-point lines become
   `effects[]`; exhaustion's level table becomes a structured `levels[]` array.
 - `parseHazards.ts` -- narrowed text -> `HazardExtraction[]` by exact match
-  against the 4 known SRD 5.1 hazard names (Brown Mold, Green Slime, Webs,
-  Yellow Mold). Body is re-flowed prose paragraphs.
+  against the 4 known SRD 5.1 environmental-hazard names (Brown Mold, Green
+  Slime, Webs, Yellow Mold). Body is re-flowed prose paragraphs. Emits nothing
+  for SRD 5.1 (those hazards are absent from the source).
+- `parseTraps.ts` -- narrowed "Traps"-section text -> `TrapExtraction[]` by each
+  sample trap's name line + standalone `Mechanical trap` / `Magic trap`
+  subtitle. Skips the leading trap-running guidance prose and the two trap
+  tables. Body is re-flowed prose; `trapType` records the subtitle. Emitted
+  under the `hazard` kind (loreweaver-hvp).
 - `parseRules.ts` -- narrowed core-rules text -> `RuleExtraction[]` by
   heading-style section labels (e.g. Cover, Resting). Body is re-flowed prose
   in `text`.
@@ -234,11 +240,13 @@ over-claimed the canonical pack's coverage.
 
 | Table | Record key | Reconstruction rule |
 |-------|------------|---------------------|
-| Difficulty Classes | `table:difficulty-classes` | Two-column label/DC rows reconstruct cleanly from line text. This is the only reference table the SRD 5.1 PDF actually contains ("Typical Difficulty Classes", p77). |
+| Difficulty Classes | `table:difficulty-classes` | Two-column label/DC rows reconstruct cleanly from line text ("Typical Difficulty Classes", p77). |
+| Trap Save DCs and Attack Bonuses | `table:trap-save-dcs-and-attack-bonuses` | Three-column danger/DC-range/attack-bonus rows reconstruct from line text (p196, gamemastering Traps section; loreweaver-hvp). Cell ranges keep the SRD en-dash verbatim. |
+| Damage Severity by Level | `table:damage-severity-by-level` | Four-column level-range/setback/dangerous/deadly dice rows reconstruct from line text (p196; loreweaver-hvp). |
 
-The committed pack holds exactly this one `table` record.
+The committed pack holds exactly these three `table` records.
 `srdGeneratedPack.test.ts` pins the table key/name set (and the per-kind
-`table: 1` count) so coverage cannot silently collapse or grow without a
+`table: 3` count) so coverage cannot silently collapse or grow without a
 reviewed baseline update.
 
 ### Reconstruction-capable but absent from SRD 5.1
@@ -277,12 +285,17 @@ dispatch. Each entry is a `SectionAnchorOptions` value:
 | `matchHeadings`     | If `true`, anchors match only at the line positions the extractor flagged as chapter/section headings (`PageText.headingLineIndexes` — indexes into `lines`, not just heading text). Disambiguates a chapter title from a body-font line that happens to spell the same text — e.g. "Equipment" appears as a class-block subsection at body font in every base-class chapter, and a text-only check could not tell those two occurrences apart. Fixtures with uniform font sizes leave `headingLineIndexes` undefined and fall back to line matching. |
 
 `SRD_5_1_DEFAULT_SECTION_ANCHORS` is the live table consumed by the
-orchestrator. Freestanding `table` records use the `coreRules` slice for
-simple reference tables and the `treasureTables` slice for treasure challenge
-tables. Two anchors (`hazards`, `treasureTables`) target sections that do
-NOT exist in the SRD 5.1 PDF; the orchestrator wraps those slices in a
-best-effort try/catch and emits empty results when the start anchor doesn't
-match, so a missing canonical section is not a run-time failure.
+orchestrator. Freestanding `table` records use the `coreRules` slice for the
+Difficulty Classes table, the `traps` slice for the two trap tables, and the
+`treasureTables` slice for treasure challenge tables. The `traps` anchor is
+best-effort on its START (a fixture without a Traps section degrades to no
+traps) but `requireEndHeading: true`, so a Traps section that begins without
+its `Diseases` boundary fails closed rather than letting the last trap's body
+run on (the contamination loreweaver-7ok removed from Zone of Truth). Two other
+anchors (`hazards`, `treasureTables`) target sections that do NOT exist in the
+SRD 5.1 PDF; the orchestrator wraps those slices in a best-effort try/catch and
+emits empty results when the start anchor doesn't match, so a missing canonical
+section is not a run-time failure.
 
 Real-PDF mapping note (`loreweaver-0m9.5.20`): the SRD 5.1 has no aggregate
 "Classes" chapter heading; each base class is its own h=25.9 chapter title
@@ -301,6 +314,7 @@ logical line by the extractor's heading-merge pass before slicing.
 | `monsters`           | `/^Monsters$/`                                 | `/^(Nonplayer Characters\|NPCs\|Appendix \|Open Game License\|Legal Information)/i` | `true`     | `true`          |
 | `conditions`         | `/^(Appendix [A-Z]{0,3}-?[A-Z]?:?\s*)?Conditions$\|^Appendix [A-Z]{0,3}-?[A-Z]?: Conditions$/` | `/^Appendix [A-Z]{0,3}-?[A-Z]?:\|^Open Game License\|^Legal Information/i` | false (may run to EOF) | `true` |
 | `feats`              | `/^Feats?$\|^Feat Descriptions?$/`             | `/^(Using Ability Scores\|...)$\|^Appendix\b/i`             | `true`              | `true`          |
+| `traps`              | `/^Traps$/`                                     | `/^(Diseases\|Madness\|Objects\|Poisons\|Monsters\|Magic Items\|Appendix)\b/` | `true` (best-effort start) | `true` |
 | `hazards`            | `/^Dungeon Hazards$\|^Hazards$/`               | `/^(Traps\|...)$/i`                                         | `true` (best-effort) | `true`         |
 | `equipment`          | `/^Equipment$/`                                | `/^(Mounts and Vehicles\|...\|Feats)$/i`                    | `true`              | `true`          |
 | `mountsAndVehicles`  | `/^Mounts and Vehicles$/`                      | `/^(Trade Goods\|Expenses\|...\|Feats)$/i`                  | false (best-effort; parser is header-bounded) | `true` |

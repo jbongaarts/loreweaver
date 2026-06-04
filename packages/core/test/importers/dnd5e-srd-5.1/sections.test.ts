@@ -214,6 +214,18 @@ describe('SRD_5_1_DEFAULT_SECTION_ANCHORS — sanity', () => {
     );
   });
 
+  it('traps anchor matches "Traps", bounds at "Diseases", and fails closed on a missing end (loreweaver-hvp)', () => {
+    const anchor = SRD_5_1_DEFAULT_SECTION_ANCHORS.traps;
+    expect(anchor.startHeading.test('Traps')).toBe(true);
+    // Body-prose mentions must not false-positive on the tight ^...$ anchor.
+    expect(anchor.startHeading.test('Find Traps')).toBe(false);
+    expect(anchor.startHeading.test('Some traps are deadly')).toBe(false);
+    expect(anchor.endHeading?.test('Diseases')).toBe(true);
+    expect(anchor.endHeading?.test('Madness')).toBe(true);
+    expect(anchor.requireEndHeading).toBe(true);
+    expect(anchor.matchHeadings).toBe(true);
+  });
+
   it('core-rules anchor starts at "Using Ability Scores" and requires an end heading', () => {
     const anchor = SRD_5_1_DEFAULT_SECTION_ANCHORS.coreRules;
     expect(anchor.startHeading.test('Using Ability Scores')).toBe(true);
@@ -294,6 +306,7 @@ describe('SRD_5_1_DEFAULT_SECTION_ANCHORS — sanity', () => {
     expect(a.monsters.matchHeadings).toBe(true);
     expect(a.conditions.matchHeadings).toBe(true);
     expect(a.feats.matchHeadings).toBe(true);
+    expect(a.traps.matchHeadings).toBe(true);
     expect(a.hazards.matchHeadings).toBe(true);
     expect(a.equipment.matchHeadings).toBe(true);
     expect(a.multiclassing.matchHeadings).toBe(true);
