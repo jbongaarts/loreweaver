@@ -2,8 +2,16 @@
  * Reference-table parser for the D&D 5e SRD 5.1 importer.
  *
  * PDF text extraction does not preserve table semantics, so this parser stays
- * deliberately narrow: row-regex reconstruction for covered reference tables
- * and column-block reconstruction for covered SRD treasure tables.
+ * deliberately narrow: row-regex reconstruction for the simple reference
+ * tables and column-block reconstruction for the treasure challenge tables.
+ *
+ * Of the families below, only Difficulty Classes is actually present in the
+ * vendored SRD 5.1 PDF ("Typical Difficulty Classes", p77). The XP-threshold
+ * and treasure-table reconstruction rules match no section in that source and
+ * emit nothing for the canonical pack; they are retained (and unit-tested) for
+ * fixtures and future editions, mirroring the retained `hazards` /
+ * `treasureTables` section anchors. See the importer README's
+ * "Reference-table coverage" section (loreweaver-46m).
  */
 
 import type { PageText, TableExtraction } from './types.js';

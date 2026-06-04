@@ -1,11 +1,17 @@
 /**
  * Reference-table parser unit tests for the D&D 5e SRD 5.1 importer.
  *
- * Table text excerpts in this file are reproduced from the System Reference
+ * The Difficulty Classes excerpt is reproduced from the System Reference
  * Document 5.1 by Wizards of the Coast LLC, available under the Creative
- * Commons Attribution 4.0 International License (CC-BY-4.0). Excerpts are
- * used as parser test input; no modification has been made beyond
- * reformatting to match the importer's extracted-line input shape.
+ * Commons Attribution 4.0 International License (CC-BY-4.0), used as parser
+ * test input with no modification beyond reformatting to the importer's
+ * extracted-line input shape.
+ *
+ * The XP-threshold and treasure-table inputs are NOT drawn from the SRD 5.1
+ * PDF — that source contains no such tables (see the importer README and
+ * loreweaver-46m). They are synthetic fixtures shaped like the parser's
+ * expected extracted lines, present only to exercise the multi-column and
+ * column-block reconstruction paths that the SRD 5.1 source never triggers.
  */
 
 import { describe, expect, it } from 'vitest';

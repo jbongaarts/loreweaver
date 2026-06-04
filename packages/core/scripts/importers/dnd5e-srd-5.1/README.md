@@ -220,16 +220,43 @@ sources/dnd5e-srd-5.1/SRD_CC_v5.1.pdf
 ## Reference-table coverage
 
 The table parser intentionally covers only cases whose extracted text has a
-reviewed deterministic reconstruction rule:
+reviewed deterministic reconstruction rule. Coverage splits into table families
+that are **present in the vendored SRD 5.1 source** (and therefore emitted into
+the committed canonical pack) and reconstruction rules that are **wired and
+tested but match no section in the SRD 5.1 PDF**. The latter emit nothing for
+this source; they exist for fixtures and future editions, mirroring the retained
+`hazards` / `treasureTables` section anchors (see the section-anchor notes
+below). This split is the resolution of `loreweaver-46m`: the SRD 5.1 PDF
+contains exactly one reconstructable reference table, so the earlier flat list
+over-claimed the canonical pack's coverage.
 
-| Table | Record key | Reason it is covered |
-|-------|------------|----------------------|
-| Difficulty Classes | `table:difficulty-classes` | Two-column label/DC rows reconstruct cleanly from line text. |
+### Present in the committed SRD 5.1 pack
+
+| Table | Record key | Reconstruction rule |
+|-------|------------|---------------------|
+| Difficulty Classes | `table:difficulty-classes` | Two-column label/DC rows reconstruct cleanly from line text. This is the only reference table the SRD 5.1 PDF actually contains ("Typical Difficulty Classes", p77). |
+
+The committed pack holds exactly this one `table` record.
+`srdGeneratedPack.test.ts` pins the table key/name set (and the per-kind
+`table: 1` count) so coverage cannot silently collapse or grow without a
+reviewed baseline update.
+
+### Reconstruction-capable but absent from SRD 5.1
+
+These are DM-reference / encounter-building tables that the Creative-Commons SRD
+5.1 does **not** include (they live in non-SRD sourcebooks). The parser keeps a
+reviewed reconstruction rule for each, exercised by `parseTables.test.ts` unit
+fixtures and the `pipeline.test.ts` end-to-end fixture, so a future SRD edition —
+or any other source — that *does* carry them is imported without new parser
+work. None of them emit a record from the vendored SRD 5.1 PDF.
+
+| Table | Record key | Reconstruction rule |
+|-------|------------|---------------------|
 | XP Thresholds by Character Level | `table:xp-thresholds-by-character-level` | Fixed five-column numeric threshold rows reconstruct cleanly from line text. |
 | Individual Treasure challenge tables | `table:individual-treasure-challenge-<range>` | The `treasureTables` slice is wired through `runImporter`; d100 ranges form a leading block and each currency column forms an equal-length block that can be pivoted into rows. |
 | Treasure Hoard challenge tables | `table:treasure-hoard-challenge-<range>` | The `treasureTables` slice is wired through `runImporter`; d100 ranges, coin columns, gems/art-object column, and magic-item column can be reconstructed from equal-length column blocks. Empty dash cells are stored as `null`. |
 
-Tables not covered by the current parser:
+Tables not covered by the current parser at all:
 
 | Table family | Reason deferred | Follow-up |
 |--------------|-----------------|-----------|
