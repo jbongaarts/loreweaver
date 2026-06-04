@@ -230,27 +230,36 @@ function ancestryKey(name: string): string {
  * Build the `data` payload for one creature record. Field insertion order is
  * fixed (so emitted JSON is byte-stable) and matches the `dnd5e-srd` creature
  * kindSchema's required keys; see `validateDnd5eCreature` in `kindSchemas.ts`.
+ *
+ * NPC stat blocks from Appendix MM-B carry a leading `category: 'npc'`
+ * discriminator (loreweaver-bn0). Monster records (Monsters chapter / Appendix
+ * MM-A) intentionally carry NO category field — its absence means "monster" —
+ * so the committed monster records stay byte-identical to the pre-NPC pack and
+ * the 296-creature monster baseline is untouched.
  */
 function buildCreatureData(
   creature: CreatureExtraction,
 ): Record<string, unknown> {
-  return {
-    size: creature.size,
-    type: creature.type,
-    alignment: creature.alignment,
-    armorClass: creature.armorClass,
-    hitPoints: creature.hitPoints,
-    speed: { ...creature.speed },
-    challengeRating: creature.challengeRating,
-    abilityScores: {
-      strength: creature.abilityScores.strength,
-      dexterity: creature.abilityScores.dexterity,
-      constitution: creature.abilityScores.constitution,
-      intelligence: creature.abilityScores.intelligence,
-      wisdom: creature.abilityScores.wisdom,
-      charisma: creature.abilityScores.charisma,
-    },
+  const data: Record<string, unknown> = {};
+  if (creature.category === 'npc') {
+    data.category = 'npc';
+  }
+  data.size = creature.size;
+  data.type = creature.type;
+  data.alignment = creature.alignment;
+  data.armorClass = creature.armorClass;
+  data.hitPoints = creature.hitPoints;
+  data.speed = { ...creature.speed };
+  data.challengeRating = creature.challengeRating;
+  data.abilityScores = {
+    strength: creature.abilityScores.strength,
+    dexterity: creature.abilityScores.dexterity,
+    constitution: creature.abilityScores.constitution,
+    intelligence: creature.abilityScores.intelligence,
+    wisdom: creature.abilityScores.wisdom,
+    charisma: creature.abilityScores.charisma,
   };
+  return data;
 }
 
 export function creatureExtractionsToRecords(

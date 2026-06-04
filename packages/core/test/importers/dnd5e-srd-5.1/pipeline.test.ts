@@ -21,6 +21,7 @@ import {
   ClassCoverageError,
   CreatureCoverageError,
   FeatureCoverageError,
+  NpcCoverageError,
   runImporter,
   SubclassCoverageError,
   TrapCoverageError,
@@ -183,6 +184,25 @@ const MONSTERS_PAGE_NO_CREATURES: FixturePage = {
     'Monsters',
     'This chapter describes monsters, but the stat blocks did not extract.',
     'Nonplayer Characters',
+  ],
+};
+
+// Appendix MM-B: Nonplayer Characters fixture (loreweaver-bn0). The
+// nonplayerCharacters anchor starts at this heading and runs to EOF, so this
+// page is placed LAST in fixtures that use it. Carries one full NPC stat block
+// (Bandit Captain) so runImporter emits a `creature` record tagged
+// data.category='npc'.
+const NONPLAYER_CHARACTERS_PAGE: FixturePage = {
+  lines: [
+    'Appendix MM-B: Nonplayer Characters',
+    'Bandit Captain',
+    'Medium humanoid (any race), any non-lawful',
+    'Armor Class 15 (studded leather)',
+    'Hit Points 65 (10d8 + 20)',
+    'Speed 30 ft.',
+    'STR DEX CON INT WIS CHA',
+    '15 (+2) 16 (+3) 14 (+2) 14 (+2) 11 (+0) 14 (+2)',
+    'Challenge 2 (450 XP)',
   ],
 };
 
@@ -754,6 +774,9 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     const result = await runImporter({ pdfPath, outDir });
     expect(result.counts.spells).toBe(2);
     expect(result.counts.creatures).toBe(1);
+    // No Appendix MM-B page in this fixture, so the best-effort NPC slice
+    // degrades to zero (loreweaver-bn0).
+    expect(result.counts.npcs).toBe(0);
     expect(result.counts.classes).toBe(1);
     expect(result.counts.subclasses).toBe(1);
     expect(result.counts.features).toBe(1);
@@ -1870,6 +1893,80 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(readFileSync(join(outDir, 'records.json'), 'utf8')).toContain(
       'creature:goblin',
     );
+  });
+
+  // Appendix MM-B: Nonplayer Characters (loreweaver-bn0). The NPC page is
+  // appended after the standard fixture so the slice-to-EOF nonplayerCharacters
+  // anchor captures exactly it; the NPC stat block emits under the `creature`
+  // kind with data.category='npc' and is counted separately from the monster
+  // creature(s).
+  it('imports Appendix MM-B NPC stat blocks as creature records tagged category=npc', async () => {
+    const workDir = makeTmpDir();
+    const pdfPath = join(workDir, 'fixture.pdf');
+    const outDir = join(workDir, 'pack');
+    await writeFixturePdf(pdfPath, [
+      ...FULL_FIXTURE_PAGES,
+      NONPLAYER_CHARACTERS_PAGE,
+    ]);
+
+    const result = await runImporter({ pdfPath, outDir });
+    // The monster creature count (Goblin) stays separate from the NPC count.
+    expect(result.counts.creatures).toBe(1);
+    expect(result.counts.npcs).toBe(1);
+
+    const pack = loadRulesPackFromDirectory(outDir);
+    const captain = pack.records.find(
+      (r) => r.key === 'creature:bandit-captain',
+    );
+    expect(captain?.kind).toBe('creature');
+    expect(captain?.name).toBe('Bandit Captain');
+    const captainData = captain?.data as Record<string, unknown>;
+    expect(captainData.category).toBe('npc');
+    expect(captainData.armorClass).toBe(15);
+    expect(captainData.hitPoints).toBe(65);
+    expect(captainData.challengeRating).toBe('2');
+
+    // The monster creature carries NO category field (its absence means
+    // "monster"), so it stays byte-identical to the pre-NPC pack.
+    const goblin = pack.records.find((r) => r.key === 'creature:goblin');
+    expect((goblin?.data as Record<string, unknown>).category).toBeUndefined();
+  });
+
+  it('fails closed when expectedNpcNames is supplied but the NPC parse drifts', async () => {
+    const workDir = makeTmpDir();
+    const pdfPath = join(workDir, 'fixture.pdf');
+    const outDir = join(workDir, 'pack');
+    // The fixture's MM-B section yields only Bandit Captain; an expected set that
+    // also demands Berserker must trip the exact NPC-coverage gate naming the
+    // missing NPC, and write nothing (loreweaver-bn0).
+    await writeFixturePdf(pdfPath, [
+      ...FULL_FIXTURE_PAGES,
+      NONPLAYER_CHARACTERS_PAGE,
+    ]);
+
+    const promise = runImporter({
+      pdfPath,
+      outDir,
+      expectedNpcNames: ['Bandit Captain', 'Berserker'],
+    });
+    await expect(promise).rejects.toThrow(NpcCoverageError);
+    await expect(promise).rejects.toThrow(
+      /missing expected NPC\(s\): Berserker/,
+    );
+    expect(() => readFileSync(join(outDir, 'records.json'), 'utf8')).toThrow();
+  });
+
+  it('succeeds with npcs=0 when the Appendix MM-B section is absent (best-effort)', async () => {
+    const workDir = makeTmpDir();
+    const pdfPath = join(workDir, 'fixture.pdf');
+    const outDir = join(workDir, 'pack');
+    // No NONPLAYER_CHARACTERS_PAGE: the nonplayerCharacters start anchor must
+    // not match, and the best-effort slice degrades to no NPCs rather than
+    // failing the run.
+    await writeFixturePdf(pdfPath, FULL_FIXTURE_PAGES);
+
+    const result = await runImporter({ pdfPath, outDir });
+    expect(result.counts.npcs).toBe(0);
   });
 
   it('fails closed when the Classes section yields no classes', async () => {

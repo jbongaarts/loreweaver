@@ -31,6 +31,7 @@
 
 import type {
   CreatureAbilityScores,
+  CreatureCategory,
   CreatureExtraction,
   PageText,
 } from './types.js';
@@ -293,11 +294,19 @@ function readStatBlock(lines: readonly string[]): StatBlockFields {
 }
 
 /**
- * Parse creature stat blocks from the narrowed Monsters-section `PageText[]`.
- * Returns a `CreatureExtraction[]` sorted by name.
+ * Parse creature stat blocks from a narrowed `PageText[]`. Returns a
+ * `CreatureExtraction[]` sorted by name.
+ *
+ * The same stat-block grammar drives both the Monsters chapter / Appendix MM-A
+ * (`category: 'monster'`, the default) and Appendix MM-B: Nonplayer Characters
+ * (`category: 'npc'`, passed by the orchestrator for the MM-B slice —
+ * loreweaver-bn0): an NPC stat block has the identical AC/HP/ability-table
+ * signature, so the only difference is the provenance tag the caller supplies.
+ * `category` is stamped onto every extraction this call returns.
  */
 export function parseCreatures(
   pages: readonly PageText[],
+  category: CreatureCategory = 'monster',
 ): CreatureExtraction[] {
   const flat = flatten(pages);
 
@@ -350,6 +359,7 @@ export function parseCreatures(
 
     out.push({
       name: candidate.name,
+      category,
       size: candidate.meta.size,
       type: candidate.meta.type,
       alignment: candidate.meta.alignment,

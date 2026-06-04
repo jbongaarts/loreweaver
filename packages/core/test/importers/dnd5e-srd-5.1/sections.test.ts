@@ -295,6 +295,26 @@ describe('SRD_5_1_DEFAULT_SECTION_ANCHORS — sanity', () => {
     expect(anchor.matchHeadings).toBe(true);
   });
 
+  // Appendix MM-B: Nonplayer Characters (loreweaver-bn0). The anchor must match
+  // only the real appendix heading and is intentionally end-anchorless: MM-B is
+  // the SRD's last content section and runs to EOF, with the exact NPC name-set
+  // gate failing closed on drift instead of an end heading.
+  it('nonplayer-characters anchor matches the MM-B heading and runs to EOF', () => {
+    const anchor = SRD_5_1_DEFAULT_SECTION_ANCHORS.nonplayerCharacters;
+    expect(
+      anchor.startHeading.test('Appendix MM-B: Nonplayer Characters'),
+    ).toBe(true);
+    // The MM-A misc-creatures heading must NOT match (those are monster
+    // creatures parsed by a separate anchor).
+    expect(
+      anchor.startHeading.test('Appendix MM-A: Miscellaneous Creatures'),
+    ).toBe(false);
+    // No end heading: the section legitimately slices to EOF.
+    expect(anchor.endHeading).toBeUndefined();
+    expect(anchor.requireEndHeading).toBeUndefined();
+    expect(anchor.matchHeadings).toBe(true);
+  });
+
   it('matchHeadings is set on every implemented-kind chapter anchor', () => {
     const a = SRD_5_1_DEFAULT_SECTION_ANCHORS;
     expect(a.races.matchHeadings).toBe(true);
@@ -304,6 +324,7 @@ describe('SRD_5_1_DEFAULT_SECTION_ANCHORS — sanity', () => {
     expect(a.spellDescriptions.matchHeadings).toBe(true);
     expect(a.combatActions.matchHeadings).toBe(true);
     expect(a.monsters.matchHeadings).toBe(true);
+    expect(a.nonplayerCharacters.matchHeadings).toBe(true);
     expect(a.conditions.matchHeadings).toBe(true);
     expect(a.feats.matchHeadings).toBe(true);
     expect(a.traps.matchHeadings).toBe(true);

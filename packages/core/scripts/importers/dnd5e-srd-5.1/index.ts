@@ -20,6 +20,14 @@
  * same way (exact expected-name coverage) so a valid Races slice cannot
  * silently under-extract race/subrace records.
  *
+ * Appendix MM-B: Nonplayer Characters (the 21 generic NPC stat blocks — Acolyte,
+ * Bandit Captain, Berserker, …) is imported too (loreweaver-bn0): NPC stat blocks
+ * are encounter-usable combatants in the same shape as monsters, so they emit
+ * under the `creature` kind with a `data.category: 'npc'` discriminator. They are
+ * parsed from their own slice and guarded by their own exact name-set gate
+ * (`EXPECTED_SRD_5_1_NPC_NAMES`), kept separate from the 296-creature monster
+ * baseline so the two coverage sets cannot contaminate each other.
+ *
  * Scope today: spells, creatures, base classes, subclasses, features,
  * conditions, feats, hazards, traps (emitted under the `hazard` kind), actions,
  * rules, tables, equipment, and ancestries
@@ -66,14 +74,16 @@ import type {
 } from './types.js';
 
 /**
- * Reviewed creature count for the vendored SRD 5.1 CC PDF: 201 stat blocks
+ * Reviewed MONSTER count for the vendored SRD 5.1 CC PDF: 201 stat blocks
  * in the alphabetic "Monsters" chapter plus 95 in "Appendix MM-A:
- * Miscellaneous Creatures" (animals/beasts/swarms). "Appendix MM-B:
- * Nonplayer Characters" is intentionally out of scope — see the
- * `miscellaneousCreatures` anchor in `sections.ts`. Because the source
- * PDF is vendored and hash-pinned (see `sources/dnd5e-srd-5.1/`), this is
- * a fixed property of the input artifact: any change must be an
- * intentional baseline update with re-review, not slack-headroom.
+ * Miscellaneous Creatures" (animals/beasts/swarms). This is the monster
+ * baseline only — "Appendix MM-B: Nonplayer Characters" emits 21 additional
+ * `creature` records guarded by their own `EXPECTED_SRD_5_1_NPC_NAMES` set
+ * (loreweaver-bn0), so the pack's total `creature` per-kind count is
+ * 296 + 21 = 317. Because the source PDF is vendored and hash-pinned (see
+ * `sources/dnd5e-srd-5.1/`), this is a fixed property of the input artifact:
+ * any change must be an intentional baseline update with re-review, not
+ * slack-headroom.
  *
  * This is the documented count baseline for the vendored artifact. The real
  * import is gated on the stronger exact name set below
@@ -100,8 +110,9 @@ export const MIN_EXPECTED_SRD_5_1_CREATURES = 296;
  *      warned against, so the candidate is machine-produced, not hand-typed.
  *   2. That candidate was *reviewed against the SRD source* — the alphabetic
  *      "Monsters" chapter (201 stat blocks) plus "Appendix MM-A: Miscellaneous
- *      Creatures" (95 entries); "Appendix MM-B: Nonplayer Characters" is
- *      intentionally out of scope for the `creature` kind.
+ *      Creatures" (95 entries). "Appendix MM-B: Nonplayer Characters" is NOT in
+ *      this set — it has its own `EXPECTED_SRD_5_1_NPC_NAMES` baseline
+ *      (loreweaver-bn0) so the monster and NPC coverage sets stay independent.
  *   3. The reviewed list is committed here as a fixed baseline.
  *
  * Its value is forward regression protection: it does not by itself prove the
@@ -412,6 +423,41 @@ export const EXPECTED_SRD_5_1_CREATURE_NAMES: readonly string[] = [
 ];
 
 /**
+ * Reviewed, checked-in SRD 5.1 Appendix MM-B Nonplayer-Character name-set
+ * baseline (loreweaver-bn0). The real import validates the parsed NPC names
+ * against this exact set, so a dropped, renamed, or spuriously-extracted NPC
+ * fails closed by name. These 21 generic NPC stat blocks (Acolyte … Veteran)
+ * are the complete contents of Appendix MM-B in the vendored SRD 5.1 PDF; they
+ * emit under the `creature` kind with `data.category: 'npc'` and are kept
+ * separate from `EXPECTED_SRD_5_1_CREATURE_NAMES` (the 296-monster baseline) so
+ * neither coverage set can mask drift in the other. None of these names collide
+ * with a monster creature name, so the `creature:<slug>` keyspace stays unique.
+ */
+export const EXPECTED_SRD_5_1_NPC_NAMES: readonly string[] = [
+  'Acolyte',
+  'Archmage',
+  'Assassin',
+  'Bandit',
+  'Bandit Captain',
+  'Berserker',
+  'Commoner',
+  'Cult Fanatic',
+  'Cultist',
+  'Druid',
+  'Gladiator',
+  'Guard',
+  'Knight',
+  'Mage',
+  'Noble',
+  'Priest',
+  'Scout',
+  'Spy',
+  'Thug',
+  'Tribal Warrior',
+  'Veteran',
+];
+
+/**
  * Minimum number of base classes a full SRD 5.1 import must yield. The SRD 5.1
  * "Classes" chapter contains the 12 base classes (Barbarian … Wizard). This
  * floor catches a gross extraction regression — an empty or badly-truncated
@@ -502,6 +548,20 @@ export class CreatureCoverageError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'CreatureCoverageError';
+  }
+}
+
+/**
+ * Thrown when the parsed Appendix MM-B NPC set fails exact name-set coverage
+ * (loreweaver-bn0). Like the trap and ancestry sets, the NPC name set is small
+ * and stable enough to validate exactly. Distinct from `CreatureCoverageError`
+ * so callers can tell an NPC-coverage failure apart from a monster-coverage
+ * failure even though both kinds of record share the `creature` kind.
+ */
+export class NpcCoverageError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'NpcCoverageError';
   }
 }
 
@@ -602,6 +662,18 @@ export interface RunImporterInput {
    */
   readonly expectedCreatureNames?: readonly string[];
   /**
+   * Exact set of Appendix MM-B NPC names the import must yield for the run to be
+   * accepted (loreweaver-bn0). When provided and the parsed NPC names don't match
+   * it exactly, the importer throws `NpcCoverageError` naming the missing and/or
+   * unexpected NPCs, and writes nothing. The real-import CLI passes
+   * `EXPECTED_SRD_5_1_NPC_NAMES`; fixture pipelines that lack an Appendix MM-B
+   * section omit this (the best-effort slice degrades to no NPCs and no check
+   * runs). Unlike the monster guard, an empty NPC result is NOT rejected on its
+   * own — it is only rejected when it fails to match a supplied expected set —
+   * because most fixtures legitimately carry no MM-B appendix.
+   */
+  readonly expectedNpcNames?: readonly string[];
+  /**
    * Minimum number of base classes the Classes section must yield for the run
    * to be accepted. When set and the parsed count is below it, the importer
    * throws `ClassCoverageError` and writes nothing. The real-import CLI passes
@@ -686,6 +758,39 @@ function validateCreatureCoverage(
       `SRD 5.1 creature coverage check failed: parsed ${creatures.length} creature stat block(s), expected at least ${minCreatureCount}. The Monsters section may have been truncated or its layout changed.`,
     );
   }
+}
+
+/**
+ * Fail closed on an Appendix MM-B NPC result that can't be a faithful SRD 5.1
+ * import (loreweaver-bn0). When the exact `expectedNpcNames` set is supplied (the
+ * real import via the CLI), the parsed NPC names must match it exactly — any
+ * missing or unexpected NPC is rejected, naming the specific offenders so a
+ * dropped/renamed NPC or a bled-in unrelated stat block trips by name. Fixture
+ * pipelines that lack an MM-B appendix omit the set, in which case no check runs
+ * (the best-effort slice already degrades to empty). Runs after parsing and
+ * before any output is written.
+ */
+function validateNpcCoverage(
+  npcs: readonly CreatureExtraction[],
+  expectedNpcNames: readonly string[] | undefined,
+): void {
+  if (expectedNpcNames === undefined) return;
+  const parsedNames = new Set(npcs.map((npc) => npc.name));
+  const expectedSet = new Set(expectedNpcNames);
+  const missing = expectedNpcNames.filter((name) => !parsedNames.has(name));
+  const unexpected = [...parsedNames].filter((name) => !expectedSet.has(name));
+  if (missing.length === 0 && unexpected.length === 0) return;
+
+  const parts: string[] = [];
+  if (missing.length > 0) {
+    parts.push(`missing expected NPC(s): ${missing.join(', ')}`);
+  }
+  if (unexpected.length > 0) {
+    parts.push(`unexpected NPC(s): ${unexpected.join(', ')}`);
+  }
+  throw new NpcCoverageError(
+    `SRD 5.1 NPC coverage check failed: parsed ${npcs.length} Appendix MM-B NPC stat block(s), expected exactly ${expectedNpcNames.length}. ${parts.join('; ')}. The Nonplayer Characters appendix may have been truncated, an NPC renamed, or unrelated stat blocks bled in. Refusing to write a pack with a drifted NPC set.`,
+  );
 }
 
 /**
@@ -840,8 +945,7 @@ export async function runImporter(
   // the main chapter). Parse the union via a single parseCreatures call so
   // both sets land in the same sorted output; the misc-creatures anchor is
   // best-effort so fixture PDFs without that appendix still import cleanly
-  // (loreweaver-w8h). Appendix MM-B: Nonplayer Characters remains out of
-  // scope — the misc-creatures end anchor stops at it explicitly.
+  // (loreweaver-w8h).
   const monsterPages = sliceSection(pages, anchors.monsters);
   const miscCreaturePages = sliceSectionOrEmptyPages(
     pages,
@@ -856,6 +960,17 @@ export async function runImporter(
     input.minCreatureCount,
     input.expectedCreatureNames,
   );
+  // Appendix MM-B: Nonplayer Characters (loreweaver-bn0). The 21 generic NPC
+  // stat blocks parse with the same `parseCreatures` grammar but are tagged
+  // `category: 'npc'` and kept in their own array so the monster coverage gate
+  // above stays exactly 296. MM-B is the SRD's last content section (it runs to
+  // EOF; the trailing license prose carries no stat-block signature), and the
+  // anchor is best-effort on its start so fixture PDFs without the appendix
+  // degrade to no NPCs. The exact NPC name-set gate (real import only) is what
+  // fails closed on drift.
+  const npcPages = sliceSectionOrEmptyPages(pages, anchors.nonplayerCharacters);
+  const npcs = parseCreatures(npcPages, 'npc');
+  validateNpcCoverage(npcs, input.expectedNpcNames);
   const conditions = parseConditions(conditionPages);
   const actions = parseActions(combatActionPages);
   const featPages = sliceSection(pages, anchors.feats);
@@ -955,7 +1070,11 @@ export async function runImporter(
     spells,
     classIndex,
     primaryAbilityIndex,
-    creatures,
+    // Monsters + Appendix MM-A + Appendix MM-B NPCs all emit under the
+    // `creature` kind; `emit.ts` sorts by key, so concatenation order does not
+    // affect the output. NPC records carry `data.category: 'npc'`
+    // (loreweaver-bn0).
+    creatures: [...creatures, ...npcs],
     classes,
     subclasses,
     features,
@@ -977,6 +1096,7 @@ export async function runImporter(
     counts: {
       spells: spells.length,
       creatures: creatures.length,
+      npcs: npcs.length,
       classes: classes.length,
       subclasses: subclasses.length,
       features: features.length,

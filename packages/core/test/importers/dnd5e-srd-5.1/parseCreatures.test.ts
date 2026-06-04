@@ -179,6 +179,42 @@ describe('parseCreatures — Wyvern (large dragon)', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Category tag (loreweaver-bn0): Monsters vs Appendix MM-B Nonplayer Characters
+// ---------------------------------------------------------------------------
+
+// A representative Appendix MM-B NPC stat block (Bandit Captain). Its grammar is
+// identical to a monster stat block, so the only difference is the provenance
+// category the caller supplies.
+const BANDIT_CAPTAIN_LINES = [
+  'Bandit Captain',
+  'Medium humanoid (any race), any non-lawful',
+  'Armor Class 15 (studded leather)',
+  'Hit Points 65 (10d8 + 20)',
+  'Speed 30 ft.',
+  'STR DEX CON INT WIS CHA',
+  '15 (+2) 16 (+3) 14 (+2) 14 (+2) 11 (+0) 14 (+2)',
+  'Challenge 2 (450 XP)',
+];
+
+describe('parseCreatures — category tag', () => {
+  it("defaults the category to 'monster'", () => {
+    const [goblin] = parseCreatures([page(310, GOBLIN_LINES)]);
+    expect(goblin.category).toBe('monster');
+  });
+
+  it("stamps 'npc' on every extraction when the NPC category is requested", () => {
+    const [captain] = parseCreatures([page(397, BANDIT_CAPTAIN_LINES)], 'npc');
+    expect(captain.name).toBe('Bandit Captain');
+    expect(captain.category).toBe('npc');
+    // The stat block parses identically to a monster aside from the tag.
+    expect(captain.armorClass).toBe(15);
+    expect(captain.hitPoints).toBe(65);
+    expect(captain.challengeRating).toBe('2');
+    expect(captain.abilityScores.charisma).toBe(14);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Multiple creatures on one page
 // ---------------------------------------------------------------------------
 

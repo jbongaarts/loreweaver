@@ -23,6 +23,7 @@ import { dirname, isAbsolute, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   EXPECTED_SRD_5_1_CREATURE_NAMES,
+  EXPECTED_SRD_5_1_NPC_NAMES,
   EXPECTED_SRD_5_1_TRAP_NAMES,
   MIN_EXPECTED_SRD_5_1_CLASSES,
   MIN_EXPECTED_SRD_5_1_FEATURES,
@@ -99,6 +100,7 @@ async function main(): Promise<void> {
     pdfPath: args.pdf,
     outDir: args.out,
     expectedCreatureNames: EXPECTED_SRD_5_1_CREATURE_NAMES,
+    expectedNpcNames: EXPECTED_SRD_5_1_NPC_NAMES,
     expectedTrapNames: EXPECTED_SRD_5_1_TRAP_NAMES,
     minClassCount: MIN_EXPECTED_SRD_5_1_CLASSES,
     minSubclassCount: MIN_EXPECTED_SRD_5_1_SUBCLASSES,
@@ -106,7 +108,7 @@ async function main(): Promise<void> {
   });
   const c = result.counts;
   console.log(
-    `Imported ${c.spells} spells, ${c.creatures} creatures, ${c.classes} classes, ${c.subclasses} subclasses, ${c.features} features, ${c.conditions} conditions, ${c.feats} feats, ${c.hazards} hazards, ${c.traps} traps, ${c.actions} actions, ${c.rules} rules, ${c.tables} tables, ${c.equipment} equipment, and ${c.ancestries} ancestries.`,
+    `Imported ${c.spells} spells, ${c.creatures} creatures, ${c.npcs} NPCs, ${c.classes} classes, ${c.subclasses} subclasses, ${c.features} features, ${c.conditions} conditions, ${c.feats} feats, ${c.hazards} hazards, ${c.traps} traps, ${c.actions} actions, ${c.rules} rules, ${c.tables} tables, ${c.equipment} equipment, and ${c.ancestries} ancestries.`,
   );
   console.log(`Source PDF SHA-256: ${result.sourceHash}`);
   console.log(`Output written to: ${result.outDir}`);

@@ -32,6 +32,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   EXPECTED_SRD_5_1_CREATURE_NAMES,
+  EXPECTED_SRD_5_1_NPC_NAMES,
   MIN_EXPECTED_SRD_5_1_CREATURES,
 } from '../scripts/importers/dnd5e-srd-5.1/index.js';
 import {
@@ -90,7 +91,10 @@ const EXPECTED_COUNTS_BY_KIND: Readonly<Record<string, number>> = {
   ancestry: 13,
   class: 12,
   condition: 15,
-  creature: 296,
+  // 296 Monsters/Appendix MM-A creatures + 21 Appendix MM-B NPC stat blocks,
+  // all under the `creature` kind; NPCs carry data.category='npc'
+  // (loreweaver-bn0). The two coverage sets are validated independently below.
+  creature: 317,
   equipment: 218,
   feat: 1,
   feature: 144,
@@ -119,6 +123,9 @@ const EXPECTED_STABLE_KEYS: readonly string[] = [
   'condition:exhaustion',
   'creature:goblin',
   'creature:aboleth',
+  // Appendix MM-B NPC stat blocks (loreweaver-bn0).
+  'creature:bandit-captain',
+  'creature:berserker',
   'equipment:padded',
   'equipment:longsword',
   'equipment:smiths-tools',
@@ -141,6 +148,10 @@ const EXPECTED_STABLE_KEYS: readonly string[] = [
  * parser-drift signal:
  *   - ancestry.subraceOf / subraces: only subraces carry `subraceOf`; only
  *     races-with-subraces carry `subraces`.
+ *   - creature.category: only the 21 Appendix MM-B NPC stat blocks carry
+ *     `category: 'npc'`; the 296 Monsters/Appendix MM-A creatures omit it (its
+ *     absence means "monster") so they stay byte-identical to the pre-NPC pack
+ *     (loreweaver-bn0).
  *   - condition.effects: present on all conditions except Exhaustion, whose
  *     mechanics live in its per-level `levels` table.
  *   - condition.levels: only Exhaustion has graded levels.
@@ -180,6 +191,10 @@ const EXPECTED_PARTIAL_FIELDS: ReadonlyArray<{
   { kind: 'ancestry', field: 'subraces', missingCount: 9, totalInKind: 13 },
   { kind: 'condition', field: 'effects', missingCount: 1, totalInKind: 15 },
   { kind: 'condition', field: 'levels', missingCount: 14, totalInKind: 15 },
+  // Only Appendix MM-B NPC creatures carry data.category='npc' (21 of 317);
+  // monster creatures intentionally omit it (loreweaver-bn0). Ordered after
+  // `condition` because auditPack sorts the summary by kind.
+  { kind: 'creature', field: 'category', missingCount: 296, totalInKind: 317 },
   { kind: 'equipment', field: 'ac', missingCount: 205, totalInKind: 218 },
   {
     kind: 'equipment',
@@ -339,13 +354,29 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
   // breaks this test until the baseline is regenerated, re-reviewed, and updated
   // in the same change.
   describe('creature name-set regression baseline (loreweaver-0m9.5.14)', () => {
-    const packCreatureNames = pack.records
-      .filter((record) => record.kind === 'creature')
+    const creatureRecords = pack.records.filter(
+      (record) => record.kind === 'creature',
+    );
+    // Monster vs NPC are distinguished by the data.category discriminator:
+    // only Appendix MM-B NPC records carry category='npc' (loreweaver-bn0).
+    const isNpc = (record: (typeof creatureRecords)[number]): boolean =>
+      (record.data as { category?: unknown }).category === 'npc';
+    const monsterNames = creatureRecords
+      .filter((record) => !isNpc(record))
+      .map((record) => record.name);
+    const npcNames = creatureRecords
+      .filter((record) => isNpc(record))
       .map((record) => record.name);
 
-    it('committed pack creature names match the checked-in baseline exactly', () => {
-      expect([...packCreatureNames].sort()).toEqual(
+    it('committed pack monster-creature names match the checked-in baseline exactly', () => {
+      expect([...monsterNames].sort()).toEqual(
         [...EXPECTED_SRD_5_1_CREATURE_NAMES].sort(),
+      );
+    });
+
+    it('committed pack NPC-creature names match the checked-in baseline exactly', () => {
+      expect([...npcNames].sort()).toEqual(
+        [...EXPECTED_SRD_5_1_NPC_NAMES].sort(),
       );
     });
 
@@ -355,13 +386,31 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
       );
     });
 
-    it('the expected name-set length equals the documented count baseline', () => {
+    it('EXPECTED_SRD_5_1_NPC_NAMES has no duplicates', () => {
+      expect(new Set(EXPECTED_SRD_5_1_NPC_NAMES).size).toBe(
+        EXPECTED_SRD_5_1_NPC_NAMES.length,
+      );
+    });
+
+    it('no NPC name collides with a monster name (unique creature keyspace)', () => {
+      const monsterSet = new Set(EXPECTED_SRD_5_1_CREATURE_NAMES);
+      const collisions = EXPECTED_SRD_5_1_NPC_NAMES.filter((name) =>
+        monsterSet.has(name),
+      );
+      expect(collisions).toEqual([]);
+    });
+
+    it('the monster + NPC baselines sum to the documented creature count', () => {
+      // The monster name-set is the 296-creature baseline; the NPC name-set is
+      // the 21 Appendix MM-B stat blocks. Together they are the `creature`
+      // per-kind count (loreweaver-bn0).
       expect(EXPECTED_SRD_5_1_CREATURE_NAMES).toHaveLength(
         MIN_EXPECTED_SRD_5_1_CREATURES,
       );
-      expect(MIN_EXPECTED_SRD_5_1_CREATURES).toBe(
-        EXPECTED_COUNTS_BY_KIND.creature,
-      );
+      expect(
+        EXPECTED_SRD_5_1_CREATURE_NAMES.length +
+          EXPECTED_SRD_5_1_NPC_NAMES.length,
+      ).toBe(EXPECTED_COUNTS_BY_KIND.creature);
     });
   });
 
