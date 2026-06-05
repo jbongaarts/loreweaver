@@ -546,7 +546,7 @@ export const EXPECTED_SRD_5_1_TRAP_NAMES: readonly string[] = [
  * floor (`minMagicItemCount`) for fixture pipelines that exercise a reduced
  * Magic Items A-Z section without the full name set.
  */
-export const MIN_EXPECTED_SRD_5_1_MAGIC_ITEMS = 236;
+export const MIN_EXPECTED_SRD_5_1_MAGIC_ITEMS = 237;
 
 /**
  * Reviewed, checked-in SRD 5.1 Magic Items A-Z name-set baseline
@@ -777,6 +777,7 @@ export const EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES: readonly string[] = [
   'Trident of Fish Command',
   'Universal Solvent',
   'Vicious Weapon',
+  'Vorpal Sword',
   'Wand of Binding',
   'Wand of Enemy Detection',
   'Wand of Fear',

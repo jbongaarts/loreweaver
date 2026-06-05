@@ -322,4 +322,41 @@ describe('parseMagicItems', () => {
       requiresAttunement: true,
     });
   });
+
+  it('parses category starts whose rarity wraps to the next line', () => {
+    const parsed = parseMagicItems([
+      page(248, [
+        'Vicious Weapon',
+        'Weapon (any), rare',
+        'When you roll a 20 on your attack roll with this',
+        'magic weapon, your critical hit deals extra damage.',
+        'Vorpal Sword',
+        'Weapon (any sword that deals slashing damage),',
+        'legendary (requires attunement)',
+        'You gain a +3 bonus to attack and damage rolls',
+        'made with this magic weapon.',
+        'Wand of Binding',
+        'Wand, rare (requires attunement by a spellcaster)',
+        'This wand has 7 charges for the following properties.',
+      ]),
+    ]);
+    const byParsedName = new Map(parsed.map((item) => [item.name, item]));
+
+    expect(parsed.map((item) => item.name)).toEqual([
+      'Vicious Weapon',
+      'Vorpal Sword',
+      'Wand of Binding',
+    ]);
+    expect(byParsedName.get('Vorpal Sword')).toMatchObject({
+      itemType: 'Weapon (any sword that deals slashing damage)',
+      rarity: 'legendary',
+      requiresAttunement: true,
+    });
+    expect(byParsedName.get('Vicious Weapon')?.description).not.toContain(
+      'Vorpal Sword',
+    );
+    expect(byParsedName.get('Vorpal Sword')?.description).toContain(
+      'You gain a +3 bonus',
+    );
+  });
 });

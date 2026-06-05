@@ -103,7 +103,7 @@ const EXPECTED_COUNTS_BY_KIND: Readonly<Record<string, number>> = {
   // The 8 SRD 5.1 sample traps emit under the `hazard` kind (loreweaver-hvp);
   // SRD 5.1 has no environmental hazards, so all 8 hazard records are traps.
   hazard: 8,
-  'magic-item': 236,
+  'magic-item': 237,
   rule: 10,
   spell: 319,
   subclass: 12,
@@ -181,7 +181,7 @@ const EXPECTED_STABLE_KEYS: readonly string[] = [
  *     vehicles (priced by speed/capacity, not weight).
  *   - magic-item.attunementRequirement: only the 19 items whose category line
  *     restricts attunement by class, ancestry, alignment, or spellcasting carry
- *     this text; all 236 records still carry the boolean `requiresAttunement`.
+ *     this text; all 237 records still carry the boolean `requiresAttunement`.
  *   - spell.componentMaterials: only spells with a material (M) component.
  *   - spell.higherLevels: only spells with an "At Higher Levels" entry.
  *   - spell.ritual: only spells tagged as rituals.
@@ -259,8 +259,8 @@ const EXPECTED_PARTIAL_FIELDS: ReadonlyArray<{
   {
     kind: 'magic-item',
     field: 'attunementRequirement',
-    missingCount: 217,
-    totalInKind: 236,
+    missingCount: 218,
+    totalInKind: 237,
   },
   {
     kind: 'spell',
@@ -445,6 +445,12 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
       return record?.data as Record<string, unknown>;
     }
 
+    function magicItemDescription(key: string): string {
+      const data = magicItemData(key);
+      expect(typeof data.description).toBe('string');
+      return data.description as string;
+    }
+
     it('committed pack magic-item names match the checked-in baseline exactly', () => {
       expect(magicItems.map((record) => record.name).sort()).toEqual(
         [...EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES].sort(),
@@ -486,6 +492,62 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
       });
       expect(armorOfResistance.description).toContain('d10 Damage Type');
       expect(armorOfResistance.description).toContain('1 Acid 6 Necrotic');
+    });
+
+    it('keeps interleaved Ring page bodies assigned to the matching Ring records', () => {
+      const featherFalling = magicItemDescription(
+        'magic-item:ring-of-feather-falling',
+      );
+      expect(featherFalling).toContain('When you fall while wearing this ring');
+      expect(featherFalling).not.toContain('resistance to acid damage');
+      expect(featherFalling).not.toContain('move through solid earth or rock');
+
+      const evasion = magicItemDescription('magic-item:ring-of-evasion');
+      expect(evasion).toContain('When you fail a Dexterity saving throw');
+      expect(evasion).toContain('succeed on that saving throw instead');
+      expect(evasion).not.toContain('telepathic communication');
+      expect(evasion).not.toContain('jump spell');
+
+      const freeAction = magicItemDescription('magic-item:ring-of-free-action');
+      expect(freeAction).toContain('difficult terrain does');
+      expect(freeAction).toContain('extra movement');
+      expect(freeAction).not.toContain('stone shape');
+      expect(freeAction).not.toContain('Ring of Fire Elemental Command');
+
+      const invisibility = magicItemDescription(
+        'magic-item:ring-of-invisibility',
+      );
+      expect(invisibility).toContain('you can turn invisible as an action');
+      expect(invisibility).not.toContain('resistance to fire damage');
+      expect(invisibility).not.toContain('understand Ignan');
+      expect(invisibility).not.toContain('immune to fire damage');
+
+      const jumping = magicItemDescription('magic-item:ring-of-jumping');
+      expect(jumping).toContain('cast the jump spell');
+      expect(jumping).not.toContain('burning hands');
+      expect(jumping).not.toContain('Ring of Water Elemental Command');
+
+      const mindShielding = magicItemDescription(
+        'magic-item:ring-of-mind-shielding',
+      );
+      expect(mindShielding).toContain(
+        'immune to magic that allows other creatures',
+      );
+      expect(mindShielding).not.toContain('water elemental');
+      expect(mindShielding).not.toContain('breathe underwater');
+      expect(mindShielding).not.toContain('create or destroy water');
+    });
+
+    it('keeps the Vicious Weapon and Vorpal Sword boundary separate', () => {
+      const vicious = magicItemDescription('magic-item:vicious-weapon');
+      expect(vicious).toContain('critical hit deals an extra 2d6 damage');
+      expect(vicious).not.toContain('Vorpal Sword');
+      expect(vicious).not.toContain('You gain a +3 bonus');
+
+      const vorpal = magicItemDescription('magic-item:vorpal-sword');
+      expect(vorpal).toContain('You gain a +3 bonus');
+      expect(vorpal).toContain('cut off one of the creature');
+      expect(vorpal).not.toContain('Wand of Binding');
     });
   });
 

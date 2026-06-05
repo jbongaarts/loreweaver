@@ -180,6 +180,14 @@ const COLUMN_GAP_THRESHOLD = 45;
 const MIN_ITEMS_PER_COLUMN = 2;
 
 /**
+ * Maximum smaller-side item count for a valid but suspicious cut to be treated
+ * as a tiny outlier island rather than the page's structural split. SRD p236
+ * has exactly two far-right text runs ("jump" + "spell") that satisfy the
+ * minimum guards and open a wider x-gap than the real page gutter.
+ */
+const TINY_OUTLIER_SIDE_MAX_ITEMS = 2;
+
+/**
  * Minimum number of distinct rounded x-coordinates a candidate column
  * must contain. The real page-column gutter is the *only* gap in body
  * content where items on each side draw from a rich set of x indents
@@ -423,8 +431,8 @@ function bucketItemsIntoRecords(items: readonly PdfTextItem[]): LineRecord[] {
  * Cut selection: we consider every x-gap that clears
  * `COLUMN_GAP_THRESHOLD` and keep only those where each side passes the
  * per-side guards (item count + distinct-x diversity). Among the
- * surviving cuts we pick the LARGEST gap, which on a real two-column
- * body page is the page gutter. Why not just the single absolute largest
+ * surviving cuts we normally keep the widest gap, except when that cut leaves
+ * only a tiny outlier island on one side. Why not just the single absolute largest
  * gap, validate, and bail on failure (the prior approach): on monster
  * pages a far-right outlier item (e.g. a stray "The" at x=539 next to a
  * right-column body at x=329) creates an isolated x-gap of ~90pt that
@@ -462,15 +470,20 @@ function partitionItemsByColumn(
     .slice()
     .sort((a, b) => a - b);
   // Collect every candidate cut whose x-gap clears the threshold AND
-  // whose induced split passes the per-side validation. Among the
-  // survivors, the largest-gap cut is the page gutter.
-  let bestGap = 0;
-  let bestLeft: PdfTextItem[] | null = null;
-  let bestRight: PdfTextItem[] | null = null;
+  // whose induced split passes the per-side validation. The widest accepted
+  // cut stays the default for parser compatibility with split-column tables;
+  // a tiny two-item island can be replaced by the best-supported candidate.
+  let widestGap = 0;
+  let widestMinSideItems = 0;
+  let widestLeft: PdfTextItem[] | null = null;
+  let widestRight: PdfTextItem[] | null = null;
+  let supportedGap = 0;
+  let supportedMinSideItems = 0;
+  let supportedLeft: PdfTextItem[] | null = null;
+  let supportedRight: PdfTextItem[] | null = null;
   for (let i = 1; i < sortedXs.length; i++) {
     const gap = sortedXs[i] - sortedXs[i - 1];
     if (gap < COLUMN_GAP_THRESHOLD) continue;
-    if (gap <= bestGap) continue;
     const cutAt = (sortedXs[i] + sortedXs[i - 1]) / 2;
     const left: PdfTextItem[] = [];
     const right: PdfTextItem[] = [];
@@ -485,6 +498,7 @@ function partitionItemsByColumn(
     ) {
       continue;
     }
+    const minSideItems = Math.min(left.length, right.length);
     // Distinct-x guard: protects repeated label/value layouts. A real
     // page column has body content at multiple x indents; a label or a
     // value column collapses to a single distinct x. Skipped for a
@@ -497,12 +511,32 @@ function partitionItemsByColumn(
     ) {
       continue;
     }
-    bestGap = gap;
-    bestLeft = left;
-    bestRight = right;
+    if (gap > widestGap) {
+      widestGap = gap;
+      widestMinSideItems = minSideItems;
+      widestLeft = left;
+      widestRight = right;
+    }
+    if (
+      minSideItems > supportedMinSideItems ||
+      (minSideItems === supportedMinSideItems && gap > supportedGap)
+    ) {
+      supportedGap = gap;
+      supportedMinSideItems = minSideItems;
+      supportedLeft = left;
+      supportedRight = right;
+    }
   }
-  if (bestLeft === null || bestRight === null) return [items];
-  return reassignGutterStragglers(bestLeft, bestRight);
+  if (widestLeft === null || widestRight === null) return [items];
+  if (
+    widestMinSideItems <= TINY_OUTLIER_SIDE_MAX_ITEMS &&
+    supportedLeft !== null &&
+    supportedRight !== null &&
+    supportedMinSideItems > widestMinSideItems
+  ) {
+    return reassignGutterStragglers(supportedLeft, supportedRight);
+  }
+  return reassignGutterStragglers(widestLeft, widestRight);
 }
 
 /**

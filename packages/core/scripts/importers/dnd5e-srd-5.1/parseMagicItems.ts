@@ -100,10 +100,6 @@ function categoryTextFromLine(line: string): string | undefined {
   return undefined;
 }
 
-function isCategoryStart(line: string): boolean {
-  return categoryTextFromLine(line) !== undefined;
-}
-
 function hasUnclosedParen(text: string): boolean {
   let depth = 0;
   for (const ch of text) {
@@ -124,11 +120,31 @@ function isCategoryContinuation(line: string): boolean {
   );
 }
 
+function categoryStartTextAt(
+  flat: readonly FlatLine[],
+  index: number,
+): string | undefined {
+  const direct = categoryTextFromLine(flat[index].line);
+  if (direct !== undefined) return direct;
+
+  const text = flat[index].line.trim();
+  if (!ITEM_TYPE_PREFIX.test(text)) return undefined;
+  if (!hasUnclosedParen(text) && !/[,(-]$/.test(text)) return undefined;
+  const next = flat[index + 1]?.line.trim();
+  if (next === undefined || !isCategoryContinuation(next)) return undefined;
+  if (!RARITY_WORD.test(next)) return undefined;
+  return text;
+}
+
+function isCategoryStartAt(flat: readonly FlatLine[], index: number): boolean {
+  return categoryStartTextAt(flat, index) !== undefined;
+}
+
 function categorySpan(
   flat: readonly FlatLine[],
   categoryStart: number,
 ): CategorySpan {
-  const firstLine = categoryTextFromLine(flat[categoryStart].line);
+  const firstLine = categoryStartTextAt(flat, categoryStart);
   if (firstLine === undefined) {
     throw new Error('categorySpan called for a non-category line');
   }
@@ -137,7 +153,7 @@ function categorySpan(
   let text = firstLine;
   while (end + 1 < flat.length) {
     const next = flat[end + 1].line.trim();
-    if (categoryTextFromLine(next) !== undefined) break;
+    if (isCategoryStartAt(flat, end + 1)) break;
     if (hasUnclosedParen(text)) {
       if (isCategoryContinuation(next)) {
         end++;
@@ -283,7 +299,7 @@ function firstTopLevelComma(text: string): number {
 function findEntries(flat: readonly FlatLine[]): readonly EntryAnchor[] {
   const entries: EntryAnchor[] = [];
   for (let i = 0; i < flat.length; i++) {
-    if (!isCategoryStart(flat[i].line)) continue;
+    if (!isCategoryStartAt(flat, i)) continue;
     const start = nameStartIndex(flat, i);
     if (start === undefined) continue;
     const category = categorySpan(flat, i);

@@ -349,6 +349,35 @@ describe('extractPdfText — heading merge', () => {
     expect(lines.indexOf('outlier')).toBeGreaterThan(rightIdx);
   });
 
+  it('picks the real page gutter when two far-right outliers satisfy the minimum guards', async () => {
+    // Regression for loreweaver-ecr.4. SRD p236 has the real Magic Items
+    // two-column gutter at x~274->329, plus two far-right words in the right
+    // column at x~503/527. The far-right island opens a wider x-gap and has
+    // two distinct x positions, so the old "largest valid gap wins" rule chose
+    // it and left the real columns row-interleaved.
+    const pages = await extractFromOps([
+      // Left column.
+      { text: 'left col line 1', size: 11, x: 60, y: 200 },
+      { text: 'left col line 2', size: 11, x: 60, y: 220 },
+      { text: 'left wrap', size: 11, x: 70, y: 240 },
+      // Right column.
+      { text: 'right col line 1', size: 11, x: 330, y: 204 },
+      { text: 'right col line 2', size: 11, x: 330, y: 224 },
+      { text: 'right wrap', size: 11, x: 340, y: 244 },
+      // Tiny far-right island inside the right column.
+      { text: 'far', size: 11, x: 505, y: 260 },
+      { text: 'outlier', size: 11, x: 530, y: 260 },
+    ]);
+    const lines = pages[0].lines;
+    const leftIdx = lines.indexOf('left col line 1');
+    const rightIdx = lines.indexOf('right col line 1');
+    expect(leftIdx).toBeGreaterThanOrEqual(0);
+    expect(rightIdx).toBeGreaterThanOrEqual(0);
+    expect(lines.indexOf('left col line 2')).toBeLessThan(rightIdx);
+    expect(lines.indexOf('left wrap')).toBeLessThan(rightIdx);
+    expect(lines.indexOf('far outlier')).toBeGreaterThan(rightIdx);
+  });
+
   it('reassigns a justified left-column last word that the widest gap swept across the gutter', async () => {
     // Regression for loreweaver-7ok. The SRD 5.1 body justifies paragraphs, so
     // each paragraph's last word is pushed flush to its column's right edge. On

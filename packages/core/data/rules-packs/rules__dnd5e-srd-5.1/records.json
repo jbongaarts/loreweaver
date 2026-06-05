@@ -34405,7 +34405,7 @@
       "itemType": "Ring",
       "rarity": "legendary",
       "requiresAttunement": true,
-      "description": "This ring is linked to one of the four Elemental Planes. The GM chooses or randomly determines the linked plane. While wearing this ring, you have advantage on attack rolls against elementals from the linked plane, and they have disadvantage on attack rolls against you. In addition, you have access to properties based on the linked plane. The ring has 5 charges. It regains 1d4 + 1 expended charges daily at dawn. Spells cast from the ring have a save DC of 17. Ring of Air Elemental Command. You can expend 2 of the ring’s charges to cast dominate monster on an air elemental. In addition, when you fall, you descend 60 feet per round and take no damage from falling. You can also speak and understand Auran. If you help slay an air elemental while attuned to the ring, you gain access to the following additional properties: • You have resistance to lightning damage. • You have a flying speed equal to your walking speed and can hover. • You can cast the following spells from the ring, expending the necessary number of charges: chain lightning (3 charges), gust of wind (2 charges), or wind wall (1 charge). Ring of Earth Elemental Command. You can expend 2 of the ring’s charges to cast dominate monster on an earth elemental. In addition, you can move in difficult terrain that is composed of rubble, rocks, or dirt as if it were normal terrain. You can reaction to expend 1 of its charges to succeed on that also speak and understand Terran. saving throw instead. If you help slay an earth elemental while attuned"
+      "description": "This ring is linked to one of the four Elemental Planes. The GM chooses or randomly determines the linked plane. While wearing this ring, you have advantage on attack rolls against elementals from the linked plane, and they have disadvantage on attack rolls against you. In addition, you have access to properties based on the linked plane. The ring has 5 charges. It regains 1d4 + 1 expended charges daily at dawn. Spells cast from the ring have a save DC of 17. Ring of Air Elemental Command. You can expend 2 of the ring’s charges to cast dominate monster on an air elemental. In addition, when you fall, you descend 60 feet per round and take no damage from falling. You can also speak and understand Auran. If you help slay an air elemental while attuned to the ring, you gain access to the following additional properties: • You have resistance to lightning damage. • You have a flying speed equal to your walking speed and can hover. • You can cast the following spells from the ring, expending the necessary number of charges: chain lightning (3 charges), gust of wind (2 charges), or wind wall (1 charge). Ring of Earth Elemental Command. You can expend 2 of the ring’s charges to cast dominate monster on an earth elemental. In addition, you can move in difficult terrain that is composed of rubble, rocks, or dirt as if it were normal terrain. You can also speak and understand Terran. If you help slay an earth elemental while attuned to the ring, you gain access to the following additional properties: • You have resistance to acid damage. • You can move through solid earth or rock as if those areas were difficult terrain. If you end your turn there, you are shunted out to the nearest unoccupied space you last occupied. • You can cast the following spells from the ring, expending the necessary number of charges: stone shape (2 charges), stoneskin (3 charges), or wall of stone (3 charges). Ring of Fire Elemental Command. You can expend 2 of the ring’s charges to cast dominate monster on a fire elemental. In addition, you have resistance to fire damage. You can also speak and understand Ignan. If you help slay a fire elemental while attuned to the ring, you gain access to the following additional properties: • You are immune to fire damage. • You can cast the following spells from the ring, expending the necessary number of charges: burning hands (1 charge), fireball (2 charges), and wall of fire (3 charges). Ring of Water Elemental Command. You can expend 2 of the ring’s charges to cast dominate monster on a water elemental. In addition, you can stand on and walk across liquid surfaces as if they were solid ground. You can also speak and understand Aquan. If you help slay a water elemental while attuned to the ring, you gain access to the following additional properties: • You can breathe underwater and have a swimming speed equal to your walking speed. • You can cast the following spells from the ring, expending the necessary number of charges: create or destroy water (1 charge), control water (3 charges), ice storm (2 charges), or wall of ice (3 charges)."
     },
     "source": "SRD 5.1 p. 235",
     "license": {
@@ -34438,7 +34438,7 @@
       "itemType": "Ring",
       "rarity": "rare",
       "requiresAttunement": true,
-      "description": "can’t prevent this telepathic communication. This ring has 3 charges, and it regains 1d3 expended charges daily at dawn. When you fail a Dexterity saving throw while wearing it, you can use your jump spell"
+      "description": "This ring has 3 charges, and it regains 1d3 expended charges daily at dawn. When you fail a Dexterity saving throw while wearing it, you can use your reaction to expend 1 of its charges to succeed on that saving throw instead."
     },
     "source": "SRD 5.1 p. 236",
     "license": {
@@ -34471,7 +34471,7 @@
       "itemType": "Ring",
       "rarity": "rare",
       "requiresAttunement": true,
-      "description": "When you fall while wearing this ring, you descend • You have resistance to acid damage. 60 feet per round and take no damage from falling. • You can move through solid earth or rock as if those areas were difficult terrain. If you end your"
+      "description": "When you fall while wearing this ring, you descend 60 feet per round and take no damage from falling."
     },
     "source": "SRD 5.1 p. 236",
     "license": {
@@ -34504,7 +34504,7 @@
       "itemType": "Ring",
       "rarity": "rare",
       "requiresAttunement": true,
-      "description": "unoccupied space you last occupied. • You can cast the following spells from the ring, While you wear this ring, difficult terrain doesn’t expending the necessary number of charges: stone cost you extra movement. In addition, magic can shape (2 charges), stoneskin (3 charges), or wall of neither reduce your speed nor cause you to be stone (3 charges). paralyzed or restrained. Ring of Fire Elemental Command. You can expend 2 of the ring’s charges to cast dominate"
+      "description": "While you wear this ring, difficult terrain doesn’t cost you extra movement. In addition, magic can neither reduce your speed nor cause you to be paralyzed or restrained."
     },
     "source": "SRD 5.1 p. 236",
     "license": {
@@ -34537,7 +34537,7 @@
       "itemType": "Ring",
       "rarity": "legendary",
       "requiresAttunement": true,
-      "description": "resistance to fire damage. You can also speak and While wearing this ring, you can turn invisible as an understand Ignan. action. Anything you are wearing or carrying is If you help slay a fire elemental while attuned to invisible with you. You remain invisible until the the ring, you gain access to the following additional ring is removed, until you attack or cast a spell, or properties: until you use a bonus action to become visible again. • You are immune to fire damage."
+      "description": "While wearing this ring, you can turn invisible as an action. Anything you are wearing or carrying is invisible with you. You remain invisible until the ring is removed, until you attack or cast a spell, or until you use a bonus action to become visible again."
     },
     "source": "SRD 5.1 p. 236",
     "license": {
@@ -34570,7 +34570,7 @@
       "itemType": "Ring",
       "rarity": "uncommon",
       "requiresAttunement": true,
-      "description": "expending the necessary number of charges: burning hands (1 charge), fireball (2 charges), and While wearing this ring, you can cast the wall of fire (3 charges). from it as a bonus action at will, but can target only Ring of Water Elemental Command. You can yourself when you do so. expend 2 of the ring’s charges to cast dominate monster on a water elemental. In addition, you can"
+      "description": "While wearing this ring, you can cast the jump spell from it as a bonus action at will, but can target only yourself when you do so."
     },
     "source": "SRD 5.1 p. 236",
     "license": {
@@ -34603,7 +34603,7 @@
       "itemType": "Ring",
       "rarity": "uncommon",
       "requiresAttunement": true,
-      "description": "were solid ground. You can also speak and While wearing this ring, you are immune to magic understand Aquan. that allows other creatures to read your thoughts, If you help slay a water elemental while attuned to determine whether you are lying, know your the ring, you gain access to the following additional alignment, or know your creature type. Creatures properties: can telepathically communicate with you only if you • You can breathe underwater and have a allow it. swimming speed equal to your walking speed. You can use an action to cause the ring to become • You can cast the following spells from the ring, invisible until you use another action to make it expending the necessary number of charges: visible, until you remove the ring, or until you die. create or destroy water (1 charge), control water (3 If you die while wearing the ring, your soul enters charges), ice storm (2 charges), or wall of ice (3 it, unless it already houses a soul. You can remain in charges). the ring or depart for the afterlife. As long as your soul is in the ring, you can telepathically"
+      "description": "While wearing this ring, you are immune to magic that allows other creatures to read your thoughts, determine whether you are lying, know your alignment, or know your creature type. Creatures can telepathically communicate with you only if you allow it. You can use an action to cause the ring to become invisible until you use another action to make it visible, until you remove the ring, or until you die. If you die while wearing the ring, your soul enters it, unless it already houses a soul. You can remain in the ring or depart for the afterlife. As long as your soul is in the ring, you can telepathically communicate with any creature wearing it. A wearer can’t prevent this telepathic communication."
     },
     "source": "SRD 5.1 p. 236",
     "license": {
@@ -36528,7 +36528,7 @@
       "itemType": "Weapon (trident)",
       "rarity": "uncommon",
       "requiresAttunement": true,
-      "description": "This trident is a magic weapon. It has 3 charges. While you carry it, you can use an action and expend 1 charge to cast dominate beast (save DC 15) from it on a beast that has an innate swimming speed. The"
+      "description": "This trident is a magic weapon. It has 3 charges. While you carry it, you can use an action and expend 1 charge to cast dominate beast (save DC 15) from it on a beast that has an innate swimming speed. The trident regains 1d3 expended charges daily at dawn."
     },
     "source": "SRD 5.1 p. 247",
     "license": {
@@ -36561,7 +36561,7 @@
       "itemType": "Wondrous item",
       "rarity": "legendary",
       "requiresAttunement": false,
-      "description": "command word. For the next minute, you know the This tube holds milky liquid with a strong alcohol direction of the nearest creature hostile to you smell. You can use an action to pour the contents of within 60 feet, but not its distance from you. The the tube onto a surface within reach. The liquid wand can sense the presence of hostile creatures instantly dissolves up to 1 square foot of adhesive it that are ethereal, invisible, disguised, or hidden, as touches, including sovereign glue. well as those in plain sight. The effect ends if you stop holding the wand."
+      "description": "This tube holds milky liquid with a strong alcohol smell. You can use an action to pour the contents of the tube onto a surface within reach. The liquid instantly dissolves up to 1 square foot of adhesive it touches, including sovereign glue."
     },
     "source": "SRD 5.1 p. 248",
     "license": {
@@ -36594,7 +36594,40 @@
       "itemType": "Weapon (any)",
       "rarity": "rare",
       "requiresAttunement": false,
-      "description": "at dawn. If you expend the wand’s last charge, roll a d20. On a 1, the wand crumbles into ashes and is When you roll a 20 on your attack roll with this destroyed. magic weapon, your critical hit deals an extra 2d6 damage of the weapon’s type."
+      "description": "When you roll a 20 on your attack roll with this magic weapon, your critical hit deals an extra 2d6 damage of the weapon’s type."
+    },
+    "source": "SRD 5.1 p. 248",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 248"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "magic-item",
+    "key": "magic-item:vorpal-sword",
+    "name": "Vorpal Sword",
+    "data": {
+      "itemType": "Weapon (any sword that deals slashing damage)",
+      "rarity": "legendary",
+      "requiresAttunement": true,
+      "description": "You gain a +3 bonus to attack and damage rolls made with this magic weapon. In addition, the weapon ignores resistance to slashing damage. When you attack a creature that has at least one head with this weapon and roll a 20 on the attack roll, you cut off one of the creature’s heads. The creature dies if it can’t survive without the lost head. A creature is immune to this effect if it is immune to slashing damage, doesn’t have or need a head, has legendary actions, or the GM decides that the creature is too big for its head to be cut off with this weapon. Such a creature instead takes an extra 6d8 slashing damage from the hit."
     },
     "source": "SRD 5.1 p. 248",
     "license": {
@@ -36628,7 +36661,7 @@
       "rarity": "rare",
       "requiresAttunement": true,
       "attunementRequirement": "by a spellcaster",
-      "description": "escape from an effect that prevents it from moving. If This wand has 7 charges for the following properties. it has nowhere it can move, the creature can use the It regains 1d6 + 1 expended charges daily at dawn. If Dodge action. At the end of each of its turns, a you expend the wand’s last charge, roll a d20. On a 1, creature can repeat the saving throw, ending the the wand crumbles into ashes and is destroyed. effect on itself on a success. Spells. While holding the wand, you can use an action to expend some of its charges to cast one of"
+      "description": "This wand has 7 charges for the following properties. It regains 1d6 + 1 expended charges daily at dawn. If you expend the wand’s last charge, roll a d20. On a 1, the wand crumbles into ashes and is destroyed. Spells. While holding the wand, you can use an action to expend some of its charges to cast one of the following spells (save DC 17): hold monster (5 charges) or hold person (2 charges). Assisted Escape. While holding the wand, you can use your reaction to expend 1 charge and gain advantage on a saving throw you make to avoid being paralyzed or restrained, or you can expend 1 charge and gain advantage on any check you make to escape a grapple."
     },
     "source": "SRD 5.1 p. 248",
     "license": {
@@ -36661,7 +36694,7 @@
       "itemType": "Wand",
       "rarity": "rare",
       "requiresAttunement": true,
-      "description": "This wand has 7 charges. While holding it, you can"
+      "description": "This wand has 7 charges. While holding it, you can use an action and expend 1 charge to speak its command word. For the next minute, you know the direction of the nearest creature hostile to you within 60 feet, but not its distance from you. The wand can sense the presence of hostile creatures that are ethereal, invisible, disguised, or hidden, as well as those in plain sight. The effect ends if you stop holding the wand. The wand regains 1d6 + 1 expended charges daily at dawn. If you expend the wand’s last charge, roll a d20. On a 1, the wand crumbles into ashes and is destroyed."
     },
     "source": "SRD 5.1 p. 248",
     "license": {
@@ -36694,7 +36727,7 @@
       "itemType": "Wand",
       "rarity": "rare",
       "requiresAttunement": true,
-      "description": "Vorpal Sword Weapon (any sword that deals slashing damage), This wand has 7 charges for the following properties. legendary (requires attunement) It regains 1d6 + 1 expended charges daily at dawn. If you expend the wand’s last charge, roll a d20. On a 1, You gain a +3 bonus to attack and damage rolls the wand crumbles into ashes and is destroyed. made with this magic weapon. In addition, the Command. While holding the wand, you can use weapon ignores resistance to slashing damage. an action to expend 1 charge and command another When you attack a creature that has at least one creature to flee or grovel, as with the head with this weapon and roll a 20 on the attack (save DC 15). roll, you cut off one of the creature’s heads. The Cone of Fear. While holding the wand, you can use creature dies if it can’t survive without the lost head. an action to expend 2 charges, causing the wand’s tip A creature is immune to this effect if it is immune to to emit a 60-foot cone of amber light. Each creature slashing damage, doesn’t have or need a head, has in the cone must succeed on a DC 15 Wisdom saving legendary actions, or the GM decides that the throw or become frightened of you for 1 minute. creature is too big for its head to be cut off with this While it is frightened in this way, a creature must weapon. Such a creature instead takes an extra 6d8 spend its turns trying to move as far away from you slashing damage from the hit. as it can, and it can’t willingly move to a space within 30 feet of you. It also can’t take reactions. For its"
+      "description": "This wand has 7 charges for the following properties. It regains 1d6 + 1 expended charges daily at dawn. If you expend the wand’s last charge, roll a d20. On a 1, the wand crumbles into ashes and is destroyed. Command. While holding the wand, you can use an action to expend 1 charge and command another creature to flee or grovel, as with the command spell (save DC 15). Cone of Fear. While holding the wand, you can use an action to expend 2 charges, causing the wand’s tip to emit a 60-foot cone of amber light. Each creature in the cone must succeed on a DC 15 Wisdom saving throw or become frightened of you for 1 minute. While it is frightened in this way, a creature must spend its turns trying to move as far away from you as it can, and it can’t willingly move to a space within 30 feet of you. It also can’t take reactions. For its action, it can use only the Dash action or try to escape from an effect that prevents it from moving. If it has nowhere it can move, the creature can use the Dodge action. At the end of each of its turns, a creature can repeat the saving throw, ending the effect on itself on a success."
     },
     "source": "SRD 5.1 p. 248",
     "license": {
@@ -36728,7 +36761,7 @@
       "rarity": "rare",
       "requiresAttunement": true,
       "attunementRequirement": "by a spellcaster",
-      "description": "charges) or hold person (2 charges). This wand has 7 charges. While holding it, you can Assisted Escape. While holding the wand, you can use an action to expend 1 or more of its charges to use your reaction to expend 1 charge and gain cast the fireball spell (save DC 15) from it. For 1 advantage on a saving throw you make to avoid charge, you cast the 3rd-level version of the spell. being paralyzed or restrained, or you can expend 1 You can increase the spell slot level by one for each charge and gain advantage on any check you make to additional charge you expend. escape a grapple. The wand regains 1d6 + 1 expended charges daily at dawn. If you expend the wand’s last charge, roll a command spell d20. On a 1, the wand crumbles into ashes and is destroyed."
+      "description": "This wand has 7 charges. While holding it, you can use an action to expend 1 or more of its charges to cast the fireball spell (save DC 15) from it. For 1 charge, you cast the 3rd-level version of the spell. You can increase the spell slot level by one for each additional charge you expend. The wand regains 1d6 + 1 expended charges daily at dawn. If you expend the wand’s last charge, roll a d20. On a 1, the wand crumbles into ashes and is destroyed."
     },
     "source": "SRD 5.1 p. 248",
     "license": {
