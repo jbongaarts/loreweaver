@@ -1,5 +1,7 @@
 # Project Instructions for AI Agents
 
+<!-- bd-doctor-divergence: ok -->
+
 Agent and contributor guidance for this project is consolidated in
 **[AGENTS.md](./AGENTS.md)** to keep a single source of truth (DRY). That file
 covers the beads issue-tracker workflow, build & test (including the
