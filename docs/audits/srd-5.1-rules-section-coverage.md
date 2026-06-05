@@ -215,7 +215,14 @@ Confirmed high-value expansions, filed as their own beads:
    `Range`, `Reactions`, `Saving Throws`) are parent-qualified via a new
    `reservedKeySlugs` parameter so they emit as `rule:casting-a-spell-*` /
    `rule:casting-time-reactions` without duplicating a key or disturbing the yli
-   core keys. Gated by `EXPECTED_SRD_5_1_RULE_KEYS` / `RuleCoverageError`.
+   core keys. Gated by `EXPECTED_SRD_5_1_RULE_KEYS` / `RuleCoverageError`. Also
+   fixed an extractor column-split bug surfaced by this chapter: an inline
+   italic spell-name run mid-paragraph (p104 "…cast *bless* on the same
+   target") starts at a high x and, on a sparse single-column page, opened a
+   spurious start-x gap that swept the run into a phantom column emitted after
+   the paragraph. `partitionItemsByColumn` now rejects a tiny-island cut that
+   slices a contiguous line of text; this also corrected the School of
+   Evocation spellbook prose (p54).
 3. **`loreweaver-6ra`** (P2) - Poisons + Diseases as structured `hazard` records
    (`data.category: 'poison'`/`'disease'`).
 4. **`loreweaver-uuk`** (P2) - Objects + Madness reference `table` records plus

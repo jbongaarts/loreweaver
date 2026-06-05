@@ -798,6 +798,53 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
     });
   });
 
+  // loreweaver-3hp: an inline italic run (a spell name mid-paragraph) starts at
+  // a high x because the words before it on the same line consumed the column
+  // width. On a sparse, effectively single-column page that opened a spurious
+  // START-x gap, so `partitionItemsByColumn` cut the run into a phantom right
+  // column emitted AFTER the rest of the paragraph — scrambling the source word
+  // order. The extractor now rejects a tiny-island cut that slices a contiguous
+  // line of text. These assertions pin the corrected reading order.
+  describe('inline-flow column-split regression (loreweaver-3hp)', () => {
+    function bodyOf(key: string): string {
+      const record = pack.records.find((r) => r.key === key);
+      expect(record, `expected ${key} in the committed pack`).toBeDefined();
+      const data = record?.data as { text?: unknown; description?: unknown };
+      const body = data.text ?? data.description;
+      expect(typeof body).toBe('string');
+      return body as string;
+    }
+
+    it('reconstructs the Combining Magical Effects bless example in source order', () => {
+      const text = bodyOf('rule:combining-magical-effects');
+      expect(text).toContain('if two clerics cast bless on the same target');
+      // The pre-fix corruption split "bless on the same" to the end of the body
+      // ("…cast target, … two bonus dice. bless on the same").
+      expect(text).not.toMatch(/clerics cast target,/);
+      expect(text).not.toMatch(/bless on the same\s*$/);
+    });
+
+    it('keeps the School of Evocation spellbook prose in source order', () => {
+      // Same page family: "You can copy a spell from your own" and "Your
+      // spellbook is a unique" inline runs were displaced to the body's end.
+      for (const key of [
+        'subclass:school-of-evocation',
+        'feature:school-of-evocation:overchannel',
+      ]) {
+        const text = bodyOf(key);
+        expect(text).toContain(
+          'You can copy a spell from your own spellbook into another book',
+        );
+        expect(text).toContain(
+          'Your spellbook is a unique compilation of spells',
+        );
+        expect(text).not.toMatch(
+          /You can copy a spell from your own\s+Your spellbook is a unique\s*$/,
+        );
+      }
+    });
+  });
+
   // loreweaver-3n6: the committed pack once collapsed to a single equipment
   // record (an inaccurate `equipment:padded`) because the equipment parser
   // assumed a row-major table layout the real SRD 5.1 PDF does not use — it
