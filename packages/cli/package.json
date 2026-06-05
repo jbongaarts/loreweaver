@@ -1,10 +1,17 @@
 {
   "name": "@loreweaver/cli",
   "version": "0.0.0",
+  "description": "Command-line interface for running local Loreweaver campaigns.",
+  "private": true,
   "type": "module",
   "files": [
     "dist"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jbongaarts/loreweaver.git",
+    "directory": "packages/cli"
+  },
   "engines": {
     "node": ">=24 <25"
   },
