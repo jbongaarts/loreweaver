@@ -179,7 +179,7 @@ const EXPECTED_STABLE_KEYS: readonly string[] = [
  *     cell — the items with a "—" weight (Sling, gaming sets, and many
  *     adventuring-gear/tack rows) plus the 7 packs, 8 mounts, and 6 waterborne
  *     vehicles (priced by speed/capacity, not weight).
- *   - magic-item.attunementRequirement: only the 19 items whose category line
+ *   - magic-item.attunementRequirement: only the 26 items whose category line
  *     restricts attunement by class, ancestry, alignment, or spellcasting carry
  *     this text; all 237 records still carry the boolean `requiresAttunement`.
  *   - spell.componentMaterials: only spells with a material (M) component.
@@ -259,7 +259,7 @@ const EXPECTED_PARTIAL_FIELDS: ReadonlyArray<{
   {
     kind: 'magic-item',
     field: 'attunementRequirement',
-    missingCount: 218,
+    missingCount: 211,
     totalInKind: 237,
   },
   {
@@ -548,6 +548,82 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
       expect(vorpal).toContain('You gain a +3 bonus');
       expect(vorpal).toContain('cut off one of the creature');
       expect(vorpal).not.toContain('Wand of Binding');
+    });
+
+    it('parses wrapped category attunement parentheticals into item metadata', () => {
+      const cases = [
+        {
+          key: 'magic-item:ring-of-shooting-stars',
+          itemType: 'Ring',
+          rarity: 'very rare',
+          attunementRequirement: 'outdoors at night',
+          bodyStart: 'While wearing this ring in dim light or darkness',
+        },
+        {
+          key: 'magic-item:holy-avenger',
+          itemType: 'Weapon (any sword)',
+          rarity: 'legendary',
+          attunementRequirement: 'by a paladin',
+          bodyStart: 'You gain a +3 bonus',
+        },
+        {
+          key: 'magic-item:pearl-of-power',
+          itemType: 'Wondrous item',
+          rarity: 'uncommon',
+          attunementRequirement: 'by a spellcaster',
+          bodyStart: 'While this pearl is on your person',
+        },
+        {
+          key: 'magic-item:talisman-of-pure-good',
+          itemType: 'Wondrous item',
+          rarity: 'legendary',
+          attunementRequirement: 'by a creature of good alignment',
+          bodyStart: 'This talisman is a mighty symbol of goodness',
+        },
+        {
+          key: 'magic-item:talisman-of-ultimate-evil',
+          itemType: 'Wondrous item',
+          rarity: 'legendary',
+          attunementRequirement: 'by a creature of evil alignment',
+          bodyStart: 'This item symbolizes unrepentant evil',
+        },
+        {
+          key: 'magic-item:wand-of-polymorph',
+          itemType: 'Wand',
+          rarity: 'very rare',
+          attunementRequirement: 'by a spellcaster',
+          bodyStart: 'This wand has 7 charges',
+        },
+        {
+          key: 'magic-item:wand-of-web',
+          itemType: 'Wand',
+          rarity: 'uncommon',
+          attunementRequirement: 'by a spellcaster',
+          bodyStart: 'This wand has 7 charges',
+        },
+      ];
+
+      for (const expected of cases) {
+        const data = magicItemData(expected.key);
+        expect(data).toMatchObject({
+          itemType: expected.itemType,
+          rarity: expected.rarity,
+          requiresAttunement: true,
+          attunementRequirement: expected.attunementRequirement,
+        });
+        const description = magicItemDescription(expected.key);
+        expect(description).toContain(expected.bodyStart);
+        expect(description).not.toContain('requires attunement');
+        expect(description).not.toMatch(/^\w+\)/);
+      }
+    });
+
+    it('keeps Ring of Three Wishes spell wording intact', () => {
+      const description = magicItemDescription(
+        'magic-item:ring-of-three-wishes',
+      );
+      expect(description).toContain('cast the wish spell from it');
+      expect(description).not.toContain('cast the wish it');
     });
   });
 

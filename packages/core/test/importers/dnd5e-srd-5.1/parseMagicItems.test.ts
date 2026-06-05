@@ -359,4 +359,56 @@ describe('parseMagicItems', () => {
       'You gain a +3 bonus',
     );
   });
+
+  it('keeps wrapped attunement parentheticals in category metadata', () => {
+    const parsed = parseMagicItems([
+      page(237, [
+        'Ring of Shooting Stars',
+        'Ring, very rare (requires attunement outdoors at',
+        'night)',
+        'While wearing this ring in dim light or darkness, you',
+        'can cast dancing lights and light from the ring at will.',
+        'Holy Avenger',
+        'Weapon (any sword), legendary (requires attunement',
+        'by a paladin)',
+        'You gain a +3 bonus to attack and damage rolls',
+        'made with this magic weapon.',
+        'Pearl of Power',
+        'Wondrous item, uncommon (requires attunement by a',
+        'spellcaster)',
+        'While this pearl is on your person, you can use an action.',
+      ]),
+    ]);
+    const byParsedName = new Map(parsed.map((item) => [item.name, item]));
+
+    expect(byParsedName.get('Ring of Shooting Stars')).toMatchObject({
+      itemType: 'Ring',
+      rarity: 'very rare',
+      requiresAttunement: true,
+      attunementRequirement: 'outdoors at night',
+      description:
+        'While wearing this ring in dim light or darkness, you can cast dancing lights and light from the ring at will.',
+    });
+    expect(byParsedName.get('Holy Avenger')).toMatchObject({
+      itemType: 'Weapon (any sword)',
+      rarity: 'legendary',
+      requiresAttunement: true,
+      attunementRequirement: 'by a paladin',
+    });
+    expect(byParsedName.get('Holy Avenger')?.description).toContain(
+      'You gain a +3 bonus',
+    );
+    expect(byParsedName.get('Holy Avenger')?.description).not.toContain(
+      'by a paladin)',
+    );
+    expect(byParsedName.get('Pearl of Power')).toMatchObject({
+      itemType: 'Wondrous item',
+      rarity: 'uncommon',
+      requiresAttunement: true,
+      attunementRequirement: 'by a spellcaster',
+    });
+    expect(byParsedName.get('Pearl of Power')?.description).not.toContain(
+      'spellcaster)',
+    );
+  });
 });

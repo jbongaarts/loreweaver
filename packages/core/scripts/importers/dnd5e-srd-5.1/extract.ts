@@ -200,6 +200,13 @@ const TINY_OUTLIER_SIDE_MAX_ITEMS = 2;
 const MIN_DISTINCT_X_PER_COLUMN = 2;
 
 /**
+ * Minimum line-start count for an x-coordinate to count as a dense column
+ * margin during gutter-straggler repair. Sparse two-start table columns can
+ * still be accepted when their text shape is structural rather than prose.
+ */
+const MIN_LINE_STARTS_FOR_DENSE_MARGIN = 3;
+
+/**
  * x-gap (in PDF user-space points) at or above which a candidate cut is
  * accepted as a genuine page-column gutter even if one side collapses to a
  * single distinct x. The distinct-x guard (`MIN_DISTINCT_X_PER_COLUMN`)
@@ -544,30 +551,40 @@ function partitionItemsByColumn(
  * back to the left column. See `partitionItemsByColumn` for the justified-text
  * failure this corrects.
  *
- * The margin is the SMALLEST rounded x at which at least two lines begin: a
- * genuine column edge always has multiple line-starts, whereas a justified
- * left-column last word swept across the gutter sits alone (count 1) to its
- * left. Defining the margin by line-start density (not by "most frequent x",
+ * The margin is the SMALLEST rounded x with dense line-start support: a
+ * genuine column edge always has multiple line-starts, whereas left-column
+ * fragments swept across the gutter have only one or two starts to their left.
+ * Defining the margin by line-start density (not by "most frequent x",
  * which can be a deeper wrap indent, nor by the leftmost x, which can be the
  * straggler itself) keeps clean pages untouched: when the right column's
  * leftmost item already starts the densest margin, nothing lies left of it and
- * the split is returned unchanged. Only stragglers — count-1 items more than
- * `COLUMN_X_TOLERANCE` left of the margin — move. A final guard refuses any
- * move that would shrink the right column below `MIN_ITEMS_PER_COLUMN`, so a
+ * the split is returned unchanged. Only stragglers more than
+ * `COLUMN_X_TOLERANCE` left of the margin move. A final guard refuses any move
+ * that would shrink the right column below `MIN_ITEMS_PER_COLUMN`, so a
  * genuinely small right column is never dismantled.
  */
 function reassignGutterStragglers(
   left: readonly PdfTextItem[],
   right: readonly PdfTextItem[],
 ): readonly (readonly PdfTextItem[])[] {
-  const counts = new Map<number, number>();
+  const startsByX = new Map<number, PdfTextItem[]>();
   for (const it of right) {
     const x = Math.round(it.transform[4]);
-    counts.set(x, (counts.get(x) ?? 0) + 1);
+    const bucket = startsByX.get(x);
+    if (bucket === undefined) {
+      startsByX.set(x, [it]);
+    } else {
+      bucket.push(it);
+    }
   }
   let margin: number | undefined;
-  for (const [x, c] of counts) {
-    if (c >= 2 && (margin === undefined || x < margin)) margin = x;
+  for (const [x, starts] of startsByX) {
+    if (
+      isSupportedGutterMargin(starts) &&
+      (margin === undefined || x < margin)
+    ) {
+      margin = x;
+    }
   }
   if (margin === undefined) return [left, right];
   const threshold = margin - COLUMN_X_TOLERANCE;
@@ -581,6 +598,14 @@ function reassignGutterStragglers(
     return [left, right];
   }
   return [[...left, ...movedLeft], keptRight];
+}
+
+function isSupportedGutterMargin(starts: readonly PdfTextItem[]): boolean {
+  if (starts.length >= MIN_LINE_STARTS_FOR_DENSE_MARGIN) return true;
+  return (
+    starts.length === 2 &&
+    starts.some((item) => !/^[a-z]/.test(item.str.trim()))
+  );
 }
 
 function distinctRoundedXCount(items: readonly PdfTextItem[]): number {

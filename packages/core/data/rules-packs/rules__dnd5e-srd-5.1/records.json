@@ -32389,9 +32389,10 @@
     "name": "Holy Avenger",
     "data": {
       "itemType": "Weapon (any sword)",
-      "rarity": "legendary (requires attunement",
-      "requiresAttunement": false,
-      "description": "by a paladin) You gain a +3 bonus to attack and damage rolls made with this magic weapon. When you hit a fiend or an undead with it, that creature takes an extra 2d10 radiant damage. While you hold the drawn sword, it creates an aura in a 10-foot radius around you. You and all creatures friendly to you in the aura have advantage on saving throws against spells and other magical"
+      "rarity": "legendary",
+      "requiresAttunement": true,
+      "attunementRequirement": "by a paladin",
+      "description": "You gain a +3 bonus to attack and damage rolls made with this magic weapon. When you hit a fiend or an undead with it, that creature takes an extra 2d10 radiant damage. While you hold the drawn sword, it creates an aura in a 10-foot radius around you. You and all creatures friendly to you in the aura have advantage on saving throws against spells and other magical"
     },
     "source": "SRD 5.1 p. 225",
     "license": {
@@ -33479,9 +33480,10 @@
     "name": "Pearl of Power",
     "data": {
       "itemType": "Wondrous item",
-      "rarity": "uncommon (requires attunement by a",
-      "requiresAttunement": false,
-      "description": "spellcaster) While this pearl is on your person, you can use an action to speak its command word and regain one expended spell slot. If the expended slot was of 4th level or higher, the new slot is 3rd level. Once you use the pearl, it can t be used again until the next dawn."
+      "rarity": "uncommon",
+      "requiresAttunement": true,
+      "attunementRequirement": "by a spellcaster",
+      "description": "While this pearl is on your person, you can use an action to speak its command word and regain one expended spell slot. If the expended slot was of 4th level or higher, the new slot is 3rd level. Once you use the pearl, it can t be used again until the next dawn."
     },
     "source": "SRD 5.1 p. 232",
     "license": {
@@ -34733,9 +34735,10 @@
     "name": "Ring of Shooting Stars",
     "data": {
       "itemType": "Ring",
-      "rarity": "very rare (requires attunement outdoors at",
-      "requiresAttunement": false,
-      "description": "night) While wearing this ring in dim light or darkness, you can cast dancing lights and light from the ring at will. Casting either spell from the ring requires an action. The ring has 6 charges for the following other properties. The ring regains 1d6 expended charges daily at dawn. Faerie Fire. You can expend 1 charge as an action to cast faerie fire from the ring. Ball Lightning. You can expend 2 charges as an action to create one to four 3-foot-diameter spheres of lightning. The more spheres you create, the less powerful each sphere is individually. Each sphere appears in an unoccupied space you can see within 120 feet of you. The spheres last as long as you concentrate (as if concentrating on a spell), up to 1 minute. Each sphere sheds dim light in a 30-foot radius. As a bonus action, you can move each sphere up to 30 feet, but no farther than 120 feet away from you. When a creature other than you comes within 5 feet of a sphere, the sphere discharges lightning at that creature and disappears. That creature must make a DC 15 Dexterity saving throw. On a failed save, the creature takes lightning damage based on the number of spheres you created. Spheres Lightning Damage 4 2d4 3 2d6 2 5d4 1 4d12 Shooting Stars. You can expend 1 to 3 charges as an action. For every charge you expend, you launch a glowing mote of light from the ring at a point you can see within 60 feet of you. Each creature within a 15-foot cube originating from that point is showered in sparks and must make a DC 15 Dexterity saving throw, taking 5d4 fire damage on a failed save, or half as much damage on a successful one."
+      "rarity": "very rare",
+      "requiresAttunement": true,
+      "attunementRequirement": "outdoors at night",
+      "description": "While wearing this ring in dim light or darkness, you can cast dancing lights and light from the ring at will. Casting either spell from the ring requires an action. The ring has 6 charges for the following other properties. The ring regains 1d6 expended charges daily at dawn. Faerie Fire. You can expend 1 charge as an action to cast faerie fire from the ring. Ball Lightning. You can expend 2 charges as an action to create one to four 3-foot-diameter spheres of lightning. The more spheres you create, the less powerful each sphere is individually. Each sphere appears in an unoccupied space you can see within 120 feet of you. The spheres last as long as you concentrate (as if concentrating on a spell), up to 1 minute. Each sphere sheds dim light in a 30-foot radius. As a bonus action, you can move each sphere up to 30 feet, but no farther than 120 feet away from you. When a creature other than you comes within 5 feet of a sphere, the sphere discharges lightning at that creature and disappears. That creature must make a DC 15 Dexterity saving throw. On a failed save, the creature takes lightning damage based on the number of spheres you created. Spheres Lightning Damage 4 2d4 3 2d6 2 5d4 1 4d12 Shooting Stars. You can expend 1 to 3 charges as an action. For every charge you expend, you launch a glowing mote of light from the ring at a point you can see within 60 feet of you. Each creature within a 15-foot cube originating from that point is showered in sparks and must make a DC 15 Dexterity saving throw, taking 5d4 fire damage on a failed save, or half as much damage on a successful one."
     },
     "source": "SRD 5.1 p. 237",
     "license": {
@@ -34867,7 +34870,7 @@
       "itemType": "Ring",
       "rarity": "very rare",
       "requiresAttunement": true,
-      "description": "While wearing this ring, you can cast the spell at will, but you can target only objects that aren’t being worn or carried."
+      "description": "While wearing this ring, you can cast the telekinesis spell at will, but you can target only objects that aren’t being worn or carried."
     },
     "source": "SRD 5.1 p. 238",
     "license": {
@@ -34933,7 +34936,7 @@
       "itemType": "Ring",
       "rarity": "legendary",
       "requiresAttunement": false,
-      "description": "While wearing this ring, you can use an action to expend 1 of its 3 charges to cast the wish it. The ring becomes nonmagical when you use the last charge."
+      "description": "While wearing this ring, you can use an action to expend 1 of its 3 charges to cast the wish spell from it. The ring becomes nonmagical when you use the last charge."
     },
     "source": "SRD 5.1 p. 238",
     "license": {
@@ -35032,7 +35035,7 @@
       "itemType": "Ring",
       "rarity": "rare",
       "requiresAttunement": true,
-      "description": "While wearing this ring, you can use an action to speak its command word. When you do so, you can see into and through solid matter for 1 minute. This vision has a radius of 30 feet. To you, solid objects within that radius appear transparent and don’t prevent light from passing through them. The vision can penetrate 1 foot of stone, 1 inch of common metal, or up to 3 feet of wood or dirt. Thicker substances block the vision, as does a thin sheet of lead. Whenever you use the ring again before taking a telekinesis long rest, you must succeed on a DC 15 Constitution saving throw or gain one level of exhaustion."
+      "description": "While wearing this ring, you can use an action to speak its command word. When you do so, you can see into and through solid matter for 1 minute. This vision has a radius of 30 feet. To you, solid objects within that radius appear transparent and don’t prevent light from passing through them. The vision can penetrate 1 foot of stone, 1 inch of common metal, or up to 3 feet of wood or dirt. Thicker substances block the vision, as does a thin sheet of lead. Whenever you use the ring again before taking a long rest, you must succeed on a DC 15 Constitution saving throw or gain one level of exhaustion."
     },
     "source": "SRD 5.1 p. 238",
     "license": {
@@ -35065,7 +35068,7 @@
       "itemType": "Wondrous item",
       "rarity": "rare",
       "requiresAttunement": true,
-      "description": "This robe is adorned with eyelike patterns. While you wear the robe, you gain the following benefits: • The robe lets you see in all directions, and you have advantage on Wisdom (Perception) checks that rely on sight. • You have darkvision out to a range of 120 feet. • You can see invisible creatures and objects, as well as see into the Ethereal Plane, out to a range of 120 feet. The eyes on the robe can’t be closed or averted. Although you can close or avert your own eyes, you are never considered to be doing so while wearing this robe. A light spell cast on the robe or a daylight spell cast within 5 feet of the robe causes you to be blinded for 1 minute. At the end of each of your turns, you can make a Constitution saving throw (DC spell from 11 for light or DC 15 for daylight), ending the blindness on a success."
+      "description": "This robe is adorned with eyelike patterns. While you wear the robe, you gain the following benefits: • The robe lets you see in all directions, and you have advantage on Wisdom (Perception) checks that rely on sight. • You have darkvision out to a range of 120 feet. • You can see invisible creatures and objects, as well as see into the Ethereal Plane, out to a range of 120 feet. The eyes on the robe can’t be closed or averted. Although you can close or avert your own eyes, you are never considered to be doing so while wearing this robe. A light spell cast on the robe or a daylight spell cast within 5 feet of the robe causes you to be blinded for 1 minute. At the end of each of your turns, you can make a Constitution saving throw (DC 11 for light or DC 15 for daylight), ending the blindness on a success."
     },
     "source": "SRD 5.1 p. 238",
     "license": {
@@ -36328,9 +36331,10 @@
     "name": "Talisman of Pure Good",
     "data": {
       "itemType": "Wondrous item",
-      "rarity": "legendary (requires attunement by a",
-      "requiresAttunement": false,
-      "description": "creature of good alignment) This talisman is a mighty symbol of goodness. A creature that is neither good nor evil in alignment takes 6d6 radiant damage upon touching the talisman. An evil creature takes 8d6 radiant damage upon touching the talisman. Either sort of creature takes the damage again each time it ends its turn holding or carrying the talisman. If you are a good cleric or paladin, you can use the talisman as a holy symbol, and you gain a +2 bonus to spell attack rolls while you wear or hold it. The talisman has 7 charges. If you are wearing or holding it, you can use an action to expend 1 charge from it and choose one creature you can see on the ground within 120 feet of you. If the target is of evil alignment, a flaming fissure opens under it. The target must succeed on a DC 20 Dexterity saving throw or fall into the fissure and be destroyed, leaving no remains. The fissure then closes, leaving no trace of its existence. When you expend the last charge, the talisman disperses into motes of golden light and is destroyed."
+      "rarity": "legendary",
+      "requiresAttunement": true,
+      "attunementRequirement": "by a creature of good alignment",
+      "description": "This talisman is a mighty symbol of goodness. A creature that is neither good nor evil in alignment takes 6d6 radiant damage upon touching the talisman. An evil creature takes 8d6 radiant damage upon touching the talisman. Either sort of creature takes the damage again each time it ends its turn holding or carrying the talisman. If you are a good cleric or paladin, you can use the talisman as a holy symbol, and you gain a +2 bonus to spell attack rolls while you wear or hold it. The talisman has 7 charges. If you are wearing or holding it, you can use an action to expend 1 charge from it and choose one creature you can see on the ground within 120 feet of you. If the target is of evil alignment, a flaming fissure opens under it. The target must succeed on a DC 20 Dexterity saving throw or fall into the fissure and be destroyed, leaving no remains. The fissure then closes, leaving no trace of its existence. When you expend the last charge, the talisman disperses into motes of golden light and is destroyed."
     },
     "source": "SRD 5.1 p. 247",
     "license": {
@@ -36394,9 +36398,10 @@
     "name": "Talisman of Ultimate Evil",
     "data": {
       "itemType": "Wondrous item",
-      "rarity": "legendary (requires attunement by a",
-      "requiresAttunement": false,
-      "description": "creature of evil alignment) This item symbolizes unrepentant evil. A creature that is neither good nor evil in alignment takes 6d6 necrotic damage upon touching the talisman. A good creature takes 8d6 necrotic damage upon touching the talisman. Either sort of creature takes the damage again each time it ends its turn holding or carrying the talisman. If you are an evil cleric or paladin, you can use the talisman as a holy symbol, and you gain a +2 bonus to spell attack rolls while you wear or hold it. The talisman has 6 charges. If you are wearing or holding it, you can use an action to expend 1 charge from the talisman and choose one creature you can see on the ground within 120 feet of you. If the target is of good alignment, a flaming fissure opens under it. The target must succeed on a DC 20 Dexterity saving throw or fall into the fissure and be destroyed, leaving no remains. The fissure then closes, leaving no trace of its existence. When you expend the last charge, the talisman dissolves into foul-smelling slime and is destroyed."
+      "rarity": "legendary",
+      "requiresAttunement": true,
+      "attunementRequirement": "by a creature of evil alignment",
+      "description": "This item symbolizes unrepentant evil. A creature that is neither good nor evil in alignment takes 6d6 necrotic damage upon touching the talisman. A good creature takes 8d6 necrotic damage upon touching the talisman. Either sort of creature takes the damage again each time it ends its turn holding or carrying the talisman. If you are an evil cleric or paladin, you can use the talisman as a holy symbol, and you gain a +2 bonus to spell attack rolls while you wear or hold it. The talisman has 6 charges. If you are wearing or holding it, you can use an action to expend 1 charge from the talisman and choose one creature you can see on the ground within 120 feet of you. If the target is of good alignment, a flaming fissure opens under it. The target must succeed on a DC 20 Dexterity saving throw or fall into the fissure and be destroyed, leaving no remains. The fissure then closes, leaving no trace of its existence. When you expend the last charge, the talisman dissolves into foul-smelling slime and is destroyed."
     },
     "source": "SRD 5.1 p. 247",
     "license": {
@@ -36926,9 +36931,10 @@
     "name": "Wand of Polymorph",
     "data": {
       "itemType": "Wand",
-      "rarity": "very rare (requires attunement by a",
-      "requiresAttunement": false,
-      "description": "spellcaster) This wand has 7 charges. While holding it, you can use an action to expend 1 of its charges to cast the polymorph spell (save DC 15) from it. The wand regains 1d6 + 1 expended charges daily at dawn. If you expend the wand’s last charge, roll a d20. On a 1, the wand crumbles into ashes and is destroyed."
+      "rarity": "very rare",
+      "requiresAttunement": true,
+      "attunementRequirement": "by a spellcaster",
+      "description": "This wand has 7 charges. While holding it, you can use an action to expend 1 of its charges to cast the polymorph spell (save DC 15) from it. The wand regains 1d6 + 1 expended charges daily at dawn. If you expend the wand’s last charge, roll a d20. On a 1, the wand crumbles into ashes and is destroyed."
     },
     "source": "SRD 5.1 p. 249",
     "license": {
@@ -37026,9 +37032,10 @@
     "name": "Wand of Web",
     "data": {
       "itemType": "Wand",
-      "rarity": "uncommon (requires attunement by a",
-      "requiresAttunement": false,
-      "description": "spellcaster) This wand has 7 charges. While holding it, you can use an action to expend 1 of its charges to cast the web spell (save DC 15) from it. The wand regains 1d6 + 1 expended charges daily at dawn. If you expend the wand’s last charge, roll a d20. On a 1, the wand crumbles into ashes and is destroyed."
+      "rarity": "uncommon",
+      "requiresAttunement": true,
+      "attunementRequirement": "by a spellcaster",
+      "description": "This wand has 7 charges. While holding it, you can use an action to expend 1 of its charges to cast the web spell (save DC 15) from it. The wand regains 1d6 + 1 expended charges daily at dawn. If you expend the wand’s last charge, roll a d20. On a 1, the wand crumbles into ashes and is destroyed."
     },
     "source": "SRD 5.1 p. 249",
     "license": {

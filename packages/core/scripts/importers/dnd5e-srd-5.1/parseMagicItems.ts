@@ -120,6 +120,20 @@ function isCategoryContinuation(line: string): boolean {
   );
 }
 
+function isParentheticalCategoryContinuation(
+  currentCategoryText: string,
+  line: string,
+): boolean {
+  const text = line.trim();
+  return (
+    hasUnclosedParen(currentCategoryText) &&
+    text.length > 0 &&
+    /^[a-z]/.test(text) &&
+    /\)/.test(text) &&
+    !/[.!?:]$/.test(text)
+  );
+}
+
 function categoryStartTextAt(
   flat: readonly FlatLine[],
   index: number,
@@ -155,7 +169,10 @@ function categorySpan(
     const next = flat[end + 1].line.trim();
     if (isCategoryStartAt(flat, end + 1)) break;
     if (hasUnclosedParen(text)) {
-      if (isCategoryContinuation(next)) {
+      if (
+        isCategoryContinuation(next) ||
+        isParentheticalCategoryContinuation(text, next)
+      ) {
         end++;
         lines.push(next);
         text = `${text} ${next}`;
@@ -164,7 +181,8 @@ function categorySpan(
       if (
         end + 2 < flat.length &&
         isSkippableInterleavedBodyLine(next) &&
-        isCategoryContinuation(flat[end + 2].line)
+        (isCategoryContinuation(flat[end + 2].line) ||
+          isParentheticalCategoryContinuation(text, flat[end + 2].line))
       ) {
         end++;
         continue;
