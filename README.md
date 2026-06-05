@@ -254,5 +254,17 @@ content lives in the npm package build output.
 
 ## License
 
-Not yet finalized. Any bundled or publicly shared campaign/rules content must
-be open-licensed, public domain, original, or publisher-licensed.
+The Loreweaver source-code license is not finalized. Until a repository-level
+LICENSE file and package license metadata are added, the root workspace and both
+npm workspaces are marked private/unpublished and are not intended for npm
+publication.
+
+That source-code decision is separate from bundled content licensing. Any
+bundled or publicly shared rules/campaign content must be open-licensed, public
+domain, original, or publisher-licensed, with license and provenance recorded in
+pack metadata.
+
+Third-party adventure or module source legality is also separate from the
+repository license. That review remains tracked by bead `loreweaver-9s6`; this
+repository must not bundle or publish third-party adventure text until that
+source is confirmed open, public domain, original, or publisher-licensed.

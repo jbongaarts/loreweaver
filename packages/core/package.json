@@ -1,11 +1,18 @@
 {
   "name": "@loreweaver/core",
   "version": "0.0.0",
+  "description": "UI-agnostic Loreweaver campaign engine, persistence, rules, and model orchestration.",
+  "private": true,
   "type": "module",
   "files": [
     "dist",
     "data"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jbongaarts/loreweaver.git",
+    "directory": "packages/core"
+  },
   "engines": {
     "node": ">=24 <25"
   },

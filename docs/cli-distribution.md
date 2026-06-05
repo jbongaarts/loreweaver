@@ -46,7 +46,11 @@ stays private; only the package workspaces are published.
 
 Before the first publish, package metadata should be tightened:
 
-- add final `license`, `repository`, and npm provenance metadata
+- finalize the repository source-code license and add package `license`
+  metadata
+- remove the temporary `private: true` package guards from publishable
+  workspaces only after the source license is finalized
+- verify `repository` metadata and npm provenance settings
 - decide whether the first public version is `0.1.0` or another pre-1.0 semver
 
 ## Build And Release Commands
@@ -205,6 +209,7 @@ campaign database; otherwise it closes without a checkpoint.
 The plan is intentionally compatible with the current workspace shape, but the
 first publish should not happen until these are resolved or explicitly waived:
 
-- final license, repository, and provenance metadata are added
+- final source-code license, repository, and provenance metadata are added, and
+  publishable workspaces are no longer marked `private`
 - release automation installs the packed tarballs and invokes the global
   `loreweaver` command in a clean prefix before publish
