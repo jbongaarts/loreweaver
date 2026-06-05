@@ -132,6 +132,7 @@ describe('parseRules', () => {
 const SUB_H = 18;
 const SUBSUB_H = 13.9;
 const LEAF_H = 12;
+const BOX_H = 10.8;
 const BODY_H = 9.8;
 
 function pageH(
@@ -227,6 +228,27 @@ describe('parseRules (heading-hierarchy path)', () => {
     expect(names).not.toContain('Strength');
     expect(names).not.toContain('Variant: Skills with Different Abilities');
     expect(names).not.toContain('Typical Difficulty Classes');
+  });
+
+  it('captures a sub-leaf callout box and does not bleed it into the prior rule', () => {
+    // A gray callout box heading renders at h≈10.8 (below the h≈12 leaf tier).
+    // It must still be a heading, or its body is swallowed into the preceding
+    // rule — the Hiding-under-Initiative corruption (loreweaver-yli).
+    const rules = parseRules([
+      pageH(80, [
+        ['Initiative', LEAF_H],
+        ['At the beginning of every combat, you roll initiative.', BODY_H],
+        ['Hiding', BOX_H],
+        ['When you try to hide, make a Dexterity (Stealth) check.', BODY_H],
+      ]),
+    ]);
+    expect(rules.map((r) => r.name)).toEqual(['Hiding', 'Initiative']);
+    const initiative = rules.find((r) => r.name === 'Initiative');
+    expect(initiative?.text).toContain('roll initiative');
+    expect(initiative?.text).not.toContain('Dexterity (Stealth)');
+    const hiding = rules.find((r) => r.name === 'Hiding');
+    expect(hiding?.keySlug).toBe('hiding');
+    expect(hiding?.text).toContain('Dexterity (Stealth)');
   });
 
   it('keeps a same-named subsection while dropping its leaf table caption', () => {

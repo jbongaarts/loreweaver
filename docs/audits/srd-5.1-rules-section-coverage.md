@@ -195,7 +195,7 @@ Confirmed high-value expansions, filed as their own beads:
    core-rules `rule` coverage (Combat + Ability/Adventuring chapters; fixes the
    wrapper-drop root cause). **DONE.** The parser now reads per-line font tiers
    (new `PageText.lineHeights`) and emits one `rule` per heading bounded at the
-   next heading, taking the canonical pack from **10 → 123** `rule` records
+   next heading, taking the canonical pack from **10 → 127** `rule` records
    (Making an Attack + subsections, Damage and Healing + Death Saving Throws,
    Cover, Resting/Short Rest/Long Rest, Saving Throws, Order of Combat
    subsections, The Environment subsections, …). Cross-chapter title collisions

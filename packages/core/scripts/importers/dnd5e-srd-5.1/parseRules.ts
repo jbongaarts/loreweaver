@@ -135,19 +135,29 @@ function slug(name: string): string {
 
 /**
  * Font-height tier bands (PDF user-space points). SRD 5.1 core-rules headings
- * render at chapter h≈25.9, subsection h≈18.0, sub-subsection h≈13.9, and leaf
- * h≈12.0; body prose renders at h≈9.8. The bands are placed in the gaps
- * between those clusters. A line below `LEAF_MIN_H` is body, not a heading.
+ * render in a single heading font (`g_d0_f2`) at chapter h≈25.9, subsection
+ * h≈18.0, sub-subsection h≈13.9, leaf h≈12.0, and — in the gray callout boxes
+ * (Hiding, Combat Step by Step, Interacting with Objects Around You, Contests
+ * in Combat) — a sidebar size h≈10.8. Body prose renders at h≈9.8 and sidebar
+ * body at h≈8.9, so `SIDEBAR_MIN_H` sits in the gap above both. Capturing the
+ * h≈10.8 box tier is load-bearing: without it the box heading is treated as
+ * body and its whole rule (e.g. the Hiding / Stealth rules) is swallowed into
+ * the preceding record's body (the corruption that buried Hiding under the
+ * Dexterity "Initiative" sidebar). A line below `SIDEBAR_MIN_H` is body.
  */
+const SIDEBAR_MIN_H = 10.3;
 const LEAF_MIN_H = 11.5;
 const SUBSUB_MIN_H = 13;
 const SUB_MIN_H = 16;
 const CHAPTER_MIN_H = 20;
 
 /**
- * Heading tier for a line height. 1 = subsection, 2 = sub-subsection, 3 = leaf
- * (all rule-emitting); 0 = chapter (a structural wrapper, never emitted but
- * kept as an ancestor); -1 = body prose. Larger height ⇒ shallower tier.
+ * Heading tier for a line height. 1 = subsection, 2 = sub-subsection, 3 = leaf,
+ * 4 = sidebar/callout box (all rule-emitting); 0 = chapter (a structural
+ * wrapper, never emitted but kept as an ancestor); -1 = body prose. Larger
+ * height ⇒ shallower tier. The h≈10.8 sidebar tier is the deepest, so a box
+ * heading is always popped from the ancestor stack by any following real
+ * heading and never parents main-flow content.
  */
 function headingTier(height: number | undefined): number {
   if (height === undefined) return -1;
@@ -155,6 +165,7 @@ function headingTier(height: number | undefined): number {
   if (height >= SUB_MIN_H) return 1;
   if (height >= SUBSUB_MIN_H) return 2;
   if (height >= LEAF_MIN_H) return 3;
+  if (height >= SIDEBAR_MIN_H) return 4;
   return -1;
 }
 
@@ -454,12 +465,19 @@ function parseRulesByHeuristic(flat: readonly FlatLine[]): RuleExtraction[] {
 export function parseRules(pages: readonly PageText[]): RuleExtraction[] {
   const flat = flatten(pages);
   if (flat.length === 0) return [];
-  // Use the font-height hierarchy only when the slice actually carries
-  // distinct heading tiers — at least one line at or above the leaf-heading
-  // height (real SRD extraction). Uniform-font fixture PDFs render every line
-  // at one body size (no line clears the threshold), so they fall back to the
-  // text heuristic the fixture unit/pipeline tests assert against.
-  const hasHeadingTiers = flat.some((f) => headingTier(f.height) >= 0);
+  // Use the font-height hierarchy only when the slice carries the SRD's
+  // genuine multi-tier font structure: at least one line at a real heading
+  // height (≥ LEAF_MIN_H) AND more than one distinct height present.
+  // Uniform-font fixture PDFs render every line at a single body size, so they
+  // fail the distinct-height test and fall back to the text heuristic the
+  // fixture unit/pipeline tests assert against — even though that single size
+  // may sit inside a heading band.
+  const definedHeights = flat
+    .map((f) => f.height)
+    .filter((h): h is number => h !== undefined);
+  const distinctHeights = new Set(definedHeights);
+  const hasHeadingTiers =
+    distinctHeights.size > 1 && definedHeights.some((h) => h >= LEAF_MIN_H);
   return hasHeadingTiers
     ? parseRulesByHeadings(flat)
     : parseRulesByHeuristic(flat);

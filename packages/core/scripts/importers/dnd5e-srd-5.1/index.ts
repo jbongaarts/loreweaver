@@ -804,9 +804,14 @@ export const EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES: readonly string[] = [
  * Reviewed, checked-in SRD 5.1 core-rules `rule`-key baseline (loreweaver-yli).
  * The nesting-aware `parseRules` emits one `rule` record per heading across the
  * Using Ability Scores, Adventuring, and Combat chapters — subsection (font
- * h≈18), sub-subsection (h≈13.9), and leaf (h≈12) tiers — bounding each body at
- * the next heading so parents keep only their intro and every leaf is its own
- * record. The real import validates the parsed record keys against this exact
+ * h≈18), sub-subsection (h≈13.9), leaf (h≈12), and gray callout-box (h≈10.8,
+ * e.g. Hiding, Combat Step by Step) tiers — bounding each body at the next
+ * heading so parents keep only their intro and every leaf is its own record.
+ * Capturing the h≈10.8 box tier is what keeps a box rule (e.g. the Hiding /
+ * Stealth rules, with their inline Passive Perception / What Can You See?
+ * lead-ins) from being swallowed into the preceding record's body — the
+ * corruption that previously buried Hiding under the Dexterity "Initiative"
+ * sidebar. The real import validates the parsed record keys against this exact
  * set (`validateRuleCoverage`), so a dropped leaf, a renamed heading, or a
  * newly-promoted caption/sidebar fails closed by key rather than only on gross
  * truncation.
@@ -844,10 +849,12 @@ export const EXPECTED_SRD_5_1_RULE_KEYS: readonly string[] = [
   'rule:charisma-checks',
   'rule:charisma-spellcasting-ability',
   'rule:climbing-swimming-and-crawling',
+  'rule:combat-step-by-step',
   'rule:constitution',
   'rule:constitution-checks',
   'rule:constitution-hit-points',
   'rule:contests',
+  'rule:contests-in-combat',
   'rule:controlling-a-mount',
   'rule:cover',
   'rule:crafting',
@@ -879,11 +886,13 @@ export const EXPECTED_SRD_5_1_RULE_KEYS: readonly string[] = [
   'rule:healing',
   'rule:help',
   'rule:hide',
+  'rule:hiding',
   'rule:instant-death',
   'rule:intelligence',
   'rule:intelligence-checks',
   'rule:intelligence-spellcasting-ability',
   'rule:interacting-with-objects',
+  'rule:interacting-with-objects-around-you',
   'rule:jumping',
   'rule:knocking-a-creature-out',
   'rule:lifestyle-expenses',

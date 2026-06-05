@@ -37507,7 +37507,7 @@
     "key": "rule:being-prone",
     "name": "Being Prone",
     "data": {
-      "text": "Combatants often find themselves lying on the ground, either because they are knocked down or because they throw themselves down. In the game, they are prone, a condition described in appendix PH-A. You can drop prone without using any of your speed. Standing up takes more effort; doing so costs an amount of movement equal to half your speed. For example, if your speed is 30 feet, you must spend 15 feet of movement to stand up. You can’t stand up if you don’t have enough movement left or if your speed is 0. To move while prone, you must crawl or use magic such as teleportation. Every foot of movement while crawling costs 1 extra foot. Crawling 1 foot in difficult terrain, therefore, costs 3 feet of movement. Interacting with Objects Around You Here are a few examples of the sorts of thing you can do in tandem with your movement and action: • draw or sheathe a sword • open or close a door • withdraw a potion from your backpack • pick up a dropped axe • take a bauble from a table • remove a ring from your finger • stuff some food into your mouth • plant a banner in the ground • fish a few coins from your belt pouch • drink all the ale in a flagon • throw a lever or a switch • pull a torch from a sconce • take a book from a shelf you can reach • extinguish a small flame • don a mask • pull the hood of your cloak up and over your head • put your ear to a door • kick a small stone • turn a key in a lock • tap the floor with a 10-foot pole • hand an item to another character"
+      "text": "Combatants often find themselves lying on the ground, either because they are knocked down or because they throw themselves down. In the game, they are prone, a condition described in appendix PH-A. You can drop prone without using any of your speed. Standing up takes more effort; doing so costs an amount of movement equal to half your speed. For example, if your speed is 30 feet, you must spend 15 feet of movement to stand up. You can’t stand up if you don’t have enough movement left or if your speed is 0. To move while prone, you must crawl or use magic such as teleportation. Every foot of movement while crawling costs 1 extra foot. Crawling 1 foot in difficult terrain, therefore, costs 3 feet of movement."
     },
     "source": "SRD 5.1 p. 91",
     "license": {
@@ -37804,6 +37804,36 @@
   {
     "systemId": "dnd5e-srd",
     "kind": "rule",
+    "key": "rule:combat-step-by-step",
+    "name": "Combat Step by Step",
+    "data": {
+      "text": "1. Determine surprise. The GM determines whether anyone involved in the combat encounter is surprised. 2. Establish positions. The GM decides where all the characters and monsters are located. Given the adventurers marching order or their stated positions in the room or other location, the GM figures out where the adversaries are how far away and in what direction. 3. Roll initiative. Everyone involved in the combat encounter rolls initiative, determining the order of combatants turns. 4. Take turns. Each participant in the battle takes a turn in initiative order. 5. Begin the next round. When everyone involved in the combat has had a turn, the round ends. Repeat step 4 until the fighting stops."
+    },
+    "source": "SRD 5.1 p. 90",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 90"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "rule",
     "key": "rule:constitution",
     "name": "Constitution",
     "data": {
@@ -37919,6 +37949,36 @@
     "provenance": {
       "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
       "locator": "p. 77"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "rule",
+    "key": "rule:contests-in-combat",
+    "name": "Contests in Combat",
+    "data": {
+      "text": "Battle often involves pitting your prowess against that of your foe. Such a challenge is represented by a contest. This section includes the most common contests that require an action in combat: grappling and shoving a creature. The GM can use these contests as models for improvising others."
+    },
+    "source": "SRD 5.1 p. 96",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 96"
     }
   },
   {
@@ -38407,7 +38467,7 @@
     "key": "rule:dexterity-initiative",
     "name": "Initiative",
     "data": {
-      "text": "At the beginning of every combat, you roll initiative by making a Dexterity check. Initiative determines the order of creatures’ turns in combat. Hiding The GM decides when circumstances are appropriate for hiding. When you try to hide, make a Dexterity (Stealth) check. Until you are discovered or you stop hiding, that check’s total is contested by the Wisdom (Perception) check of any creature that actively searches for signs of your presence. You can’t hide from a creature that can see you clearly, and you give away your position if you make noise, such as shouting a warning or knocking over a vase. An invisible creature can always try to hide. Signs of its passage might still be noticed, and it does have to stay quiet. In combat, most creatures stay alert for signs of danger all around, so if you come out of hiding and approach a creature, it usually sees you. However, under certain circumstances, the GM might allow you to stay hidden as you approach a creature that is distracted, allowing you to gain advantage on an attack roll before you are seen. Passive Perception. When you hide, there’s a chance someone will notice you even if they aren’t searching. To determine whether such a creature notices you, the GM compares your Dexterity (Stealth) check with that creature’s passive Wisdom (Perception) score, which equals 10 + the creature’s Wisdom modifier, as well as any other bonuses or penalties. If the creature has advantage, add 5. For disadvantage, subtract 5. For example, if a 1st-level character (with a proficiency bonus of +2) has a Wisdom of 15 (a +2 modifier) and proficiency in Perception, he or she has a passive Wisdom (Perception) of 14. What Can You See? One of the main factors in determining whether you can find a hidden creature or object is how well you can see in an area, which might be lightly or heavily obscured, as explained in \"The Environment.”"
+      "text": "At the beginning of every combat, you roll initiative by making a Dexterity check. Initiative determines the order of creatures’ turns in combat."
     },
     "source": "SRD 5.1 p. 80",
     "license": {
@@ -38707,7 +38767,7 @@
     "key": "rule:grappling",
     "name": "Grappling",
     "data": {
-      "text": "When you want to grab a creature or wrestle with it, you can use the Attack action to make a special melee attack, a grapple. If you’re able to make multiple attacks with the Attack action, this attack replaces one of them. The target of your grapple must be no more than one size larger than you and must be within your reach. Using at least one free hand, you try to seize the target by making a grapple check instead of an attack roll: a Strength (Athletics) check contested by the target’s Strength (Athletics) or Dexterity (Acrobatics) check (the target chooses the ability to use). If you succeed, you subject the target to the grappled condition (see appendix PH-A). The condition specifies the things that end it, and you can release the target whenever you like (no action required). Escaping a Grapple. A grappled creature can use its action to escape. To do so, it must succeed on a Strength (Athletics) or Dexterity (Acrobatics) check contested by your Strength (Athletics) check. Moving a Grappled Creature. When you move, you can drag or carry the grappled creature with you, but your speed is halved, unless the creature is two or more sizes smaller than you. Contests in Combat Battle often involves pitting your prowess against that of your foe. Such a challenge is represented by a contest. This section includes the most common contests that require an action in combat: grappling and shoving a creature. The GM can use these contests as models for improvising others."
+      "text": "When you want to grab a creature or wrestle with it, you can use the Attack action to make a special melee attack, a grapple. If you’re able to make multiple attacks with the Attack action, this attack replaces one of them. The target of your grapple must be no more than one size larger than you and must be within your reach. Using at least one free hand, you try to seize the target by making a grapple check instead of an attack roll: a Strength (Athletics) check contested by the target’s Strength (Athletics) or Dexterity (Acrobatics) check (the target chooses the ability to use). If you succeed, you subject the target to the grappled condition (see appendix PH-A). The condition specifies the things that end it, and you can release the target whenever you like (no action required). Escaping a Grapple. A grappled creature can use its action to escape. To do so, it must succeed on a Strength (Athletics) or Dexterity (Acrobatics) check contested by your Strength (Athletics) check. Moving a Grappled Creature. When you move, you can drag or carry the grappled creature with you, but your speed is halved, unless the creature is two or more sizes smaller than you."
     },
     "source": "SRD 5.1 p. 95",
     "license": {
@@ -38849,6 +38909,36 @@
     "provenance": {
       "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
       "locator": "p. 93"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "rule",
+    "key": "rule:hiding",
+    "name": "Hiding",
+    "data": {
+      "text": "The GM decides when circumstances are appropriate for hiding. When you try to hide, make a Dexterity (Stealth) check. Until you are discovered or you stop hiding, that check’s total is contested by the Wisdom (Perception) check of any creature that actively searches for signs of your presence. You can’t hide from a creature that can see you clearly, and you give away your position if you make noise, such as shouting a warning or knocking over a vase. An invisible creature can always try to hide. Signs of its passage might still be noticed, and it does have to stay quiet. In combat, most creatures stay alert for signs of danger all around, so if you come out of hiding and approach a creature, it usually sees you. However, under certain circumstances, the GM might allow you to stay hidden as you approach a creature that is distracted, allowing you to gain advantage on an attack roll before you are seen. Passive Perception. When you hide, there’s a chance someone will notice you even if they aren’t searching. To determine whether such a creature notices you, the GM compares your Dexterity (Stealth) check with that creature’s passive Wisdom (Perception) score, which equals 10 + the creature’s Wisdom modifier, as well as any other bonuses or penalties. If the creature has advantage, add 5. For disadvantage, subtract 5. For example, if a 1st-level character (with a proficiency bonus of +2) has a Wisdom of 15 (a +2 modifier) and proficiency in Perception, he or she has a passive Wisdom (Perception) of 14. What Can You See? One of the main factors in determining whether you can find a hidden creature or object is how well you can see in an area, which might be lightly or heavily obscured, as explained in \"The Environment.”"
+    },
+    "source": "SRD 5.1 p. 80",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 80"
     }
   },
   {
@@ -38999,6 +39089,36 @@
     "provenance": {
       "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
       "locator": "p. 87"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "rule",
+    "key": "rule:interacting-with-objects-around-you",
+    "name": "Interacting with Objects Around You",
+    "data": {
+      "text": "Here are a few examples of the sorts of thing you can do in tandem with your movement and action: • draw or sheathe a sword • open or close a door • withdraw a potion from your backpack • pick up a dropped axe • take a bauble from a table • remove a ring from your finger • stuff some food into your mouth • plant a banner in the ground • fish a few coins from your belt pouch • drink all the ale in a flagon • throw a lever or a switch • pull a torch from a sconce • take a book from a shelf you can reach • extinguish a small flame • don a mask • pull the hood of your cloak up and over your head • put your ear to a door • kick a small stone • turn a key in a lock • tap the floor with a 10-foot pole • hand an item to another character"
+    },
+    "source": "SRD 5.1 p. 92",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 92"
     }
   },
   {
@@ -40447,7 +40567,7 @@
     "key": "rule:the-order-of-combat",
     "name": "The Order of Combat",
     "data": {
-      "text": "A typical combat encounter is a clash between two sides, a flurry of weapon swings, feints, parries, footwork, and spellcasting. The game organizes the chaos of combat into a cycle of rounds and turns. A round represents about 6 seconds in the game world. During a round, each participant in a battle takes a turn. The order of turns is determined at the beginning of a combat encounter, when everyone rolls initiative. Once everyone has taken a turn, the fight continues to the next round if neither side has defeated the other. Combat Step by Step 1. Determine surprise. The GM determines whether anyone involved in the combat encounter is surprised. 2. Establish positions. The GM decides where all the characters and monsters are located. Given the adventurers marching order or their stated positions in the room or other location, the GM figures out where the adversaries are how far away and in what direction. 3. Roll initiative. Everyone involved in the combat encounter rolls initiative, determining the order of combatants turns. 4. Take turns. Each participant in the battle takes a turn in initiative order. 5. Begin the next round. When everyone involved in the combat has had a turn, the round ends. Repeat step 4 until the fighting stops."
+      "text": "A typical combat encounter is a clash between two sides, a flurry of weapon swings, feints, parries, footwork, and spellcasting. The game organizes the chaos of combat into a cycle of rounds and turns. A round represents about 6 seconds in the game world. During a round, each participant in a battle takes a turn. The order of turns is determined at the beginning of a combat encounter, when everyone rolls initiative. Once everyone has taken a turn, the fight continues to the next round if neither side has defeated the other."
     },
     "source": "SRD 5.1 p. 90",
     "license": {

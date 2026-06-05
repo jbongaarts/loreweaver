@@ -34,6 +34,7 @@ import {
   EXPECTED_SRD_5_1_CREATURE_NAMES,
   EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES,
   EXPECTED_SRD_5_1_NPC_NAMES,
+  EXPECTED_SRD_5_1_RULE_KEYS,
   MIN_EXPECTED_SRD_5_1_CREATURES,
   MIN_EXPECTED_SRD_5_1_MAGIC_ITEMS,
 } from '../scripts/importers/dnd5e-srd-5.1/index.js';
@@ -106,8 +107,10 @@ const EXPECTED_COUNTS_BY_KIND: Readonly<Record<string, number>> = {
   'magic-item': 238,
   // Nesting-aware core-rules parse: one rule per heading across the Using
   // Ability Scores, Adventuring, and Combat chapters (loreweaver-yli),
-  // validated exactly against EXPECTED_SRD_5_1_RULE_KEYS.
-  rule: 123,
+  // validated exactly against EXPECTED_SRD_5_1_RULE_KEYS. Includes the four
+  // h≈10.8 gray callout boxes (Hiding, Combat Step by Step, Interacting with
+  // Objects Around You, Contests in Combat).
+  rule: 127,
   spell: 319,
   subclass: 12,
   // Difficulty Classes + the two trap reference tables (loreweaver-hvp).
@@ -710,6 +713,80 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
       );
       expect(description).toContain('cast the wish spell from it');
       expect(description).not.toContain('cast the wish it');
+    });
+  });
+
+  // loreweaver-yli: the nesting-aware rule parser keys body boundaries off
+  // per-line font tiers. The SRD's gray callout boxes render their heading at a
+  // sub-leaf size (h≈10.8), so the parser must recognize that tier — otherwise
+  // a box heading reads as body and its whole rule is swallowed into the
+  // preceding record. These assertions pin the box rules and the boundaries
+  // around them so the corruption cannot return (the Hiding rule, with its
+  // inline Passive Perception / What Can You See? lead-ins, was once buried in
+  // the Dexterity "Initiative" sidebar).
+  describe('rule body-boundary regression (loreweaver-yli)', () => {
+    const rules = pack.records.filter((record) => record.kind === 'rule');
+
+    function ruleText(key: string): string {
+      const record = rules.find((r) => r.key === key);
+      expect(record, `expected ${key} in the committed pack`).toBeDefined();
+      const data = record?.data as { text?: unknown };
+      expect(typeof data.text).toBe('string');
+      return data.text as string;
+    }
+
+    it('committed pack rule keys match the checked-in baseline exactly', () => {
+      expect(rules.map((record) => record.key).sort()).toEqual(
+        [...EXPECTED_SRD_5_1_RULE_KEYS].sort(),
+      );
+    });
+
+    it('EXPECTED_SRD_5_1_RULE_KEYS has no duplicates', () => {
+      expect(new Set(EXPECTED_SRD_5_1_RULE_KEYS).size).toBe(
+        EXPECTED_SRD_5_1_RULE_KEYS.length,
+      );
+    });
+
+    it('captures the Hiding callout box as its own rule', () => {
+      const hiding = ruleText('rule:hiding');
+      expect(hiding).toContain(
+        'When you try to hide, make a Dexterity (Stealth)',
+      );
+      // The box's inline bold lead-ins belong to the Hiding rule, not a neighbor.
+      expect(hiding).toContain('Passive Perception');
+      expect(hiding).toContain('What Can You See?');
+    });
+
+    it('does not bury the Hiding / Perception block under Dexterity Initiative', () => {
+      const initiative = ruleText('rule:dexterity-initiative');
+      // The Dexterity-section Initiative sidebar is only its own two sentences.
+      expect(initiative).toContain('you roll initiative');
+      expect(initiative).toContain('creatures’ turns in combat');
+      expect(initiative).not.toContain('Dexterity (Stealth)');
+      expect(initiative).not.toContain('Passive Perception');
+      expect(initiative).not.toContain('What Can You See?');
+    });
+
+    it('captures the other sub-leaf callout boxes as their own rules', () => {
+      expect(ruleText('rule:combat-step-by-step')).toContain(
+        'Determine surprise',
+      );
+      expect(ruleText('rule:interacting-with-objects-around-you')).toContain(
+        'draw or sheathe a sword',
+      );
+      expect(ruleText('rule:contests-in-combat')).toContain(
+        'grappling and shoving a creature',
+      );
+    });
+
+    it('keeps cross-chapter same-named rules on distinct parent-qualified keys', () => {
+      // "Hit Points" appears under both Constitution and Damage and Healing.
+      expect(ruleText('rule:constitution-hit-points')).toContain(
+        'Constitution modifier contributes',
+      );
+      expect(ruleText('rule:damage-and-healing-hit-points')).toContain(
+        'represent a combination of physical and mental durability',
+      );
     });
   });
 
