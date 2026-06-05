@@ -90,6 +90,26 @@ generated/vendored paths. `packages/core/test/nodeRuntimePolicy.test.ts` guards
 this policy (repo-wide scripts, VCS ignore boundary, and the explicit
 exclusions).
 
+### Hidden / Bidirectional Unicode
+
+GitHub shows a noisy "This file contains hidden or bidirectional Unicode text"
+warning on diffs that triggers on a broad range of Unicode content, so it is not
+a reliable signal for manual review. Instead, CI blocks only the small set of
+genuinely dangerous invisible / directional control characters via
+`scripts/check-hidden-unicode.mjs` (`npm run check:hidden-unicode`, also run as
+the first step of `npm run check`). The script scans git-tracked text files
+(`.ts/.tsx/.js/.mjs/.cjs/.json/.jsonc/.md/.yml/.yaml/.txt/.sql`) and fails on
+bidi embedding/override controls (`U+202A..U+202E`), bidi isolates
+(`U+2066..U+2069`), zero-width characters and directional marks
+(`U+200B..U+200F`), the Arabic Letter Mark (`U+061C`), the BOM / zero-width
+no-break space (`U+FEFF`), the soft hyphen (`U+00AD`), and the combining
+grapheme joiner (`U+034F`). Benign visible Unicode punctuation — em dash, en
+dash, arrows, curly quotes, degree sign and the like — is allowed and never
+flagged. Biome's `suspicious.noIrregularWhitespace` is set to `error` as
+supplemental protection, but the dedicated script is the primary guard because
+Biome does not scan every relevant file type. The behavior is covered by
+`packages/core/test/hiddenUnicodeCheck.test.ts`.
+
 ## Architecture
 
 Text-first, persistent AI Dungeon Master for long-running fantasy campaigns;

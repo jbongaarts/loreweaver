@@ -43,7 +43,8 @@
       },
       "suspicious": {
         "noAssignInExpressions": "warn",
-        "noEmptyInterface": "warn"
+        "noEmptyInterface": "warn",
+        "noIrregularWhitespace": "error"
       }
     }
   },

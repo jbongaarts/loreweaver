@@ -69,9 +69,10 @@ export async function extractCampaignBible(
 
 /**
  * Extract the campaign bible payload from a model response. Accepts both the
- * fenced form the prompt asks for (`​```bible_json\n{...}\n```​`) AND a raw JSON
- * object — the latter is the shape a future JSON-mode adapter is permitted to
- * return when it honours `responseFormat: 'json'` and strips the markdown
+ * fenced form the prompt asks for (a `bible_json` fenced code block wrapping
+ * `{...}`) AND a raw JSON object — the latter is the shape a future JSON-mode
+ * adapter is permitted to return when it honours `responseFormat: 'json'` and
+ * strips the markdown
  * wrapper, so the call site stays robust across adapter capabilities.
  */
 function parseBibleResponse(raw: string): CampaignBibleInput {
