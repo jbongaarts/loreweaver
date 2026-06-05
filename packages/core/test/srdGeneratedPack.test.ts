@@ -104,7 +104,10 @@ const EXPECTED_COUNTS_BY_KIND: Readonly<Record<string, number>> = {
   // SRD 5.1 has no environmental hazards, so all 8 hazard records are traps.
   hazard: 8,
   'magic-item': 238,
-  rule: 10,
+  // Nesting-aware core-rules parse: one rule per heading across the Using
+  // Ability Scores, Adventuring, and Combat chapters (loreweaver-yli),
+  // validated exactly against EXPECTED_SRD_5_1_RULE_KEYS.
+  rule: 123,
   spell: 319,
   subclass: 12,
   // Difficulty Classes + the two trap reference tables (loreweaver-hvp).
@@ -139,7 +142,8 @@ const EXPECTED_STABLE_KEYS: readonly string[] = [
   'magic-item:adamantine-armor',
   'magic-item:ammunition-1-2-or-3',
   'magic-item:amulet-of-health',
-  'rule:difficult-terrain',
+  'rule:cover',
+  'rule:death-saving-throws',
   'spell:fire-bolt',
   'spell:wish',
   'subclass:champion',

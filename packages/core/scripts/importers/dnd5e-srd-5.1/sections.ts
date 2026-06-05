@@ -176,7 +176,21 @@ function buildSlice(
       end !== null && p === end.pageIdx ? end.lineIdx : page.lines.length;
     const lines = page.lines.slice(firstLine, lastLineExclusive);
     if (lines.length > 0) {
-      out.push({ pageNumber: page.pageNumber, lines });
+      // Carry the parallel per-line font heights (sliced to the same window)
+      // so heading-hierarchy-aware parsers like `parseRules` keep their font
+      // signal after slicing. `headingLineIndexes` is intentionally not
+      // re-projected here (its indexes are page-relative and no current slice
+      // consumer reads it); `lineHeights` is positional, so a plain slice
+      // stays aligned with `lines`.
+      const lineHeights =
+        page.lineHeights === undefined
+          ? undefined
+          : page.lineHeights.slice(firstLine, lastLineExclusive);
+      out.push({
+        pageNumber: page.pageNumber,
+        lines,
+        ...(lineHeights === undefined ? {} : { lineHeights }),
+      });
     }
   }
   return out;

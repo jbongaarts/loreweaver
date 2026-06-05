@@ -72,6 +72,7 @@ import type {
   CreatureExtraction,
   ImporterRunResult,
   MagicItemExtraction,
+  RuleExtraction,
   TrapExtraction,
 } from './types.js';
 
@@ -800,6 +801,158 @@ export const EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES: readonly string[] = [
 ];
 
 /**
+ * Reviewed, checked-in SRD 5.1 core-rules `rule`-key baseline (loreweaver-yli).
+ * The nesting-aware `parseRules` emits one `rule` record per heading across the
+ * Using Ability Scores, Adventuring, and Combat chapters — subsection (font
+ * h≈18), sub-subsection (h≈13.9), and leaf (h≈12) tiers — bounding each body at
+ * the next heading so parents keep only their intro and every leaf is its own
+ * record. The real import validates the parsed record keys against this exact
+ * set (`validateRuleCoverage`), so a dropped leaf, a renamed heading, or a
+ * newly-promoted caption/sidebar fails closed by key rather than only on gross
+ * truncation.
+ *
+ * Keys (not names) are the baseline because the SRD repeats rule titles across
+ * chapters — "Hit Points" appears under both Constitution and Damage and
+ * Healing, "Initiative" under both Dexterity and The Order of Combat,
+ * "Difficult Terrain" under both Adventuring movement and Combat movement — and
+ * prints three per-ability "Spellcasting Ability" cross-reference sidebars. The
+ * parser disambiguates each with a parent-qualified key (e.g.
+ * `rule:constitution-hit-points` vs `rule:damage-and-healing-hit-points`) while
+ * the record `name` stays the bare SRD title.
+ *
+ * Intentionally excluded (recorded so a reviewer can see the boundary):
+ * `Variant:` optional rules, the per-ability skill-list captions under Ability
+ * Checks (their bodies lead with bullet items), and the leaf table captions the
+ * `table` kind owns (Ability Scores and Modifiers score table, Typical
+ * Difficulty Classes, Travel Pace, Size Categories).
+ */
+export const EXPECTED_SRD_5_1_RULE_KEYS: readonly string[] = [
+  'rule:ability-checks',
+  'rule:ability-scores-and-modifiers',
+  'rule:actions-in-combat',
+  'rule:advantage-and-disadvantage',
+  'rule:armor-class',
+  'rule:attack',
+  'rule:attack-rolls',
+  'rule:being-prone',
+  'rule:between-adventures',
+  'rule:blindsight',
+  'rule:bonus-actions',
+  'rule:breaking-up-your-move',
+  'rule:cast-a-spell',
+  'rule:charisma',
+  'rule:charisma-checks',
+  'rule:charisma-spellcasting-ability',
+  'rule:climbing-swimming-and-crawling',
+  'rule:constitution',
+  'rule:constitution-checks',
+  'rule:constitution-hit-points',
+  'rule:contests',
+  'rule:controlling-a-mount',
+  'rule:cover',
+  'rule:crafting',
+  'rule:creature-size',
+  'rule:critical-hits',
+  'rule:damage-and-healing',
+  'rule:damage-and-healing-hit-points',
+  'rule:damage-resistance-and-vulnerability',
+  'rule:damage-rolls',
+  'rule:damage-types',
+  'rule:darkvision',
+  'rule:dash',
+  'rule:death-saving-throws',
+  'rule:dexterity',
+  'rule:dexterity-attack-rolls-and-damage',
+  'rule:dexterity-checks',
+  'rule:dexterity-initiative',
+  'rule:disengage',
+  'rule:dodge',
+  'rule:downtime-activities',
+  'rule:dropping-to-0-hit-points',
+  'rule:falling',
+  'rule:falling-unconscious',
+  'rule:flying-movement',
+  'rule:food',
+  'rule:food-and-water',
+  'rule:grappling',
+  'rule:group-checks',
+  'rule:healing',
+  'rule:help',
+  'rule:hide',
+  'rule:instant-death',
+  'rule:intelligence',
+  'rule:intelligence-checks',
+  'rule:intelligence-spellcasting-ability',
+  'rule:interacting-with-objects',
+  'rule:jumping',
+  'rule:knocking-a-creature-out',
+  'rule:lifestyle-expenses',
+  'rule:lifting-and-carrying',
+  'rule:long-rest',
+  'rule:making-an-attack',
+  'rule:melee-attacks',
+  'rule:modifiers-to-the-roll',
+  'rule:monsters-and-death',
+  'rule:mounted-combat',
+  'rule:mounting-and-dismounting',
+  'rule:movement',
+  'rule:movement-and-position',
+  'rule:movement-and-position-difficult-terrain',
+  'rule:moving-around-other-creatures',
+  'rule:moving-between-attacks',
+  'rule:opportunity-attacks',
+  'rule:other-activity-on-your-turn',
+  'rule:passive-checks',
+  'rule:practicing-a-profession',
+  'rule:proficiency-bonus',
+  'rule:range',
+  'rule:ranged-attacks',
+  'rule:ranged-attacks-in-close-combat',
+  'rule:reactions',
+  'rule:ready',
+  'rule:recuperating',
+  'rule:researching',
+  'rule:resting',
+  'rule:rolling-1-or-20',
+  'rule:saving-throws',
+  'rule:search',
+  'rule:short-rest',
+  'rule:shoving-a-creature',
+  'rule:skills',
+  'rule:space',
+  'rule:special-types-of-movement',
+  'rule:speed',
+  'rule:speed-difficult-terrain',
+  'rule:squeezing-into-a-smaller-space',
+  'rule:stabilizing-a-creature',
+  'rule:strength',
+  'rule:strength-attack-rolls-and-damage',
+  'rule:strength-checks',
+  'rule:suffocating',
+  'rule:surprise',
+  'rule:temporary-hit-points',
+  'rule:the-environment',
+  'rule:the-order-of-combat',
+  'rule:the-order-of-combat-initiative',
+  'rule:time',
+  'rule:training',
+  'rule:truesight',
+  'rule:two-weapon-fighting',
+  'rule:underwater-combat',
+  'rule:unseen-attackers-and-targets',
+  'rule:use-an-object',
+  'rule:using-different-speeds',
+  'rule:using-each-ability',
+  'rule:vision-and-light',
+  'rule:water',
+  'rule:wisdom',
+  'rule:wisdom-checks',
+  'rule:wisdom-spellcasting-ability',
+  'rule:working-together',
+  'rule:your-turn',
+];
+
+/**
  * Thrown when the parsed creature set fails the coverage check: an empty
  * result, a count below `minCreatureCount`, or — when the exact
  * `expectedCreatureNames` set is supplied (the real import) — any missing or
@@ -903,6 +1056,23 @@ export class MagicItemCoverageError extends Error {
   }
 }
 
+/**
+ * Thrown when the parsed core-rules `rule` set drifts from the reviewed SRD 5.1
+ * baseline (loreweaver-yli). Validated on the record-key set rather than names
+ * because the SRD repeats rule titles across chapters ("Hit Points",
+ * "Initiative", "Difficult Terrain") and per-ability sidebars ("Spellcasting
+ * Ability"), which the parser disambiguates with parent-qualified keys.
+ * Distinct from `SectionNotFoundError` so callers can tell "the core-rules
+ * slice parsed but produced the wrong rules" apart from "the anchor didn't
+ * match".
+ */
+export class RuleCoverageError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'RuleCoverageError';
+  }
+}
+
 export interface RunImporterInput {
   /** Absolute path to the vendored SRD 5.1 PDF. */
   readonly pdfPath: string;
@@ -1000,6 +1170,17 @@ export interface RunImporterInput {
    * or the coarse `minMagicItemCount` floor.
    */
   readonly expectedMagicItemNames?: readonly string[];
+  /**
+   * Exact set of core-rules `rule` record keys the import must yield for the run
+   * to be accepted (loreweaver-yli). When provided and the parsed rule keys don't
+   * match it exactly, the importer throws `RuleCoverageError` naming the missing
+   * and/or unexpected keys, and writes nothing. The real-import CLI passes
+   * `EXPECTED_SRD_5_1_RULE_KEYS`; fixture pipelines that exercise a reduced
+   * core-rules slice omit this. Keys (not names) are gated because the SRD
+   * repeats rule titles across chapters, which the parser disambiguates with
+   * parent-qualified keys.
+   */
+  readonly expectedRuleKeys?: readonly string[];
 }
 
 /**
@@ -1247,6 +1428,41 @@ function validateMagicItemCoverage(
   }
 }
 
+/**
+ * Fail closed on a core-rules `rule` result that drifts from the reviewed SRD
+ * 5.1 baseline (loreweaver-yli). When the exact `expectedRuleKeys` set is
+ * supplied (the real import via the CLI), the parsed rule record keys must match
+ * it exactly — any missing or unexpected key is rejected, naming the specific
+ * offenders so a dropped leaf rule (a heading-tier regression), a renamed
+ * heading, or a newly-promoted caption/sidebar trips by key. Validated on keys
+ * rather than names because the SRD repeats rule titles across chapters, which
+ * the parser disambiguates with parent-qualified keys. Fixture pipelines that
+ * exercise a reduced core-rules slice omit the set, in which case no check runs.
+ * Runs after parsing and before any output is written.
+ */
+function validateRuleCoverage(
+  rules: readonly RuleExtraction[],
+  expectedRuleKeys: readonly string[] | undefined,
+): void {
+  if (expectedRuleKeys === undefined) return;
+  const parsedKeys = new Set(rules.map((rule) => `rule:${rule.keySlug ?? ''}`));
+  const expectedSet = new Set(expectedRuleKeys);
+  const missing = expectedRuleKeys.filter((key) => !parsedKeys.has(key));
+  const unexpected = [...parsedKeys].filter((key) => !expectedSet.has(key));
+  if (missing.length === 0 && unexpected.length === 0) return;
+
+  const parts: string[] = [];
+  if (missing.length > 0) {
+    parts.push(`missing expected rule(s): ${missing.join(', ')}`);
+  }
+  if (unexpected.length > 0) {
+    parts.push(`unexpected rule(s): ${unexpected.join(', ')}`);
+  }
+  throw new RuleCoverageError(
+    `SRD 5.1 rule coverage check failed: parsed ${rules.length} core-rules record(s), expected exactly ${expectedRuleKeys.length}. ${parts.join('; ')}. The core-rules chapters may have been truncated, a heading renamed, or a caption/sidebar promoted. Refusing to write a pack with a drifted rule set.`,
+  );
+}
+
 export async function runImporter(
   input: RunImporterInput,
 ): Promise<ImporterRunResult> {
@@ -1358,6 +1574,10 @@ export async function runImporter(
     anchors.treasureTables,
   );
   const rules = parseRules(coreRulePages);
+  // Fail closed before any output is written when the real import (CLI) supplies
+  // the exact expected rule-key set and the nesting-aware parse drifts from it
+  // (loreweaver-yli).
+  validateRuleCoverage(rules, input.expectedRuleKeys);
   // The two trap reference tables live in the Traps slice (loreweaver-hvp); feed
   // it alongside the core-rules and treasure slices so parseTables reconstructs
   // them with the same anchored row rules.

@@ -537,7 +537,10 @@ export function ruleExtractionsToRecords(
     const record: RulesRecord = {
       systemId: SYSTEM_ID,
       kind: 'rule',
-      key: ruleKey(rule.name),
+      key:
+        rule.keySlug === undefined
+          ? ruleKey(rule.name)
+          : `rule:${rule.keySlug}`,
       name: rule.name,
       data,
       source: sourceLabelFor(rule.sourcePage),

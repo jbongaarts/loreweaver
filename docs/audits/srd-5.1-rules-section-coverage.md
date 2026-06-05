@@ -193,7 +193,16 @@ Confirmed high-value expansions, filed as their own beads:
 
 1. **`loreweaver-yli`** (P1) - Nesting-aware `parseRules` rewrite for SRD
    core-rules `rule` coverage (Combat + Ability/Adventuring chapters; fixes the
-   wrapper-drop root cause).
+   wrapper-drop root cause). **DONE.** The parser now reads per-line font tiers
+   (new `PageText.lineHeights`) and emits one `rule` per heading bounded at the
+   next heading, taking the canonical pack from **10 → 123** `rule` records
+   (Making an Attack + subsections, Damage and Healing + Death Saving Throws,
+   Cover, Resting/Short Rest/Long Rest, Saving Throws, Order of Combat
+   subsections, The Environment subsections, …). Cross-chapter title collisions
+   are disambiguated with parent-qualified keys; `Variant:` rules, bullet-led
+   skill captions, and the leaf table captions the `table` kind owns are
+   excluded. Gated by `EXPECTED_SRD_5_1_RULE_KEYS` / `RuleCoverageError`. This
+   addressed root causes 1 ("wrapper drop") and 4 ("body-bleed").
 2. **`loreweaver-3hp`** (P1) - Import the Spellcasting-rules chapter as `rule`
    records (new `spellcastingRules` slice).
 3. **`loreweaver-6ra`** (P2) - Poisons + Diseases as structured `hazard` records
