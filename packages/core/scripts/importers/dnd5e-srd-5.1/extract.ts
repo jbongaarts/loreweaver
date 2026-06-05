@@ -184,8 +184,25 @@ const MIN_ITEMS_PER_COLUMN = 2;
  * as a tiny outlier island rather than the page's structural split. SRD p236
  * has exactly two far-right text runs ("jump" + "spell") that satisfy the
  * minimum guards and open a wider x-gap than the real page gutter.
+ *
+ * Raised to 3 for the Magic Items A-Z pages (SRD p217-p218), where the right
+ * column is justified and pushes up to THREE line-final words flush to the
+ * page's right edge — p218 has "wish" (x≈494), "spell" (x≈515) and
+ * "remove curse" (x≈487), all far right of the right column margin (x≈329).
+ * Those three stragglers open a ≈106pt gap that exceeds the real ≈78pt page
+ * gutter (x≈251→329), so the widest-gap cut isolates them as a phantom third
+ * column and the rest of the page (BOTH real columns) collapses into a single
+ * y-interleaved flow — splicing the embedded "Avatar of Death" stat block
+ * (left column, part of the Deck of Many Things entry) line-by-line into the
+ * Defender and Demon Armor item bodies in the right column. A ceiling of 3
+ * lets the tiny-outlier guard divert to the well-supported real-gutter cut on
+ * these pages; the per-side item/distinct-x guards plus
+ * `reassignGutterStragglers` keep the stragglers attached to their true (left)
+ * column. Empirically this changes the column decision on only p217 and p218
+ * across the whole SRD; split-column table pages (armor/weapons/tools) are
+ * unaffected because their minority side carries far more than 3 items.
  */
-const TINY_OUTLIER_SIDE_MAX_ITEMS = 2;
+const TINY_OUTLIER_SIDE_MAX_ITEMS = 3;
 
 /**
  * Minimum number of distinct rounded x-coordinates a candidate column

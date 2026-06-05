@@ -143,10 +143,24 @@ function categoryStartTextAt(
 
   const text = flat[index].line.trim();
   if (!ITEM_TYPE_PREFIX.test(text)) return undefined;
-  if (!hasUnclosedParen(text) && !/[,(-]$/.test(text)) return undefined;
   const next = flat[index + 1]?.line.trim();
   if (next === undefined || !isCategoryContinuation(next)) return undefined;
   if (!RARITY_WORD.test(next)) return undefined;
+  // The category metadata has begun on this line when it ends with a wrap
+  // connector (comma / open paren / hyphen) or carries an unclosed paren, OR
+  // when a top-level comma already opened the rarity field but the rarity
+  // phrase itself wraps mid-word onto the next line. SRD 5.1 "Sword of
+  // Sharpness" (p246) wraps as "Weapon (any sword that deals slashing
+  // damage), very" / "rare (requires attunement)": the line ends with the
+  // bare word "very" (no trailing punctuation, balanced parens), so the
+  // connector test alone misses it and the item was swallowed into the
+  // preceding "Sword of Life Stealing" body. The top-level comma without a
+  // complete rarity word on the line is the deterministic signal that the
+  // rarity continues on the following line.
+  const endsWithConnector = hasUnclosedParen(text) || /[,(-]$/.test(text);
+  const rarityPhraseWraps =
+    firstTopLevelComma(text) !== -1 && !RARITY_WORD.test(text);
+  if (!endsWithConnector && !rarityPhraseWraps) return undefined;
   return text;
 }
 

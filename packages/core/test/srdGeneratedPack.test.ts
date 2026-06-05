@@ -103,7 +103,7 @@ const EXPECTED_COUNTS_BY_KIND: Readonly<Record<string, number>> = {
   // The 8 SRD 5.1 sample traps emit under the `hazard` kind (loreweaver-hvp);
   // SRD 5.1 has no environmental hazards, so all 8 hazard records are traps.
   hazard: 8,
-  'magic-item': 237,
+  'magic-item': 238,
   rule: 10,
   spell: 319,
   subclass: 12,
@@ -181,7 +181,7 @@ const EXPECTED_STABLE_KEYS: readonly string[] = [
  *     vehicles (priced by speed/capacity, not weight).
  *   - magic-item.attunementRequirement: only the 26 items whose category line
  *     restricts attunement by class, ancestry, alignment, or spellcasting carry
- *     this text; all 237 records still carry the boolean `requiresAttunement`.
+ *     this text; all 238 records still carry the boolean `requiresAttunement`.
  *   - spell.componentMaterials: only spells with a material (M) component.
  *   - spell.higherLevels: only spells with an "At Higher Levels" entry.
  *   - spell.ritual: only spells tagged as rituals.
@@ -259,8 +259,8 @@ const EXPECTED_PARTIAL_FIELDS: ReadonlyArray<{
   {
     kind: 'magic-item',
     field: 'attunementRequirement',
-    missingCount: 211,
-    totalInKind: 237,
+    missingCount: 212,
+    totalInKind: 238,
   },
   {
     kind: 'spell',
@@ -548,6 +548,88 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
       expect(vorpal).toContain('You gain a +3 bonus');
       expect(vorpal).toContain('cut off one of the creature');
       expect(vorpal).not.toContain('Wand of Binding');
+    });
+
+    // loreweaver-ecr: SRD 5.1 p217-p218 justify the right column and push up to
+    // three line-final words ("wish", "spell", "remove curse") flush to the page
+    // edge, opening an x-gap wider than the real page gutter. The column splitter
+    // once isolated those stragglers as a phantom column and collapsed the two
+    // real columns into one y-interleaved flow, splicing the embedded "Avatar of
+    // Death" stat block (left column, part of the Deck of Many Things entry)
+    // line-by-line into the Defender and Demon Armor item bodies. These
+    // assertions guard the de-interleaved column extraction so neighboring
+    // stat-block / card text cannot bleed back into the swords-and-armor items.
+    it('does not bleed the Avatar of Death stat block into Defender or Demon Armor', () => {
+      const defender = magicItemDescription('magic-item:defender');
+      expect(defender).toContain(
+        'You gain a +3 bonus to attack and damage rolls',
+      );
+      expect(defender).toContain('transfer some or all of the sword');
+      expect(defender).not.toContain('Avatar of Death');
+      expect(defender).not.toContain('Senses darkvision 60 ft., truesight');
+      expect(defender).not.toContain(
+        'Languages all languages known to its summoner',
+      );
+      expect(defender).not.toContain('Incorporeal Movement');
+      expect(defender).not.toContain('Turning Immunity');
+      expect(defender).not.toContain('Reaping Scythe');
+
+      const demonArmor = magicItemDescription('magic-item:demon-armor');
+      expect(demonArmor).toContain('While wearing this armor, you gain a +1');
+      expect(demonArmor).toContain('understand and speak Abyssal');
+      // The straggler "remove curse" must read in its own item's prose.
+      expect(demonArmor).toContain(
+        'targeted by the remove curse spell or similar magic',
+      );
+      expect(demonArmor).not.toContain('Avatar of Death');
+      expect(demonArmor).not.toContain('Reaping Scythe');
+      expect(demonArmor).not.toContain(
+        'Star. Increase one of your ability scores',
+      );
+      expect(demonArmor).not.toContain('Throne. You gain proficiency');
+      expect(demonArmor).not.toContain('Sun. You gain 50,000 XP');
+    });
+
+    // loreweaver-ecr: "Sword of Sharpness" wraps its category line mid-rarity
+    // ("Weapon (any sword that deals slashing damage), very" / "rare (requires
+    // attunement)"), so the line ends with the bare word "very" and the old
+    // boundary detector missed the item entirely — its heading and body were
+    // swallowed into the preceding "Sword of Life Stealing" record.
+    it('splits Sword of Sharpness out of Sword of Life Stealing', () => {
+      const lifeStealing = magicItemDescription(
+        'magic-item:sword-of-life-stealing',
+      );
+      expect(lifeStealing).toContain('extra 3d6 necrotic damage');
+      expect(lifeStealing).toContain(
+        'temporary hit points equal to the extra damage',
+      );
+      expect(lifeStealing).not.toContain('Sword of Sharpness');
+      expect(lifeStealing).not.toContain('slashing damage');
+      expect(lifeStealing).not.toContain('lop off');
+
+      expect(magicItemData('magic-item:sword-of-sharpness')).toMatchObject({
+        itemType: 'Weapon (any sword that deals slashing damage)',
+        rarity: 'very rare',
+        requiresAttunement: true,
+      });
+      const sharpness = magicItemDescription('magic-item:sword-of-sharpness');
+      expect(sharpness).toContain('maximize your weapon damage dice against');
+      expect(sharpness).toContain('extra 4d6 slashing damage');
+      expect(sharpness).toContain('lop off one of the target');
+      expect(sharpness).not.toContain('Sword of Wounding');
+      expect(sharpness).not.toContain('necrotic damage');
+      expect(sharpness).not.toMatch(/^Weapon \(/);
+    });
+
+    // The interleaving fix must not strip the Avatar of Death stat block and
+    // card descriptions from the Deck of Many Things entry, where they
+    // legitimately belong in the source.
+    it('keeps the Avatar of Death stat block and card text in the Deck of Many Things entry', () => {
+      const deck = magicItemDescription('magic-item:deck-of-many-things');
+      expect(deck).toContain('this deck contains a');
+      expect(deck).toContain('Avatar of Death');
+      expect(deck).toContain('Reaping Scythe');
+      expect(deck).toContain('The Void');
     });
 
     it('parses wrapped category attunement parentheticals into item metadata', () => {

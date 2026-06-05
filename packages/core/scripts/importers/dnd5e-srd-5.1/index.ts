@@ -546,7 +546,7 @@ export const EXPECTED_SRD_5_1_TRAP_NAMES: readonly string[] = [
  * floor (`minMagicItemCount`) for fixture pipelines that exercise a reduced
  * Magic Items A-Z section without the full name set.
  */
-export const MIN_EXPECTED_SRD_5_1_MAGIC_ITEMS = 237;
+export const MIN_EXPECTED_SRD_5_1_MAGIC_ITEMS = 238;
 
 /**
  * Reviewed, checked-in SRD 5.1 Magic Items A-Z name-set baseline
@@ -767,6 +767,7 @@ export const EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES: readonly string[] = [
   'Stone of Good Luck (Luckstone)',
   'Sun Blade',
   'Sword of Life Stealing',
+  'Sword of Sharpness',
   'Sword of Wounding',
   'Talisman of Pure Good',
   'Talisman of Ultimate Evil',

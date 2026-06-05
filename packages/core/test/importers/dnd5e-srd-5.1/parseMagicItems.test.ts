@@ -360,6 +360,46 @@ describe('parseMagicItems', () => {
     );
   });
 
+  it('detects a category whose rarity phrase wraps mid-word (… very / rare …)', () => {
+    // SRD 5.1 p246: "Sword of Sharpness" wraps its category as
+    //   "Weapon (any sword that deals slashing damage), very"
+    //   "rare (requires attunement)"
+    // The first line ends with the bare word "very" (no trailing punctuation,
+    // balanced parens), so the boundary detector once missed the item and its
+    // heading/body were swallowed into the preceding "Sword of Life Stealing".
+    const parsed = parseMagicItems([
+      page(246, [
+        'Sword of Life Stealing',
+        'Weapon (any sword), rare (requires attunement)',
+        'When you attack a creature with this magic weapon',
+        'and roll a 20 on the attack roll, that target takes an',
+        'extra 3d6 necrotic damage.',
+        'Sword of Sharpness',
+        'Weapon (any sword that deals slashing damage), very',
+        'rare (requires attunement)',
+        'When you attack an object with this magic sword',
+        'and hit, maximize your weapon damage dice.',
+      ]),
+    ]);
+    const byParsedName = new Map(parsed.map((item) => [item.name, item]));
+
+    expect(parsed.map((item) => item.name)).toEqual([
+      'Sword of Life Stealing',
+      'Sword of Sharpness',
+    ]);
+    expect(byParsedName.get('Sword of Sharpness')).toMatchObject({
+      itemType: 'Weapon (any sword that deals slashing damage)',
+      rarity: 'very rare',
+      requiresAttunement: true,
+    });
+    expect(
+      byParsedName.get('Sword of Life Stealing')?.description,
+    ).not.toContain('Sword of Sharpness');
+    expect(byParsedName.get('Sword of Sharpness')?.description).toContain(
+      'maximize your weapon damage dice',
+    );
+  });
+
   it('keeps wrapped attunement parentheticals in category metadata', () => {
     const parsed = parseMagicItems([
       page(237, [
