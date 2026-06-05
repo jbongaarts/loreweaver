@@ -58,6 +58,7 @@ export const lookupRulesTool: Tool = {
           'feat',
           'feature',
           'hazard',
+          'magic-item',
           'rule',
           'spell',
           'subclass',

@@ -257,6 +257,28 @@ export interface EquipmentExtraction {
 }
 
 /**
+ * A magic-item entry as extracted from the SRD 5.1 "Magic Items A-Z" section,
+ * before conversion to a `kind=magic-item` `RulesRecord`.
+ *
+ * `itemType` is the category text before the first comma in the SRD header
+ * line (for example, "Armor (medium or heavy, but not hide)" or "Wondrous
+ * item"). `rarity` is the remaining rarity text after removing any attunement
+ * parenthetical; variant items keep the full source rarity expression, such as
+ * "uncommon (+1), rare (+2), or very rare (+3)". Embedded tables are preserved
+ * in `description` rather than emitted as separate `table` records.
+ */
+export interface MagicItemExtraction {
+  readonly name: string;
+  readonly itemType: string;
+  readonly rarity: string;
+  readonly requiresAttunement: boolean;
+  readonly attunementRequirement?: string;
+  readonly description: string;
+  /** 1-based page in the source PDF where the item entry begins. */
+  readonly sourcePage: number;
+}
+
+/**
  * One named racial trait as extracted from the SRD source: the bold "Label."
  * lead-in and its re-flowed body text. Trait labels in the SRD races chapter
  * are short noun phrases (e.g. "Ability Score Increase", "Age", "Alignment",
@@ -473,6 +495,7 @@ export interface ImporterCounts {
   readonly rules: number;
   readonly tables: number;
   readonly equipment: number;
+  readonly magicItems: number;
   readonly ancestries: number;
 }
 

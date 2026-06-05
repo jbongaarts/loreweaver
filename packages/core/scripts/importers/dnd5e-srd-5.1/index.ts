@@ -30,7 +30,7 @@
  *
  * Scope today: spells, creatures, base classes, subclasses, features,
  * conditions, feats, hazards, traps (emitted under the `hazard` kind), actions,
- * rules, tables, equipment, and ancestries
+ * rules, tables, equipment, magic items, and ancestries
  * (races + subraces). Subclasses (Champion, Life domain, …) and class /
  * subclass features parse from the same Classes-chapter slice as base classes.
  * Other SRD record kinds are tracked under `loreweaver-0m9.5` child issues;
@@ -52,6 +52,7 @@ import { parseEquipment, parseMountsAndVehicles } from './parseEquipment.js';
 import { parseFeats } from './parseFeats.js';
 import { parseFeatures } from './parseFeatures.js';
 import { parseHazards } from './parseHazards.js';
+import { parseMagicItems } from './parseMagicItems.js';
 import { parseMulticlassing } from './parseMulticlassing.js';
 import { parseRules } from './parseRules.js';
 import { parseSpellClassLists, parseSpells } from './parseSpells.js';
@@ -70,6 +71,7 @@ import type {
   ClassPrimaryAbilityIndex,
   CreatureExtraction,
   ImporterRunResult,
+  MagicItemExtraction,
   TrapExtraction,
 } from './types.js';
 
@@ -537,6 +539,265 @@ export const EXPECTED_SRD_5_1_TRAP_NAMES: readonly string[] = [
 ];
 
 /**
+ * Reviewed count for the vendored SRD 5.1 Magic Items A-Z section. The real
+ * import is gated on the stronger exact name set below
+ * (`EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES`), whose length a test cross-checks
+ * against this constant so the two cannot drift. It remains a coarse opt-in
+ * floor (`minMagicItemCount`) for fixture pipelines that exercise a reduced
+ * Magic Items A-Z section without the full name set.
+ */
+export const MIN_EXPECTED_SRD_5_1_MAGIC_ITEMS = 236;
+
+/**
+ * Reviewed, checked-in SRD 5.1 Magic Items A-Z name-set baseline
+ * (loreweaver-ecr). The real import validates parsed magic-item names against
+ * this exact set, so a dropped, renamed, or spuriously-extracted item fails
+ * closed by name rather than only on gross truncation. This baseline was
+ * generated from the vendored, hash-pinned SRD 5.1 PDF, reviewed for parser
+ * artifacts from two-column interleaving/table rows, and committed as fixed
+ * regression data. Embedded item-specific tables stay in the parent item's
+ * `description`; they do not emit as standalone `table` records.
+ */
+export const EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES: readonly string[] = [
+  'Adamantine Armor',
+  'Ammunition, +1, +2, or +3',
+  'Amulet of Health',
+  'Amulet of Proof against Detection and Location',
+  'Amulet of the Planes',
+  'Animated Shield',
+  'Apparatus of the Crab',
+  'Armor of Invulnerability',
+  'Armor of Resistance',
+  'Armor of Vulnerability',
+  'Armor, +1, +2, or +3',
+  'Arrow of Slaying',
+  'Arrow-Catching Shield',
+  'Bag of Beans',
+  'Bag of Devouring',
+  'Bag of Holding',
+  'Bag of Tricks',
+  'Bead of Force',
+  'Belt of Dwarvenkind',
+  'Belt of Giant Strength',
+  'Berserker Axe',
+  'Boots of Elvenkind',
+  'Boots of Levitation',
+  'Boots of Speed',
+  'Boots of Striding and Springing',
+  'Boots of the Winterlands',
+  'Bowl of Commanding Water Elementals',
+  'Bracers of Archery',
+  'Bracers of Defense',
+  'Brazier of Commanding Fire Elementals',
+  'Brooch of Shielding',
+  'Broom of Flying',
+  'Candle of Invocation',
+  'Cape of the Mountebank',
+  'Carpet of Flying',
+  'Censer of Controlling Air Elementals',
+  'Chime of Opening',
+  'Circlet of Blasting',
+  'Cloak of Arachnida',
+  'Cloak of Displacement',
+  'Cloak of Elvenkind',
+  'Cloak of Protection',
+  'Cloak of the Bat',
+  'Cloak of the Manta Ray',
+  'Crystal Ball',
+  'Cube of Force',
+  'Cubic Gate',
+  'Dagger of Venom',
+  'Dancing Sword',
+  'Decanter of Endless Water',
+  'Deck of Illusions',
+  'Deck of Many Things',
+  'Defender',
+  'Demon Armor',
+  'Dimensional Shackles',
+  'Dragon Scale Mail',
+  'Dragon Slayer',
+  'Dust of Disappearance',
+  'Dust of Dryness',
+  'Dust of Sneezing and Choking',
+  'Dwarven Plate',
+  'Dwarven Thrower',
+  'Efficient Quiver',
+  'Efreeti Bottle',
+  'Elemental Gem',
+  'Elven Chain',
+  'Eversmoking Bottle',
+  'Eyes of Charming',
+  'Eyes of Minute Seeing',
+  'Eyes of the Eagle',
+  'Feather Token',
+  'Flame Tongue',
+  'Folding Boat',
+  'Frost Brand',
+  'Gauntlets of Ogre Power',
+  'Gem of Brightness',
+  'Gem of Seeing',
+  'Giant Slayer',
+  'Glamoured Studded Leather',
+  'Gloves of Missile Snaring',
+  'Gloves of Swimming and Climbing',
+  'Goggles of Night',
+  'Hammer of Thunderbolts',
+  'Handy Haversack',
+  'Hat of Disguise',
+  'Headband of Intellect',
+  'Helm of Brilliance',
+  'Helm of Comprehending Languages',
+  'Helm of Telepathy',
+  'Helm of Teleportation',
+  'Holy Avenger',
+  'Horn of Blasting',
+  'Horn of Valhalla',
+  'Horseshoes of Speed',
+  'Horseshoes of a Zephyr',
+  'Immovable Rod',
+  'Instant Fortress',
+  'Ioun Stone',
+  'Iron Bands of Binding',
+  'Iron Flask',
+  'Javelin of Lightning',
+  'Lantern of Revealing',
+  'Luck Blade',
+  'Mace of Disruption',
+  'Mace of Smiting',
+  'Mace of Terror',
+  'Mantle of Spell Resistance',
+  'Manual of Bodily Health',
+  'Manual of Gainful Exercise',
+  'Manual of Golems',
+  'Manual of Quickness of Action',
+  'Marvelous Pigments',
+  'Medallion of Thoughts',
+  'Mirror of Life Trapping',
+  'Mithral Armor',
+  'Necklace of Adaptation',
+  'Necklace of Fireballs',
+  'Necklace of Prayer Beads',
+  'Nine Lives Stealer',
+  'Oathbow',
+  'Oil of Etherealness',
+  'Oil of Sharpness',
+  'Oil of Slipperiness',
+  'Pearl of Power',
+  'Periapt of Health',
+  'Periapt of Proof against Poison',
+  'Periapt of Wound Closure',
+  'Philter of Love',
+  'Pipes of Haunting',
+  'Pipes of the Sewers',
+  'Plate Armor of Etherealness',
+  'Portable Hole',
+  'Potion of Animal Friendship',
+  'Potion of Clairvoyance',
+  'Potion of Climbing',
+  'Potion of Diminution',
+  'Potion of Flying',
+  'Potion of Gaseous Form',
+  'Potion of Giant Strength',
+  'Potion of Growth',
+  'Potion of Healing',
+  'Potion of Heroism',
+  'Potion of Invisibility',
+  'Potion of Mind Reading',
+  'Potion of Poison',
+  'Potion of Resistance',
+  'Potion of Speed',
+  'Potion of Water Breathing',
+  'Restorative Ointment',
+  'Ring of Animal Influence',
+  'Ring of Djinni Summoning',
+  'Ring of Elemental Command',
+  'Ring of Evasion',
+  'Ring of Feather Falling',
+  'Ring of Free Action',
+  'Ring of Invisibility',
+  'Ring of Jumping',
+  'Ring of Mind Shielding',
+  'Ring of Protection',
+  'Ring of Regeneration',
+  'Ring of Resistance',
+  'Ring of Shooting Stars',
+  'Ring of Spell Storing',
+  'Ring of Spell Turning',
+  'Ring of Swimming',
+  'Ring of Telekinesis',
+  'Ring of Three Wishes',
+  'Ring of Warmth',
+  'Ring of Water Walking',
+  'Ring of X-ray Vision',
+  'Ring of the Ram',
+  'Robe of Eyes',
+  'Robe of Scintillating Colors',
+  'Robe of Stars',
+  'Robe of Useful Items',
+  'Robe of the Archmagi',
+  'Rod of Absorption',
+  'Rod of Alertness',
+  'Rod of Lordly Might',
+  'Rod of Rulership',
+  'Rod of Security',
+  'Rope of Climbing',
+  'Rope of Entanglement',
+  'Scarab of Protection',
+  'Scimitar of Speed',
+  'Shield of Missile Attraction',
+  'Shield, +1, +2, or +3',
+  'Slippers of Spider Climbing',
+  'Sovereign Glue',
+  'Spell Scroll',
+  'Spellguard Shield',
+  'Sphere of Annihilation',
+  'Staff of Charming',
+  'Staff of Fire',
+  'Staff of Frost',
+  'Staff of Healing',
+  'Staff of Power',
+  'Staff of Striking',
+  'Staff of Swarming Insects',
+  'Staff of Thunder and Lightning',
+  'Staff of Withering',
+  'Staff of the Magi',
+  'Staff of the Python',
+  'Staff of the Woodlands',
+  'Stone of Controlling Earth Elementals',
+  'Stone of Good Luck (Luckstone)',
+  'Sun Blade',
+  'Sword of Life Stealing',
+  'Sword of Wounding',
+  'Talisman of Pure Good',
+  'Talisman of Ultimate Evil',
+  'Talisman of the Sphere',
+  'Tome of Clear Thought',
+  'Tome of Leadership and Influence',
+  'Tome of Understanding',
+  'Trident of Fish Command',
+  'Universal Solvent',
+  'Vicious Weapon',
+  'Wand of Binding',
+  'Wand of Enemy Detection',
+  'Wand of Fear',
+  'Wand of Fireballs',
+  'Wand of Lightning Bolts',
+  'Wand of Magic Detection',
+  'Wand of Magic Missiles',
+  'Wand of Paralysis',
+  'Wand of Polymorph',
+  'Wand of Secrets',
+  'Wand of Web',
+  'Wand of Wonder',
+  'Wand of the War Mage, +1, +2, or +3',
+  'Weapon, +1, +2, or +3',
+  'Well of Many Worlds',
+  'Wind Fan',
+  'Winged Boots',
+  'Wings of Flying',
+];
+
+/**
  * Thrown when the parsed creature set fails the coverage check: an empty
  * result, a count below `minCreatureCount`, or — when the exact
  * `expectedCreatureNames` set is supplied (the real import) — any missing or
@@ -629,6 +890,17 @@ export class TrapCoverageError extends Error {
   }
 }
 
+/**
+ * Thrown when the parsed magic-item set is empty or implausibly small for the
+ * SRD 5.1 Magic Items A-Z section.
+ */
+export class MagicItemCoverageError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'MagicItemCoverageError';
+  }
+}
+
 export interface RunImporterInput {
   /** Absolute path to the vendored SRD 5.1 PDF. */
   readonly pdfPath: string;
@@ -708,6 +980,24 @@ export interface RunImporterInput {
    * when the section is absent). Sample traps emit under the `hazard` kind.
    */
   readonly expectedTrapNames?: readonly string[];
+  /**
+   * Minimum number of Magic Items A-Z entries the section must yield for the
+   * run to be accepted. An empty magic-item result is always rejected regardless
+   * of this option. The real-import CLI uses the stronger
+   * `expectedMagicItemNames` gate instead; fixture pipelines that exercise a
+   * reduced Magic Items A-Z section either omit this or pass a small value.
+   */
+  readonly minMagicItemCount?: number;
+  /**
+   * Exact set of Magic Items A-Z names the import must yield for the run to be
+   * accepted. When provided and the parsed names don't match it exactly, the
+   * importer throws `MagicItemCoverageError` naming the missing and/or
+   * unexpected items, and writes nothing. The real-import CLI passes
+   * `EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES`; fixture pipelines that exercise a
+   * reduced Magic Items A-Z section omit this and rely on the empty-result guard
+   * or the coarse `minMagicItemCount` floor.
+   */
+  readonly expectedMagicItemNames?: readonly string[];
 }
 
 /**
@@ -913,6 +1203,48 @@ function validateTrapCoverage(
   );
 }
 
+function validateMagicItemCoverage(
+  magicItems: readonly MagicItemExtraction[],
+  minMagicItemCount: number | undefined,
+  expectedMagicItemNames: readonly string[] | undefined,
+): void {
+  if (magicItems.length === 0) {
+    throw new MagicItemCoverageError(
+      'SRD 5.1 magic-item coverage check failed: the Magic Items A-Z section was found but yielded 0 magic items. The item heading/category layout likely changed. Refusing to write a pack with no magic items.',
+    );
+  }
+  if (expectedMagicItemNames !== undefined) {
+    const parsedNames = new Set(magicItems.map((item) => item.name));
+    const expectedSet = new Set(expectedMagicItemNames);
+    const missing = expectedMagicItemNames.filter(
+      (name) => !parsedNames.has(name),
+    );
+    const unexpected = [...parsedNames].filter(
+      (name) => !expectedSet.has(name),
+    );
+    if (missing.length > 0 || unexpected.length > 0) {
+      const parts: string[] = [];
+      if (missing.length > 0) {
+        parts.push(`missing expected magic item(s): ${missing.join(', ')}`);
+      }
+      if (unexpected.length > 0) {
+        parts.push(`unexpected magic item(s): ${unexpected.join(', ')}`);
+      }
+      throw new MagicItemCoverageError(
+        `SRD 5.1 magic-item coverage check failed: parsed ${magicItems.length} magic item(s), expected exactly ${expectedMagicItemNames.length}. ${parts.join('; ')}. The Magic Items A-Z section may have been truncated, an item renamed, or unrelated prose/table text promoted. Refusing to write a pack with a drifted magic-item set.`,
+      );
+    }
+  }
+  if (
+    minMagicItemCount !== undefined &&
+    magicItems.length < minMagicItemCount
+  ) {
+    throw new MagicItemCoverageError(
+      `SRD 5.1 magic-item coverage check failed: parsed ${magicItems.length} magic item(s), expected at least ${minMagicItemCount}. The Magic Items A-Z section may have been truncated or its layout changed.`,
+    );
+  }
+}
+
 export async function runImporter(
   input: RunImporterInput,
 ): Promise<ImporterRunResult> {
@@ -1011,6 +1343,13 @@ export async function runImporter(
       parseMountsAndVehicles,
     ),
   ];
+  const magicItemPages = sliceSection(pages, anchors.magicItems);
+  const magicItems = parseMagicItems(magicItemPages);
+  validateMagicItemCoverage(
+    magicItems,
+    input.minMagicItemCount,
+    input.expectedMagicItemNames,
+  );
   // SRD 5.1 has no standalone treasure-tables chapter either. Best-effort.
   const treasureTablePages = sliceSectionOrEmptyPages(
     pages,
@@ -1086,6 +1425,7 @@ export async function runImporter(
     rules,
     tables,
     equipment,
+    magicItems,
     ancestries,
     sourceHash,
   });
@@ -1108,6 +1448,7 @@ export async function runImporter(
       rules: rules.length,
       tables: tables.length,
       equipment: equipment.length,
+      magicItems: magicItems.length,
       ancestries: ancestries.length,
     },
   };

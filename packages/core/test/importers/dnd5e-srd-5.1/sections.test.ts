@@ -256,6 +256,16 @@ describe('SRD_5_1_DEFAULT_SECTION_ANCHORS — sanity', () => {
     expect(anchor.requireEndHeading).toBe(true);
   });
 
+  it('magic-items anchor matches "Magic Items A-Z", bounds at "Sentient Magic Items", and fails closed on a missing end', () => {
+    const anchor = SRD_5_1_DEFAULT_SECTION_ANCHORS.magicItems;
+    expect(anchor.startHeading.test('Magic Items A-Z')).toBe(true);
+    expect(anchor.startHeading.test('Magic Items')).toBe(false);
+    expect(anchor.endHeading?.test('Sentient Magic Items')).toBe(true);
+    expect(anchor.endHeading?.test('Artifacts')).toBe(true);
+    expect(anchor.requireEndHeading).toBe(true);
+    expect(anchor.matchHeadings).toBe(true);
+  });
+
   // Real-PDF chapter mapping (loreweaver-0m9.5.20). The SRD 5.1 PDF has no
   // aggregate "Classes" chapter heading — the races chapter closes at the
   // first per-class chapter title ("Barbarian"), and the classes section
@@ -330,6 +340,7 @@ describe('SRD_5_1_DEFAULT_SECTION_ANCHORS — sanity', () => {
     expect(a.traps.matchHeadings).toBe(true);
     expect(a.hazards.matchHeadings).toBe(true);
     expect(a.equipment.matchHeadings).toBe(true);
+    expect(a.magicItems.matchHeadings).toBe(true);
     expect(a.multiclassing.matchHeadings).toBe(true);
   });
 });

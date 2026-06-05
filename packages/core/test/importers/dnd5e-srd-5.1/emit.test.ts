@@ -18,6 +18,7 @@ import {
   ancestryExtractionsToRecords,
   buildPack,
   featureExtractionsToRecords,
+  magicItemExtractionsToRecords,
   SRD_5_1_LICENSE,
   spellExtractionsToRecords,
   subclassExtractionsToRecords,
@@ -28,6 +29,7 @@ import type {
   ActionExtraction,
   AncestryExtraction,
   FeatureExtraction,
+  MagicItemExtraction,
   RuleExtraction,
   SpellCasterClass,
   SpellExtraction,
@@ -173,6 +175,25 @@ const DIFFICULTY_TABLE: TableExtraction = {
   sourcePage: 77,
 };
 
+const ADAMANTINE_ARMOR: MagicItemExtraction = {
+  name: 'Adamantine Armor',
+  itemType: 'Armor (medium or heavy, but not hide)',
+  rarity: 'uncommon',
+  requiresAttunement: false,
+  description:
+    'This suit of armor is reinforced with adamantine. While you’re wearing it, any critical hit against you becomes a normal hit.',
+  sourcePage: 207,
+};
+
+const AMULET_OF_HEALTH: MagicItemExtraction = {
+  name: 'Amulet of Health',
+  itemType: 'Wondrous item',
+  rarity: 'rare',
+  requiresAttunement: true,
+  description: 'Your Constitution score is 19 while you wear this amulet.',
+  sourcePage: 207,
+};
+
 function makeIndex(
   entries: ReadonlyArray<[string, SpellCasterClass[]]>,
 ): Map<string, Set<SpellCasterClass>> {
@@ -314,6 +335,19 @@ describe('buildPack — validation', () => {
     });
     expect(pack.meta.description).toMatch(
       /Included record kinds: ancestry, spell\b/,
+    );
+  });
+
+  it('includes "magic-item" in included-kinds when magic item records are present', () => {
+    const pack = buildPack({
+      spells: [ACID_SPLASH],
+      classIndex: makeIndex([]),
+      conditions: [],
+      magicItems: [ADAMANTINE_ARMOR],
+      sourceHash: FAKE_HASH,
+    });
+    expect(pack.meta.description).toMatch(
+      /Included record kinds: magic-item, spell\b/,
     );
   });
 });
@@ -535,6 +569,29 @@ describe('ancestryExtractionsToRecords — record shape', () => {
       record.data as { traits: Array<{ name: string }> }
     ).traits.map((t) => t.name);
     expect(names).toContain('Dwarven Toughness');
+  });
+});
+
+describe('magicItemExtractionsToRecords — record shape', () => {
+  it('builds magic-item keys of the form "magic-item:<slug>"', () => {
+    const [record] = magicItemExtractionsToRecords([ADAMANTINE_ARMOR]);
+    expect(record.key).toBe('magic-item:adamantine-armor');
+    expect(record.kind).toBe('magic-item');
+  });
+
+  it('stores category, rarity, attunement, and description in data', () => {
+    const [record] = magicItemExtractionsToRecords([AMULET_OF_HEALTH]);
+    expect(record.data).toMatchObject({
+      itemType: 'Wondrous item',
+      rarity: 'rare',
+      requiresAttunement: true,
+      description: 'Your Constitution score is 19 while you wear this amulet.',
+    });
+  });
+
+  it('attaches provenance pointing at the SRD source page', () => {
+    const [record] = magicItemExtractionsToRecords([ADAMANTINE_ARMOR]);
+    expect(record.provenance.locator).toBe('p. 207');
   });
 });
 

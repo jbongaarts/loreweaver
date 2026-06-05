@@ -32,8 +32,10 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   EXPECTED_SRD_5_1_CREATURE_NAMES,
+  EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES,
   EXPECTED_SRD_5_1_NPC_NAMES,
   MIN_EXPECTED_SRD_5_1_CREATURES,
+  MIN_EXPECTED_SRD_5_1_MAGIC_ITEMS,
 } from '../scripts/importers/dnd5e-srd-5.1/index.js';
 import {
   auditPack,
@@ -101,6 +103,7 @@ const EXPECTED_COUNTS_BY_KIND: Readonly<Record<string, number>> = {
   // The 8 SRD 5.1 sample traps emit under the `hazard` kind (loreweaver-hvp);
   // SRD 5.1 has no environmental hazards, so all 8 hazard records are traps.
   hazard: 8,
+  'magic-item': 236,
   rule: 10,
   spell: 319,
   subclass: 12,
@@ -133,6 +136,9 @@ const EXPECTED_STABLE_KEYS: readonly string[] = [
   'feature:champion:improved-critical',
   'hazard:fire-breathing-statue',
   'hazard:sphere-of-annihilation',
+  'magic-item:adamantine-armor',
+  'magic-item:ammunition-1-2-or-3',
+  'magic-item:amulet-of-health',
   'rule:difficult-terrain',
   'spell:fire-bolt',
   'spell:wish',
@@ -173,6 +179,9 @@ const EXPECTED_STABLE_KEYS: readonly string[] = [
  *     cell — the items with a "—" weight (Sling, gaming sets, and many
  *     adventuring-gear/tack rows) plus the 7 packs, 8 mounts, and 6 waterborne
  *     vehicles (priced by speed/capacity, not weight).
+ *   - magic-item.attunementRequirement: only the 19 items whose category line
+ *     restricts attunement by class, ancestry, alignment, or spellcasting carry
+ *     this text; all 236 records still carry the boolean `requiresAttunement`.
  *   - spell.componentMaterials: only spells with a material (M) component.
  *   - spell.higherLevels: only spells with an "At Higher Levels" entry.
  *   - spell.ritual: only spells tagged as rituals.
@@ -248,6 +257,12 @@ const EXPECTED_PARTIAL_FIELDS: ReadonlyArray<{
   },
   { kind: 'equipment', field: 'weight', missingCount: 44, totalInKind: 218 },
   {
+    kind: 'magic-item',
+    field: 'attunementRequirement',
+    missingCount: 217,
+    totalInKind: 236,
+  },
+  {
     kind: 'spell',
     field: 'componentMaterials',
     missingCount: 135,
@@ -257,10 +272,10 @@ const EXPECTED_PARTIAL_FIELDS: ReadonlyArray<{
   { kind: 'spell', field: 'ritual', missingCount: 290, totalInKind: 319 },
 ];
 
-// `<kind>:<kebab-slug>` with one or more colon-separated slug segments. Most
-// kinds use a single segment (`spell:fire-bolt`); class/subclass-scoped
+// `<kind>:<kebab-slug>` with one or more colon-separated slug segments. Kinds
+// may be hyphenated (`magic-item:adamantine-armor`); class/subclass-scoped
 // features namespace the slug (`feature:bard:ability-score-improvement`).
-const KEY_PATTERN = /^[a-z][a-z0-9]*(?::[a-z0-9][a-z0-9-]*)+$/;
+const KEY_PATTERN = /^[a-z][a-z0-9-]*(?::[a-z0-9][a-z0-9-]*)+$/;
 
 /**
  * PDF hyphen-cluster artifacts that must NOT survive into the durable pack.
@@ -411,6 +426,66 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
         EXPECTED_SRD_5_1_CREATURE_NAMES.length +
           EXPECTED_SRD_5_1_NPC_NAMES.length,
       ).toBe(EXPECTED_COUNTS_BY_KIND.creature);
+    });
+  });
+
+  // loreweaver-ecr: Magic Items A-Z is a two-column section whose body text can
+  // interleave item tables, bullets, and neighboring prose with item headings.
+  // The importer pins the exact reviewed name set so table/prose text cannot be
+  // silently promoted to a `magic-item` record, and recovered two-column ring /
+  // staff entries cannot silently disappear.
+  describe('magic-item name-set regression baseline (loreweaver-ecr)', () => {
+    const magicItems = pack.records.filter(
+      (record) => record.kind === 'magic-item',
+    );
+
+    function magicItemData(key: string): Record<string, unknown> {
+      const record = magicItems.find((r) => r.key === key);
+      expect(record, `expected ${key} in the committed pack`).toBeDefined();
+      return record?.data as Record<string, unknown>;
+    }
+
+    it('committed pack magic-item names match the checked-in baseline exactly', () => {
+      expect(magicItems.map((record) => record.name).sort()).toEqual(
+        [...EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES].sort(),
+      );
+    });
+
+    it('EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES has no duplicates', () => {
+      expect(new Set(EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES).size).toBe(
+        EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES.length,
+      );
+    });
+
+    it('the magic-item baseline length matches the documented count', () => {
+      expect(EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES).toHaveLength(
+        MIN_EXPECTED_SRD_5_1_MAGIC_ITEMS,
+      );
+      expect(EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES.length).toBe(
+        EXPECTED_COUNTS_BY_KIND['magic-item'],
+      );
+    });
+
+    it('carries representative item type, rarity, attunement, and embedded table text', () => {
+      expect(magicItemData('magic-item:adamantine-armor')).toMatchObject({
+        itemType: 'Armor (medium or heavy, but not hide)',
+        rarity: 'uncommon',
+        requiresAttunement: false,
+      });
+      expect(magicItemData('magic-item:staff-of-power')).toMatchObject({
+        itemType: 'Staff',
+        rarity: 'very rare',
+        requiresAttunement: true,
+        attunementRequirement: 'by a sorcerer, warlock, or wizard',
+      });
+      const armorOfResistance = magicItemData('magic-item:armor-of-resistance');
+      expect(armorOfResistance).toMatchObject({
+        itemType: 'Armor (light, medium, or heavy)',
+        rarity: 'rare',
+        requiresAttunement: true,
+      });
+      expect(armorOfResistance.description).toContain('d10 Damage Type');
+      expect(armorOfResistance.description).toContain('1 Acid 6 Necrotic');
     });
   });
 
