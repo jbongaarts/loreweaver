@@ -197,6 +197,32 @@ describe('extractPdfText — heading merge', () => {
     }
   });
 
+  it('exposes per-line font heights parallel to lines (lineHeights)', async () => {
+    // `lineHeights` (loreweaver-yli) carries the rendered max font height of
+    // every emitted line so the rule parser can reconstruct heading tiers
+    // below the coarse `headingLineIndexes` threshold. It is always populated
+    // (even for uniform-font fixtures) and stays aligned with `lines`.
+    const pages = await extractFromOps([
+      { text: 'Subsection Title', size: 18, x: 60, y: 60 },
+      { text: 'A leaf rule heading.', size: 12, x: 60, y: 100 },
+      { text: 'Body prose at the base size.', size: 11, x: 60, y: 140 },
+    ]);
+    const page = pages[0];
+    expect(page.lineHeights).toBeDefined();
+    expect(page.lineHeights?.length).toBe(page.lines.length);
+    const heightOf = (text: string): number => {
+      const idx = page.lines.indexOf(text);
+      return page.lineHeights?.[idx] ?? 0;
+    };
+    // Larger declared font sizes extract to larger heights, in order.
+    expect(heightOf('Subsection Title')).toBeGreaterThan(
+      heightOf('A leaf rule heading.'),
+    );
+    expect(heightOf('A leaf rule heading.')).toBeGreaterThan(
+      heightOf('Body prose at the base size.'),
+    );
+  });
+
   it('emits two-column body pages column-by-column, not row-interleaved', async () => {
     // Mimics the SRD spell-descriptions layout (page 114 in the real PDF):
     // two columns of stat blocks where pdfjs returns items y-interleaved

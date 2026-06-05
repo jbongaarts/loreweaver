@@ -57,6 +57,30 @@ describe('sliceSection — happy path', () => {
     expect(sliced.map((p) => p.pageNumber)).toEqual([2, 3]);
   });
 
+  it('carries per-line font heights through the slice, aligned to lines', () => {
+    // The rule parser depends on `lineHeights` surviving slicing (loreweaver-yli):
+    // buildSlice must re-project the parallel height array to the same window it
+    // cuts from `lines`, dropping the start-heading row.
+    const withHeights: PageText[] = [
+      {
+        pageNumber: 2,
+        lines: ['Spells', 'Acid Splash', 'Conjuration cantrip'],
+        lineHeights: [18, 13.9, 9.8],
+      },
+      {
+        pageNumber: 3,
+        lines: ['Monsters', 'Goblin'],
+        lineHeights: [25.9, 9.8],
+      },
+    ];
+    const sliced = sliceSection(withHeights, {
+      startHeading: /^Spells$/,
+      endHeading: /^Monsters$/,
+    });
+    expect(sliced[0].lines).toEqual(['Acid Splash', 'Conjuration cantrip']);
+    expect(sliced[0].lineHeights).toEqual([13.9, 9.8]);
+  });
+
   it('slices to end of document when endHeading is undefined', () => {
     const sliced = sliceSection(pages, {
       startHeading: /^Monsters$/,

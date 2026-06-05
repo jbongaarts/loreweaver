@@ -270,6 +270,7 @@ export async function extractPdfText(
     interface RawPage {
       readonly pageNumber: number;
       readonly lines: readonly string[];
+      readonly lineHeights: readonly number[];
       readonly headingLineIndexes: readonly number[];
       readonly hasHeadingItem: boolean;
     }
@@ -278,11 +279,12 @@ export async function extractPdfText(
       const page = await pdf.getPage(i);
       try {
         const content = await page.getTextContent();
-        const { lines, headingLineIndexes, hasHeadingItem } =
+        const { lines, lineHeights, headingLineIndexes, hasHeadingItem } =
           textContentToPage(content);
         raw.push({
           pageNumber: i,
           lines,
+          lineHeights,
           headingLineIndexes,
           hasHeadingItem,
         });
@@ -302,6 +304,16 @@ export async function extractPdfText(
     return raw.map((r) => ({
       pageNumber: r.pageNumber,
       lines: r.lines,
+      // `lineHeights` carries the rendered max font height of each emitted
+      // line, parallel to `lines`. Unlike `headingLineIndexes` (a coarse
+      // h ≥ HEADING_H_THRESHOLD chapter/subsection flag tuned for section
+      // anchoring), this exposes the full per-line height so a consumer can
+      // reconstruct the finer rule heading hierarchy — the SRD core rules
+      // nest four font tiers (chapter h≈25.9, subsection h≈18, and the
+      // sub-/sub-subsection rule leaves at h≈13.9 / h≈12 that fall BELOW the
+      // anchor threshold). `parseRules` reads this to emit a rule per leaf
+      // without dropping parents (loreweaver-yli). Always populated.
+      lineHeights: r.lineHeights,
       ...(documentHasHeadings
         ? { headingLineIndexes: r.headingLineIndexes }
         : {}),
@@ -331,6 +343,7 @@ interface LineRecord {
 
 function textContentToPage(content: PdfTextContent): {
   lines: readonly string[];
+  lineHeights: readonly number[];
   headingLineIndexes: readonly number[];
   hasHeadingItem: boolean;
 } {
@@ -373,7 +386,12 @@ function textContentToPage(content: PdfTextContent): {
     },
   );
   if (items.length === 0) {
-    return { lines: [], headingLineIndexes: [], hasHeadingItem: false };
+    return {
+      lines: [],
+      lineHeights: [],
+      headingLineIndexes: [],
+      hasHeadingItem: false,
+    };
   }
   // Partition items into columns BEFORE y-bucketing. Two items on the same
   // y but in different columns (e.g. SRD page 299, where the previous
@@ -389,12 +407,13 @@ function textContentToPage(content: PdfTextContent): {
     ordered.push(...merged);
   }
   const lines = ordered.map((r) => normalizePdfHyphenCluster(r.text));
+  const lineHeights = ordered.map((r) => r.maxH);
   const headingLineIndexes: number[] = [];
   for (let idx = 0; idx < ordered.length; idx++) {
     if (ordered[idx].isHeading) headingLineIndexes.push(idx);
   }
   const hasHeadingItem = items.some((it) => it.height >= HEADING_H_THRESHOLD);
-  return { lines, headingLineIndexes, hasHeadingItem };
+  return { lines, lineHeights, headingLineIndexes, hasHeadingItem };
 }
 
 /**

@@ -9,6 +9,20 @@ export interface PageText {
   readonly pageNumber: number;
   readonly lines: readonly string[];
   /**
+   * Rendered max font height (PDF user-space points) of each emitted line,
+   * parallel to `lines`. The real SRD 5.1 extraction always populates it;
+   * fixture PDFs that omit it leave it undefined.
+   *
+   * `headingLineIndexes` is a coarse boolean flag (h ≥ 14) tuned for section
+   * anchoring; `lineHeights` exposes the full per-line height so a consumer
+   * can reconstruct the finer rule heading hierarchy. The SRD core rules nest
+   * four font tiers — chapter (h≈25.9), subsection (h≈18), and the rule-leaf
+   * sub-/sub-subsections at h≈13.9 / h≈12 that fall below the anchor
+   * threshold. `parseRules` reads this to emit a rule per leaf subsection
+   * without dropping parents (loreweaver-yli).
+   */
+  readonly lineHeights?: readonly number[];
+  /**
    * Indexes into `lines` of the entries the extractor identified as
    * chapter / section headings, based on rendered font height. When
    * present, section anchors with `matchHeadings: true` match only at
@@ -158,6 +172,15 @@ export interface TrapExtraction {
  */
 export interface RuleExtraction {
   readonly name: string;
+  /**
+   * Disambiguated record-key slug (the part after `rule:`). The heading
+   * hierarchy parser sets this so cross-chapter title collisions ("Hit Points"
+   * in both Constitution and Damage and Healing) and repeated cross-reference
+   * sidebars get unique keys via parent qualification, while `name` keeps the
+   * bare SRD leaf title. Absent on the legacy text-heuristic path (uniform-font
+   * fixtures), where `emit` falls back to `slug(name)`.
+   */
+  readonly keySlug?: string;
   /** Full rule body text, re-flowed into paragraphs. */
   readonly text: string;
   /** 1-based page in the source PDF where the rule heading begins. */
