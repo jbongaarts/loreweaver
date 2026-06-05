@@ -16,6 +16,7 @@ export type RulesRecordKind =
   // from the player-selected `feat`. See ADR 0009.
   | 'feature'
   | 'hazard'
+  | 'magic-item'
   | 'rule'
   | 'spell'
   // `subclass` (Champion, Life domain, School of Evocation, ...) is its own

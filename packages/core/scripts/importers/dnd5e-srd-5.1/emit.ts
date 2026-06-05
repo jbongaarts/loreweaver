@@ -35,6 +35,7 @@ import type {
   FeatExtraction,
   FeatureExtraction,
   HazardExtraction,
+  MagicItemExtraction,
   RuleExtraction,
   SpellCasterClass,
   SpellClassIndex,
@@ -220,6 +221,10 @@ function tableKey(name: string): string {
 
 function equipmentKey(name: string): string {
   return `equipment:${slug(name)}`;
+}
+
+function magicItemKey(name: string): string {
+  return `magic-item:${slug(name)}`;
 }
 
 function ancestryKey(name: string): string {
@@ -671,6 +676,41 @@ export function equipmentExtractionsToRecords(
   return out;
 }
 
+function buildMagicItemData(
+  item: MagicItemExtraction,
+): Record<string, unknown> {
+  const data: Record<string, unknown> = {
+    itemType: item.itemType,
+    rarity: item.rarity,
+    requiresAttunement: item.requiresAttunement,
+  };
+  if (item.attunementRequirement !== undefined) {
+    data.attunementRequirement = item.attunementRequirement;
+  }
+  data.description = item.description;
+  return data;
+}
+
+export function magicItemExtractionsToRecords(
+  magicItems: readonly MagicItemExtraction[],
+): RulesRecord[] {
+  const out: RulesRecord[] = magicItems.map((item) => {
+    const record: RulesRecord = {
+      systemId: SYSTEM_ID,
+      kind: 'magic-item',
+      key: magicItemKey(item.name),
+      name: item.name,
+      data: buildMagicItemData(item),
+      source: sourceLabelFor(item.sourcePage),
+      license: SRD_5_1_LICENSE,
+      provenance: provenanceFor(item.sourcePage),
+    };
+    return record;
+  });
+  out.sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+  return out;
+}
+
 export function ancestryExtractionsToRecords(
   ancestries: readonly AncestryExtraction[],
 ): RulesRecord[] {
@@ -732,6 +772,7 @@ export interface BuildPackInput {
   readonly rules?: readonly RuleExtraction[];
   readonly tables?: readonly TableExtraction[];
   readonly equipment?: readonly EquipmentExtraction[];
+  readonly magicItems?: readonly MagicItemExtraction[];
   readonly ancestries?: readonly AncestryExtraction[];
   readonly sourceHash: string;
 }
@@ -765,6 +806,9 @@ export function buildPack(input: BuildPackInput): RulesPack {
   const ruleRecords = ruleExtractionsToRecords(input.rules ?? []);
   const tableRecords = tableExtractionsToRecords(input.tables ?? []);
   const equipmentRecords = equipmentExtractionsToRecords(input.equipment ?? []);
+  const magicItemRecords = magicItemExtractionsToRecords(
+    input.magicItems ?? [],
+  );
   const ancestryRecords = ancestryExtractionsToRecords(input.ancestries ?? []);
   const records = [
     ...spellRecords,
@@ -779,6 +823,7 @@ export function buildPack(input: BuildPackInput): RulesPack {
     ...ruleRecords,
     ...tableRecords,
     ...equipmentRecords,
+    ...magicItemRecords,
     ...ancestryRecords,
   ].sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
   const includedKinds = uniqueKindsOf(records);

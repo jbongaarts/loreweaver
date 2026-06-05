@@ -148,6 +148,7 @@ const BASE_KIND_VALIDATORS: Record<RulesRecordKind, Validator> = {
   // object payload, the dnd5e validator enforces grantor/level linkage.
   feature: baseObjectKind,
   hazard: baseObjectKind,
+  'magic-item': baseObjectKind,
   rule: (record, path) => {
     // Rule records always carry the rule body as `text`.
     const data = dataObj(record, path);
@@ -281,6 +282,20 @@ function validateDnd5eAction(record: RulesRecord, path: string): void {
   reqStr(data, 'description', `${path}.data`);
 }
 
+function validateDnd5eMagicItem(record: RulesRecord, path: string): void {
+  const data = dataObj(record, path);
+  reqStr(data, 'itemType', `${path}.data`);
+  reqStr(data, 'rarity', `${path}.data`);
+  const requiresAttunement = data.requiresAttunement;
+  if (typeof requiresAttunement !== 'boolean') {
+    throw new RulesPackError(
+      `${path}.data.requiresAttunement must be a boolean`,
+    );
+  }
+  optStr(data, 'attunementRequirement', `${path}.data`);
+  reqStr(data, 'description', `${path}.data`);
+}
+
 function validatePf2eAncestry(record: RulesRecord, path: string): void {
   const data = dataObj(record, path);
   reqInt(data, 'hitPoints', `${path}.data`, 1);
@@ -366,6 +381,7 @@ const SYSTEM_KIND_VALIDATORS: Record<
     subclass: validateDnd5eSubclass,
     hazard: validateDnd5eHazard,
     action: validateDnd5eAction,
+    'magic-item': validateDnd5eMagicItem,
   },
   'pathfinder2e-remaster': {
     ancestry: validatePf2eAncestry,

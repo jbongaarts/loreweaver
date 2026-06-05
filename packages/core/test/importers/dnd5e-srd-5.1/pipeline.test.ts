@@ -279,6 +279,19 @@ const MAGIC_ITEMS_PAGE: FixturePage = {
     'Magic Items',
     'Using Magic Items',
     'Magic items are gleaned from the hoards of conquered monsters.',
+    'Magic Items A-Z',
+    'Magic items are presented in alphabetical order.',
+    'Adamantine Armor',
+    'Armor (medium or heavy, but not hide), uncommon',
+    'This suit of armor is reinforced with adamantine.',
+    'Apparatus of the Crab',
+    'Wondrous item, legendary',
+    'The apparatus of the Crab is a Large object with the following statistics:',
+    'Armor Class: 20',
+    'Apparatus of the Crab Levers',
+    'Lever Up Down',
+    '1 Legs and tail extend. Legs and tail retract.',
+    'Sentient Magic Items',
   ],
 };
 
@@ -789,12 +802,13 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     // 4 prior tables + the two trap reference tables (loreweaver-hvp).
     expect(result.counts.tables).toBe(6);
     expect(result.counts.equipment).toBe(4);
+    expect(result.counts.magicItems).toBe(2);
     expect(result.counts.ancestries).toBe(18);
     expect(result.sourceHash).toMatch(/^[0-9a-f]{64}$/);
 
     const pack = loadRulesPackFromDirectory(outDir);
-    // 48 prior records + 2 sample traps + 2 trap tables (loreweaver-hvp).
-    expect(pack.records).toHaveLength(52);
+    // 48 prior records + 2 sample traps + 2 trap tables + 2 magic items.
+    expect(pack.records).toHaveLength(54);
     const keys = pack.records.map((r) => r.key).sort();
     expect(keys).toContain('class:fighter');
     expect(keys).toContain('subclass:champion');
@@ -819,6 +833,8 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(keys).toContain('rule:resting');
     expect(keys).toContain('table:difficulty-classes');
     expect(keys).toContain('table:xp-thresholds-by-character-level');
+    expect(keys).toContain('magic-item:adamantine-armor');
+    expect(keys).toContain('magic-item:apparatus-of-the-crab');
     expect(keys).toContain('ancestry:dwarf');
     expect(keys).toContain('ancestry:hill-dwarf');
     expect(keys).toContain('ancestry:lightfoot-halfling');
@@ -868,10 +884,19 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       'equipment:sling',
       'equipment:smiths-tools',
     ]);
+    const magicItemKeys = keys.filter((k) => k.startsWith('magic-item:'));
+    expect(magicItemKeys).toEqual([
+      'magic-item:adamantine-armor',
+      'magic-item:apparatus-of-the-crab',
+    ]);
 
-    // The generated manifest must advertise equipment as an included kind.
+    // The generated manifest must advertise equipment and magic items as
+    // included kinds.
     expect(pack.meta.description).toMatch(
       /Included record kinds:[^.]*equipment/,
+    );
+    expect(pack.meta.description).toMatch(
+      /Included record kinds:[^.]*magic-item/,
     );
     const ancestryKeys = keys.filter((k) => k.startsWith('ancestry:'));
     expect(ancestryKeys).toEqual([
@@ -1134,6 +1159,23 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(slingData.category).toBe('weapon');
     expect(slingData.damageDie).toBe('1d4');
     expect(slingData.damageType).toBe('bludgeoning');
+
+    const adamantine = pack.records.find(
+      (r) => r.key === 'magic-item:adamantine-armor',
+    );
+    expect(adamantine?.name).toBe('Adamantine Armor');
+    const adamantineData = adamantine?.data as Record<string, unknown>;
+    expect(adamantineData.itemType).toBe(
+      'Armor (medium or heavy, but not hide)',
+    );
+    expect(adamantineData.rarity).toBe('uncommon');
+    expect(adamantineData.requiresAttunement).toBe(false);
+
+    const apparatus = pack.records.find(
+      (r) => r.key === 'magic-item:apparatus-of-the-crab',
+    );
+    const apparatusData = apparatus?.data as Record<string, unknown>;
+    expect(apparatusData.description).toContain('Apparatus of the Crab Levers');
     expect(slingData.properties).toEqual(['Ammunition (range 30/120)']);
     expect(slingData.weight).toBeUndefined();
 

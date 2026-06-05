@@ -266,6 +266,13 @@ describe('lookup_rules tool', () => {
       expect(data.sourcePack.systemId).toBe('pathfinder2e-remaster');
     }
   });
+
+  it('advertises magic-item as a lookup kind', () => {
+    const def = createDefaultToolRegistry()
+      .definitions()
+      .find((d) => d.name === 'lookup_rules') as ModelToolDefinition;
+    expect(def.inputSchema.properties.kind?.enum).toContain('magic-item');
+  });
 });
 
 describe('domain mutation tools', () => {

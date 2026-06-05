@@ -32,8 +32,10 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   EXPECTED_SRD_5_1_CREATURE_NAMES,
+  EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES,
   EXPECTED_SRD_5_1_NPC_NAMES,
   MIN_EXPECTED_SRD_5_1_CREATURES,
+  MIN_EXPECTED_SRD_5_1_MAGIC_ITEMS,
 } from '../scripts/importers/dnd5e-srd-5.1/index.js';
 import {
   auditPack,
@@ -101,6 +103,7 @@ const EXPECTED_COUNTS_BY_KIND: Readonly<Record<string, number>> = {
   // The 8 SRD 5.1 sample traps emit under the `hazard` kind (loreweaver-hvp);
   // SRD 5.1 has no environmental hazards, so all 8 hazard records are traps.
   hazard: 8,
+  'magic-item': 238,
   rule: 10,
   spell: 319,
   subclass: 12,
@@ -133,6 +136,9 @@ const EXPECTED_STABLE_KEYS: readonly string[] = [
   'feature:champion:improved-critical',
   'hazard:fire-breathing-statue',
   'hazard:sphere-of-annihilation',
+  'magic-item:adamantine-armor',
+  'magic-item:ammunition-1-2-or-3',
+  'magic-item:amulet-of-health',
   'rule:difficult-terrain',
   'spell:fire-bolt',
   'spell:wish',
@@ -173,6 +179,9 @@ const EXPECTED_STABLE_KEYS: readonly string[] = [
  *     cell — the items with a "—" weight (Sling, gaming sets, and many
  *     adventuring-gear/tack rows) plus the 7 packs, 8 mounts, and 6 waterborne
  *     vehicles (priced by speed/capacity, not weight).
+ *   - magic-item.attunementRequirement: only the 26 items whose category line
+ *     restricts attunement by class, ancestry, alignment, or spellcasting carry
+ *     this text; all 238 records still carry the boolean `requiresAttunement`.
  *   - spell.componentMaterials: only spells with a material (M) component.
  *   - spell.higherLevels: only spells with an "At Higher Levels" entry.
  *   - spell.ritual: only spells tagged as rituals.
@@ -248,6 +257,12 @@ const EXPECTED_PARTIAL_FIELDS: ReadonlyArray<{
   },
   { kind: 'equipment', field: 'weight', missingCount: 44, totalInKind: 218 },
   {
+    kind: 'magic-item',
+    field: 'attunementRequirement',
+    missingCount: 212,
+    totalInKind: 238,
+  },
+  {
     kind: 'spell',
     field: 'componentMaterials',
     missingCount: 135,
@@ -257,10 +272,10 @@ const EXPECTED_PARTIAL_FIELDS: ReadonlyArray<{
   { kind: 'spell', field: 'ritual', missingCount: 290, totalInKind: 319 },
 ];
 
-// `<kind>:<kebab-slug>` with one or more colon-separated slug segments. Most
-// kinds use a single segment (`spell:fire-bolt`); class/subclass-scoped
+// `<kind>:<kebab-slug>` with one or more colon-separated slug segments. Kinds
+// may be hyphenated (`magic-item:adamantine-armor`); class/subclass-scoped
 // features namespace the slug (`feature:bard:ability-score-improvement`).
-const KEY_PATTERN = /^[a-z][a-z0-9]*(?::[a-z0-9][a-z0-9-]*)+$/;
+const KEY_PATTERN = /^[a-z][a-z0-9-]*(?::[a-z0-9][a-z0-9-]*)+$/;
 
 /**
  * PDF hyphen-cluster artifacts that must NOT survive into the durable pack.
@@ -411,6 +426,286 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
         EXPECTED_SRD_5_1_CREATURE_NAMES.length +
           EXPECTED_SRD_5_1_NPC_NAMES.length,
       ).toBe(EXPECTED_COUNTS_BY_KIND.creature);
+    });
+  });
+
+  // loreweaver-ecr: Magic Items A-Z is a two-column section whose body text can
+  // interleave item tables, bullets, and neighboring prose with item headings.
+  // The importer pins the exact reviewed name set so table/prose text cannot be
+  // silently promoted to a `magic-item` record, and recovered two-column ring /
+  // staff entries cannot silently disappear.
+  describe('magic-item name-set regression baseline (loreweaver-ecr)', () => {
+    const magicItems = pack.records.filter(
+      (record) => record.kind === 'magic-item',
+    );
+
+    function magicItemData(key: string): Record<string, unknown> {
+      const record = magicItems.find((r) => r.key === key);
+      expect(record, `expected ${key} in the committed pack`).toBeDefined();
+      return record?.data as Record<string, unknown>;
+    }
+
+    function magicItemDescription(key: string): string {
+      const data = magicItemData(key);
+      expect(typeof data.description).toBe('string');
+      return data.description as string;
+    }
+
+    it('committed pack magic-item names match the checked-in baseline exactly', () => {
+      expect(magicItems.map((record) => record.name).sort()).toEqual(
+        [...EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES].sort(),
+      );
+    });
+
+    it('EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES has no duplicates', () => {
+      expect(new Set(EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES).size).toBe(
+        EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES.length,
+      );
+    });
+
+    it('the magic-item baseline length matches the documented count', () => {
+      expect(EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES).toHaveLength(
+        MIN_EXPECTED_SRD_5_1_MAGIC_ITEMS,
+      );
+      expect(EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES.length).toBe(
+        EXPECTED_COUNTS_BY_KIND['magic-item'],
+      );
+    });
+
+    it('carries representative item type, rarity, attunement, and embedded table text', () => {
+      expect(magicItemData('magic-item:adamantine-armor')).toMatchObject({
+        itemType: 'Armor (medium or heavy, but not hide)',
+        rarity: 'uncommon',
+        requiresAttunement: false,
+      });
+      expect(magicItemData('magic-item:staff-of-power')).toMatchObject({
+        itemType: 'Staff',
+        rarity: 'very rare',
+        requiresAttunement: true,
+        attunementRequirement: 'by a sorcerer, warlock, or wizard',
+      });
+      const armorOfResistance = magicItemData('magic-item:armor-of-resistance');
+      expect(armorOfResistance).toMatchObject({
+        itemType: 'Armor (light, medium, or heavy)',
+        rarity: 'rare',
+        requiresAttunement: true,
+      });
+      expect(armorOfResistance.description).toContain('d10 Damage Type');
+      expect(armorOfResistance.description).toContain('1 Acid 6 Necrotic');
+    });
+
+    it('keeps interleaved Ring page bodies assigned to the matching Ring records', () => {
+      const featherFalling = magicItemDescription(
+        'magic-item:ring-of-feather-falling',
+      );
+      expect(featherFalling).toContain('When you fall while wearing this ring');
+      expect(featherFalling).not.toContain('resistance to acid damage');
+      expect(featherFalling).not.toContain('move through solid earth or rock');
+
+      const evasion = magicItemDescription('magic-item:ring-of-evasion');
+      expect(evasion).toContain('When you fail a Dexterity saving throw');
+      expect(evasion).toContain('succeed on that saving throw instead');
+      expect(evasion).not.toContain('telepathic communication');
+      expect(evasion).not.toContain('jump spell');
+
+      const freeAction = magicItemDescription('magic-item:ring-of-free-action');
+      expect(freeAction).toContain('difficult terrain does');
+      expect(freeAction).toContain('extra movement');
+      expect(freeAction).not.toContain('stone shape');
+      expect(freeAction).not.toContain('Ring of Fire Elemental Command');
+
+      const invisibility = magicItemDescription(
+        'magic-item:ring-of-invisibility',
+      );
+      expect(invisibility).toContain('you can turn invisible as an action');
+      expect(invisibility).not.toContain('resistance to fire damage');
+      expect(invisibility).not.toContain('understand Ignan');
+      expect(invisibility).not.toContain('immune to fire damage');
+
+      const jumping = magicItemDescription('magic-item:ring-of-jumping');
+      expect(jumping).toContain('cast the jump spell');
+      expect(jumping).not.toContain('burning hands');
+      expect(jumping).not.toContain('Ring of Water Elemental Command');
+
+      const mindShielding = magicItemDescription(
+        'magic-item:ring-of-mind-shielding',
+      );
+      expect(mindShielding).toContain(
+        'immune to magic that allows other creatures',
+      );
+      expect(mindShielding).not.toContain('water elemental');
+      expect(mindShielding).not.toContain('breathe underwater');
+      expect(mindShielding).not.toContain('create or destroy water');
+    });
+
+    it('keeps the Vicious Weapon and Vorpal Sword boundary separate', () => {
+      const vicious = magicItemDescription('magic-item:vicious-weapon');
+      expect(vicious).toContain('critical hit deals an extra 2d6 damage');
+      expect(vicious).not.toContain('Vorpal Sword');
+      expect(vicious).not.toContain('You gain a +3 bonus');
+
+      const vorpal = magicItemDescription('magic-item:vorpal-sword');
+      expect(vorpal).toContain('You gain a +3 bonus');
+      expect(vorpal).toContain('cut off one of the creature');
+      expect(vorpal).not.toContain('Wand of Binding');
+    });
+
+    // loreweaver-ecr: SRD 5.1 p217-p218 justify the right column and push up to
+    // three line-final words ("wish", "spell", "remove curse") flush to the page
+    // edge, opening an x-gap wider than the real page gutter. The column splitter
+    // once isolated those stragglers as a phantom column and collapsed the two
+    // real columns into one y-interleaved flow, splicing the embedded "Avatar of
+    // Death" stat block (left column, part of the Deck of Many Things entry)
+    // line-by-line into the Defender and Demon Armor item bodies. These
+    // assertions guard the de-interleaved column extraction so neighboring
+    // stat-block / card text cannot bleed back into the swords-and-armor items.
+    it('does not bleed the Avatar of Death stat block into Defender or Demon Armor', () => {
+      const defender = magicItemDescription('magic-item:defender');
+      expect(defender).toContain(
+        'You gain a +3 bonus to attack and damage rolls',
+      );
+      expect(defender).toContain('transfer some or all of the sword');
+      expect(defender).not.toContain('Avatar of Death');
+      expect(defender).not.toContain('Senses darkvision 60 ft., truesight');
+      expect(defender).not.toContain(
+        'Languages all languages known to its summoner',
+      );
+      expect(defender).not.toContain('Incorporeal Movement');
+      expect(defender).not.toContain('Turning Immunity');
+      expect(defender).not.toContain('Reaping Scythe');
+
+      const demonArmor = magicItemDescription('magic-item:demon-armor');
+      expect(demonArmor).toContain('While wearing this armor, you gain a +1');
+      expect(demonArmor).toContain('understand and speak Abyssal');
+      // The straggler "remove curse" must read in its own item's prose.
+      expect(demonArmor).toContain(
+        'targeted by the remove curse spell or similar magic',
+      );
+      expect(demonArmor).not.toContain('Avatar of Death');
+      expect(demonArmor).not.toContain('Reaping Scythe');
+      expect(demonArmor).not.toContain(
+        'Star. Increase one of your ability scores',
+      );
+      expect(demonArmor).not.toContain('Throne. You gain proficiency');
+      expect(demonArmor).not.toContain('Sun. You gain 50,000 XP');
+    });
+
+    // loreweaver-ecr: "Sword of Sharpness" wraps its category line mid-rarity
+    // ("Weapon (any sword that deals slashing damage), very" / "rare (requires
+    // attunement)"), so the line ends with the bare word "very" and the old
+    // boundary detector missed the item entirely — its heading and body were
+    // swallowed into the preceding "Sword of Life Stealing" record.
+    it('splits Sword of Sharpness out of Sword of Life Stealing', () => {
+      const lifeStealing = magicItemDescription(
+        'magic-item:sword-of-life-stealing',
+      );
+      expect(lifeStealing).toContain('extra 3d6 necrotic damage');
+      expect(lifeStealing).toContain(
+        'temporary hit points equal to the extra damage',
+      );
+      expect(lifeStealing).not.toContain('Sword of Sharpness');
+      expect(lifeStealing).not.toContain('slashing damage');
+      expect(lifeStealing).not.toContain('lop off');
+
+      expect(magicItemData('magic-item:sword-of-sharpness')).toMatchObject({
+        itemType: 'Weapon (any sword that deals slashing damage)',
+        rarity: 'very rare',
+        requiresAttunement: true,
+      });
+      const sharpness = magicItemDescription('magic-item:sword-of-sharpness');
+      expect(sharpness).toContain('maximize your weapon damage dice against');
+      expect(sharpness).toContain('extra 4d6 slashing damage');
+      expect(sharpness).toContain('lop off one of the target');
+      expect(sharpness).not.toContain('Sword of Wounding');
+      expect(sharpness).not.toContain('necrotic damage');
+      expect(sharpness).not.toMatch(/^Weapon \(/);
+    });
+
+    // The interleaving fix must not strip the Avatar of Death stat block and
+    // card descriptions from the Deck of Many Things entry, where they
+    // legitimately belong in the source.
+    it('keeps the Avatar of Death stat block and card text in the Deck of Many Things entry', () => {
+      const deck = magicItemDescription('magic-item:deck-of-many-things');
+      expect(deck).toContain('this deck contains a');
+      expect(deck).toContain('Avatar of Death');
+      expect(deck).toContain('Reaping Scythe');
+      expect(deck).toContain('The Void');
+    });
+
+    it('parses wrapped category attunement parentheticals into item metadata', () => {
+      const cases = [
+        {
+          key: 'magic-item:ring-of-shooting-stars',
+          itemType: 'Ring',
+          rarity: 'very rare',
+          attunementRequirement: 'outdoors at night',
+          bodyStart: 'While wearing this ring in dim light or darkness',
+        },
+        {
+          key: 'magic-item:holy-avenger',
+          itemType: 'Weapon (any sword)',
+          rarity: 'legendary',
+          attunementRequirement: 'by a paladin',
+          bodyStart: 'You gain a +3 bonus',
+        },
+        {
+          key: 'magic-item:pearl-of-power',
+          itemType: 'Wondrous item',
+          rarity: 'uncommon',
+          attunementRequirement: 'by a spellcaster',
+          bodyStart: 'While this pearl is on your person',
+        },
+        {
+          key: 'magic-item:talisman-of-pure-good',
+          itemType: 'Wondrous item',
+          rarity: 'legendary',
+          attunementRequirement: 'by a creature of good alignment',
+          bodyStart: 'This talisman is a mighty symbol of goodness',
+        },
+        {
+          key: 'magic-item:talisman-of-ultimate-evil',
+          itemType: 'Wondrous item',
+          rarity: 'legendary',
+          attunementRequirement: 'by a creature of evil alignment',
+          bodyStart: 'This item symbolizes unrepentant evil',
+        },
+        {
+          key: 'magic-item:wand-of-polymorph',
+          itemType: 'Wand',
+          rarity: 'very rare',
+          attunementRequirement: 'by a spellcaster',
+          bodyStart: 'This wand has 7 charges',
+        },
+        {
+          key: 'magic-item:wand-of-web',
+          itemType: 'Wand',
+          rarity: 'uncommon',
+          attunementRequirement: 'by a spellcaster',
+          bodyStart: 'This wand has 7 charges',
+        },
+      ];
+
+      for (const expected of cases) {
+        const data = magicItemData(expected.key);
+        expect(data).toMatchObject({
+          itemType: expected.itemType,
+          rarity: expected.rarity,
+          requiresAttunement: true,
+          attunementRequirement: expected.attunementRequirement,
+        });
+        const description = magicItemDescription(expected.key);
+        expect(description).toContain(expected.bodyStart);
+        expect(description).not.toContain('requires attunement');
+        expect(description).not.toMatch(/^\w+\)/);
+      }
+    });
+
+    it('keeps Ring of Three Wishes spell wording intact', () => {
+      const description = magicItemDescription(
+        'magic-item:ring-of-three-wishes',
+      );
+      expect(description).toContain('cast the wish spell from it');
+      expect(description).not.toContain('cast the wish it');
     });
   });
 

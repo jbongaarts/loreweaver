@@ -180,6 +180,31 @@ const COLUMN_GAP_THRESHOLD = 45;
 const MIN_ITEMS_PER_COLUMN = 2;
 
 /**
+ * Maximum smaller-side item count for a valid but suspicious cut to be treated
+ * as a tiny outlier island rather than the page's structural split. SRD p236
+ * has exactly two far-right text runs ("jump" + "spell") that satisfy the
+ * minimum guards and open a wider x-gap than the real page gutter.
+ *
+ * Raised to 3 for the Magic Items A-Z pages (SRD p217-p218), where the right
+ * column is justified and pushes up to THREE line-final words flush to the
+ * page's right edge — p218 has "wish" (x≈494), "spell" (x≈515) and
+ * "remove curse" (x≈487), all far right of the right column margin (x≈329).
+ * Those three stragglers open a ≈106pt gap that exceeds the real ≈78pt page
+ * gutter (x≈251→329), so the widest-gap cut isolates them as a phantom third
+ * column and the rest of the page (BOTH real columns) collapses into a single
+ * y-interleaved flow — splicing the embedded "Avatar of Death" stat block
+ * (left column, part of the Deck of Many Things entry) line-by-line into the
+ * Defender and Demon Armor item bodies in the right column. A ceiling of 3
+ * lets the tiny-outlier guard divert to the well-supported real-gutter cut on
+ * these pages; the per-side item/distinct-x guards plus
+ * `reassignGutterStragglers` keep the stragglers attached to their true (left)
+ * column. Empirically this changes the column decision on only p217 and p218
+ * across the whole SRD; split-column table pages (armor/weapons/tools) are
+ * unaffected because their minority side carries far more than 3 items.
+ */
+const TINY_OUTLIER_SIDE_MAX_ITEMS = 3;
+
+/**
  * Minimum number of distinct rounded x-coordinates a candidate column
  * must contain. The real page-column gutter is the *only* gap in body
  * content where items on each side draw from a rich set of x indents
@@ -190,6 +215,13 @@ const MIN_ITEMS_PER_COLUMN = 2;
  * when the label/value x-gap exceeds `COLUMN_GAP_THRESHOLD`.
  */
 const MIN_DISTINCT_X_PER_COLUMN = 2;
+
+/**
+ * Minimum line-start count for an x-coordinate to count as a dense column
+ * margin during gutter-straggler repair. Sparse two-start table columns can
+ * still be accepted when their text shape is structural rather than prose.
+ */
+const MIN_LINE_STARTS_FOR_DENSE_MARGIN = 3;
 
 /**
  * x-gap (in PDF user-space points) at or above which a candidate cut is
@@ -423,8 +455,8 @@ function bucketItemsIntoRecords(items: readonly PdfTextItem[]): LineRecord[] {
  * Cut selection: we consider every x-gap that clears
  * `COLUMN_GAP_THRESHOLD` and keep only those where each side passes the
  * per-side guards (item count + distinct-x diversity). Among the
- * surviving cuts we pick the LARGEST gap, which on a real two-column
- * body page is the page gutter. Why not just the single absolute largest
+ * surviving cuts we normally keep the widest gap, except when that cut leaves
+ * only a tiny outlier island on one side. Why not just the single absolute largest
  * gap, validate, and bail on failure (the prior approach): on monster
  * pages a far-right outlier item (e.g. a stray "The" at x=539 next to a
  * right-column body at x=329) creates an isolated x-gap of ~90pt that
@@ -462,15 +494,20 @@ function partitionItemsByColumn(
     .slice()
     .sort((a, b) => a - b);
   // Collect every candidate cut whose x-gap clears the threshold AND
-  // whose induced split passes the per-side validation. Among the
-  // survivors, the largest-gap cut is the page gutter.
-  let bestGap = 0;
-  let bestLeft: PdfTextItem[] | null = null;
-  let bestRight: PdfTextItem[] | null = null;
+  // whose induced split passes the per-side validation. The widest accepted
+  // cut stays the default for parser compatibility with split-column tables;
+  // a tiny two-item island can be replaced by the best-supported candidate.
+  let widestGap = 0;
+  let widestMinSideItems = 0;
+  let widestLeft: PdfTextItem[] | null = null;
+  let widestRight: PdfTextItem[] | null = null;
+  let supportedGap = 0;
+  let supportedMinSideItems = 0;
+  let supportedLeft: PdfTextItem[] | null = null;
+  let supportedRight: PdfTextItem[] | null = null;
   for (let i = 1; i < sortedXs.length; i++) {
     const gap = sortedXs[i] - sortedXs[i - 1];
     if (gap < COLUMN_GAP_THRESHOLD) continue;
-    if (gap <= bestGap) continue;
     const cutAt = (sortedXs[i] + sortedXs[i - 1]) / 2;
     const left: PdfTextItem[] = [];
     const right: PdfTextItem[] = [];
@@ -485,6 +522,7 @@ function partitionItemsByColumn(
     ) {
       continue;
     }
+    const minSideItems = Math.min(left.length, right.length);
     // Distinct-x guard: protects repeated label/value layouts. A real
     // page column has body content at multiple x indents; a label or a
     // value column collapses to a single distinct x. Skipped for a
@@ -497,12 +535,32 @@ function partitionItemsByColumn(
     ) {
       continue;
     }
-    bestGap = gap;
-    bestLeft = left;
-    bestRight = right;
+    if (gap > widestGap) {
+      widestGap = gap;
+      widestMinSideItems = minSideItems;
+      widestLeft = left;
+      widestRight = right;
+    }
+    if (
+      minSideItems > supportedMinSideItems ||
+      (minSideItems === supportedMinSideItems && gap > supportedGap)
+    ) {
+      supportedGap = gap;
+      supportedMinSideItems = minSideItems;
+      supportedLeft = left;
+      supportedRight = right;
+    }
   }
-  if (bestLeft === null || bestRight === null) return [items];
-  return reassignGutterStragglers(bestLeft, bestRight);
+  if (widestLeft === null || widestRight === null) return [items];
+  if (
+    widestMinSideItems <= TINY_OUTLIER_SIDE_MAX_ITEMS &&
+    supportedLeft !== null &&
+    supportedRight !== null &&
+    supportedMinSideItems > widestMinSideItems
+  ) {
+    return reassignGutterStragglers(supportedLeft, supportedRight);
+  }
+  return reassignGutterStragglers(widestLeft, widestRight);
 }
 
 /**
@@ -510,30 +568,40 @@ function partitionItemsByColumn(
  * back to the left column. See `partitionItemsByColumn` for the justified-text
  * failure this corrects.
  *
- * The margin is the SMALLEST rounded x at which at least two lines begin: a
- * genuine column edge always has multiple line-starts, whereas a justified
- * left-column last word swept across the gutter sits alone (count 1) to its
- * left. Defining the margin by line-start density (not by "most frequent x",
+ * The margin is the SMALLEST rounded x with dense line-start support: a
+ * genuine column edge always has multiple line-starts, whereas left-column
+ * fragments swept across the gutter have only one or two starts to their left.
+ * Defining the margin by line-start density (not by "most frequent x",
  * which can be a deeper wrap indent, nor by the leftmost x, which can be the
  * straggler itself) keeps clean pages untouched: when the right column's
  * leftmost item already starts the densest margin, nothing lies left of it and
- * the split is returned unchanged. Only stragglers — count-1 items more than
- * `COLUMN_X_TOLERANCE` left of the margin — move. A final guard refuses any
- * move that would shrink the right column below `MIN_ITEMS_PER_COLUMN`, so a
+ * the split is returned unchanged. Only stragglers more than
+ * `COLUMN_X_TOLERANCE` left of the margin move. A final guard refuses any move
+ * that would shrink the right column below `MIN_ITEMS_PER_COLUMN`, so a
  * genuinely small right column is never dismantled.
  */
 function reassignGutterStragglers(
   left: readonly PdfTextItem[],
   right: readonly PdfTextItem[],
 ): readonly (readonly PdfTextItem[])[] {
-  const counts = new Map<number, number>();
+  const startsByX = new Map<number, PdfTextItem[]>();
   for (const it of right) {
     const x = Math.round(it.transform[4]);
-    counts.set(x, (counts.get(x) ?? 0) + 1);
+    const bucket = startsByX.get(x);
+    if (bucket === undefined) {
+      startsByX.set(x, [it]);
+    } else {
+      bucket.push(it);
+    }
   }
   let margin: number | undefined;
-  for (const [x, c] of counts) {
-    if (c >= 2 && (margin === undefined || x < margin)) margin = x;
+  for (const [x, starts] of startsByX) {
+    if (
+      isSupportedGutterMargin(starts) &&
+      (margin === undefined || x < margin)
+    ) {
+      margin = x;
+    }
   }
   if (margin === undefined) return [left, right];
   const threshold = margin - COLUMN_X_TOLERANCE;
@@ -547,6 +615,14 @@ function reassignGutterStragglers(
     return [left, right];
   }
   return [[...left, ...movedLeft], keptRight];
+}
+
+function isSupportedGutterMargin(starts: readonly PdfTextItem[]): boolean {
+  if (starts.length >= MIN_LINE_STARTS_FOR_DENSE_MARGIN) return true;
+  return (
+    starts.length === 2 &&
+    starts.some((item) => !/^[a-z]/.test(item.str.trim()))
+  );
 }
 
 function distinctRoundedXCount(items: readonly PdfTextItem[]): number {

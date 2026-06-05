@@ -50,10 +50,12 @@ import {
 } from '../../src/internal.js';
 import {
   EXPECTED_SRD_5_1_CREATURE_NAMES,
+  EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES,
   EXPECTED_SRD_5_1_NPC_NAMES,
   EXPECTED_SRD_5_1_TRAP_NAMES,
   MIN_EXPECTED_SRD_5_1_CLASSES,
   MIN_EXPECTED_SRD_5_1_FEATURES,
+  MIN_EXPECTED_SRD_5_1_MAGIC_ITEMS,
   MIN_EXPECTED_SRD_5_1_SUBCLASSES,
   runImporter,
 } from '../importers/dnd5e-srd-5.1/index.js';
@@ -85,9 +87,11 @@ async function main(): Promise<void> {
         expectedCreatureNames: EXPECTED_SRD_5_1_CREATURE_NAMES,
         expectedNpcNames: EXPECTED_SRD_5_1_NPC_NAMES,
         expectedTrapNames: EXPECTED_SRD_5_1_TRAP_NAMES,
+        expectedMagicItemNames: EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES,
         minClassCount: MIN_EXPECTED_SRD_5_1_CLASSES,
         minSubclassCount: MIN_EXPECTED_SRD_5_1_SUBCLASSES,
         minFeatureCount: MIN_EXPECTED_SRD_5_1_FEATURES,
+        minMagicItemCount: MIN_EXPECTED_SRD_5_1_MAGIC_ITEMS,
       });
     } catch (cause) {
       console.error(`importer failed: ${(cause as Error).message}`);
@@ -97,7 +101,7 @@ async function main(): Promise<void> {
     const c = result.counts;
     console.log(`Source PDF SHA-256: ${result.sourceHash}`);
     console.log(
-      `Importer counts: ${c.spells} spells, ${c.creatures} creatures, ${c.npcs} NPCs, ${c.classes} classes, ${c.subclasses} subclasses, ${c.features} features, ${c.conditions} conditions, ${c.feats} feats, ${c.hazards} hazards, ${c.traps} traps, ${c.actions} actions, ${c.rules} rules, ${c.tables} tables, ${c.equipment} equipment, ${c.ancestries} ancestries`,
+      `Importer counts: ${c.spells} spells, ${c.creatures} creatures, ${c.npcs} NPCs, ${c.classes} classes, ${c.subclasses} subclasses, ${c.features} features, ${c.conditions} conditions, ${c.feats} feats, ${c.hazards} hazards, ${c.traps} traps, ${c.actions} actions, ${c.rules} rules, ${c.tables} tables, ${c.equipment} equipment, ${c.magicItems} magic items, ${c.ancestries} ancestries`,
     );
     console.log('');
 

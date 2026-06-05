@@ -369,6 +369,17 @@ export const SRD_5_1_DEFAULT_SECTION_ANCHORS = {
       /^(Trade Goods|Expenses|Selling Treasure|Spellcasting|Using Ability Scores|Adventuring|Combat|Monsters|Magic Items|Feats)$/i,
     matchHeadings: true,
   },
+  // SRD 5.1 "Magic Items A-Z" (p207-p251) carries lookupable magic-item
+  // entries. The introductory "Magic Items" chapter before it is general
+  // usage guidance; the following "Sentient Magic Items" / "Artifacts"
+  // headings are DM-facing construction guidance, so the implemented item
+  // parser is bounded to the A-Z run and fails closed if the end is missing.
+  magicItems: {
+    startHeading: /^Magic Items A-Z$/,
+    endHeading: /^(Sentient Magic Items|Artifacts|Monsters|Appendix)\b/i,
+    requireEndHeading: true,
+    matchHeadings: true,
+  },
   // SRD 5.1 "Monsters" chapter (p254). End anchor matches the conditions
   // appendix that follows the monsters alphabetic chapter, so trailing
   // appendix text doesn't leak into the creature parser.
@@ -455,6 +466,7 @@ export type Srd51SectionAnchors = {
   readonly miscellaneousCreatures: SectionAnchorOptions;
   readonly nonplayerCharacters: SectionAnchorOptions;
   readonly mountsAndVehicles: SectionAnchorOptions;
+  readonly magicItems: SectionAnchorOptions;
   readonly conditions: SectionAnchorOptions;
   readonly feats: SectionAnchorOptions;
   readonly traps: SectionAnchorOptions;

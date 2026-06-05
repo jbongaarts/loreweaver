@@ -349,6 +349,139 @@ describe('extractPdfText — heading merge', () => {
     expect(lines.indexOf('outlier')).toBeGreaterThan(rightIdx);
   });
 
+  it('picks the real page gutter when two far-right outliers satisfy the minimum guards', async () => {
+    // Regression for loreweaver-ecr.4. SRD p236 has the real Magic Items
+    // two-column gutter at x~274->329, plus two far-right words in the right
+    // column at x~503/527. The far-right island opens a wider x-gap and has
+    // two distinct x positions, so the old "largest valid gap wins" rule chose
+    // it and left the real columns row-interleaved.
+    const pages = await extractFromOps([
+      // Left column.
+      { text: 'left col line 1', size: 11, x: 60, y: 200 },
+      { text: 'left col line 2', size: 11, x: 60, y: 220 },
+      { text: 'left wrap', size: 11, x: 70, y: 240 },
+      // Right column.
+      { text: 'right col line 1', size: 11, x: 330, y: 204 },
+      { text: 'right col line 2', size: 11, x: 330, y: 224 },
+      { text: 'right wrap', size: 11, x: 340, y: 244 },
+      // Tiny far-right island inside the right column.
+      { text: 'far', size: 11, x: 505, y: 260 },
+      { text: 'outlier', size: 11, x: 530, y: 260 },
+    ]);
+    const lines = pages[0].lines;
+    const leftIdx = lines.indexOf('left col line 1');
+    const rightIdx = lines.indexOf('right col line 1');
+    expect(leftIdx).toBeGreaterThanOrEqual(0);
+    expect(rightIdx).toBeGreaterThanOrEqual(0);
+    expect(lines.indexOf('left col line 2')).toBeLessThan(rightIdx);
+    expect(lines.indexOf('left wrap')).toBeLessThan(rightIdx);
+    expect(lines.indexOf('far outlier')).toBeGreaterThan(rightIdx);
+  });
+
+  it('picks the real page gutter when three far-right outliers satisfy the minimum guards', async () => {
+    // Regression for loreweaver-ecr (Deck of Many Things / Defender / Demon
+    // Armor). SRD p218 justifies the right column and pushes THREE line-final
+    // words flush to the page edge ("wish" x≈494, "spell" x≈515,
+    // "remove curse" x≈487). That three-item island opens a ≈106pt gap wider
+    // than the real ≈78pt gutter (x≈251→329) and carries three distinct x
+    // positions, so the tiny-outlier guard (capped at two items) once let the
+    // widest-gap cut isolate it as a phantom column and collapsed the two real
+    // columns into one y-interleaved flow — splicing the embedded Avatar of
+    // Death stat block line-by-line into the Defender/Demon Armor item bodies.
+    const pages = await extractFromOps([
+      // Left column (the embedded stat block) — densely fills x≈60→250 so the
+      // real gutter (250→330) is narrower than the straggler island gap.
+      { text: 'left col line 1', size: 11, x: 60, y: 200 },
+      { text: 'left col line 2', size: 11, x: 60, y: 220 },
+      { text: 'left stat one', size: 11, x: 120, y: 240 },
+      { text: 'left stat two', size: 11, x: 190, y: 255 },
+      { text: 'left wrap', size: 11, x: 250, y: 270 },
+      // Right column (the item bodies).
+      { text: 'right col line 1', size: 11, x: 330, y: 205 },
+      { text: 'right col line 2', size: 11, x: 330, y: 225 },
+      { text: 'right wrap', size: 11, x: 340, y: 245 },
+      // Three-word justified-right island inside the right column, at larger y
+      // (bottom of the column, since pdfkit y grows downward) so reading order
+      // keeps it after the body.
+      { text: 'remove curse', size: 11, x: 487, y: 300 },
+      { text: 'wish', size: 11, x: 505, y: 320 },
+      { text: 'spell', size: 11, x: 540, y: 320 },
+    ]);
+    const lines = pages[0].lines;
+    const leftIdx = lines.indexOf('left col line 1');
+    const rightIdx = lines.indexOf('right col line 1');
+    expect(leftIdx).toBeGreaterThanOrEqual(0);
+    expect(rightIdx).toBeGreaterThanOrEqual(0);
+    // The whole left column precedes the right column — the bug symptom was
+    // alternating left/right lines from shared y-buckets.
+    expect(lines.indexOf('left col line 2')).toBeLessThan(rightIdx);
+    expect(lines.indexOf('left wrap')).toBeLessThan(rightIdx);
+    // The stragglers stay on the right side of the real gutter, after the
+    // right column, rather than forming their own column.
+    expect(lines.indexOf('remove curse')).toBeGreaterThan(rightIdx);
+    expect(lines.indexOf('wish spell')).toBeGreaterThan(rightIdx);
+  });
+
+  it('reassigns repeated left-column fragments before a denser right margin', async () => {
+    // Regression for PR #150 review. SRD p238 has two left-column phrase
+    // fragments past x=230 ("telekinesis" and "spell from") after an internal
+    // left-column cut sweeps them into the right partition. Count=2 was enough
+    // for the straggler repair to mistake that x for the right column margin,
+    // so "spell from" stayed separated from "wish" and Ring of Three Wishes
+    // lost the phrase "spell from it".
+    const pages = await extractFromOps([
+      { text: 'left intro', size: 11, x: 60, y: 200 },
+      { text: 'cast the', size: 11, x: 60, y: 220 },
+      { text: 'telekinesis', size: 11, x: 238, y: 220 },
+      { text: 'cast the', size: 11, x: 60, y: 260 },
+      { text: 'wish', size: 11, x: 211, y: 260 },
+      { text: 'spell from', size: 11, x: 238, y: 260 },
+      { text: 'it', size: 11, x: 60, y: 280 },
+      { text: 'right column one', size: 11, x: 330, y: 210 },
+      { text: 'right column two', size: 11, x: 330, y: 230 },
+      { text: 'right column three', size: 11, x: 330, y: 250 },
+    ]);
+    const lines = pages[0].lines;
+
+    expect(lines).toContain('cast the telekinesis');
+    expect(lines).toContain('cast the wish spell from');
+    expect(lines).not.toContain('telekinesis');
+    expect(lines).not.toContain('spell from');
+    expect(lines.indexOf('cast the wish spell from')).toBeLessThan(
+      lines.indexOf('right column one'),
+    );
+  });
+
+  it('keeps sparse table value columns on the right side of the cut', async () => {
+    // Regression for the armor table on SRD p63. Its "Strength" column has only
+    // two starts on the page (the header and the Padded row dash), while nearby
+    // right-column prose has a denser margin. The straggler repair must not move
+    // the Strength dash back into the left table row, or the equipment parser
+    // sees "Padded 5 gp 11 + Dex modifier -" and drops the Padded armor record.
+    const pages = await extractFromOps([
+      { text: 'Armor', size: 11, x: 60, y: 200 },
+      { text: 'Cost', size: 11, x: 151, y: 200 },
+      { text: 'Armor Class (AC)', size: 11, x: 189, y: 200 },
+      { text: 'Strength', size: 11, x: 294, y: 200 },
+      { text: 'Stealth', size: 11, x: 337, y: 200 },
+      { text: 'Weight', size: 11, x: 420, y: 200 },
+      { text: 'Padded', size: 11, x: 66, y: 220 },
+      { text: '5 gp', size: 11, x: 152, y: 220 },
+      { text: '11 + Dex modifier', size: 11, x: 189, y: 220 },
+      { text: '-', size: 11, x: 294, y: 220 },
+      { text: 'Disadvantage', size: 11, x: 337, y: 220 },
+      { text: '8 lb.', size: 11, x: 420, y: 220 },
+      { text: 'right column one', size: 11, x: 330, y: 240 },
+      { text: 'right column two', size: 11, x: 330, y: 260 },
+      { text: 'right column three', size: 11, x: 330, y: 280 },
+    ]);
+    const lines = pages[0].lines;
+
+    expect(lines).toContain('Padded 5 gp 11 + Dex modifier');
+    expect(lines).toContain('- Disadvantage 8 lb.');
+    expect(lines).not.toContain('Padded 5 gp 11 + Dex modifier -');
+  });
+
   it('reassigns a justified left-column last word that the widest gap swept across the gutter', async () => {
     // Regression for loreweaver-7ok. The SRD 5.1 body justifies paragraphs, so
     // each paragraph's last word is pushed flush to its column's right edge. On
