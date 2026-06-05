@@ -251,6 +251,31 @@ describe('parseRules (heading-hierarchy path)', () => {
     expect(hiding?.text).toContain('Dexterity (Stealth)');
   });
 
+  it('parent-qualifies a key that collides with a reserved sibling-slice slug (loreweaver-3hp)', () => {
+    // The spellcasting slice repeats "Range" (which the core-rules slice already
+    // emitted as `rule:range`). Parsing the second slice with that slug reserved
+    // must qualify the colliding leaf away from the reserved key while leaving
+    // every non-colliding leaf bare.
+    const rules = parseRules(
+      [
+        pageH(101, [
+          ['Casting a Spell', SUB_H],
+          ['A spell has components and a range.', BODY_H],
+          ['Range', SUBSUB_H],
+          ['The target of a spell must be within range.', BODY_H],
+          ['Components', SUBSUB_H],
+          ['A spell may have verbal, somatic, or material components.', BODY_H],
+        ]),
+      ],
+      new Set(['range']),
+    );
+    const range = rules.find((r) => r.name === 'Range');
+    expect(range?.keySlug).toBe('casting-a-spell-range');
+    // A leaf that does not collide with a reserved slug stays bare.
+    const components = rules.find((r) => r.name === 'Components');
+    expect(components?.keySlug).toBe('components');
+  });
+
   it('keeps a same-named subsection while dropping its leaf table caption', () => {
     const rules = parseRules([
       pageH(76, [

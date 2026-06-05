@@ -106,11 +106,15 @@ const EXPECTED_COUNTS_BY_KIND: Readonly<Record<string, number>> = {
   hazard: 8,
   'magic-item': 238,
   // Nesting-aware core-rules parse: one rule per heading across the Using
-  // Ability Scores, Adventuring, and Combat chapters (loreweaver-yli),
-  // validated exactly against EXPECTED_SRD_5_1_RULE_KEYS. Includes the four
-  // h≈10.8 gray callout boxes (Hiding, Combat Step by Step, Interacting with
-  // Objects Around You, Contests in Combat).
-  rule: 127,
+  // Ability Scores, Adventuring, and Combat chapters (loreweaver-yli, 127),
+  // plus the general Spellcasting-rules chapter (loreweaver-3hp, 34: What Is a
+  // Spell, Spell Slots, Casting Time, Components, Range, Areas of Effect,
+  // Duration, Targets, Combining Magical Effects, …), validated exactly against
+  // EXPECTED_SRD_5_1_RULE_KEYS. Includes the four h≈10.8 gray callout boxes
+  // (Hiding, Combat Step by Step, Interacting with Objects Around You, Contests
+  // in Combat) and the two spellcasting callout boxes (Casting in Armor, The
+  // Schools of Magic).
+  rule: 161,
   spell: 319,
   subclass: 12,
   // Difficulty Classes + the two trap reference tables (loreweaver-hvp).
@@ -147,6 +151,10 @@ const EXPECTED_STABLE_KEYS: readonly string[] = [
   'magic-item:amulet-of-health',
   'rule:cover',
   'rule:death-saving-throws',
+  // Spellcasting-rules chapter (loreweaver-3hp): a bare landmark plus one of the
+  // cross-slice parent-qualified keys.
+  'rule:components',
+  'rule:casting-a-spell-range',
   'spell:fire-bolt',
   'spell:wish',
   'subclass:champion',

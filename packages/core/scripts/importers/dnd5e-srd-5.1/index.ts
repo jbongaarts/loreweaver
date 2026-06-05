@@ -830,6 +830,14 @@ export const EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES: readonly string[] = [
  * Checks (their bodies lead with bullet items), and the leaf table captions the
  * `table` kind owns (Ability Scores and Modifiers score table, Typical
  * Difficulty Classes, Travel Pace, Size Categories).
+ *
+ * The general Spellcasting-rules chapter (loreweaver-3hp) adds the second block
+ * below (34 keys). It is a separate slice (`spellcastingRules`, "Spellcasting" →
+ * "Spell Lists") parsed by the same nesting-aware `parseRules` and concatenated;
+ * the four titles it shares with the core-rules chapters ("Attack Rolls",
+ * "Range", "Reactions", "Saving Throws") parent-qualify to
+ * `rule:casting-a-spell-*` / `rule:casting-time-reactions` so the core keys
+ * above stay untouched and no `rule:` key is duplicated across the two slices.
  */
 export const EXPECTED_SRD_5_1_RULE_KEYS: readonly string[] = [
   'rule:ability-checks',
@@ -959,6 +967,42 @@ export const EXPECTED_SRD_5_1_RULE_KEYS: readonly string[] = [
   'rule:wisdom-spellcasting-ability',
   'rule:working-together',
   'rule:your-turn',
+  // Spellcasting-rules chapter (loreweaver-3hp). Separate `spellcastingRules`
+  // slice; the four cross-slice title repeats are parent-qualified.
+  'rule:a-clear-path-to-the-target',
+  'rule:areas-of-effect',
+  'rule:bonus-action',
+  'rule:cantrips',
+  'rule:casting-a-spell',
+  'rule:casting-a-spell-at-a-higher-level',
+  'rule:casting-a-spell-attack-rolls',
+  'rule:casting-a-spell-range',
+  'rule:casting-a-spell-saving-throws',
+  'rule:casting-in-armor',
+  'rule:casting-time',
+  'rule:casting-time-reactions',
+  'rule:combining-magical-effects',
+  'rule:components',
+  'rule:concentration',
+  'rule:cone',
+  'rule:cube',
+  'rule:cylinder',
+  'rule:duration',
+  'rule:instantaneous',
+  'rule:known-and-prepared-spells',
+  'rule:line',
+  'rule:longer-casting-times',
+  'rule:material-m',
+  'rule:rituals',
+  'rule:somatic-s',
+  'rule:spell-level',
+  'rule:spell-slots',
+  'rule:sphere',
+  'rule:targeting-yourself',
+  'rule:targets',
+  'rule:the-schools-of-magic',
+  'rule:verbal-v',
+  'rule:what-is-a-spell',
 ];
 
 /**
@@ -1582,10 +1626,34 @@ export async function runImporter(
     pages,
     anchors.treasureTables,
   );
-  const rules = parseRules(coreRulePages);
+  const coreRules = parseRules(coreRulePages);
+  // The general Spellcasting-rules chapter (loreweaver-3hp) is a separate slice
+  // (the coreRules anchor ends at "Spellcasting"), parsed by the same
+  // nesting-aware parser and concatenated. Its key slugs are reserved against
+  // the core-rules slugs so cross-chapter title repeats ("Range", "Attack
+  // Rolls", "Saving Throws", "Reactions") parent-qualify instead of producing
+  // duplicate `rule:` keys; the already-reviewed core keys are unchanged.
+  // Best-effort START: a reduced fixture PDF with no Spellcasting chapter
+  // degrades to no spellcasting rules. The anchor's requireEndHeading bound
+  // still fails closed if the chapter starts and its "Spell Lists" boundary is
+  // missing, so spell-list/description content cannot bleed into the rules.
+  const spellcastingRulePages = sliceSectionOrEmptyPages(
+    pages,
+    anchors.spellcastingRules,
+  );
+  const reservedRuleKeySlugs = new Set(
+    coreRules
+      .map((rule) => rule.keySlug)
+      .filter((slug): slug is string => slug !== undefined),
+  );
+  const spellcastingRules = parseRules(
+    spellcastingRulePages,
+    reservedRuleKeySlugs,
+  );
+  const rules = [...coreRules, ...spellcastingRules];
   // Fail closed before any output is written when the real import (CLI) supplies
   // the exact expected rule-key set and the nesting-aware parse drifts from it
-  // (loreweaver-yli).
+  // (loreweaver-yli, extended for the spellcasting chapter by loreweaver-3hp).
   validateRuleCoverage(rules, input.expectedRuleKeys);
   // The two trap reference tables live in the Traps slice (loreweaver-hvp); feed
   // it alongside the core-rules and treasure slices so parseTables reconstructs

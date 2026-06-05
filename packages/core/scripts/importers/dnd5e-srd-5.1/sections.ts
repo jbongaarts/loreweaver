@@ -267,6 +267,26 @@ export const SRD_5_1_DEFAULT_SECTION_ANCHORS = {
     requireEndHeading: true,
     matchHeadings: true,
   },
+  // The general Spellcasting-rules chapter (loreweaver-3hp): the chapter title
+  // "Spellcasting" (h≈25.9) introduces What Is a Spell, Spell Level, Spell
+  // Slots, Casting Time, Components, Range, Areas of Effect, Duration, Targets,
+  // Combining Magical Effects, etc. — the general rules that govern every spell
+  // in the pack. The `coreRules` slice deliberately ENDS at "Spellcasting"
+  // (its endHeading), so this chapter is fed to `parseRules` separately and its
+  // records concatenated. It runs to the next subsection heading "Spell Lists"
+  // (the start of the spell-data slices). requireEndHeading is true because the
+  // rules emitted here are gated by `EXPECTED_SRD_5_1_RULE_KEYS`, so a missing
+  // boundary that let "Spell Lists"/"Spell Descriptions" bleed in must fail
+  // closed. matchHeadings keeps "^Spellcasting$" on the real chapter heading
+  // rather than any body-prose mention. The orchestrator slices this
+  // best-effort (a reduced fixture PDF with no Spellcasting chapter degrades to
+  // no spellcasting rules).
+  spellcastingRules: {
+    startHeading: /^Spellcasting$/,
+    endHeading: /^Spell Lists$|^Spell Descriptions$/,
+    requireEndHeading: true,
+    matchHeadings: true,
+  },
   // "Spell Lists" and "Spell Descriptions" are subsection titles (h=18)
   // inside the Spellcasting chapter — both appear at heading font, so they
   // remain heading-matched but at the subsection level rather than the
@@ -473,6 +493,7 @@ export type Srd51SectionAnchors = {
   readonly races: SectionAnchorOptions;
   readonly classes: SectionAnchorOptions;
   readonly coreRules: SectionAnchorOptions;
+  readonly spellcastingRules: SectionAnchorOptions;
   readonly spellLists: SectionAnchorOptions;
   readonly spellDescriptions: SectionAnchorOptions;
   readonly combatActions: SectionAnchorOptions;
