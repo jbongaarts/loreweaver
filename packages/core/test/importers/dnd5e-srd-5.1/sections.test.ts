@@ -319,6 +319,18 @@ describe('SRD_5_1_DEFAULT_SECTION_ANCHORS — sanity', () => {
     expect(anchor.matchHeadings).toBe(true);
   });
 
+  it('spellcasting-rules anchor matches "Spellcasting", bounds at "Spell Lists", and fails closed on a missing end (loreweaver-3hp)', () => {
+    const anchor = SRD_5_1_DEFAULT_SECTION_ANCHORS.spellcastingRules;
+    expect(anchor.startHeading.test('Spellcasting')).toBe(true);
+    // Body-prose mentions must not false-positive on the tight ^...$ anchor.
+    expect(anchor.startHeading.test('Spellcasting Ability')).toBe(false);
+    expect(anchor.startHeading.test('A spellcasting class')).toBe(false);
+    expect(anchor.endHeading?.test('Spell Lists')).toBe(true);
+    expect(anchor.endHeading?.test('Spell Descriptions')).toBe(true);
+    expect(anchor.requireEndHeading).toBe(true);
+    expect(anchor.matchHeadings).toBe(true);
+  });
+
   it('conditions anchor matches "Appendix PH-A: Conditions" (real SRD) and "Conditions" (fixture)', () => {
     const anchor = SRD_5_1_DEFAULT_SECTION_ANCHORS.conditions;
     expect(anchor.startHeading.test('Appendix PH-A: Conditions')).toBe(true);
@@ -354,6 +366,7 @@ describe('SRD_5_1_DEFAULT_SECTION_ANCHORS — sanity', () => {
     expect(a.races.matchHeadings).toBe(true);
     expect(a.classes.matchHeadings).toBe(true);
     expect(a.coreRules.matchHeadings).toBe(true);
+    expect(a.spellcastingRules.matchHeadings).toBe(true);
     expect(a.spellLists.matchHeadings).toBe(true);
     expect(a.spellDescriptions.matchHeadings).toBe(true);
     expect(a.combatActions.matchHeadings).toBe(true);

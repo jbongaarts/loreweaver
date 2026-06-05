@@ -314,8 +314,22 @@ function collectHeadingEntries(merged: readonly TieredLine[]): HeadingEntry[] {
  * and per-ability sidebars) gain just enough nearest-ancestor titles, prepended,
  * to disambiguate — and, as a final guard against an exact path repeat, a
  * numeric suffix.
+ *
+ * `reserved` carries key slugs already emitted by an EARLIER `parseRules` call
+ * over a sibling slice (loreweaver-3hp): the SRD 5.1 Spellcasting-rules chapter
+ * is sliced and parsed separately from the core-rules chapters, but it repeats
+ * a handful of titles those chapters already own ("Range" and "Attack Rolls"
+ * under Making an Attack, "Saving Throws", "Reactions" under The Order of
+ * Combat). A bare-slug emission would collide cross-slice and produce duplicate
+ * `rule:` keys in the pack. Treating a reserved slug as an occupied slot forces
+ * the colliding spellcasting entry to parent-qualify (e.g. `range` →
+ * `casting-a-spell-range`) exactly as an intra-slice collision would, leaving
+ * the already-reviewed core-rules keys untouched.
  */
-function assignKeySlugs(entries: readonly HeadingEntry[]): string[] {
+function assignKeySlugs(
+  entries: readonly HeadingEntry[],
+  reserved: ReadonlySet<string>,
+): string[] {
   const depths = entries.map(() => 0);
   const keyAt = (idx: number): string => {
     const e = entries[idx];
@@ -325,7 +339,9 @@ function assignKeySlugs(entries: readonly HeadingEntry[]): string[] {
     return slug([...prefix, e.name].join(' '));
   };
   // Increase qualification depth on any colliding group until keys are unique
-  // or every member has consumed its full ancestor path.
+  // or every member has consumed its full ancestor path. A key that matches a
+  // reserved sibling-slice slug counts as a collision even when it is unique
+  // within this slice, so it qualifies away from the reserved key.
   for (let guard = 0; guard < 64; guard++) {
     const byKey = new Map<string, number[]>();
     for (let i = 0; i < entries.length; i++) {
@@ -335,8 +351,9 @@ function assignKeySlugs(entries: readonly HeadingEntry[]): string[] {
       else bucket.push(i);
     }
     let changed = false;
-    for (const idxs of byKey.values()) {
-      if (idxs.length <= 1) continue;
+    for (const [k, idxs] of byKey.entries()) {
+      const collides = idxs.length > 1 || reserved.has(k);
+      if (!collides) continue;
       for (const i of idxs) {
         if (depths[i] < entries[i].ancestors.length) {
           depths[i]++;
@@ -348,7 +365,10 @@ function assignKeySlugs(entries: readonly HeadingEntry[]): string[] {
   }
   // Final exact-duplicate guard: append a numeric suffix to any key that is
   // still shared after ancestors are exhausted (degenerate, shouldn't occur).
+  // Reserved keys seed the used-map so a slug that could not be qualified away
+  // from a reserved sibling-slice key still gains a suffix rather than colliding.
   const used = new Map<string, number>();
+  for (const k of reserved) used.set(k, 1);
   return entries.map((_, i) => {
     let k = keyAt(i);
     const seen = used.get(k);
@@ -362,11 +382,14 @@ function assignKeySlugs(entries: readonly HeadingEntry[]): string[] {
   });
 }
 
-function parseRulesByHeadings(flat: readonly FlatLine[]): RuleExtraction[] {
+function parseRulesByHeadings(
+  flat: readonly FlatLine[],
+  reserved: ReadonlySet<string>,
+): RuleExtraction[] {
   const merged = mergeWrappedHeadings(flat);
   const entries = collectHeadingEntries(merged);
   if (entries.length === 0) return [];
-  const keySlugs = assignKeySlugs(entries);
+  const keySlugs = assignKeySlugs(entries, reserved);
   const out: RuleExtraction[] = entries.map((entry, i) => {
     const text = joinParagraphs(entry.bodyLines);
     return {
@@ -462,7 +485,21 @@ function parseRulesByHeuristic(flat: readonly FlatLine[]): RuleExtraction[] {
   return out;
 }
 
-export function parseRules(pages: readonly PageText[]): RuleExtraction[] {
+/**
+ * Parse a core-rules-style slice into `rule` records.
+ *
+ * `reservedKeySlugs` (loreweaver-3hp) lets a second slice be parsed against the
+ * key slugs an earlier slice already emitted, so cross-slice title repeats
+ * disambiguate by parent-qualified key instead of producing duplicate `rule:`
+ * keys. The SRD 5.1 importer parses the core-rules chapters first, then parses
+ * the separate Spellcasting-rules chapter with those core keys reserved. Only
+ * the heading-hierarchy path honors it; the legacy fixture heuristic does not
+ * assign key slugs.
+ */
+export function parseRules(
+  pages: readonly PageText[],
+  reservedKeySlugs: ReadonlySet<string> = new Set(),
+): RuleExtraction[] {
   const flat = flatten(pages);
   if (flat.length === 0) return [];
   // Use the font-height hierarchy only when the slice carries the SRD's
@@ -479,6 +516,6 @@ export function parseRules(pages: readonly PageText[]): RuleExtraction[] {
   const hasHeadingTiers =
     distinctHeights.size > 1 && definedHeights.some((h) => h >= LEAF_MIN_H);
   return hasHeadingTiers
-    ? parseRulesByHeadings(flat)
+    ? parseRulesByHeadings(flat, reservedKeySlugs)
     : parseRulesByHeuristic(flat);
 }

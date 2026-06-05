@@ -113,7 +113,7 @@ only a few leaf rules captured; **Missing** = not in any slice.
 | 12 | Cover | 94 | Missing | Parse as `rule` | P2 | Frequently-cited combat modifier; cleanly bounded prose + half/three-quarters/total values. |
 | 13 | Damage and Healing (Hit Points, Damage Rolls, Critical Hits, Damage Types, Resistance/Vulnerability, Healing, Dropping to 0 HP, Death Saves, Temporary HP) | 95-97 | Partial (`instant-death`) | Parse as `rule` (per-subsection) | P1 | Damage/death rules are core; only the `instant-death` leaf is captured. Death-saving-throw and resistance rules are high-value. |
 | 14 | Mounted Combat / Underwater Combat | 98-99 | Missing | Parse as `rule` | P3 | Situational but self-contained. |
-| 15 | Spellcasting rules (What Is a Spell, Spell Level, Known/Prepared, Spell Slots, Casting at Higher Level, Rituals, Casting Time, Components, Range, Areas of Effect, Duration, Targets, Combining Effects) | 99-105 | Missing (only `spellcasting-ability` leaf) | Parse as `rule` (new `spellcastingRules` slice) | P1 | The general spellcasting rules govern *every* spell the pack already ships (319 spells). Their absence is the largest single rules gap. Requires a new section anchor between `coreRules` end and `Spell Lists`. |
+| 15 | Spellcasting rules (What Is a Spell, Spell Level, Known/Prepared, Spell Slots, Casting at Higher Level, Rituals, Casting Time, Components, Range, Areas of Effect, Duration, Targets, Combining Effects) | 99-105 | Imported (`rule` x34, `loreweaver-3hp`) | None (complete) | - | The general spellcasting rules govern *every* spell the pack already ships (319 spells). Now parsed via the new `spellcastingRules` slice (`Spellcasting` → `Spell Lists`); the four titles shared with the core-rules chapters are parent-qualified. |
 | 16 | Traps (general guidance + sample traps + 2 tables) | 194-196 | Imported (`hazard` x8, `table` x2) | None (complete) | - | `loreweaver-hvp`. General trap-running prose intentionally omitted (DM procedure). |
 | 17 | **Diseases** (Sample Diseases: Cackle Fever, Sewer Plague, Sight Rot) | 196 | Missing | Parse as **structured records** under `hazard` (`data.category: 'disease'`) | P2 | Each disease has DC, onset, effect, recovery - structured, lookupable, adjudication-relevant. Folds into `hazard` like traps did (avoids a new exhaustive kind). See Note B. |
 | 18 | **Madness** (Short-/Long-/Indefinite Madness effect tables, Going Mad, Curing Madness) | 197-198 | Missing | Parse as `table` (3 effect tables) + `rule` (curing) | P3 | The three madness tables are reconstructable `table` records; the surrounding guidance is a `rule`. |
@@ -204,7 +204,25 @@ Confirmed high-value expansions, filed as their own beads:
    excluded. Gated by `EXPECTED_SRD_5_1_RULE_KEYS` / `RuleCoverageError`. This
    addressed root causes 1 ("wrapper drop") and 4 ("body-bleed").
 2. **`loreweaver-3hp`** (P1) - Import the Spellcasting-rules chapter as `rule`
-   records (new `spellcastingRules` slice).
+   records (new `spellcastingRules` slice). **DONE.** A new `spellcastingRules`
+   anchor (`Spellcasting` → `Spell Lists`, `requireEndHeading`, best-effort
+   start) feeds the general spellcasting chapter to the same nesting-aware
+   `parseRules`, adding **34** `rule` records (What Is a Spell, Spell Level,
+   Known/Prepared, Spell Slots, Casting at a Higher Level, Rituals, Casting
+   Time, Components, Range, Areas of Effect + the five shapes, Duration, Targets,
+   Combining Magical Effects, …) and taking the pack from **127 → 161** rules.
+   The four titles it shares with the core-rules chapters (`Attack Rolls`,
+   `Range`, `Reactions`, `Saving Throws`) are parent-qualified via a new
+   `reservedKeySlugs` parameter so they emit as `rule:casting-a-spell-*` /
+   `rule:casting-time-reactions` without duplicating a key or disturbing the yli
+   core keys. Gated by `EXPECTED_SRD_5_1_RULE_KEYS` / `RuleCoverageError`. Also
+   fixed an extractor column-split bug surfaced by this chapter: an inline
+   italic spell-name run mid-paragraph (p104 "…cast *bless* on the same
+   target") starts at a high x and, on a sparse single-column page, opened a
+   spurious start-x gap that swept the run into a phantom column emitted after
+   the paragraph. `partitionItemsByColumn` now rejects a tiny-island cut that
+   slices a contiguous line of text; this also corrected the School of
+   Evocation spellbook prose (p54).
 3. **`loreweaver-6ra`** (P2) - Poisons + Diseases as structured `hazard` records
    (`data.category: 'poison'`/`'disease'`).
 4. **`loreweaver-uuk`** (P2) - Objects + Madness reference `table` records plus

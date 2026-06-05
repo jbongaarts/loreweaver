@@ -478,6 +478,58 @@ describe('extractPdfText — heading merge', () => {
     );
   });
 
+  it('does not split a contiguous inline run into a phantom column on a sparse page (loreweaver-3hp)', async () => {
+    // Regression for loreweaver-3hp / SRD p104 (Combining Magical Effects). A
+    // paragraph's last line continues with an inline italic spell-name run:
+    // "For example, if two clerics cast" then "bless" then "on the same", all on
+    // one baseline. The run starts at a high x because the words before it
+    // consumed the column width, and on this otherwise sparse, single-column
+    // page no other line starts between the left margin and that x — opening a
+    // spurious START-x gap. The pre-fix extractor cut "bless on the same" into a
+    // phantom right column emitted AFTER the rest of the paragraph, yielding
+    // "…cast target, … two bonus dice. bless on the same". The fix rejects a
+    // tiny-island cut that slices a contiguous line of text.
+    //
+    // String widths are measured so the inline run is placed a normal
+    // inter-word space (≈3pt) after the preceding text — contiguous, far below
+    // the ≈43pt gutter scale — rather than guessed.
+    const probe = new PDFDocument({
+      size: 'LETTER',
+      margin: 40,
+      autoFirstPage: false,
+    });
+    probe.font('Helvetica').fontSize(11);
+    const lead = 'For example, if two clerics cast';
+    const bless = 'bless';
+    const leftX = 60;
+    const wordGap = 3;
+    const blessX = leftX + probe.widthOfString(lead) + wordGap;
+    const onSameX = blessX + probe.widthOfString(bless) + wordGap;
+    probe.end();
+    const pages = await extractFromOps([
+      // A second left line gives the left side a 2nd distinct x so the only
+      // above-threshold START-x gap is the spurious one before the inline run.
+      { text: 'overlap while their durations apply', size: 11, x: 70, y: 100 },
+      { text: lead, size: 11, x: leftX, y: 120 },
+      { text: bless, size: 11, x: blessX, y: 120 },
+      { text: 'on the same', size: 11, x: onSameX, y: 120 },
+      {
+        text: 'target, that character gains the benefit',
+        size: 11,
+        x: leftX,
+        y: 140,
+      },
+    ]);
+    const lines = pages[0].lines;
+    // The inline run stays on its own baseline in source order…
+    const joined = lines.find((l) => /clerics cast\b.*\bon the same/.test(l));
+    expect(joined, `lines were ${JSON.stringify(lines)}`).toBeDefined();
+    expect(joined).toContain('bless');
+    // …not swept into a phantom column emitted after the paragraph.
+    expect(lines).not.toContain('bless on the same');
+    expect(lines.some((l) => /^bless\b/.test(l))).toBe(false);
+  });
+
   it('keeps sparse table value columns on the right side of the cut', async () => {
     // Regression for the armor table on SRD p63. Its "Strength" column has only
     // two starts on the page (the header and the Padded row dash), while nearby

@@ -172,6 +172,22 @@ const FOOTER_MAX_Y = 45;
 const COLUMN_GAP_THRESHOLD = 45;
 
 /**
+ * Maximum visible gap (in PDF user-space points) between two items on the same
+ * baseline for them to count as a CONTIGUOUS run of flowing text rather than
+ * two sides of a column gutter (`cutCrossesContiguousLine`). SRD 5.1 body prose
+ * renders at h≈9.8 where an inter-word space is ≈2–3pt and a justified line's
+ * stretched space stays well under ~10pt, whereas a real two-column gutter's
+ * visible whitespace is ≈43pt (SRD p124: a left line ending at x≈286 and the
+ * right column's "Range:" starting at x≈329). 20pt sits with wide margin above
+ * any inter-word space and well below the narrowest genuine gutter, so the
+ * contiguity guard catches an inline run split by a spurious start-x gap (the
+ * p104 "bless on the same" case) without ever rejecting a real page gutter.
+ * Deliberately distinct from `COLUMN_GAP_THRESHOLD`, which is a START-x gap on
+ * sorted column candidates, not an end-to-start visible gap on one line.
+ */
+const INLINE_TEXT_FLOW_MAX_GAP = 20;
+
+/**
  * Minimum item count any candidate column must contain before
  * `partitionItemsByColumn` accepts a column-cut. Real SRD body columns
  * carry hundreds of items, so a min of 2 is comfortably permissive while
@@ -518,6 +534,7 @@ function partitionItemsByColumn(
   // a tiny two-item island can be replaced by the best-supported candidate.
   let widestGap = 0;
   let widestMinSideItems = 0;
+  let widestCutAt = 0;
   let widestLeft: PdfTextItem[] | null = null;
   let widestRight: PdfTextItem[] | null = null;
   let supportedGap = 0;
@@ -557,6 +574,7 @@ function partitionItemsByColumn(
     if (gap > widestGap) {
       widestGap = gap;
       widestMinSideItems = minSideItems;
+      widestCutAt = cutAt;
       widestLeft = left;
       widestRight = right;
     }
@@ -571,13 +589,32 @@ function partitionItemsByColumn(
     }
   }
   if (widestLeft === null || widestRight === null) return [items];
-  if (
-    widestMinSideItems <= TINY_OUTLIER_SIDE_MAX_ITEMS &&
-    supportedLeft !== null &&
-    supportedRight !== null &&
-    supportedMinSideItems > widestMinSideItems
-  ) {
-    return reassignGutterStragglers(supportedLeft, supportedRight);
+  if (widestMinSideItems <= TINY_OUTLIER_SIDE_MAX_ITEMS) {
+    // The widest cut leaves only a tiny island on one side. Prefer a
+    // better-supported real-gutter cut when one exists (SRD p217/p218/p236
+    // justified-straggler pages); otherwise check whether the tiny island is a
+    // phantom column made of inline text continuations rather than a real
+    // column. A real page-column gutter is vertical whitespace that no LINE of
+    // text crosses; a spurious cut on a sparse, effectively single-column page
+    // slices through a contiguous run on one baseline. SRD 5.1 p104
+    // (loreweaver-3hp): "For example, if two clerics cast" (x≈67, ends ≈198) is
+    // followed on the SAME line by the italic run "bless" (x≈200) and "on the
+    // same" (x≈222); with nothing starting between x≈139 and x≈200 the 61pt
+    // start-x gap swept "bless on the same" into a phantom right column emitted
+    // after the rest of the paragraph, corrupting the Combining Magical Effects
+    // rule body. Scoping the contiguity test to the tiny-island case keeps
+    // genuine multi-item gutters — where one justified left line can legitimately
+    // end ≈43pt from the right column — untouched.
+    if (
+      supportedLeft !== null &&
+      supportedRight !== null &&
+      supportedMinSideItems > widestMinSideItems
+    ) {
+      return reassignGutterStragglers(supportedLeft, supportedRight);
+    }
+    if (cutCrossesContiguousLine(items, widestCutAt)) {
+      return [items];
+    }
   }
   return reassignGutterStragglers(widestLeft, widestRight);
 }
@@ -642,6 +679,43 @@ function isSupportedGutterMargin(starts: readonly PdfTextItem[]): boolean {
     starts.length === 2 &&
     starts.some((item) => !/^[a-z]/.test(item.str.trim()))
   );
+}
+
+/**
+ * True when the vertical line at `cutAt` passes through a contiguous run of
+ * text on any single baseline — i.e. some line has an item ending just left of
+ * the cut immediately followed (within `INLINE_TEXT_FLOW_MAX_GAP`) by an item
+ * starting just right of it. Such a cut slices through flowing text rather than
+ * a page-column gutter. A genuine two-column baseline (a left-column line and a
+ * right-column line sharing a y) leaves a real gutter gap (≈43pt in the SRD) at
+ * the cut, well above the inline-flow threshold, so it does not trip this guard.
+ * `partitionItemsByColumn` applies this only to a tiny-island widest cut (see
+ * its call site for the SRD 5.1 p104 "bless on the same" corruption this fixes).
+ */
+function cutCrossesContiguousLine(
+  items: readonly PdfTextItem[],
+  cutAt: number,
+): boolean {
+  const byY = new Map<number, PdfTextItem[]>();
+  for (const item of items) {
+    const y = round(item.transform[5], Y_GROUP_PRECISION);
+    const bucket = byY.get(y);
+    if (bucket === undefined) byY.set(y, [item]);
+    else bucket.push(item);
+  }
+  for (const row of byY.values()) {
+    row.sort((a, b) => a.transform[4] - b.transform[4]);
+    for (let k = 1; k < row.length; k++) {
+      const prev = row[k - 1];
+      const curr = row[k];
+      // The cut falls between this consecutive pair's start-x values.
+      if (prev.transform[4] >= cutAt || curr.transform[4] < cutAt) continue;
+      const prevEndX = prev.transform[4] + (prev.width ?? 0);
+      const visibleGap = curr.transform[4] - prevEndX;
+      if (visibleGap < INLINE_TEXT_FLOW_MAX_GAP) return true;
+    }
+  }
+  return false;
 }
 
 function distinctRoundedXCount(items: readonly PdfTextItem[]): number {
