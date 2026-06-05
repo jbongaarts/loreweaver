@@ -67,16 +67,12 @@ export const SCANNED_EXTENSIONS = new Set([
 
 // Path prefixes never scanned even if a stray tracked file matched an
 // extension. git ls-files already excludes ignored paths (node_modules, dist,
-// local DBs, worktrees), so this is defense-in-depth plus the generated SRD
-// rules-packs under packages/core/data, which are machine-emitted and outside
-// the hand-authored surface this check protects (consistent with their Biome
-// exclusion in biome.json).
-export const SKIPPED_PREFIXES = [
-  'node_modules/',
-  '.git/',
-  'dist/',
-  'packages/core/data/',
-];
+// local DBs, worktrees), so this is defense-in-depth. The generated SRD
+// rules-packs under packages/core/data are intentionally NOT skipped: that is
+// the path most likely to carry PDF-extracted SRD text, i.e. the exact class
+// of hidden/bidi controls this gate exists to catch, so it is scanned as
+// tracked text (Biome excludes it from formatting, but this check must not).
+export const SKIPPED_PREFIXES = ['node_modules/', '.git/', 'dist/'];
 
 function lowerExtension(path) {
   const slash = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));

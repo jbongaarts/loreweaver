@@ -75,17 +75,19 @@ describe('hidden/bidi Unicode guard', () => {
     );
   });
 
-  it('scans tracked text files and skips binaries, vendor, and generated paths', () => {
+  it('scans tracked text files including generated rules-pack data, skipping binaries and vendor paths', () => {
     expect(shouldScan('packages/core/src/index.ts')).toBe(true);
     expect(shouldScan('README.md')).toBe(true);
     expect(shouldScan('package.json')).toBe(true);
     expect(shouldScan('migration.sql')).toBe(true);
+    // Generated SRD rules-pack JSON is the path most likely to carry
+    // PDF-extracted text, so it IS scanned (not skipped like a vendor dir).
+    expect(shouldScan('packages/core/data/dnd5e-srd-rules.json')).toBe(true);
 
     expect(shouldScan('assets/logo.png')).toBe(false);
     expect(shouldScan('Makefile')).toBe(false);
     expect(shouldScan('node_modules/foo/index.js')).toBe(false);
     expect(shouldScan('dist/index.js')).toBe(false);
-    expect(shouldScan('packages/core/data/dnd5e-srd-rules.json')).toBe(false);
   });
 
   it('is wired into the repo-wide check gate', () => {

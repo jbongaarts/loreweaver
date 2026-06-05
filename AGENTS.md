@@ -105,7 +105,10 @@ bidi embedding/override controls (`U+202A..U+202E`), bidi isolates
 no-break space (`U+FEFF`), the soft hyphen (`U+00AD`), and the combining
 grapheme joiner (`U+034F`). Benign visible Unicode punctuation — em dash, en
 dash, arrows, curly quotes, degree sign and the like — is allowed and never
-flagged. Biome's `suspicious.noIrregularWhitespace` is set to `error` as
+flagged. Unlike Biome, this check deliberately **does** scan the generated SRD
+rules-packs under `packages/core/data`: that is the path most likely to carry
+PDF-extracted text and therefore the exact class of hidden/bidi control this
+gate exists to catch. Biome's `suspicious.noIrregularWhitespace` is set to `error` as
 supplemental protection, but the dedicated script is the primary guard because
 Biome does not scan every relevant file type. The behavior is covered by
 `packages/core/test/hiddenUnicodeCheck.test.ts`.
