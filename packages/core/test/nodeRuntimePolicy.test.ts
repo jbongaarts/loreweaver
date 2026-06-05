@@ -150,8 +150,17 @@ describe('Node runtime policy', () => {
       expect(command, `expected a "${name}" script`).toBeDefined();
       expect(command).toContain('biome');
 
+      // A script may chain other gates around Biome with `&&` (e.g. `check`
+      // also runs the hidden-Unicode scan); only the Biome segment's path
+      // arguments are relevant to this whole-repo-coverage policy.
+      const biomeSegment =
+        (command as string)
+          .split('&&')
+          .map((segment) => segment.trim())
+          .find((segment) => segment.includes('biome')) ?? (command as string);
+
       // Path arguments are the tokens that follow the biome subcommand/flags.
-      const paths = (command as string)
+      const paths = biomeSegment
         .split(/\s+/)
         .filter(
           (token) =>
