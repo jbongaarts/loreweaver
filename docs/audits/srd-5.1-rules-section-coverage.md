@@ -52,8 +52,9 @@ genuinely good - it is the prose-rule layer that is thin:
   complete.
 - **`condition` (15):** all SRD conditions incl. structured exhaustion levels -
   complete.
-- **`hazard` (8):** the eight sample traps from the gamemastering Traps section
-  (`loreweaver-hvp`) - complete for traps.
+- **`hazard` (25):** the eight sample traps from the gamemastering Traps section
+  (`loreweaver-hvp`) plus the 3 sample diseases and 14 sample poisons
+  (`loreweaver-6ra`), discriminated by `data.trapType` / `data.category`.
 - **`table` (3):** Difficulty Classes, Trap Save DCs/Attack Bonuses, Damage
   Severity by Level - the only reconstructable reference tables in the source
   (`loreweaver-46m`).
@@ -115,10 +116,10 @@ only a few leaf rules captured; **Missing** = not in any slice.
 | 14 | Mounted Combat / Underwater Combat | 98-99 | Missing | Parse as `rule` | P3 | Situational but self-contained. |
 | 15 | Spellcasting rules (What Is a Spell, Spell Level, Known/Prepared, Spell Slots, Casting at Higher Level, Rituals, Casting Time, Components, Range, Areas of Effect, Duration, Targets, Combining Effects) | 99-105 | Imported (`rule` x34, `loreweaver-3hp`) | None (complete) | - | The general spellcasting rules govern *every* spell the pack already ships (319 spells). Now parsed via the new `spellcastingRules` slice (`Spellcasting` → `Spell Lists`); the four titles shared with the core-rules chapters are parent-qualified. |
 | 16 | Traps (general guidance + sample traps + 2 tables) | 194-196 | Imported (`hazard` x8, `table` x2) | None (complete) | - | `loreweaver-hvp`. General trap-running prose intentionally omitted (DM procedure). |
-| 17 | **Diseases** (Sample Diseases: Cackle Fever, Sewer Plague, Sight Rot) | 196 | Missing | Parse as **structured records** under `hazard` (`data.category: 'disease'`) | P2 | Each disease has DC, onset, effect, recovery - structured, lookupable, adjudication-relevant. Folds into `hazard` like traps did (avoids a new exhaustive kind). See Note B. |
+| 17 | **Diseases** (Sample Diseases: Cackle Fever, Sewer Plague, Sight Rot) | 196 | Imported (`hazard` x3, `data.category: 'disease'`) | None (complete) | - | `loreweaver-6ra`. Parsed by `parseDiseases` (exact name match) into 3 `hazard` records with `data.category: 'disease'`; general disease-as-plot-device guidance intentionally omitted. See Note B. |
 | 18 | **Madness** (Short-/Long-/Indefinite Madness effect tables, Going Mad, Curing Madness) | 197-198 | Missing | Parse as `table` (3 effect tables) + `rule` (curing) | P3 | The three madness tables are reconstructable `table` records; the surrounding guidance is a `rule`. |
 | 19 | **Objects** (Statistics for Objects: AC by material, HP by size, breaking objects) | 198-200 | Missing | Parse as `table` (Object AC, Object HP) + `rule` | P2 | Object AC/HP tables are needed to adjudicate attacks on objects; structured and reconstructable. |
-| 20 | **Poisons** (4 poison types + 14 sample poisons with type/price/DC/effect) | 203-205 | Missing | Parse as **structured records** under `hazard` (`data.category: 'poison'`) | P2 | 14 named poisons each with type, price, save DC, damage, and effect - clearly structured, lookupable game entities (like magic items). Folds into `hazard`. See Note B. |
+| 20 | **Poisons** (4 poison types + 14 sample poisons with type/price/DC/effect) | 203-205 | Imported (`hazard` x14, `data.category: 'poison'`) | None (complete) | - | `loreweaver-6ra`. Parsed by `parsePoisons` (inline `Name (Type).` lead-in) into 14 `hazard` records with `data.category: 'poison'`, `poisonType`, and `price` (cross-referenced from the Poisons table); save DC/damage stay in the description. Surfaced and fixed an extractor column-split bug on the p205 inline-lead-in layout. See Note B. |
 
 ### Note A - the unused `ability` kind
 
@@ -152,8 +153,8 @@ with a `category` discriminator.**
   (P3-P4)
 
 **Parse as structured records:**
-- Poisons -> `hazard` + `data.category: 'poison'` (14 records) - P2
-- Diseases -> `hazard` + `data.category: 'disease'` (3 records) - P2
+- Poisons -> `hazard` + `data.category: 'poison'` (14 records) - P2 — **DONE** (loreweaver-6ra)
+- Diseases -> `hazard` + `data.category: 'disease'` (3 records) - P2 — **DONE** (loreweaver-6ra)
 - Objects -> `table` (Object AC, Object HP) + `rule` - P2
 - Madness -> `table` x3 + `rule` (curing) - P3
 
@@ -224,6 +225,15 @@ Confirmed high-value expansions, filed as their own beads:
    slices a contiguous line of text; this also corrected the School of
    Evocation spellbook prose (p54).
 3. **`loreweaver-6ra`** (P2) - Poisons + Diseases as structured `hazard` records
-   (`data.category: 'poison'`/`'disease'`).
+   (`data.category: 'poison'`/`'disease'`). **DONE.** `parseDiseases` (3 records)
+   and `parsePoisons` (14 records, with `poisonType` + `price`) emit under the
+   `hazard` kind, taking the pack from 8 → 25 `hazard` records, gated by
+   `EXPECTED_SRD_5_1_DISEASE_NAMES` / `_POISON_NAMES`. Also fixed an extractor
+   column-split bug the p205 Sample Poisons layout surfaced: a single-column page
+   whose entries open with a short indented bold lead-in followed by the
+   justified first-line remainder opened a phantom column gutter;
+   `partitionItemsByColumn` now merges such a page back to one column (≥2
+   contiguous baselines, no real gutter, widest cut also most balanced, right
+   side owns no standalone line).
 4. **`loreweaver-uuk`** (P2) - Objects + Madness reference `table` records plus
    surrounding `rule` prose.

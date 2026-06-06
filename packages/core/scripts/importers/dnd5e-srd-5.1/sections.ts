@@ -360,6 +360,41 @@ export const SRD_5_1_DEFAULT_SECTION_ANCHORS = {
     requireEndHeading: true,
     matchHeadings: true,
   },
+  // SRD 5.1 gamemastering "Diseases" section (loreweaver-6ra). It is an h≈18
+  // subsection heading that follows the Traps section (Traps → Diseases →
+  // Madness → Objects → Poisons → Magic Items). It carries the general
+  // disease-as-plot-device guidance, a "Sample Diseases" caption, and the three
+  // named sample diseases (Cackle Fever, Sewer Plague, Sight Rot). It ends at
+  // the next gamemastering heading ("Madness"); the later headings stay in the
+  // alternation as defense-in-depth. requireEndHeading is true because disease
+  // (emitted as `hazard`) is now an implemented kind, so a missing end boundary
+  // must fail closed rather than run the parser into Madness/Objects. The word
+  // "Diseases" also occurs as body prose in the section's own intro, so
+  // matchHeadings keeps `^Diseases$` on the real subsection heading. The
+  // orchestrator slices this best-effort on its start so fixture PDFs without
+  // the section degrade to no diseases.
+  diseases: {
+    startHeading: /^Diseases$/,
+    endHeading: /^(Madness|Objects|Poisons|Monsters|Magic Items|Appendix)\b/,
+    requireEndHeading: true,
+    matchHeadings: true,
+  },
+  // SRD 5.1 gamemastering "Poisons" section (loreweaver-6ra). An h≈18 subsection
+  // heading after Objects (… → Objects → Poisons → Magic Items). It carries the
+  // four poison-type definitions, a "Poisons" reference table (Item / Type /
+  // Price per Dose), a "Sample Poisons" caption, and the 14 named sample poisons
+  // (Assassin's Blood … Wyvern Poison). It ends at the "Magic Items" chapter
+  // title that follows. requireEndHeading is true because poison (emitted as
+  // `hazard`) is an implemented kind. matchHeadings keeps `^Poisons$` on the
+  // real h≈18 subsection heading rather than the h≈12 "Poisons" table title (it
+  // is below the heading-flag threshold) or the body-prose mentions. Best-effort
+  // start, like Diseases/Traps.
+  poisons: {
+    startHeading: /^Poisons$/,
+    endHeading: /^(Magic Items|Monsters|Appendix)\b/,
+    requireEndHeading: true,
+    matchHeadings: true,
+  },
   // SRD 5.1 has no "Dungeon Hazards" / "Hazards" chapter — the canonical
   // hazard set (Brown Mold, Green Slime, Webs, Yellow Mold) is absent from
   // the SRD 5.1 PDF entirely. The orchestrator wraps this anchor in a
@@ -505,6 +540,8 @@ export type Srd51SectionAnchors = {
   readonly conditions: SectionAnchorOptions;
   readonly feats: SectionAnchorOptions;
   readonly traps: SectionAnchorOptions;
+  readonly diseases: SectionAnchorOptions;
+  readonly poisons: SectionAnchorOptions;
   readonly hazards: SectionAnchorOptions;
   readonly equipment: SectionAnchorOptions;
   readonly treasureTables: SectionAnchorOptions;

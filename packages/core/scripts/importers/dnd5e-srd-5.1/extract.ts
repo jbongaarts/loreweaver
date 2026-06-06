@@ -616,6 +616,47 @@ function partitionItemsByColumn(
       return [items];
     }
   }
+  // Even past the tiny-island bar, a sparse single-column page can present a
+  // phantom gutter when each entry opens with a short indented bold lead-in and
+  // the justified remainder of that first line starts well to the right. SRD 5.1
+  // p205 "Sample Poisons" (loreweaver-6ra): "Pale Tincture (Ingested)." (x≈67,
+  // indented) is followed on the SAME baseline by "A creature subjected to"
+  // (x≈180), and five entries open this way. The widest gap (x≈67→145) clears
+  // COLUMN_GAP_THRESHOLD and both sides pass the item-count / distinct-x guards,
+  // so the page was split into a phantom right column and every lead-in's
+  // remainder was emitted after the body — scrambling each poison's first
+  // sentence. Such a cut straddles several contiguous first lines and not one
+  // real column gutter; a genuine two-column gutter is vertical whitespace no
+  // line of text crosses, so its shared-y pairs always clear the full ~43pt
+  // gutter and never read as contiguous (gutterPairs > 0). Requiring two or more
+  // contiguous crossings and zero gutter crossings targets the inline-lead-in
+  // pattern without touching real columns. Unlike the tiny-island contiguity
+  // check above, this fires regardless of island size, gated by TWO further
+  // conditions that each rule out a different real two-column page whose widest
+  // cut happens to read as contiguous:
+  //   - The widest cut must also be the most balanced one on the page
+  //     (`widestMinSideItems >= supportedMinSideItems`). On SRD 5.1 p238 (Robe
+  //     of Eyes) and p226 (Immovable Rod | Horn of Valhalla) the WIDEST gap is a
+  //     mid-line italic/embedded-table run rather than the real gutter, so the
+  //     real gutter is a strictly more balanced cut and the page is not merged.
+  //   - The right side of the cut must have NO standalone line
+  //     (`rightSideHasStandaloneLine` false): every right-side item shares its
+  //     baseline with a left-side item. On the SRD 5.1 p63 armor table the
+  //     AC→Strength cut reads as contiguous (the AC cell ends ≈20pt from the
+  //     Strength column) and is the most balanced cut, but the right side owns
+  //     the real right-hand prose column on its own baselines, so it stays split.
+  // The sparse single-column p205 Sample Poisons page is the one case that
+  // satisfies both: its only cut is the most balanced, and its right side is
+  // purely lead-in remainders sharing the left lead-ins' baselines.
+  const crossings = classifyCutCrossings(items, widestCutAt);
+  if (
+    widestMinSideItems >= supportedMinSideItems &&
+    crossings.gutterPairs === 0 &&
+    crossings.contiguousPairs >= 2 &&
+    !rightSideHasStandaloneLine(items, widestCutAt)
+  ) {
+    return [items];
+  }
   return reassignGutterStragglers(widestLeft, widestRight);
 }
 
@@ -696,6 +737,24 @@ function cutCrossesContiguousLine(
   items: readonly PdfTextItem[],
   cutAt: number,
 ): boolean {
+  return classifyCutCrossings(items, cutAt).contiguousPairs > 0;
+}
+
+/** Count of same-baseline item pairs straddling a candidate cut, split by
+ *  whether the visible gap between them reads as inline text flow
+ *  (`contiguousPairs`, gap < `INLINE_TEXT_FLOW_MAX_GAP`) or as a real column
+ *  gutter (`gutterPairs`). A genuine two-column gutter yields only
+ *  `gutterPairs`; a phantom cut through flowing single-column text yields
+ *  `contiguousPairs`. See `partitionItemsByColumn` for both call sites. */
+interface CutCrossings {
+  readonly contiguousPairs: number;
+  readonly gutterPairs: number;
+}
+
+function classifyCutCrossings(
+  items: readonly PdfTextItem[],
+  cutAt: number,
+): CutCrossings {
   const byY = new Map<number, PdfTextItem[]>();
   for (const item of items) {
     const y = round(item.transform[5], Y_GROUP_PRECISION);
@@ -703,6 +762,8 @@ function cutCrossesContiguousLine(
     if (bucket === undefined) byY.set(y, [item]);
     else bucket.push(item);
   }
+  let contiguousPairs = 0;
+  let gutterPairs = 0;
   for (const row of byY.values()) {
     row.sort((a, b) => a.transform[4] - b.transform[4]);
     for (let k = 1; k < row.length; k++) {
@@ -712,8 +773,36 @@ function cutCrossesContiguousLine(
       if (prev.transform[4] >= cutAt || curr.transform[4] < cutAt) continue;
       const prevEndX = prev.transform[4] + (prev.width ?? 0);
       const visibleGap = curr.transform[4] - prevEndX;
-      if (visibleGap < INLINE_TEXT_FLOW_MAX_GAP) return true;
+      if (visibleGap < INLINE_TEXT_FLOW_MAX_GAP) contiguousPairs++;
+      else gutterPairs++;
     }
+  }
+  return { contiguousPairs, gutterPairs };
+}
+
+/**
+ * True when some baseline has items only on the RIGHT of `cutAt` (none on the
+ * left) — i.e. the right side of the cut owns at least one standalone line. A
+ * genuine right page-column always has such lines; a phantom column made only of
+ * inline continuations of left-side lines (each sharing its left line's
+ * baseline) has none. `partitionItemsByColumn` uses this to tell the SRD 5.1
+ * p205 Sample Poisons inline lead-in case (merge) apart from a real right column
+ * whose widest cut happens to read as contiguous (keep split).
+ */
+function rightSideHasStandaloneLine(
+  items: readonly PdfTextItem[],
+  cutAt: number,
+): boolean {
+  const byY = new Map<number, { left: boolean; right: boolean }>();
+  for (const item of items) {
+    const y = round(item.transform[5], Y_GROUP_PRECISION);
+    const flags = byY.get(y) ?? { left: false, right: false };
+    if (item.transform[4] < cutAt) flags.left = true;
+    else flags.right = true;
+    byY.set(y, flags);
+  }
+  for (const flags of byY.values()) {
+    if (flags.right && !flags.left) return true;
   }
   return false;
 }

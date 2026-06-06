@@ -31,11 +31,13 @@ import type {
   ClassPrimaryAbilityIndex,
   ConditionExtraction,
   CreatureExtraction,
+  DiseaseExtraction,
   EquipmentExtraction,
   FeatExtraction,
   FeatureExtraction,
   HazardExtraction,
   MagicItemExtraction,
+  PoisonExtraction,
   RuleExtraction,
   SpellCasterClass,
   SpellClassIndex,
@@ -527,6 +529,81 @@ export function trapExtractionsToRecords(
   return out;
 }
 
+/**
+ * Sample diseases emit under the `hazard` record kind with a
+ * `data.category: 'disease'` discriminator (loreweaver-6ra). Schema fit: like a
+ * trap, a disease is a description-only danger with a save DC and effects, so it
+ * satisfies the same `hazard` kindSchema (`validateDnd5eHazard` requires only
+ * `description`). A dedicated `disease` kind was rejected for the same reason
+ * traps reuse `hazard` — it would force changes across every exhaustive
+ * `Record<RulesRecordKind, …>` validator and stack index for no schema benefit
+ * (see Note B in the SRD section-coverage audit). `category` (absent on traps,
+ * which the `trapType` discriminator already marks) lets callers tell the three
+ * gamemastering hazard sub-families apart. Keyed `hazard:<slug>`; no SRD 5.1
+ * disease name collides with a trap or environmental-hazard name.
+ */
+export function diseaseExtractionsToRecords(
+  diseases: readonly DiseaseExtraction[],
+): RulesRecord[] {
+  const out: RulesRecord[] = diseases.map((disease) => {
+    const data: Record<string, unknown> = {
+      category: 'disease',
+      description: disease.description,
+    };
+    const record: RulesRecord = {
+      systemId: SYSTEM_ID,
+      kind: 'hazard',
+      key: hazardKey(disease.name),
+      name: disease.name,
+      data,
+      source: sourceLabelFor(disease.sourcePage),
+      license: SRD_5_1_LICENSE,
+      provenance: provenanceFor(disease.sourcePage),
+    };
+    return record;
+  });
+  out.sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+  return out;
+}
+
+/**
+ * Sample poisons emit under the `hazard` record kind with a
+ * `data.category: 'poison'` discriminator (loreweaver-6ra), alongside the
+ * structured `poisonType` (delivery method) and `price` (per dose) fields. Same
+ * schema-fit rationale as diseases/traps: a poison is a description-only danger
+ * with a save DC and effects. Field insertion order is fixed for byte-stable
+ * output; `price` is omitted when the entry has no matching reference-table row.
+ * Keyed `hazard:<slug>`; no SRD 5.1 poison name collides with a trap, disease,
+ * or environmental-hazard name.
+ */
+export function poisonExtractionsToRecords(
+  poisons: readonly PoisonExtraction[],
+): RulesRecord[] {
+  const out: RulesRecord[] = poisons.map((poison) => {
+    const data: Record<string, unknown> = {
+      category: 'poison',
+      poisonType: poison.poisonType,
+    };
+    if (poison.price !== undefined) {
+      data.price = poison.price;
+    }
+    data.description = poison.description;
+    const record: RulesRecord = {
+      systemId: SYSTEM_ID,
+      kind: 'hazard',
+      key: hazardKey(poison.name),
+      name: poison.name,
+      data,
+      source: sourceLabelFor(poison.sourcePage),
+      license: SRD_5_1_LICENSE,
+      provenance: provenanceFor(poison.sourcePage),
+    };
+    return record;
+  });
+  out.sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+  return out;
+}
+
 export function ruleExtractionsToRecords(
   rules: readonly RuleExtraction[],
 ): RulesRecord[] {
@@ -771,6 +848,8 @@ export interface BuildPackInput {
   readonly feats?: readonly FeatExtraction[];
   readonly hazards?: readonly HazardExtraction[];
   readonly traps?: readonly TrapExtraction[];
+  readonly diseases?: readonly DiseaseExtraction[];
+  readonly poisons?: readonly PoisonExtraction[];
   readonly actions?: readonly ActionExtraction[];
   readonly rules?: readonly RuleExtraction[];
   readonly tables?: readonly TableExtraction[];
@@ -799,11 +878,16 @@ export function buildPack(input: BuildPackInput): RulesPack {
   const featureRecords = featureExtractionsToRecords(input.features ?? []);
   const conditionRecords = conditionExtractionsToRecords(input.conditions);
   const featRecords = featExtractionsToRecords(input.feats ?? []);
-  // Environmental hazards (empty for SRD 5.1) and sample traps both emit under
-  // the `hazard` kind (loreweaver-hvp); concatenate before the shared sort.
+  // Environmental hazards (empty for SRD 5.1), sample traps (loreweaver-hvp),
+  // and the gamemastering diseases + poisons (loreweaver-6ra) all emit under the
+  // `hazard` kind; concatenate before the shared sort. Traps carry a `trapType`
+  // discriminator; diseases and poisons carry `data.category` ('disease' /
+  // 'poison').
   const hazardRecords = [
     ...hazardExtractionsToRecords(input.hazards ?? []),
     ...trapExtractionsToRecords(input.traps ?? []),
+    ...diseaseExtractionsToRecords(input.diseases ?? []),
+    ...poisonExtractionsToRecords(input.poisons ?? []),
   ];
   const actionRecords = actionExtractionsToRecords(input.actions ?? []);
   const ruleRecords = ruleExtractionsToRecords(input.rules ?? []);

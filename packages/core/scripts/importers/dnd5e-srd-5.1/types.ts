@@ -167,6 +167,47 @@ export interface TrapExtraction {
 }
 
 /**
+ * A sample-disease entry extracted from the SRD 5.1 gamemastering "Diseases"
+ * section (Cackle Fever, Sewer Plague, Sight Rot), before conversion to a
+ * `RulesRecord`. Diseases are emitted under the `hazard` record kind with
+ * `data.category: 'disease'` (schema fit: like traps, a disease is a
+ * description-only danger with a save DC and effects; see the importer README's
+ * hazard decision note and loreweaver-6ra). `description` is the full effect
+ * text, re-flowed into paragraphs.
+ */
+export interface DiseaseExtraction {
+  readonly name: string;
+  /** Full effect text, re-flowed into paragraphs. */
+  readonly description: string;
+  /** 1-based page in the source PDF where the disease entry begins. */
+  readonly sourcePage: number;
+}
+
+/** The four SRD 5.1 poison delivery types, lowercased from the source labels. */
+export type PoisonType = 'contact' | 'ingested' | 'inhaled' | 'injury';
+
+/**
+ * A sample-poison entry extracted from the SRD 5.1 gamemastering "Poisons"
+ * section (14 named poisons: Assassin's Blood … Wyvern Poison), before
+ * conversion to a `RulesRecord`. Poisons are emitted under the `hazard` record
+ * kind with `data.category: 'poison'` (schema fit identical to traps and
+ * diseases; see loreweaver-6ra), with `poisonType` preserving the SRD delivery
+ * type and `price` the reference-table price per dose. `description` is the full
+ * effect text (including save DC and damage), re-flowed into paragraphs.
+ */
+export interface PoisonExtraction {
+  readonly name: string;
+  readonly poisonType: PoisonType;
+  /** Price per dose, verbatim from the Poisons table (e.g. "150 gp"). Absent
+   *  when the entry has no matching table row. */
+  readonly price?: string;
+  /** Full effect text, re-flowed into paragraphs. */
+  readonly description: string;
+  /** 1-based page in the source PDF where the poison entry begins. */
+  readonly sourcePage: number;
+}
+
+/**
  * A rule-text entry as extracted from the SRD source, before conversion to a
  * `RulesRecord`. `text` is the full rule body, re-flowed into paragraphs.
  */
@@ -514,6 +555,8 @@ export interface ImporterCounts {
   readonly feats: number;
   readonly hazards: number;
   readonly traps: number;
+  readonly diseases: number;
+  readonly poisons: number;
   readonly actions: number;
   readonly rules: number;
   readonly tables: number;
