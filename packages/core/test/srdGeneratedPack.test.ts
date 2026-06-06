@@ -930,24 +930,72 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
       expect(text).not.toMatch(/bless on the same\s*$/);
     });
 
-    it('keeps the School of Evocation spellbook prose in source order', () => {
-      // Same page family: "You can copy a spell from your own" and "Your
-      // spellbook is a unique" inline runs were displaced to the body's end.
-      for (const key of [
+    // The Wizard "Your Spellbook" prose ("You can copy a spell from your own…",
+    // "Your spellbook is a unique…") lived on the same sparse page family and was
+    // a second real-pack witness for this extractor fix — but only because it had
+    // bled into the School of Evocation subclass/Overchannel records. loreweaver-6fw
+    // bounds that generic class callout box out of those records (it is dropped),
+    // so the spellbook prose is no longer in any committed record. The extractor's
+    // source-order behavior on that page shape stays covered directly by the
+    // synthetic-probe test in extract.test.ts ("does not split a contiguous inline
+    // run into a phantom column on a sparse page"); the bless example above remains
+    // the real-pack guard. See the callout-box bleed regression block below.
+  });
+
+  // loreweaver-6fw: the Classes chapter prints five gray callout boxes (generic
+  // class/DM procedure sidebars) at a distinct font-height tier (h≈10.8 heading,
+  // h≈8.9 body), each AFTER a subclass's last feature and BEFORE the next base
+  // class. Because their titles start with prose words ("Your Spellbook", "Your
+  // Pact Boon", "Breaking Your Oath") or otherwise carry no feature/table anchor,
+  // the parser used to run the preceding subclass description and last feature
+  // body straight through them, absorbing the whole sidebar. The feature/subclass
+  // parsers now bound a body at the callout-box height tier, dropping the sidebar
+  // prose (DM/class procedure, not subclass or feature content). These assertions
+  // pin every affected record so the bleed cannot return.
+  describe('class callout-box bleed regression (loreweaver-6fw)', () => {
+    function bodyOf(key: string): string {
+      const record = pack.records.find((r) => r.key === key);
+      expect(record, `expected ${key} in the committed pack`).toBeDefined();
+      const data = record?.data as { text?: unknown; description?: unknown };
+      const body = data.text ?? data.description;
+      expect(typeof body).toBe('string');
+      return body as string;
+    }
+
+    // Each entry: the record whose body used to absorb the box, and a phrase
+    // unique to the dropped callout-box prose that must no longer appear.
+    const cases: ReadonlyArray<readonly [key: string, boxPhrase: string]> = [
+      [
         'subclass:school-of-evocation',
+        'Your spellbook is a unique compilation',
+      ],
+      [
         'feature:school-of-evocation:overchannel',
-      ]) {
-        const text = bodyOf(key);
-        expect(text).toContain(
-          'You can copy a spell from your own spellbook into another book',
-        );
-        expect(text).toContain(
-          'Your spellbook is a unique compilation of spells',
-        );
-        expect(text).not.toMatch(
-          /You can copy a spell from your own\s+Your spellbook is a unique\s*$/,
-        );
-      }
+        'Copying a Spell into the Book',
+      ],
+      ['subclass:the-fiend', 'Pact of the Chain'],
+      ['feature:the-fiend:hurl-through-hell', 'Your Pact Boon'],
+      ['subclass:circle-of-the-land', 'Sacred Plants and Wood'],
+      ['feature:circle-of-the-land:natural-recovery', 'Druids and the Gods'],
+      ['feature:paladin:holy-nimbus', 'Breaking Your Oath'],
+    ];
+
+    for (const [key, boxPhrase] of cases) {
+      it(`bounds ${key} before the callout-box prose`, () => {
+        expect(bodyOf(key)).not.toContain(boxPhrase);
+      });
+    }
+
+    it('keeps the bounded School of Evocation content intact up to Overchannel', () => {
+      // The subclass body still ends with its last feature (Overchannel), and
+      // the Overchannel feature record still carries its full 14th-level text —
+      // the fix removes only the trailing sidebar, not real subclass content.
+      const subclass = bodyOf('subclass:school-of-evocation');
+      expect(subclass).toContain('You focus your study on magic');
+      expect(subclass).toContain('This damage ignores resistance and immunity');
+      expect(bodyOf('feature:school-of-evocation:overchannel')).toContain(
+        'you can deal maximum damage with that spell',
+      );
     });
   });
 

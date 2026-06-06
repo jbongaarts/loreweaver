@@ -77,9 +77,64 @@ export const PARENT_CLASS_NAMES = new Set(
   KNOWN_SUBCLASSES.map((s) => s.parent),
 );
 
+// Rendered font-height band (PDF user-space points) of a gray callout-box
+// heading in the SRD 5.1 Classes chapter. These boxes ("Your Spellbook",
+// "Your Pact Boon", "Breaking Your Oath", "Sacred Plants and Wood", "Druids
+// and the Gods") are generic class/DM procedure sidebars, not subclass or
+// feature content; each renders its title at h≈10.8 and its body at h≈8.9,
+// sitting in the gap below the leaf feature-heading tier (h≈12.0, which
+// includes in-feature option headings like the Fighter's "Archery"/"Defense"
+// Fighting Style choices) and above main-flow body prose (h≈9.8). Keying on
+// this band lets `parseSubclasses` / `parseFeatures` stop a subclass or
+// feature body at the box without special-casing any heading text or page
+// (ADR 0007). Mirrors the tier bands `parseRules` uses. The bounds are
+// inclusive-exclusive: [SIDEBAR_MIN_H, LEAF_MIN_H). Fixture PDFs render at a
+// uniform font (no `lineHeights`), so `height` is undefined and no fixture
+// body is bounded here — only the real extraction is affected (loreweaver-6fw).
+const CALLOUT_BOX_MIN_H = 10.3;
+const CALLOUT_BOX_MAX_H = 11.5;
+
+/**
+ * Is `height` a Classes-chapter gray callout-box heading (a generic class/DM
+ * procedure sidebar), as opposed to a feature/subclass heading or body prose?
+ * Undefined heights (uniform-font fixtures) are never callout boxes.
+ *
+ * Only meaningful once `hasHeadingTiers` confirms the slice carries the SRD's
+ * real multi-tier font structure — a uniform-font fixture renders every line at
+ * one body size that may itself fall inside this band, so callers must gate on
+ * `hasHeadingTiers` before treating a band hit as a box.
+ */
+export function isCalloutBoxHeading(height: number | undefined): boolean {
+  return (
+    height !== undefined &&
+    height >= CALLOUT_BOX_MIN_H &&
+    height < CALLOUT_BOX_MAX_H
+  );
+}
+
+/**
+ * Does this slice carry the SRD's genuine multi-tier font structure — more than
+ * one distinct line height AND at least one real heading-tier line (a
+ * feature/subclass heading at h ≥ `CALLOUT_BOX_MAX_H`)? Only then is a line in
+ * the callout band a real gray sidebar box rather than ordinary body prose.
+ * Uniform-font fixture PDFs render every line at a single body size (often
+ * inside the callout band itself), so they fail this test and no fixture body
+ * is bounded as a box. Mirrors the path gate in `parseRules` (loreweaver-6fw).
+ */
+export function hasHeadingTiers(
+  heights: readonly (number | undefined)[],
+): boolean {
+  const defined = heights.filter((h): h is number => h !== undefined);
+  return (
+    new Set(defined).size > 1 && defined.some((h) => h >= CALLOUT_BOX_MAX_H)
+  );
+}
+
 interface FlatLine {
   readonly line: string;
   readonly page: number;
+  /** Rendered max font height (PDF points), when the source carried it. */
+  readonly height?: number;
 }
 
 /** Collapse internal whitespace runs to single spaces and trim. */
@@ -90,8 +145,12 @@ function normalizeLine(line: string): string {
 function flatten(pages: readonly PageText[]): readonly FlatLine[] {
   const out: FlatLine[] = [];
   for (const page of pages) {
-    for (const line of page.lines) {
-      out.push({ line: normalizeLine(line), page: page.pageNumber });
+    for (let i = 0; i < page.lines.length; i++) {
+      out.push({
+        line: normalizeLine(page.lines[i]),
+        page: page.pageNumber,
+        height: page.lineHeights?.[i],
+      });
     }
   }
   return out;
@@ -143,6 +202,11 @@ export function parseSubclasses(
   // the slice's leading content is Barbarian. Test fixtures that include the
   // parent name explicitly as their first line override this default before
   // any subclass-name line is reached.
+  // Only honor callout-box font heights when the slice has the SRD's genuine
+  // multi-tier structure; uniform-font fixtures render body lines inside the
+  // callout band and must not be bounded as boxes (loreweaver-6fw).
+  const tiersPresent = hasHeadingTiers(flat.map((f) => f.height));
+
   const boundaries: number[] = [];
   let currentParent: string = 'Barbarian';
   for (let i = 0; i < flat.length; i++) {
@@ -150,6 +214,16 @@ export function parseSubclasses(
     const line = flat[i].line;
     if (PARENT_CLASS_NAMES.has(line)) {
       currentParent = line;
+      boundaries.push(i);
+      continue;
+    }
+    // A gray callout-box heading (e.g. Wizard "Your Spellbook") is a generic
+    // class/DM sidebar that follows the last subclass feature, not subclass
+    // content. It bounds the preceding subclass body so the box prose does not
+    // bleed in; the box index is not itself a subclass, so the emit loop skips
+    // it (`SUBCLASS_BY_NAME.get` is undefined). It does not move the parent
+    // cursor. (loreweaver-6fw)
+    if (tiersPresent && isCalloutBoxHeading(flat[i].height)) {
       boundaries.push(i);
       continue;
     }
