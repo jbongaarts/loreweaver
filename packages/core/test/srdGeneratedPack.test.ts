@@ -37,6 +37,7 @@ import {
   EXPECTED_SRD_5_1_NPC_NAMES,
   EXPECTED_SRD_5_1_POISON_NAMES,
   EXPECTED_SRD_5_1_RULE_KEYS,
+  EXPECTED_SRD_5_1_TABLE_NAMES,
   MIN_EXPECTED_SRD_5_1_CREATURES,
   MIN_EXPECTED_SRD_5_1_MAGIC_ITEMS,
 } from '../scripts/importers/dnd5e-srd-5.1/index.js';
@@ -111,18 +112,14 @@ const EXPECTED_COUNTS_BY_KIND: Readonly<Record<string, number>> = {
   'magic-item': 238,
   // Nesting-aware core-rules parse: one rule per heading across the Using
   // Ability Scores, Adventuring, and Combat chapters (loreweaver-yli, 127),
-  // plus the general Spellcasting-rules chapter (loreweaver-3hp, 34: What Is a
-  // Spell, Spell Slots, Casting Time, Components, Range, Areas of Effect,
-  // Duration, Targets, Combining Magical Effects, …), validated exactly against
-  // EXPECTED_SRD_5_1_RULE_KEYS. Includes the four h≈10.8 gray callout boxes
-  // (Hiding, Combat Step by Step, Interacting with Objects Around You, Contests
-  // in Combat) and the two spellcasting callout boxes (Casting in Armor, The
-  // Schools of Magic).
-  rule: 161,
+  // plus 34 general Spellcasting rules and five Madness/Objects rules,
+  // validated exactly against EXPECTED_SRD_5_1_RULE_KEYS.
+  rule: 166,
   spell: 319,
   subclass: 12,
-  // Difficulty Classes + the two trap reference tables (loreweaver-hvp).
-  table: 3,
+  // Difficulty Classes, two trap tables, three Madness tables, and two Objects
+  // statistics tables (loreweaver-hvp, loreweaver-uuk).
+  table: 8,
 };
 
 /**
@@ -163,10 +160,14 @@ const EXPECTED_STABLE_KEYS: readonly string[] = [
   // cross-slice parent-qualified keys.
   'rule:components',
   'rule:casting-a-spell-range',
+  'rule:curing-madness',
+  'rule:objects',
   'spell:fire-bolt',
   'spell:wish',
   'subclass:champion',
   'table:difficulty-classes',
+  'table:object-hit-points',
+  'table:short-term-madness',
   'table:trap-save-dcs-and-attack-bonuses',
 ];
 
@@ -529,6 +530,49 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
       expect(armorOfResistance.description).toContain('1 Acid 6 Necrotic');
     });
 
+    it('keeps page 226 magic-item bodies in source column order', () => {
+      expect(magicItemDescription('magic-item:holy-avenger')).toContain(
+        'the radius of the aura increases to 30 feet',
+      );
+
+      const blasting = magicItemDescription('magic-item:horn-of-blasting');
+      expect(blasting).toMatch(/^You can use an action to speak/);
+      expect(blasting).toContain('causing the horn to explode');
+      expect(blasting).not.toContain('horseshoes');
+
+      expect(magicItemData('magic-item:horn-of-valhalla')).toMatchObject({
+        rarity:
+          'rare (silver or brass), very rare (bronze), or legendary (iron)',
+      });
+      const valhalla = magicItemDescription('magic-item:horn-of-valhalla');
+      expect(valhalla).toContain('d100 Horn Berserkers Requirement');
+      expect(valhalla).toContain('Proficiency with all martial weapons');
+      expect(valhalla).not.toContain('Immovable Rod');
+
+      const zephyr = magicItemDescription('magic-item:horseshoes-of-a-zephyr');
+      expect(zephyr).toMatch(/^These iron horseshoes come in a set of four/);
+      expect(zephyr).toContain('floating 4 inches above the ground');
+      expect(zephyr).not.toContain('radius of the aura');
+
+      const speed = magicItemDescription('magic-item:horseshoes-of-speed');
+      expect(speed).toContain(
+        'increase the creature’s walking speed by 30 feet',
+      );
+      expect(speed).not.toContain('thunder damage');
+
+      const rod = magicItemDescription('magic-item:immovable-rod');
+      expect(rod).toContain('magically fixed in place');
+      expect(rod).toContain('moving the fixed rod up to 10 feet on a success');
+      expect(rod).not.toContain('are known to exist');
+
+      const fortress = magicItemDescription('magic-item:instant-fortress');
+      expect(fortress).toMatch(
+        /^You can use an action to place this 1-inch metal cube/,
+      );
+      expect(fortress).not.toContain('d100 Horn Berserkers');
+      expect(fortress).not.toContain('Proficiency with all');
+    });
+
     it('keeps interleaved Ring page bodies assigned to the matching Ring records', () => {
       const featherFalling = magicItemDescription(
         'magic-item:ring-of-feather-falling',
@@ -773,6 +817,48 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
       expect(new Set(EXPECTED_SRD_5_1_RULE_KEYS).size).toBe(
         EXPECTED_SRD_5_1_RULE_KEYS.length,
       );
+    });
+
+    it('keeps the Madness rules distinct and excludes their effect tables', () => {
+      const madness = ruleText('rule:madness');
+      expect(madness).toContain('campaign has a strong horror theme');
+      expect(madness).not.toContain('Going Mad');
+
+      const goingMad = ruleText('rule:going-mad');
+      expect(goingMad).toContain('Wisdom or Charisma saving throw');
+      expect(goingMad).not.toContain('Madness Effects');
+
+      const effects = ruleText('rule:madness-effects');
+      expect(effects).toContain('Short-Term Madness');
+      expect(effects).toContain('Long-Term Madness');
+      expect(effects).toContain('Indefinite Madness');
+      expect(effects).not.toContain('d100');
+
+      const curing = ruleText('rule:curing-madness');
+      expect(curing).toContain('greater restoration');
+      expect(curing).not.toContain('Statistics for Objects');
+    });
+
+    it('keeps Objects prose complete and excludes table rows and Poisons', () => {
+      const objects = ruleText('rule:objects');
+      for (const landmark of [
+        'Statistics for Objects',
+        'Armor Class.',
+        'Hit Points.',
+        'Huge and Gargantuan Objects.',
+        'Objects and Damage Types.',
+        'Damage Threshold.',
+      ]) {
+        expect(objects).toContain(landmark);
+      }
+      for (const excluded of [
+        'Cloth, paper, rope 11',
+        'Tiny (bottle, lock)',
+        'Fragile Resilient',
+        'Poisons',
+      ]) {
+        expect(objects).not.toContain(excluded);
+      }
     });
 
     it('captures the Hiding callout box as its own rule', () => {
@@ -1147,39 +1233,94 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
     });
   });
 
-  // loreweaver-46m / loreweaver-hvp: the SRD 5.1 PDF contains exactly three
-  // reconstructable reference tables — "Typical Difficulty Classes" (p77) and
-  // the two trap tables "Trap Save DCs and Attack Bonuses" and "Damage Severity
-  // by Level" (p196, from the gamemastering Traps section). The table parser
-  // also carries reviewed reconstruction rules for XP-threshold and treasure
-  // challenge tables, but those families are absent from the Creative-Commons
-  // SRD 5.1 source (non-SRD DM-reference content), so none of them emit a record
-  // here — they are exercised only by the importer's fixture-based unit and
-  // pipeline tests. This block pins the exact committed table key/name set so
-  // coverage cannot silently collapse (a table dropped) or grow (an XP/treasure
-  // table appearing would mean a source or parser change that must be reviewed
-  // and rebaselined here, alongside EXPECTED_COUNTS_BY_KIND.table).
-  describe('table coverage regression baseline (loreweaver-46m, loreweaver-hvp)', () => {
+  // The canonical table set is Difficulty Classes, two trap tables, three
+  // Madness tables, and two Objects tables. XP/treasure reconstruction remains
+  // fixture-only because those families are absent from this SRD source.
+  describe('table coverage regression baseline (loreweaver-46m, loreweaver-hvp, loreweaver-uuk)', () => {
     const tables = pack.records.filter((record) => record.kind === 'table');
+
+    function table(key: string) {
+      const record = tables.find((candidate) => candidate.key === key);
+      expect(record, `expected ${key} in the committed pack`).toBeDefined();
+      return record;
+    }
 
     it('contains exactly the reviewed table key set', () => {
       expect(tables.map((record) => record.key).sort()).toEqual([
         'table:damage-severity-by-level',
         'table:difficulty-classes',
+        'table:indefinite-madness',
+        'table:long-term-madness',
+        'table:object-armor-class',
+        'table:object-hit-points',
+        'table:short-term-madness',
         'table:trap-save-dcs-and-attack-bonuses',
       ]);
     });
 
     it('contains exactly the reviewed table name set', () => {
-      expect(tables.map((record) => record.name).sort()).toEqual([
-        'Damage Severity by Level',
-        'Difficulty Classes',
-        'Trap Save DCs and Attack Bonuses',
-      ]);
+      expect(tables.map((record) => record.name).sort()).toEqual(
+        [...EXPECTED_SRD_5_1_TABLE_NAMES].sort(),
+      );
+      expect(new Set(EXPECTED_SRD_5_1_TABLE_NAMES).size).toBe(
+        EXPECTED_SRD_5_1_TABLE_NAMES.length,
+      );
     });
 
     it('the table count matches the per-kind baseline', () => {
       expect(tables).toHaveLength(EXPECTED_COUNTS_BY_KIND.table);
+    });
+
+    it('pins Madness table row counts, representative data, and source pages', () => {
+      const shortTerm = table('table:short-term-madness');
+      const longTerm = table('table:long-term-madness');
+      const indefinite = table('table:indefinite-madness');
+
+      expect(shortTerm?.data).toMatchObject({
+        columns: ['d100', 'Effect'],
+        rows: expect.arrayContaining([
+          ['81–90', 'The character is stunned.'],
+          ['91–100', 'The character falls unconscious.'],
+        ]),
+      });
+      expect((shortTerm?.data as { rows: unknown[] }).rows).toHaveLength(10);
+      expect(shortTerm?.provenance.locator).toBe('p. 201');
+
+      expect(longTerm?.data).toMatchObject({
+        columns: ['d100', 'Effect'],
+        rows: expect.arrayContaining([
+          ['91–95', 'The character loses the ability to speak.'],
+        ]),
+      });
+      expect((longTerm?.data as { rows: unknown[] }).rows).toHaveLength(12);
+      expect(longTerm?.provenance.locator).toBe('p. 201');
+
+      expect(indefinite?.data).toMatchObject({
+        columns: ['d100', 'Flaw'],
+        rows: expect.arrayContaining([['16–25', '“I keep whatever I find.”']]),
+      });
+      expect((indefinite?.data as { rows: unknown[] }).rows).toHaveLength(12);
+      expect(indefinite?.provenance.locator).toBe('p. 202');
+    });
+
+    it('pins Objects table data and source pages', () => {
+      const armorClass = table('table:object-armor-class');
+      expect(armorClass?.data).toMatchObject({
+        columns: ['Substance', 'AC'],
+        rows: expect.arrayContaining([['Adamantine', 23]]),
+      });
+      expect((armorClass?.data as { rows: unknown[] }).rows).toHaveLength(7);
+      expect(armorClass?.provenance.locator).toBe('p. 203');
+
+      const hitPoints = table('table:object-hit-points');
+      expect(hitPoints?.data).toMatchObject({
+        columns: ['Size', 'Fragile', 'Resilient'],
+        rows: expect.arrayContaining([
+          ['Large (cart, 10-ft.-by-10-ft. window)', '5 (1d10)', '27 (5d10)'],
+        ]),
+      });
+      expect((hitPoints?.data as { rows: unknown[] }).rows).toHaveLength(4);
+      expect(hitPoints?.provenance.locator).toBe('p. 203');
     });
   });
 

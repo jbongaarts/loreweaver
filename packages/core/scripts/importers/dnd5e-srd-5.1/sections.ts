@@ -395,6 +395,22 @@ export const SRD_5_1_DEFAULT_SECTION_ANCHORS = {
     requireEndHeading: true,
     matchHeadings: true,
   },
+  // SRD 5.1 gamemastering "Madness" section (p201-202): introductory prose,
+  // Going Mad, Madness Effects, three effect tables, and Curing Madness.
+  madness: {
+    startHeading: /^Madness$/,
+    endHeading: /^Objects$/,
+    requireEndHeading: true,
+    matchHeadings: true,
+  },
+  // SRD 5.1 gamemastering "Objects" section (p203): object-damage guidance and
+  // the Object Armor Class / Object Hit Points tables. It ends at "Poisons".
+  objects: {
+    startHeading: /^Objects$/,
+    endHeading: /^Poisons$/,
+    requireEndHeading: true,
+    matchHeadings: true,
+  },
   // SRD 5.1 has no "Dungeon Hazards" / "Hazards" chapter — the canonical
   // hazard set (Brown Mold, Green Slime, Webs, Yellow Mold) is absent from
   // the SRD 5.1 PDF entirely. The orchestrator wraps this anchor in a
@@ -542,6 +558,8 @@ export type Srd51SectionAnchors = {
   readonly traps: SectionAnchorOptions;
   readonly diseases: SectionAnchorOptions;
   readonly poisons: SectionAnchorOptions;
+  readonly madness: SectionAnchorOptions;
+  readonly objects: SectionAnchorOptions;
   readonly hazards: SectionAnchorOptions;
   readonly equipment: SectionAnchorOptions;
   readonly treasureTables: SectionAnchorOptions;

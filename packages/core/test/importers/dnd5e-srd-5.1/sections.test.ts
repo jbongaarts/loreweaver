@@ -250,6 +250,22 @@ describe('SRD_5_1_DEFAULT_SECTION_ANCHORS — sanity', () => {
     expect(anchor.matchHeadings).toBe(true);
   });
 
+  it('madness and objects anchors are exact, heading-scoped, and fail closed at neighboring sections', () => {
+    const madness = SRD_5_1_DEFAULT_SECTION_ANCHORS.madness;
+    expect(madness.startHeading.test('Madness')).toBe(true);
+    expect(madness.startHeading.test('Indefinite Madness')).toBe(false);
+    expect(madness.endHeading?.test('Objects')).toBe(true);
+    expect(madness.requireEndHeading).toBe(true);
+    expect(madness.matchHeadings).toBe(true);
+
+    const objects = SRD_5_1_DEFAULT_SECTION_ANCHORS.objects;
+    expect(objects.startHeading.test('Objects')).toBe(true);
+    expect(objects.startHeading.test('Statistics for Objects')).toBe(false);
+    expect(objects.endHeading?.test('Poisons')).toBe(true);
+    expect(objects.requireEndHeading).toBe(true);
+    expect(objects.matchHeadings).toBe(true);
+  });
+
   it('core-rules anchor starts at "Using Ability Scores" and requires an end heading', () => {
     const anchor = SRD_5_1_DEFAULT_SECTION_ANCHORS.coreRules;
     expect(anchor.startHeading.test('Using Ability Scores')).toBe(true);

@@ -5,15 +5,11 @@
  * deliberately narrow: row-regex reconstruction for the simple reference
  * tables and column-block reconstruction for the treasure challenge tables.
  *
- * Of the families below, three are actually present in the vendored SRD 5.1
- * PDF: Difficulty Classes ("Typical Difficulty Classes", p77) and the two trap
- * reference tables — Trap Save DCs and Attack Bonuses, and Damage Severity by
- * Level (p196, fed in via the `traps` slice; loreweaver-hvp). The XP-threshold
- * and treasure-table reconstruction rules match no section in that source and
- * emit nothing for the canonical pack; they are retained (and unit-tested) for
- * fixtures and future editions, mirroring the retained `treasureTables` section
- * anchor. See the importer README's "Reference-table coverage" section
- * (loreweaver-46m, loreweaver-hvp).
+ * Eight tables are present in the vendored SRD 5.1 PDF: Difficulty Classes,
+ * two trap tables, three Madness effect tables, and the Object Armor Class /
+ * Object Hit Points tables. XP-threshold and treasure-table reconstruction
+ * rules match no section in this source and remain fixture-only. See the
+ * importer README's "Reference-table coverage" section.
  */
 
 import type { PageText, TableExtraction } from './types.js';
@@ -155,6 +151,176 @@ function parseDamageSeverity(
   return {
     name: 'Damage Severity by Level',
     columns: ['Character Level', 'Setback', 'Dangerous', 'Deadly'],
+    rows,
+    sourcePage: anchor.page,
+  };
+}
+
+const MADNESS_TABLE_BOUNDARY =
+  /^(Short-Term Madness|Long-Term Madness|Indefinite Madness|Curing Madness|Objects|Poisons)$/i;
+const D100_ROW_START = /^(\d{2,3}\s*[-–—]\s*\d{1,3})\s+(.+)$/;
+
+function joinWrappedCell(parts: readonly string[]): string {
+  let out = '';
+  for (const raw of parts) {
+    const part = normalizeWhitespace(raw);
+    if (part.length === 0) continue;
+    if (out.endsWith('-') && /^[a-z]/.test(part)) {
+      out += part;
+    } else {
+      out += `${out.length === 0 ? '' : ' '}${part}`;
+    }
+  }
+  return out;
+}
+
+function parseMadnessTable(
+  flat: readonly FlatLine[],
+  input: {
+    readonly anchorPattern: RegExp;
+    readonly name: string;
+    readonly valueColumn: 'Effect' | 'Flaw';
+    readonly expectedRows: number;
+  },
+): TableExtraction | undefined {
+  const anchor = findAnchor(flat, input.anchorPattern);
+  if (anchor === undefined) return undefined;
+
+  const rows: [string, string][] = [];
+  let currentRange: string | undefined;
+  let currentText: string[] = [];
+  const flush = (): void => {
+    if (currentRange === undefined) return;
+    rows.push([currentRange, joinWrappedCell(currentText)]);
+    currentRange = undefined;
+    currentText = [];
+  };
+
+  const end = Math.min(flat.length, anchor.idx + MAX_TABLE_SCAN_LINES);
+  for (let i = anchor.idx + 1; i < end; i++) {
+    const line = flat[i].line.trim();
+    if (line.length === 0 || /^d100\s+(Effect|Flaw)\b/i.test(line)) {
+      continue;
+    }
+    if (MADNESS_TABLE_BOUNDARY.test(line)) {
+      break;
+    }
+    const rowStart = D100_ROW_START.exec(line);
+    if (rowStart !== null) {
+      flush();
+      currentRange = normalizeWhitespace(rowStart[1]);
+      currentText = [rowStart[2]];
+      continue;
+    }
+    if (currentRange !== undefined) {
+      currentText.push(line);
+    }
+  }
+  flush();
+
+  if (rows.length !== input.expectedRows) return undefined;
+  return {
+    name: input.name,
+    columns: ['d100', input.valueColumn],
+    rows,
+    sourcePage: anchor.page,
+  };
+}
+
+const OBJECT_ARMOR_CLASS_ANCHOR = /^Object Armor Class$/i;
+const OBJECT_ARMOR_CLASS_ROW =
+  /^(Cloth, paper, rope|Crystal, glass, ice|Wood, bone|Stone|Iron, steel|Mithral|Adamantine)\s+(\d+)$/i;
+
+function parseObjectArmorClassRow(
+  line: string,
+): readonly [string, number] | undefined {
+  const match = OBJECT_ARMOR_CLASS_ROW.exec(line);
+  if (match === null) return undefined;
+  return [match[1], Number.parseInt(match[2], 10)];
+}
+
+function parseObjectArmorClass(
+  flat: readonly FlatLine[],
+): TableExtraction | undefined {
+  const anchor = findAnchor(flat, OBJECT_ARMOR_CLASS_ANCHOR);
+  if (anchor === undefined) return undefined;
+  const rows = collectRows(flat, anchor.idx + 1, parseObjectArmorClassRow);
+  if (rows.length !== 7) return undefined;
+  return {
+    name: 'Object Armor Class',
+    columns: ['Substance', 'AC'],
+    rows,
+    sourcePage: anchor.page,
+  };
+}
+
+const OBJECT_HIT_POINTS_ANCHOR = /^Object Hit Points$/i;
+const OBJECT_HIT_POINTS_SIZE_ROW = /^(Tiny|Small|Medium|Large)\s+(\([^)]*\))$/i;
+const OBJECT_HIT_POINTS_VALUE_ROW =
+  /^(\d+\s+\(\d+d\d+\))\s+(\d+\s+\(\d+d\d+\))$/i;
+const OBJECT_HIT_POINTS_INLINE_ROW =
+  /^(Tiny|Small|Medium|Large)\s+(\([^)]*\))\s+(\d+\s+\(\d+d\d+\))\s+(\d+\s+\(\d+d\d+\))$/i;
+
+function parseObjectHitPoints(
+  flat: readonly FlatLine[],
+): TableExtraction | undefined {
+  const anchor = findAnchor(flat, OBJECT_HIT_POINTS_ANCHOR);
+  if (anchor === undefined) return undefined;
+  const sizes: string[] = [];
+  const values: [string, string][] = [];
+  const inlineRows: [string, string, string][] = [];
+  let inValueBlock = false;
+  const end = Math.min(flat.length, anchor.idx + MAX_TABLE_SCAN_LINES);
+  for (let i = anchor.idx + 1; i < end; i++) {
+    const line = flat[i].line.trim();
+    const inlineMatch = OBJECT_HIT_POINTS_INLINE_ROW.exec(line);
+    if (inlineMatch !== null) {
+      inlineRows.push([
+        `${inlineMatch[1]} ${inlineMatch[2]}`,
+        normalizeWhitespace(inlineMatch[3]),
+        normalizeWhitespace(inlineMatch[4]),
+      ]);
+      if (inlineRows.length === 4) break;
+      continue;
+    }
+    if (/^Fragile Resilient$/i.test(line)) {
+      inValueBlock = true;
+      continue;
+    }
+    if (inValueBlock) {
+      const valueMatch = OBJECT_HIT_POINTS_VALUE_ROW.exec(line);
+      if (valueMatch !== null) {
+        values.push([
+          normalizeWhitespace(valueMatch[1]),
+          normalizeWhitespace(valueMatch[2]),
+        ]);
+        if (values.length === 4) break;
+      }
+      continue;
+    }
+    const sizeMatch = OBJECT_HIT_POINTS_SIZE_ROW.exec(line);
+    if (sizeMatch !== null) {
+      sizes.push(`${sizeMatch[1]} ${sizeMatch[2]}`);
+    }
+  }
+  if (inlineRows.length > 0) {
+    if (inlineRows.length !== 4) return undefined;
+    return {
+      name: 'Object Hit Points',
+      columns: ['Size', 'Fragile', 'Resilient'],
+      rows: inlineRows,
+      sourcePage: anchor.page,
+    };
+  }
+  if (sizes.length !== 4 || values.length !== 4) return undefined;
+  const rows = sizes.map((size, i): readonly [string, string, string] => [
+    size,
+    values[i][0],
+    values[i][1],
+  ]);
+  return {
+    name: 'Object Hit Points',
+    columns: ['Size', 'Fragile', 'Resilient'],
     rows,
     sourcePage: anchor.page,
   };
@@ -361,6 +527,26 @@ export function parseTables(pages: readonly PageText[]): TableExtraction[] {
     parseDifficultyClasses(flat),
     parseTrapSaveDcs(flat),
     parseDamageSeverity(flat),
+    parseMadnessTable(flat, {
+      anchorPattern: /^Short-Term Madness$/i,
+      name: 'Short-Term Madness',
+      valueColumn: 'Effect',
+      expectedRows: 10,
+    }),
+    parseMadnessTable(flat, {
+      anchorPattern: /^Long-Term Madness$/i,
+      name: 'Long-Term Madness',
+      valueColumn: 'Effect',
+      expectedRows: 12,
+    }),
+    parseMadnessTable(flat, {
+      anchorPattern: /^Indefinite Madness$/i,
+      name: 'Indefinite Madness',
+      valueColumn: 'Flaw',
+      expectedRows: 12,
+    }),
+    parseObjectArmorClass(flat),
+    parseObjectHitPoints(flat),
     parseXpThresholds(flat),
     ...parseTreasureTables(flat),
   ].filter((table): table is TableExtraction => table !== undefined);

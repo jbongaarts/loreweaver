@@ -25,8 +25,8 @@ tracked as child issues).
 | `feat`      | Implemented. Parser extracts feat entries (SRD 5.1: Grappler) with optional prerequisites and description text in `data.description`. Section anchor: `feats` (`startHeading: /^Feats?$\|^Feat Descriptions?$/`, `requireEndHeading: true`). |
 | `condition` | Implemented. Parser extracts all 15 SRD conditions (blinded, charmed, deafened, exhaustion, frightened, grappled, incapacitated, invisible, paralyzed, petrified, poisoned, prone, restrained, stunned, unconscious). Exhaustion carries a structured `levels` array (6 entries). Section anchor: `conditions` (`startHeading: /^Appendix A: Conditions$\|^Conditions$/`). |
 | `hazard`    | Implemented. The canonical SRD 5.1 pack carries **25** `hazard` records from three gamemastering sub-families: **8 sample traps** (loreweaver-hvp: Collapsing Roof, Falling Net, Fire-Breathing Statue, Pits, Poison Darts, Poison Needle, Rolling Sphere, Sphere of Annihilation), **3 sample diseases** (loreweaver-6ra: Cackle Fever, Sewer Plague, Sight Rot), and **14 sample poisons** (loreweaver-6ra: Assassin's Blood … Wyvern Poison). All emit under the `hazard` kind (decision below); the SRD groups Traps with Diseases/Madness/Poisons and each is a description-only danger with a save DC and effects, so they share the `hazard` kindSchema (only `description` is required). They are discriminated within the kind: **traps** carry `data.trapType` (`"mechanical"` \| `"magic"`, the SRD subtitle); **diseases** carry `data.category: "disease"`; **poisons** carry `data.category: "poison"` plus `data.poisonType` (`contact`\|`ingested`\|`inhaled`\|`injury`) and `data.price` (per-dose, from the Poisons reference table). Each carries a re-flowed `data.description` (for poisons, the save DC and damage stay inside the description rather than being parsed out); "Pits" is one trap record describing its four inlined variants. Parsers: `parseTraps` keys each entry off its name line + standalone `Mechanical trap` / `Magic trap` subtitle; `parseDiseases` keys off the exact disease name lines (like `parseHazards`); `parsePoisons` keys off the inline `Name (Type). …` bold lead-in and cross-references the price table by normalized name. The leading guidance prose of each section (trap-running procedure, the disease/poison framing, the four poison-type definitions) is **not** emitted — DM-facing prose, not a lookupable entity. Section anchors: `traps` (end at `Diseases`), `diseases` (`/^Diseases$/`, end at `Madness`), `poisons` (`/^Poisons$/`, end at `Magic Items`), all `requireEndHeading: true`, best-effort start. The real import fails closed against `EXPECTED_SRD_5_1_TRAP_NAMES` / `_DISEASE_NAMES` / `_POISON_NAMES` (a missing/renamed/spurious entry throws `TrapCoverageError` / `DiseaseCoverageError` / `PoisonCoverageError`). The two trap reference tables emit as `table` records (see Reference-table coverage); the Poisons price table is folded into the poison records, not emitted separately. **No `trap` / `disease` / `poison` record kinds:** all three fit the `hazard` kindSchema exactly, and new kinds would force changes across the exhaustive `Record<RulesRecordKind, …>` validators/indexes for no schema benefit. SRD 5.1 has no environmental-hazard chapter (Brown Mold / Green Slime / Webs / Yellow Mold are absent), but the environmental-hazard parser (`parseHazards`, exact-name match, best-effort `hazards` anchor `/^Dungeon Hazards$\|^Hazards$/`) is retained for fixtures and future editions; it emits zero records here. **Extractor note (loreweaver-6ra):** the p205 "Sample Poisons" page is a single column whose entries open with a short indented bold lead-in followed by the justified remainder of the first line on the same baseline; that pattern opened a phantom column gutter that scrambled each poison's first sentence, so `partitionItemsByColumn` now merges such a page back to one column (it straddles ≥2 contiguous baselines with no real gutter, the widest cut is also the most balanced, and the right side owns no standalone line). |
-| `table`     | Implemented. The vendored SRD 5.1 source contains exactly three reconstructable reference tables — Difficulty Classes (`table:difficulty-classes`, p77) and the two trap tables Trap Save DCs and Attack Bonuses (`table:trap-save-dcs-and-attack-bonuses`, p196) and Damage Severity by Level (`table:damage-severity-by-level`, p196, both from the gamemastering Traps slice; loreweaver-hvp) — the three `table` records in the canonical pack. The parser also retains reviewed reconstruction rules for XP Thresholds by Character Level and SRD-style treasure challenge tables (`loreweaver-0m9.5.13` wired the latter through `runImporter`), but those families are absent from the SRD 5.1 PDF and emit nothing for this source; they exist for fixtures and future editions. See "Reference-table coverage" below (loreweaver-46m, loreweaver-hvp). Broader table completeness remains the responsibility of the full-PDF coverage audit. |
-| `rule`      | Implemented. The canonical SRD 5.1 pack carries **161** `rule` records (127 core-rules + 34 spellcasting-rules). `parseRules` is heading-hierarchy-aware (loreweaver-yli): the SRD core-rules chapters nest five font tiers — chapter (h≈25.9), subsection (h≈18, e.g. "Making an Attack"), sub-subsection (h≈13.9, e.g. "Attack Rolls"), leaf (h≈12, e.g. "Death Saving Throws"), and gray callout-box (h≈10.8, e.g. "Hiding", "Combat Step by Step"). It emits one rule per heading across the Using Ability Scores, Adventuring, and Combat chapters, bounding each body at the next heading of ANY tier so a parent keeps only its intro prose and every leaf is its own record (the prior parser dropped any heading whose next line was also a heading — the "wrapper drop" — leaving only 10 arbitrary leaves). Capturing the h≈10.8 box tier is load-bearing: a box heading below the leaf threshold would otherwise be read as body and swallow its whole rule into the preceding record (the corruption that buried the Hiding rule, with its inline Passive Perception / What Can You See? lead-ins, under the Dexterity "Initiative" sidebar). Font tiers come from the new per-line `PageText.lineHeights` the extractor exposes (parallel to `lines`; `headingLineIndexes` only flags h≥14 and so misses the h≈10.8/12/13.9 rule leaves). Cross-chapter title collisions ("Hit Points" under both Constitution and Damage and Healing; "Initiative" under Dexterity and The Order of Combat; "Difficult Terrain" under Adventuring and Combat movement) and the three per-ability "Spellcasting Ability" cross-reference sidebars get **parent-qualified record keys** (`rule:constitution-hit-points` vs `rule:damage-and-healing-hit-points`) while `name` stays the bare SRD title. Intentionally excluded: `Variant:` optional rules, the per-ability skill-list captions under Ability Checks (bodies that lead with a bullet), and the leaf table captions the `table` kind owns (Ability Scores and Modifiers score table, Typical Difficulty Classes, Travel Pace, Size Categories). The real import fails closed against `EXPECTED_SRD_5_1_RULE_KEYS` (a dropped leaf, renamed heading, or promoted caption/sidebar throws `RuleCoverageError`). Uniform-font fixture PDFs (no distinct tiers) fall back to the legacy text-heuristic, flat extraction. Section anchors: `coreRules` (`startHeading: /^Using Ability Scores$/`, `endHeading: /^Spellcasting$\|^Spell Lists$/`, `requireEndHeading: true`) and — for the 34 general spellcasting rules (loreweaver-3hp) — `spellcastingRules` (`startHeading: /^Spellcasting$/`, `endHeading: /^Spell Lists$\|^Spell Descriptions$/`, `requireEndHeading: true`). The coreRules slice ends at "Spellcasting", so the Spellcasting-rules chapter (What Is a Spell, Spell Level, Spell Slots, Casting Time, Components, Range, Areas of Effect, Duration, Targets, Combining Magical Effects, …) is parsed separately by the same nesting-aware parser and concatenated; the four titles it shares with the core-rules chapters ("Attack Rolls", "Range", "Reactions", "Saving Throws") are reserved against the core key slugs so they parent-qualify (`rule:casting-a-spell-range`, `rule:casting-time-reactions`, …) instead of duplicating a `rule:` key, leaving the core keys untouched. The spellcasting slice is best-effort on its start (a reduced fixture PDF without a Spellcasting chapter yields no spellcasting rules). Full body text stored in `data.text`. The gamemastering Diseases and Poisons sections now emit as structured `hazard` records (`loreweaver-6ra`); the Madness/Objects sections (`loreweaver-uuk`) remain a separate follow-up. |
+| `table`     | Implemented (**8 records**). The canonical pack contains Difficulty Classes (p77), two trap tables (p196), three Madness effect tables (pp201-202), and Object Armor Class / Object Hit Points (p203). `EXPECTED_SRD_5_1_TABLE_NAMES` is an exact fail-closed baseline. The parser also retains fixture-only reconstruction rules for XP thresholds and treasure challenge tables, which are absent from this SRD PDF. See "Reference-table coverage" below (`loreweaver-46m`, `loreweaver-hvp`, `loreweaver-uuk`). |
+| `rule`      | Implemented (**166 records**): 127 core rules, 34 spellcasting rules, and five focused gamemastering rules (`Madness`, `Going Mad`, `Madness Effects`, `Curing Madness`, and `Objects`). `parseRules` remains heading-hierarchy-aware for core/spellcasting chapters, while `parseGamemasteringRules` handles the source-shaped Madness root intro and consolidates Objects prose while excluding its two structured tables. The real import fails closed against `EXPECTED_SRD_5_1_RULE_KEYS`. Madness and Objects use exact heading anchors with required end headings; their starts are best-effort only so reduced fixtures can omit those sections. Full body text is stored in `data.text`. Diseases and Poisons emit as structured `hazard` records under `loreweaver-6ra`. |
 
 The importer does **not** emit empty stubs for unimplemented kinds. Per the
 ADR 0007 ingestion policy and the `loreweaver-0m9.5` scope rule, a generated
@@ -216,11 +216,16 @@ sources/dnd5e-srd-5.1/SRD_CC_v5.1.pdf
   class record's `primaryAbilities` when the Class Features block carried none
   (loreweaver-0m9.5.19). Best-effort: a missing section yields an empty map and
   empty `primaryAbilities` rather than a failure (ADR 0007).
-- `parseTables.ts` -- narrowed core-rules and treasure-table text ->
+- `parseTables.ts` -- narrowed core-rules, Traps, Madness, Objects, and
+  treasure-table text ->
   `TableExtraction[]` by per-table anchors plus conservative row
   reconstruction for simple reference tables and column-block reconstruction
   for SRD treasure tables. Rows are emitted as structured arrays in
   `data.rows`.
+- `parseGamemasteringRules.ts` -- narrowed Madness and Objects text -> five
+  `RuleExtraction` records. It preserves the Madness root introduction,
+  separates Going Mad / Madness Effects / Curing Madness, and removes the
+  structured Object AC/HP rows from the consolidated Objects prose.
 - `parseEquipment.ts` -- narrowed Equipment-chapter text ->
   `EquipmentExtraction[]` for armor, weapons, tools, Adventuring Gear (+
   Container Capacity), and Equipment Packs; `parseMountsAndVehicles` handles the
@@ -262,9 +267,8 @@ the committed canonical pack) and reconstruction rules that are **wired and
 tested but match no section in the SRD 5.1 PDF**. The latter emit nothing for
 this source; they exist for fixtures and future editions, mirroring the retained
 `hazards` / `treasureTables` section anchors (see the section-anchor notes
-below). This split is the resolution of `loreweaver-46m`: the SRD 5.1 PDF
-contains exactly one reconstructable reference table, so the earlier flat list
-over-claimed the canonical pack's coverage.
+below). The exact canonical name set is guarded by
+`EXPECTED_SRD_5_1_TABLE_NAMES` / `TableCoverageError`.
 
 ### Present in the committed SRD 5.1 pack
 
@@ -273,10 +277,15 @@ over-claimed the canonical pack's coverage.
 | Difficulty Classes | `table:difficulty-classes` | Two-column label/DC rows reconstruct cleanly from line text ("Typical Difficulty Classes", p77). |
 | Trap Save DCs and Attack Bonuses | `table:trap-save-dcs-and-attack-bonuses` | Three-column danger/DC-range/attack-bonus rows reconstruct from line text (p196, gamemastering Traps section; loreweaver-hvp). Cell ranges keep the SRD en-dash verbatim. |
 | Damage Severity by Level | `table:damage-severity-by-level` | Four-column level-range/setback/dangerous/deadly dice rows reconstruct from line text (p196; loreweaver-hvp). |
+| Short-Term Madness | `table:short-term-madness` | Ten wrapped d100/effect rows reconstruct from the Madness slice (p201). |
+| Long-Term Madness | `table:long-term-madness` | Twelve wrapped d100/effect rows reconstruct from the Madness slice (p201). |
+| Indefinite Madness | `table:indefinite-madness` | Twelve wrapped d100/flaw rows reconstruct from the Madness slice (p202). |
+| Object Armor Class | `table:object-armor-class` | Seven substance/AC rows reconstruct from line text (p203). |
+| Object Hit Points | `table:object-hit-points` | Four size/fragile/resilient rows support both inline and split-column extraction layouts (p203). |
 
-The committed pack holds exactly these three `table` records.
+The committed pack holds exactly these eight `table` records.
 `srdGeneratedPack.test.ts` pins the table key/name set (and the per-kind
-`table: 3` count) so coverage cannot silently collapse or grow without a
+`table: 8` count) so coverage cannot silently collapse or grow without a
 reviewed baseline update.
 
 ### Reconstruction-capable but absent from SRD 5.1
@@ -348,6 +357,8 @@ logical line by the extractor's heading-merge pass before slicing.
 | `traps`              | `/^Traps$/`                                     | `/^(Diseases\|Madness\|Objects\|Poisons\|Monsters\|Magic Items\|Appendix)\b/` | `true` (best-effort start) | `true` |
 | `diseases`           | `/^Diseases$/`                                  | `/^(Madness\|Objects\|Poisons\|Monsters\|Magic Items\|Appendix)\b/` | `true` (best-effort start) | `true` |
 | `poisons`            | `/^Poisons$/`                                   | `/^(Magic Items\|Monsters\|Appendix)\b/`                    | `true` (best-effort start) | `true` |
+| `madness`            | `/^Madness$/`                                   | `/^Objects$/`                                                | `true` (best-effort start) | `true` |
+| `objects`            | `/^Objects$/`                                   | `/^Poisons$/`                                                | `true` (best-effort start) | `true` |
 | `hazards`            | `/^Dungeon Hazards$\|^Hazards$/`               | `/^(Traps\|...)$/i`                                         | `true` (best-effort) | `true`         |
 | `equipment`          | `/^Equipment$/`                                | `/^(Mounts and Vehicles\|...\|Feats)$/i`                    | `true`              | `true`          |
 | `mountsAndVehicles`  | `/^Mounts and Vehicles$/`                      | `/^(Trade Goods\|Expenses\|...\|Feats)$/i`                  | false (best-effort; parser is header-bounded) | `true` |
@@ -413,10 +424,12 @@ The importer is deterministic in two senses:
   determinism: two passes over the same input produce byte-identical files;
   output passes `validateRulesPack`.
 - `packages/core/test/importers/dnd5e-srd-5.1/parseTables.test.ts` -- unit
-  tests for the freestanding table parser, including a two-column DC table and
-  a multi-column encounter-threshold table, treasure column-block
-  reconstruction, and malformed treasure blocks that must not consume later
-  headings as cells.
+  tests for the freestanding table parser, including Madness wrapped rows,
+  both Object Hit Points extraction layouts, trap/DC tables, treasure
+  column-block reconstruction, and incomplete tables that must fail closed.
+- `packages/core/test/importers/dnd5e-srd-5.1/parseGamemasteringRules.test.ts`
+  -- unit tests for the five Madness/Objects prose records and table-row
+  exclusion.
 - `packages/core/test/importers/dnd5e-srd-5.1/pipeline.test.ts` -- end-to-end
   test against a small fixture PDF generated at test time via `pdfkit`, to
   exercise the full extract -> parse -> emit pipeline without requiring the

@@ -52,6 +52,7 @@ import { parseDiseases } from './parseDiseases.js';
 import { parseEquipment, parseMountsAndVehicles } from './parseEquipment.js';
 import { parseFeats } from './parseFeats.js';
 import { parseFeatures } from './parseFeatures.js';
+import { parseGamemasteringRules } from './parseGamemasteringRules.js';
 import { parseHazards } from './parseHazards.js';
 import { parseMagicItems } from './parseMagicItems.js';
 import { parseMulticlassing } from './parseMulticlassing.js';
@@ -77,6 +78,7 @@ import type {
   MagicItemExtraction,
   PoisonExtraction,
   RuleExtraction,
+  TableExtraction,
   TrapExtraction,
 } from './types.js';
 
@@ -1045,6 +1047,23 @@ export const EXPECTED_SRD_5_1_RULE_KEYS: readonly string[] = [
   'rule:the-schools-of-magic',
   'rule:verbal-v',
   'rule:what-is-a-spell',
+  // Gamemastering Madness and Objects sections (loreweaver-uuk).
+  'rule:curing-madness',
+  'rule:going-mad',
+  'rule:madness',
+  'rule:madness-effects',
+  'rule:objects',
+];
+
+export const EXPECTED_SRD_5_1_TABLE_NAMES: readonly string[] = [
+  'Damage Severity by Level',
+  'Difficulty Classes',
+  'Indefinite Madness',
+  'Long-Term Madness',
+  'Object Armor Class',
+  'Object Hit Points',
+  'Short-Term Madness',
+  'Trap Save DCs and Attack Bonuses',
 ];
 
 /**
@@ -1195,6 +1214,13 @@ export class RuleCoverageError extends Error {
   }
 }
 
+export class TableCoverageError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'TableCoverageError';
+  }
+}
+
 export interface RunImporterInput {
   /** Absolute path to the vendored SRD 5.1 PDF. */
   readonly pdfPath: string;
@@ -1321,6 +1347,11 @@ export interface RunImporterInput {
    * parent-qualified keys.
    */
   readonly expectedRuleKeys?: readonly string[];
+  /**
+   * Exact set of reference-table names the import must yield. The real importer
+   * passes `EXPECTED_SRD_5_1_TABLE_NAMES`; reduced fixtures may omit the check.
+   */
+  readonly expectedTableNames?: readonly string[];
 }
 
 /**
@@ -1649,7 +1680,7 @@ function validateRuleCoverage(
   expectedRuleKeys: readonly string[] | undefined,
 ): void {
   if (expectedRuleKeys === undefined) return;
-  const parsedKeys = new Set(rules.map((rule) => `rule:${rule.keySlug ?? ''}`));
+  const parsedKeys = new Set(rules.map(ruleCoverageKey));
   const expectedSet = new Set(expectedRuleKeys);
   const missing = expectedRuleKeys.filter((key) => !parsedKeys.has(key));
   const unexpected = [...parsedKeys].filter((key) => !expectedSet.has(key));
@@ -1664,6 +1695,40 @@ function validateRuleCoverage(
   }
   throw new RuleCoverageError(
     `SRD 5.1 rule coverage check failed: parsed ${rules.length} core-rules record(s), expected exactly ${expectedRuleKeys.length}. ${parts.join('; ')}. The core-rules chapters may have been truncated, a heading renamed, or a caption/sidebar promoted. Refusing to write a pack with a drifted rule set.`,
+  );
+}
+
+function ruleCoverageKey(rule: RuleExtraction): string {
+  const keySlug =
+    rule.keySlug ??
+    rule.name
+      .toLowerCase()
+      .replace(/[’']/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  return `rule:${keySlug}`;
+}
+
+function validateTableCoverage(
+  tables: readonly TableExtraction[],
+  expectedTableNames: readonly string[] | undefined,
+): void {
+  if (expectedTableNames === undefined) return;
+  const parsedNames = new Set(tables.map((table) => table.name));
+  const expectedSet = new Set(expectedTableNames);
+  const missing = expectedTableNames.filter((name) => !parsedNames.has(name));
+  const unexpected = [...parsedNames].filter((name) => !expectedSet.has(name));
+  if (missing.length === 0 && unexpected.length === 0) return;
+
+  const parts: string[] = [];
+  if (missing.length > 0) {
+    parts.push(`missing expected table(s): ${missing.join(', ')}`);
+  }
+  if (unexpected.length > 0) {
+    parts.push(`unexpected table(s): ${unexpected.join(', ')}`);
+  }
+  throw new TableCoverageError(
+    `SRD 5.1 table coverage check failed: parsed ${tables.length} table record(s), expected exactly ${expectedTableNames.length}. ${parts.join('; ')}. A reference table may be incomplete, renamed, or spuriously extracted. Refusing to write a pack with a drifted table set.`,
   );
 }
 
@@ -1758,6 +1823,11 @@ export async function runImporter(
   validateDiseaseCoverage(diseases, input.expectedDiseaseNames);
   const poisons = sliceSectionOrEmpty(pages, anchors.poisons, parsePoisons);
   validatePoisonCoverage(poisons, input.expectedPoisonNames);
+  // Madness and Objects are absent from many reduced fixture PDFs, so a
+  // missing start degrades to no records. Once either start is present its
+  // required end boundary still fails closed.
+  const madnessPages = sliceSectionOrEmptyPages(pages, anchors.madness);
+  const objectPages = sliceSectionOrEmptyPages(pages, anchors.objects);
   const equipmentPages = sliceSection(pages, anchors.equipment);
   // Mounts and Vehicles sits just after the Equipment chapter's tables (the
   // equipment anchor's endHeading), so it is its own slice parsed by
@@ -1812,7 +1882,8 @@ export async function runImporter(
     spellcastingRulePages,
     reservedRuleKeySlugs,
   );
-  const rules = [...coreRules, ...spellcastingRules];
+  const gamemasteringRules = parseGamemasteringRules(madnessPages, objectPages);
+  const rules = [...coreRules, ...spellcastingRules, ...gamemasteringRules];
   // Fail closed before any output is written when the real import (CLI) supplies
   // the exact expected rule-key set and the nesting-aware parse drifts from it
   // (loreweaver-yli, extended for the spellcasting chapter by loreweaver-3hp).
@@ -1824,7 +1895,10 @@ export async function runImporter(
     ...coreRulePages,
     ...treasureTablePages,
     ...trapPages,
+    ...madnessPages,
+    ...objectPages,
   ]);
+  validateTableCoverage(tables, input.expectedTableNames);
   // Sliced after the other sections so the existing fail-closed tests trip on
   // their own anchor first. Throws SectionNotFoundError if the races anchor
   // doesn't match — ancestry is an implemented kind, so fail closed rather than
