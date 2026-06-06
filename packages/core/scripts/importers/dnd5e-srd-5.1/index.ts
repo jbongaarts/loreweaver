@@ -48,12 +48,14 @@ import { parseAncestries } from './parseAncestries.js';
 import { parseClasses } from './parseClasses.js';
 import { parseConditions } from './parseConditions.js';
 import { parseCreatures } from './parseCreatures.js';
+import { parseDiseases } from './parseDiseases.js';
 import { parseEquipment, parseMountsAndVehicles } from './parseEquipment.js';
 import { parseFeats } from './parseFeats.js';
 import { parseFeatures } from './parseFeatures.js';
 import { parseHazards } from './parseHazards.js';
 import { parseMagicItems } from './parseMagicItems.js';
 import { parseMulticlassing } from './parseMulticlassing.js';
+import { parsePoisons } from './parsePoisons.js';
 import { parseRules } from './parseRules.js';
 import { parseSpellClassLists, parseSpells } from './parseSpells.js';
 import { parseSubclasses } from './parseSubclasses.js';
@@ -70,8 +72,10 @@ import type {
   AncestryExtraction,
   ClassPrimaryAbilityIndex,
   CreatureExtraction,
+  DiseaseExtraction,
   ImporterRunResult,
   MagicItemExtraction,
+  PoisonExtraction,
   RuleExtraction,
   TrapExtraction,
 } from './types.js';
@@ -537,6 +541,44 @@ export const EXPECTED_SRD_5_1_TRAP_NAMES: readonly string[] = [
   'Poison Needle',
   'Rolling Sphere',
   'Sphere of Annihilation',
+];
+
+/**
+ * Sample diseases the SRD 5.1 "Diseases" section publishes (loreweaver-6ra):
+ * Cackle Fever, Sewer Plague, Sight Rot. The real import validates the parsed
+ * disease names against this exact set (like traps/ancestries), so a dropped,
+ * renamed, or spuriously-extracted disease fails closed by name. Diseases emit
+ * under the `hazard` record kind with `data.category: 'disease'`.
+ */
+export const EXPECTED_SRD_5_1_DISEASE_NAMES: readonly string[] = [
+  'Cackle Fever',
+  'Sewer Plague',
+  'Sight Rot',
+];
+
+/**
+ * Sample poisons the SRD 5.1 "Poisons" section publishes (loreweaver-6ra): the
+ * 14 named poisons (Assassin's Blood … Wyvern Poison), each with a delivery
+ * type, a price per dose, and a save-DC/effect description. The real import
+ * validates the parsed poison names against this exact set, so a dropped,
+ * renamed, or spuriously-extracted poison fails closed by name. Poisons emit
+ * under the `hazard` record kind with `data.category: 'poison'`.
+ */
+export const EXPECTED_SRD_5_1_POISON_NAMES: readonly string[] = [
+  'Assassin’s Blood',
+  'Burnt Othur Fumes',
+  'Crawler Mucus',
+  'Drow Poison',
+  'Essence of Ether',
+  'Malice',
+  'Midnight Tears',
+  'Oil of Taggit',
+  'Pale Tincture',
+  'Purple Worm Poison',
+  'Serpent Venom',
+  'Torpor',
+  'Truth Serum',
+  'Wyvern Poison',
 ];
 
 /**
@@ -1099,6 +1141,33 @@ export class TrapCoverageError extends Error {
 }
 
 /**
+ * Thrown when the parsed sample-disease set fails exact SRD 5.1 name-set
+ * coverage (loreweaver-6ra). Like the trap set, the disease name set is small
+ * and stable enough to validate exactly. Distinct from `SectionNotFoundError`
+ * so callers can tell "the Diseases section was found but produced the wrong
+ * diseases" apart from "the section anchor didn't match".
+ */
+export class DiseaseCoverageError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'DiseaseCoverageError';
+  }
+}
+
+/**
+ * Thrown when the parsed sample-poison set fails exact SRD 5.1 name-set coverage
+ * (loreweaver-6ra). Distinct from `SectionNotFoundError` so callers can tell
+ * "the Poisons section was found but produced the wrong poisons" apart from "the
+ * section anchor didn't match".
+ */
+export class PoisonCoverageError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'PoisonCoverageError';
+  }
+}
+
+/**
  * Thrown when the parsed magic-item set is empty or implausibly small for the
  * SRD 5.1 Magic Items A-Z section.
  */
@@ -1205,6 +1274,24 @@ export interface RunImporterInput {
    * when the section is absent). Sample traps emit under the `hazard` kind.
    */
   readonly expectedTrapNames?: readonly string[];
+  /**
+   * Exact set of sample-disease names the Diseases section must yield for the
+   * run to be accepted (loreweaver-6ra). When provided and the parsed names
+   * don't match it exactly, the importer throws `DiseaseCoverageError` and writes
+   * nothing. The real-import CLI passes `EXPECTED_SRD_5_1_DISEASE_NAMES`; fixture
+   * pipelines omit it (the best-effort slice degrades to empty when absent).
+   * Diseases emit under the `hazard` kind with `data.category: 'disease'`.
+   */
+  readonly expectedDiseaseNames?: readonly string[];
+  /**
+   * Exact set of sample-poison names the Poisons section must yield for the run
+   * to be accepted (loreweaver-6ra). When provided and the parsed names don't
+   * match it exactly, the importer throws `PoisonCoverageError` and writes
+   * nothing. The real-import CLI passes `EXPECTED_SRD_5_1_POISON_NAMES`; fixture
+   * pipelines omit it. Poisons emit under the `hazard` kind with
+   * `data.category: 'poison'`.
+   */
+  readonly expectedPoisonNames?: readonly string[];
   /**
    * Minimum number of Magic Items A-Z entries the section must yield for the
    * run to be accepted. An empty magic-item result is always rejected regardless
@@ -1439,6 +1526,70 @@ function validateTrapCoverage(
   );
 }
 
+/**
+ * Fail closed on a disease result that can't be a faithful SRD 5.1 import
+ * (loreweaver-6ra). When the exact `expectedDiseaseNames` set is supplied (the
+ * real import via the CLI), the parsed disease names must match it exactly — any
+ * missing or unexpected disease is rejected, naming the specific offenders.
+ * Fixture pipelines that exercise a reduced Diseases section omit the set (an
+ * absent section already degrades to empty via the best-effort slice). Runs
+ * after parsing and before any output is written.
+ */
+function validateDiseaseCoverage(
+  diseases: readonly DiseaseExtraction[],
+  expectedDiseaseNames: readonly string[] | undefined,
+): void {
+  if (expectedDiseaseNames === undefined) return;
+  const parsedNames = new Set(diseases.map((disease) => disease.name));
+  const expectedSet = new Set(expectedDiseaseNames);
+  const missing = expectedDiseaseNames.filter((name) => !parsedNames.has(name));
+  const unexpected = [...parsedNames].filter((name) => !expectedSet.has(name));
+  if (missing.length === 0 && unexpected.length === 0) return;
+
+  const parts: string[] = [];
+  if (missing.length > 0) {
+    parts.push(`missing expected disease(s): ${missing.join(', ')}`);
+  }
+  if (unexpected.length > 0) {
+    parts.push(`unexpected disease(s): ${unexpected.join(', ')}`);
+  }
+  throw new DiseaseCoverageError(
+    `SRD 5.1 disease coverage check failed: parsed ${diseases.length} sample disease(s), expected exactly ${expectedDiseaseNames.length}. ${parts.join('; ')}. The Diseases section may have been truncated, a disease renamed, or unrelated prose promoted. Refusing to write a pack with a drifted disease set.`,
+  );
+}
+
+/**
+ * Fail closed on a poison result that can't be a faithful SRD 5.1 import
+ * (loreweaver-6ra). When the exact `expectedPoisonNames` set is supplied (the
+ * real import via the CLI), the parsed poison names must match it exactly — any
+ * missing or unexpected poison is rejected, naming the specific offenders so a
+ * dropped/renamed poison (e.g. a lead-in-detection regression) or a spuriously
+ * promoted prose line trips by name. Fixture pipelines omit the set. Runs after
+ * parsing and before any output is written.
+ */
+function validatePoisonCoverage(
+  poisons: readonly PoisonExtraction[],
+  expectedPoisonNames: readonly string[] | undefined,
+): void {
+  if (expectedPoisonNames === undefined) return;
+  const parsedNames = new Set(poisons.map((poison) => poison.name));
+  const expectedSet = new Set(expectedPoisonNames);
+  const missing = expectedPoisonNames.filter((name) => !parsedNames.has(name));
+  const unexpected = [...parsedNames].filter((name) => !expectedSet.has(name));
+  if (missing.length === 0 && unexpected.length === 0) return;
+
+  const parts: string[] = [];
+  if (missing.length > 0) {
+    parts.push(`missing expected poison(s): ${missing.join(', ')}`);
+  }
+  if (unexpected.length > 0) {
+    parts.push(`unexpected poison(s): ${unexpected.join(', ')}`);
+  }
+  throw new PoisonCoverageError(
+    `SRD 5.1 poison coverage check failed: parsed ${poisons.length} sample poison(s), expected exactly ${expectedPoisonNames.length}. ${parts.join('; ')}. The Poisons section may have been truncated, a poison renamed, or unrelated prose promoted. Refusing to write a pack with a drifted poison set.`,
+  );
+}
+
 function validateMagicItemCoverage(
   magicItems: readonly MagicItemExtraction[],
   minMagicItemCount: number | undefined,
@@ -1596,6 +1747,17 @@ export async function runImporter(
   // Fail closed before any output is written when the real import (CLI) supplies
   // the exact expected trap-name set and the parse drifts from it.
   validateTrapCoverage(traps, input.expectedTrapNames);
+  // SRD 5.1 gamemastering "Diseases" and "Poisons" sections (loreweaver-6ra).
+  // Both are description-only dangers with save DCs and effects, so — like traps
+  // — they emit under the `hazard` kind, discriminated by `data.category`
+  // ('disease' / 'poison'). Best-effort start (a fixture without these sections
+  // degrades to no records), but each anchor's requireEndHeading bound still
+  // fails closed if the section starts and its end boundary is missing, so a
+  // disease/poison body cannot run on into the following gamemastering section.
+  const diseases = sliceSectionOrEmpty(pages, anchors.diseases, parseDiseases);
+  validateDiseaseCoverage(diseases, input.expectedDiseaseNames);
+  const poisons = sliceSectionOrEmpty(pages, anchors.poisons, parsePoisons);
+  validatePoisonCoverage(poisons, input.expectedPoisonNames);
   const equipmentPages = sliceSection(pages, anchors.equipment);
   // Mounts and Vehicles sits just after the Equipment chapter's tables (the
   // equipment anchor's endHeading), so it is its own slice parsed by
@@ -1720,6 +1882,8 @@ export async function runImporter(
     feats,
     hazards,
     traps,
+    diseases,
+    poisons,
     actions,
     rules,
     tables,
@@ -1743,6 +1907,8 @@ export async function runImporter(
       feats: feats.length,
       hazards: hazards.length,
       traps: traps.length,
+      diseases: diseases.length,
+      poisons: poisons.length,
       actions: actions.length,
       rules: rules.length,
       tables: tables.length,

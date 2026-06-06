@@ -32,8 +32,10 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   EXPECTED_SRD_5_1_CREATURE_NAMES,
+  EXPECTED_SRD_5_1_DISEASE_NAMES,
   EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES,
   EXPECTED_SRD_5_1_NPC_NAMES,
+  EXPECTED_SRD_5_1_POISON_NAMES,
   EXPECTED_SRD_5_1_RULE_KEYS,
   MIN_EXPECTED_SRD_5_1_CREATURES,
   MIN_EXPECTED_SRD_5_1_MAGIC_ITEMS,
@@ -101,9 +103,11 @@ const EXPECTED_COUNTS_BY_KIND: Readonly<Record<string, number>> = {
   equipment: 218,
   feat: 1,
   feature: 144,
-  // The 8 SRD 5.1 sample traps emit under the `hazard` kind (loreweaver-hvp);
-  // SRD 5.1 has no environmental hazards, so all 8 hazard records are traps.
-  hazard: 8,
+  // 8 sample traps (loreweaver-hvp) + 3 sample diseases + 14 sample poisons
+  // (loreweaver-6ra) all emit under the `hazard` kind; SRD 5.1 has no
+  // environmental hazards. Traps carry a `trapType` discriminator; diseases and
+  // poisons carry `data.category` ('disease' / 'poison').
+  hazard: 25,
   'magic-item': 238,
   // Nesting-aware core-rules parse: one rule per heading across the Using
   // Ability Scores, Adventuring, and Combat chapters (loreweaver-yli, 127),
@@ -146,6 +150,10 @@ const EXPECTED_STABLE_KEYS: readonly string[] = [
   'feature:champion:improved-critical',
   'hazard:fire-breathing-statue',
   'hazard:sphere-of-annihilation',
+  // Sample diseases + poisons under the `hazard` kind (loreweaver-6ra).
+  'hazard:cackle-fever',
+  'hazard:assassins-blood',
+  'hazard:wyvern-poison',
   'magic-item:adamantine-armor',
   'magic-item:ammunition-1-2-or-3',
   'magic-item:amulet-of-health',
@@ -194,6 +202,11 @@ const EXPECTED_STABLE_KEYS: readonly string[] = [
  *     cell — the items with a "—" weight (Sling, gaming sets, and many
  *     adventuring-gear/tack rows) plus the 7 packs, 8 mounts, and 6 waterborne
  *     vehicles (priced by speed/capacity, not weight).
+ *   - hazard.{category,poisonType,price,trapType}: the `hazard` kind holds three
+ *     gamemastering sub-families (loreweaver-6ra). The 8 traps carry `trapType`;
+ *     the 3 diseases + 14 poisons carry `category` ('disease'/'poison'); the 14
+ *     poisons additionally carry `poisonType` and `price`. Every hazard record
+ *     still carries the required `description`.
  *   - magic-item.attunementRequirement: only the 26 items whose category line
  *     restricts attunement by class, ancestry, alignment, or spellcasting carry
  *     this text; all 238 records still carry the boolean `requiresAttunement`.
@@ -271,6 +284,13 @@ const EXPECTED_PARTIAL_FIELDS: ReadonlyArray<{
     totalInKind: 218,
   },
   { kind: 'equipment', field: 'weight', missingCount: 44, totalInKind: 218 },
+  // hazard sub-families (loreweaver-6ra): of the 25 hazard records, the 8 traps
+  // carry `trapType`; the 3 diseases + 14 poisons carry `category`; the 14
+  // poisons additionally carry `poisonType` and `price`.
+  { kind: 'hazard', field: 'category', missingCount: 8, totalInKind: 25 },
+  { kind: 'hazard', field: 'poisonType', missingCount: 11, totalInKind: 25 },
+  { kind: 'hazard', field: 'price', missingCount: 11, totalInKind: 25 },
+  { kind: 'hazard', field: 'trapType', missingCount: 17, totalInKind: 25 },
   {
     kind: 'magic-item',
     field: 'attunementRequirement',
@@ -842,6 +862,97 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
           /You can copy a spell from your own\s+Your spellbook is a unique\s*$/,
         );
       }
+    });
+  });
+
+  // loreweaver-6ra: the gamemastering Diseases and Poisons sections emit under
+  // the `hazard` kind (alongside the 8 traps), discriminated by `data.category`.
+  // These assertions guard exact name-set coverage, the category discriminators,
+  // and the structured poison fields — plus the p205 reading-order fix that the
+  // extractor change (the inline lead-in single-column merge) made possible.
+  describe('gamemastering hazards: diseases + poisons (loreweaver-6ra)', () => {
+    const hazards = pack.records.filter((r) => r.kind === 'hazard');
+    const dataOf = (key: string) =>
+      pack.records.find((r) => r.key === key)?.data as
+        | Record<string, unknown>
+        | undefined;
+
+    it('emits every sample disease, keyed under the hazard kind', () => {
+      const diseases = hazards.filter(
+        (r) => (r.data as { category?: unknown }).category === 'disease',
+      );
+      expect(diseases.map((r) => r.name).sort()).toEqual(
+        [...EXPECTED_SRD_5_1_DISEASE_NAMES].sort(),
+      );
+    });
+
+    it('emits every sample poison, keyed under the hazard kind', () => {
+      const poisons = hazards.filter(
+        (r) => (r.data as { category?: unknown }).category === 'poison',
+      );
+      expect(poisons.map((r) => r.name).sort()).toEqual(
+        [...EXPECTED_SRD_5_1_POISON_NAMES].sort(),
+      );
+    });
+
+    it('disease and poison name baselines have no duplicates and no key collisions', () => {
+      expect(new Set(EXPECTED_SRD_5_1_DISEASE_NAMES).size).toBe(
+        EXPECTED_SRD_5_1_DISEASE_NAMES.length,
+      );
+      expect(new Set(EXPECTED_SRD_5_1_POISON_NAMES).size).toBe(
+        EXPECTED_SRD_5_1_POISON_NAMES.length,
+      );
+      // hazard keys (8 traps + 3 diseases + 14 poisons) are all distinct.
+      const keys = hazards.map((r) => r.key);
+      expect(new Set(keys).size).toBe(keys.length);
+    });
+
+    it('carries structured poisonType and price on every poison', () => {
+      for (const name of EXPECTED_SRD_5_1_POISON_NAMES) {
+        const data = dataOf(
+          `hazard:${name
+            .toLowerCase()
+            .replace(/[’']/g, '')
+            .replace(/[^a-z0-9]+/g, '-')}`,
+        );
+        expect(data, `expected a record for ${name}`).toBeDefined();
+        expect(typeof data?.poisonType).toBe('string');
+        expect(['contact', 'ingested', 'inhaled', 'injury']).toContain(
+          data?.poisonType,
+        );
+        expect(typeof data?.price).toBe('string');
+        expect(data?.price as string).toMatch(/gp$/);
+      }
+    });
+
+    it('keeps traps free of a category and diseases/poisons free of trapType', () => {
+      for (const r of hazards) {
+        const data = r.data as { category?: unknown; trapType?: unknown };
+        if (data.trapType !== undefined) {
+          expect(data.category).toBeUndefined();
+        } else {
+          expect(['disease', 'poison']).toContain(data.category);
+        }
+      }
+    });
+
+    it('reconstructs the p205 Sample Poisons in source order (inline lead-in fix)', () => {
+      // Before the extractor fix, page 205 was split into a phantom right column
+      // and each poison's bold lead-in remainder was emitted AFTER its body,
+      // scrambling the first sentence (e.g. "Pale Tincture" lost "A creature
+      // subjected to", and Truth Serum's trailing "spell." was displaced).
+      const pale = dataOf('hazard:pale-tincture')?.description as string;
+      expect(pale).toMatch(
+        /^A creature subjected to this poison must succeed on a DC 16/,
+      );
+      const truth = dataOf('hazard:truth-serum')?.description as string;
+      expect(truth).toMatch(
+        /as if under the effect of a zone of truth spell\.$/,
+      );
+      const wyvern = dataOf('hazard:wyvern-poison')?.description as string;
+      expect(wyvern).toMatch(
+        /^This poison must be harvested from a dead or incapacitated wyvern\./,
+      );
     });
   });
 

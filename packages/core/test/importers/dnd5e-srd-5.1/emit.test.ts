@@ -17,8 +17,10 @@ import {
   actionExtractionsToRecords,
   ancestryExtractionsToRecords,
   buildPack,
+  diseaseExtractionsToRecords,
   featureExtractionsToRecords,
   magicItemExtractionsToRecords,
+  poisonExtractionsToRecords,
   SRD_5_1_LICENSE,
   spellExtractionsToRecords,
   subclassExtractionsToRecords,
@@ -28,8 +30,10 @@ import {
 import type {
   ActionExtraction,
   AncestryExtraction,
+  DiseaseExtraction,
   FeatureExtraction,
   MagicItemExtraction,
+  PoisonExtraction,
   RuleExtraction,
   SpellCasterClass,
   SpellExtraction,
@@ -592,6 +596,72 @@ describe('magicItemExtractionsToRecords — record shape', () => {
   it('attaches provenance pointing at the SRD source page', () => {
     const [record] = magicItemExtractionsToRecords([ADAMANTINE_ARMOR]);
     expect(record.provenance.locator).toBe('p. 207');
+  });
+});
+
+describe('diseaseExtractionsToRecords — record shape', () => {
+  const CACKLE_FEVER: DiseaseExtraction = {
+    name: 'Cackle Fever',
+    description: 'This disease targets humanoids, although gnomes are immune.',
+    sourcePage: 199,
+  };
+
+  it('emits under the hazard kind with data.category "disease"', () => {
+    const [record] = diseaseExtractionsToRecords([CACKLE_FEVER]);
+    expect(record.kind).toBe('hazard');
+    expect(record.key).toBe('hazard:cackle-fever');
+    expect(record.data).toEqual({
+      category: 'disease',
+      description:
+        'This disease targets humanoids, although gnomes are immune.',
+    });
+    expect(record.provenance.locator).toBe('p. 199');
+  });
+});
+
+describe('poisonExtractionsToRecords — record shape', () => {
+  const ASSASSINS_BLOOD: PoisonExtraction = {
+    name: 'Assassin’s Blood',
+    poisonType: 'ingested',
+    price: '150 gp',
+    description: 'A creature subjected to this poison must make a DC 10 save.',
+    sourcePage: 204,
+  };
+  const PRICELESS: PoisonExtraction = {
+    name: 'Mystery Poison',
+    poisonType: 'contact',
+    description: 'An effect with no listed price.',
+    sourcePage: 204,
+  };
+
+  it('emits under the hazard kind with category, poisonType, price, description in order', () => {
+    const [record] = poisonExtractionsToRecords([ASSASSINS_BLOOD]);
+    expect(record.kind).toBe('hazard');
+    expect(record.key).toBe('hazard:assassins-blood');
+    expect(record.data).toEqual({
+      category: 'poison',
+      poisonType: 'ingested',
+      price: '150 gp',
+      description:
+        'A creature subjected to this poison must make a DC 10 save.',
+    });
+    // Field insertion order is fixed for byte-stable output.
+    expect(Object.keys(record.data)).toEqual([
+      'category',
+      'poisonType',
+      'price',
+      'description',
+    ]);
+  });
+
+  it('omits price when the entry has no matching table row', () => {
+    const [record] = poisonExtractionsToRecords([PRICELESS]);
+    expect(record.data).not.toHaveProperty('price');
+    expect(Object.keys(record.data)).toEqual([
+      'category',
+      'poisonType',
+      'description',
+    ]);
   });
 });
 

@@ -375,6 +375,50 @@ describe('extractPdfText — heading merge', () => {
     expect(lines.indexOf('outlier')).toBeGreaterThan(rightIdx);
   });
 
+  it('keeps a sparse page single-column when each entry opens with an indented lead-in followed by a far-right continuation (SRD p205 Sample Poisons)', async () => {
+    // Regression for loreweaver-6ra. The SRD 5.1 "Sample Poisons" page is a
+    // single column whose entries open with a short indented bold lead-in
+    // ("Pale Tincture (Ingested).", x≈67) immediately followed on the SAME
+    // baseline by the justified remainder of the first line ("A creature
+    // subjected to", x≈180), with the body resuming at the left margin (x≈57).
+    // The lead-ins are indented enough, and the remainders start far enough
+    // right, that the widest start-x gap clears the column threshold and both
+    // sides pass the item-count / distinct-x guards — so the page was split into
+    // a phantom right column and every remainder was emitted AFTER the body,
+    // scrambling each entry's first sentence. The extractor now rejects such a
+    // cut (it straddles ≥2 contiguous baselines and no real gutter, and the
+    // widest cut is also the most balanced), reading the page as one column.
+    const pages = await extractFromOps([
+      // Entry 1: indented lead-in + same-baseline far-right continuation.
+      { text: 'Alpha Poison Name Here (Ingested).', size: 11, x: 67, y: 200 },
+      { text: 'A creature subjected to', size: 11, x: 250, y: 200 },
+      { text: 'this poison must succeed on a save.', size: 11, x: 57, y: 215 },
+      // Entry 2: same shape.
+      { text: 'Beta Poison Name Here (Injury).', size: 11, x: 67, y: 245 },
+      { text: 'This poison must be', size: 11, x: 250, y: 245 },
+      { text: 'harvested from a dead creature.', size: 11, x: 57, y: 260 },
+    ]);
+    const lines = pages[0].lines;
+    // The lead-in and its same-baseline continuation join into one line, in
+    // source order — not split into a phantom column emitted at the end.
+    expect(lines).toContain(
+      'Alpha Poison Name Here (Ingested). A creature subjected to',
+    );
+    expect(lines).toContain(
+      'Beta Poison Name Here (Injury). This poison must be',
+    );
+    // The continuation must immediately precede the body line, not trail it.
+    const aLead = lines.indexOf(
+      'Alpha Poison Name Here (Ingested). A creature subjected to',
+    );
+    const aBody = lines.indexOf('this poison must succeed on a save.');
+    expect(aLead).toBeGreaterThanOrEqual(0);
+    expect(aBody).toBe(aLead + 1);
+    // No bare displaced remainder line survives.
+    expect(lines).not.toContain('A creature subjected to');
+    expect(lines).not.toContain('This poison must be');
+  });
+
   it('picks the real page gutter when two far-right outliers satisfy the minimum guards', async () => {
     // Regression for loreweaver-ecr.4. SRD p236 has the real Magic Items
     // two-column gutter at x~274->329, plus two far-right words in the right
