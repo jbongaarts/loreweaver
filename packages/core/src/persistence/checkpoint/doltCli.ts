@@ -1,38 +1,88 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { managedDoltRoot, resolveDoltBinary } from './doltBinary.js';
 
 /**
+ * Thrown when the Loreweaver-managed `config_global.json` exists but is not a
+ * JSON object. We refuse to overwrite it (it could hold unrelated data) and
+ * surface the problem instead of silently clobbering or proceeding with
+ * telemetry left enabled.
+ */
+export class DoltConfigError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'DoltConfigError';
+  }
+}
+
+/**
  * Per-process guard so the isolated dolt home is configured at most once per
- * root path (the file write is idempotent; the Set just avoids redundant fs
- * calls on every dolt invocation).
+ * root path — avoids redundant fs work on every dolt invocation. A root is
+ * only marked prepared after a successful (or best-effort-swallowed) write, so
+ * a {@link DoltConfigError} keeps re-surfacing until the bad file is fixed.
  */
 const preparedRoots = new Set<string>();
 
 /**
  * Ensure the Loreweaver-owned dolt home exists with telemetry disabled.
  *
- * Pre-writes `<root>/.dolt/config_global.json` with `metrics.disabled` so dolt
- * never queues usage events (the unbounded `eventsData` backlog and its
- * network flush are the suspected cause of the transient Windows `init` crash —
- * see loreweaver-cjs). Because this writes to the ISOLATED root, not the user's
- * `~/.dolt`, it does not violate the "never mutate the user's global dolt
- * config" invariant in {@link DoltCli.init}. Best-effort: a failure here must
- * never break a dolt call, so it is swallowed.
+ * Writes `<root>/.dolt/config_global.json` so it always contains
+ * `"metrics.disabled": "true"`, which stops dolt queuing usage events (the
+ * unbounded `eventsData` backlog and its network flush are the suspected cause
+ * of the transient Windows `init` crash — see loreweaver-cjs). Existing keys in
+ * the isolated config are preserved; the invariant is enforced on every call,
+ * not just first creation. Because this writes to the ISOLATED root, not the
+ * user's `~/.dolt`, it does not violate the "never mutate the user's global
+ * dolt config" invariant in {@link DoltCli.init}.
+ *
+ * Failure handling: invalid existing JSON FAILS FAST ({@link DoltConfigError})
+ * rather than silently overwriting unrelated data; ordinary fs failures (e.g. a
+ * read-only home) are swallowed so a dolt call is never broken by setup.
+ *
+ * Exported for unit tests; not part of the stable public surface.
  */
-function ensureDoltRoot(root: string): void {
+export function ensureDoltRoot(root: string): void {
   if (preparedRoots.has(root)) return;
+  const cfgDir = join(root, '.dolt');
+  const cfg = join(cfgDir, 'config_global.json');
   try {
-    const cfgDir = join(root, '.dolt');
+    const config = readManagedDoltConfig(cfg);
+    config['metrics.disabled'] = 'true';
     mkdirSync(cfgDir, { recursive: true });
-    const cfg = join(cfgDir, 'config_global.json');
-    if (!existsSync(cfg)) writeFileSync(cfg, '{"metrics.disabled":"true"}\n');
-  } catch {
+    writeFileSync(cfg, `${JSON.stringify(config)}\n`);
+  } catch (err) {
+    // Corrupt managed config must surface; everything else stays best-effort.
+    if (err instanceof DoltConfigError) throw err;
     /* swallow: dolt still runs (just possibly with telemetry) if setup fails */
   }
-  // Mark prepared even on failure so we do not retry fs work on every call.
   preparedRoots.add(root);
+}
+
+/**
+ * Read the managed `config_global.json` as a JSON object. Missing or empty →
+ * `{}`. Present-but-not-a-JSON-object → {@link DoltConfigError} (fail fast).
+ */
+function readManagedDoltConfig(cfg: string): Record<string, unknown> {
+  if (!existsSync(cfg)) return {};
+  const text = readFileSync(cfg, 'utf8').trim();
+  if (text.length === 0) return {};
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch (err) {
+    throw new DoltConfigError(
+      `Loreweaver-managed dolt config at ${cfg} is not valid JSON; refusing to ` +
+        `overwrite it. Inspect or remove the file. (${(err as Error).message})`,
+    );
+  }
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+    throw new DoltConfigError(
+      `Loreweaver-managed dolt config at ${cfg} is not a JSON object; refusing ` +
+        'to overwrite it. Inspect or remove the file.',
+    );
+  }
+  return parsed as Record<string, unknown>;
 }
 
 /**
