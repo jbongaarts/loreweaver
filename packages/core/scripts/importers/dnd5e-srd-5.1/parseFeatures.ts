@@ -42,7 +42,12 @@
  * emit a record that can't satisfy the schema.
  */
 
-import { KNOWN_SUBCLASSES, PARENT_CLASS_NAMES } from './parseSubclasses.js';
+import {
+  hasHeadingTiers,
+  isCalloutBoxHeading,
+  KNOWN_SUBCLASSES,
+  PARENT_CLASS_NAMES,
+} from './parseSubclasses.js';
 import type { FeatureExtraction, PageText } from './types.js';
 
 const SUBCLASS_NAMES = new Set(KNOWN_SUBCLASSES.map((s) => s.name));
@@ -97,6 +102,8 @@ const TRAILING_TABLE_CELL =
 interface FlatLine {
   readonly line: string;
   readonly page: number;
+  /** Rendered max font height (PDF points), when the source carried it. */
+  readonly height?: number;
 }
 
 interface FeatureAnchor {
@@ -118,8 +125,12 @@ function normalizeLine(line: string): string {
 function flatten(pages: readonly PageText[]): readonly FlatLine[] {
   const out: FlatLine[] = [];
   for (const page of pages) {
-    for (const line of page.lines) {
-      out.push({ line: normalizeLine(line), page: page.pageNumber });
+    for (let i = 0; i < page.lines.length; i++) {
+      out.push({
+        line: normalizeLine(page.lines[i]),
+        page: page.pageNumber,
+        height: page.lineHeights?.[i],
+      });
     }
   }
   return out;
@@ -318,6 +329,10 @@ export function parseFeatures(pages: readonly PageText[]): FeatureExtraction[] {
   if (flat.length === 0) return [];
 
   const anchors = collectFeatureAnchors(flat);
+  // Only honor callout-box font heights on a genuinely multi-tier slice;
+  // uniform-font fixtures render body lines inside the callout band and must
+  // not be bounded as boxes (loreweaver-6fw).
+  const tiersPresent = hasHeadingTiers(flat.map((f) => f.height));
   const out: FeatureExtraction[] = [];
   const emittedIndexByKey = new Map<string, number>();
   let currentClass: string | null = null;
@@ -337,6 +352,10 @@ export function parseFeatures(pages: readonly PageText[]): FeatureExtraction[] {
       continue;
     }
     if (isStructuralLine(line)) continue;
+    // A gray callout-box heading (e.g. Wizard "Your Spellbook") is generic
+    // class/DM sidebar prose printed after the last subclass feature, not a
+    // feature — never promote it (loreweaver-6fw).
+    if (tiersPresent && isCalloutBoxHeading(flat[i].height)) continue;
 
     // Features only exist once a class context is open (so the chapter heading
     // and pre-class prose are never promoted).
@@ -353,6 +372,10 @@ export function parseFeatures(pages: readonly PageText[]): FeatureExtraction[] {
     for (; j < flat.length; j++) {
       const next = flat[j].line;
       if (isStructuralLine(next)) break;
+      // The next subclass feature's own grant-level callout box (e.g. Wizard
+      // "Your Spellbook" after Overchannel) bounds this feature's body so the
+      // generic class/DM sidebar does not bleed in (loreweaver-6fw).
+      if (tiersPresent && isCalloutBoxHeading(flat[j].height)) break;
       if (featureStartAt(flat, j, grantorKind, grantorName, anchors) !== null) {
         break;
       }
