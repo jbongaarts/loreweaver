@@ -26862,6 +26862,102 @@
   {
     "systemId": "dnd5e-srd",
     "kind": "feature",
+    "key": "feature:oath-of-devotion:aura-of-devotion",
+    "name": "Aura of Devotion",
+    "data": {
+      "source": "subclass:oath-of-devotion",
+      "level": 7,
+      "description": "Starting at 7th level, you and friendly creatures within 10 feet of you can’t be charmed while you are conscious. At 18th level, the range of this aura increases to 30 feet."
+    },
+    "source": "SRD 5.1 p. 33",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 33"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "feature",
+    "key": "feature:oath-of-devotion:holy-nimbus",
+    "name": "Holy Nimbus",
+    "data": {
+      "source": "subclass:oath-of-devotion",
+      "level": 20,
+      "description": "At 20th level, as an action, you can emanate an aura of sunlight. For 1 minute, bright light shines from you in a 30-foot radius, and dim light shines 30 feet beyond that. Whenever an enemy creature starts its turn in the bright light, the creature takes 10 radiant damage. In addition, for the duration, you have advantage on saving throws against spells cast by fiends or undead. Once you use this feature, you can’t use it again until you finish a long rest."
+    },
+    "source": "SRD 5.1 p. 33",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 33"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "feature",
+    "key": "feature:oath-of-devotion:purity-of-spirit",
+    "name": "Purity of Spirit",
+    "data": {
+      "source": "subclass:oath-of-devotion",
+      "level": 15,
+      "description": "Beginning at 15th level, you are always under the effects of a protection from evil and good spell."
+    },
+    "source": "SRD 5.1 p. 33",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 33"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "feature",
     "key": "feature:paladin:ability-score-improvement",
     "name": "Ability Score Improvement",
     "data": {
@@ -26921,38 +27017,6 @@
     "provenance": {
       "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
       "locator": "p. 32"
-    }
-  },
-  {
-    "systemId": "dnd5e-srd",
-    "kind": "feature",
-    "key": "feature:paladin:aura-of-devotion",
-    "name": "Aura of Devotion",
-    "data": {
-      "source": "class:paladin",
-      "level": 7,
-      "description": "Starting at 7th level, you and friendly creatures within 10 feet of you can’t be charmed while you are conscious. At 18th level, the range of this aura increases to 30 feet."
-    },
-    "source": "SRD 5.1 p. 33",
-    "license": {
-      "licenseClass": "open",
-      "licenseName": "Creative Commons Attribution 4.0 International",
-      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
-      "requiresAttribution": true,
-      "commercialUseAllowed": true,
-      "hostedUseAllowed": true,
-      "redistributionAllowed": true,
-      "publicSharingAllowed": true,
-      "derivativeAllowed": true,
-      "containsUserSuppliedText": false,
-      "containsTrademarkedSettingMaterial": false,
-      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
-      "provenancePolicy": "Every record names the SRD page it was extracted from.",
-      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
-    },
-    "provenance": {
-      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
-      "locator": "p. 33"
     }
   },
   {
@@ -27182,38 +27246,6 @@
   {
     "systemId": "dnd5e-srd",
     "kind": "feature",
-    "key": "feature:paladin:holy-nimbus",
-    "name": "Holy Nimbus",
-    "data": {
-      "source": "class:paladin",
-      "level": 20,
-      "description": "At 20th level, as an action, you can emanate an aura of sunlight. For 1 minute, bright light shines from you in a 30-foot radius, and dim light shines 30 feet beyond that. Whenever an enemy creature starts its turn in the bright light, the creature takes 10 radiant damage. In addition, for the duration, you have advantage on saving throws against spells cast by fiends or undead. Once you use this feature, you can’t use it again until you finish a long rest."
-    },
-    "source": "SRD 5.1 p. 33",
-    "license": {
-      "licenseClass": "open",
-      "licenseName": "Creative Commons Attribution 4.0 International",
-      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
-      "requiresAttribution": true,
-      "commercialUseAllowed": true,
-      "hostedUseAllowed": true,
-      "redistributionAllowed": true,
-      "publicSharingAllowed": true,
-      "derivativeAllowed": true,
-      "containsUserSuppliedText": false,
-      "containsTrademarkedSettingMaterial": false,
-      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
-      "provenancePolicy": "Every record names the SRD page it was extracted from.",
-      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
-    },
-    "provenance": {
-      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
-      "locator": "p. 33"
-    }
-  },
-  {
-    "systemId": "dnd5e-srd",
-    "kind": "feature",
     "key": "feature:paladin:improved-divine-smite",
     "name": "Improved Divine Smite",
     "data": {
@@ -27278,38 +27310,6 @@
   {
     "systemId": "dnd5e-srd",
     "kind": "feature",
-    "key": "feature:paladin:purity-of-spirit",
-    "name": "Purity of Spirit",
-    "data": {
-      "source": "class:paladin",
-      "level": 15,
-      "description": "Beginning at 15th level, you are always under the effects of a protection from evil and good spell."
-    },
-    "source": "SRD 5.1 p. 33",
-    "license": {
-      "licenseClass": "open",
-      "licenseName": "Creative Commons Attribution 4.0 International",
-      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
-      "requiresAttribution": true,
-      "commercialUseAllowed": true,
-      "hostedUseAllowed": true,
-      "redistributionAllowed": true,
-      "publicSharingAllowed": true,
-      "derivativeAllowed": true,
-      "containsUserSuppliedText": false,
-      "containsTrademarkedSettingMaterial": false,
-      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
-      "provenancePolicy": "Every record names the SRD page it was extracted from.",
-      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
-    },
-    "provenance": {
-      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
-      "locator": "p. 33"
-    }
-  },
-  {
-    "systemId": "dnd5e-srd",
-    "kind": "feature",
     "key": "feature:paladin:sacred-oath",
     "name": "Sacred Oath",
     "data": {
@@ -27369,6 +27369,134 @@
     "provenance": {
       "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
       "locator": "p. 31"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "feature",
+    "key": "feature:path-of-the-berserker:frenzy",
+    "name": "Frenzy",
+    "data": {
+      "source": "subclass:path-of-the-berserker",
+      "level": 3,
+      "description": "Starting when you choose this path at 3rd level, you can go into a frenzy when you rage. If you do so, for the duration of your rage you can make a single melee weapon attack as a bonus action on each of your turns after this one. When your rage ends, you suffer one level of exhaustion (as described in appendix PH-A)."
+    },
+    "source": "SRD 5.1 p. 9",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 9"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "feature",
+    "key": "feature:path-of-the-berserker:intimidating-presence",
+    "name": "Intimidating Presence",
+    "data": {
+      "source": "subclass:path-of-the-berserker",
+      "level": 10,
+      "description": "Beginning at 10th level, you can use your action to frighten someone with your menacing presence. When you do so, choose one creature that you can see within 30 feet of you. If the creature can see or hear you, it must succeed on a Wisdom saving throw (DC equal to 8 + your proficiency bonus + your Charisma modifier) or be frightened of you until the end of your next turn. On subsequent turns, you can use your action to extend the duration of this effect on the frightened creature until the end of your next turn. This effect ends if the creature ends its turn out of line of sight or more than 60 feet away from you. If the creature succeeds on its saving throw, you can’t use this feature on that creature again for 24 hours."
+    },
+    "source": "SRD 5.1 p. 10",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 10"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "feature",
+    "key": "feature:path-of-the-berserker:mindless-rage",
+    "name": "Mindless Rage",
+    "data": {
+      "source": "subclass:path-of-the-berserker",
+      "level": 6,
+      "description": "Beginning at 6th level, you can’t be charmed or frightened while raging. If you are charmed or frightened when you enter your rage, the effect is suspended for the duration of the rage."
+    },
+    "source": "SRD 5.1 p. 10",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 10"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "feature",
+    "key": "feature:path-of-the-berserker:retaliation",
+    "name": "Retaliation",
+    "data": {
+      "source": "subclass:path-of-the-berserker",
+      "level": 14,
+      "description": "Starting at 14th level, when you take damage from a creature that is within 5 feet of you, you can use your reaction to make a melee weapon attack against that creature."
+    },
+    "source": "SRD 5.1 p. 10",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 10"
     }
   },
   {
@@ -57323,7 +57451,7 @@
     "name": "Oath of Devotion",
     "data": {
       "parentClass": "class:paladin",
-      "description": "The Oath of Devotion binds a paladin to the loftiest ideals of justice, virtue, and order. Sometimes called cavaliers, white knights, or holy warriors, these paladins meet the ideal of the knight in shining armor, acting with honor in pursuit of justice and the greater good. They hold themselves to the highest standards of conduct, and some, for better or worse, hold the rest of the world to the same standards. Many who swear this oath are devoted to gods of law and good and use their gods’ tenets as the measure of their devotion. They hold angels—the perfect servants of good—as their ideals, and incorporate images of angelic wings into their helmets or coats of arms. Tenets of Devotion Though the exact words and strictures of the Oath of Devotion vary, paladins of this oath share these tenets. Honesty. Don’t lie or cheat. Let your word be your promise. Courage. Never fear to act, though caution is wise. Compassion. Aid others, protect the weak, and punish those who threaten them. Show mercy to your foes, but temper it with wisdom. Honor. Treat others with fairness, and let your honorable deeds be an example to them. Do as much good as possible while causing the least amount of harm. Duty. Be responsible for your actions and their consequences, protect those entrusted to your care, and obey those who have just authority over you. Oath Spells You gain oath spells at the paladin levels listed. Oath of Devotion Spells"
+      "description": "The Oath of Devotion binds a paladin to the loftiest ideals of justice, virtue, and order. Sometimes called cavaliers, white knights, or holy warriors, these paladins meet the ideal of the knight in shining armor, acting with honor in pursuit of justice and the greater good. They hold themselves to the highest standards of conduct, and some, for better or worse, hold the rest of the world to the same standards. Many who swear this oath are devoted to gods of law and good and use their gods’ tenets as the measure of their devotion. They hold angels—the perfect servants of good—as their ideals, and incorporate images of angelic wings into their helmets or coats of arms. Tenets of Devotion Though the exact words and strictures of the Oath of Devotion vary, paladins of this oath share these tenets. Honesty. Don’t lie or cheat. Let your word be your promise. Courage. Never fear to act, though caution is wise. Compassion. Aid others, protect the weak, and punish those who threaten them. Show mercy to your foes, but temper it with wisdom. Honor. Treat others with fairness, and let your honorable deeds be an example to them. Do as much good as possible while causing the least amount of harm. Duty. Be responsible for your actions and their consequences, protect those entrusted to your care, and obey those who have just authority over you. Oath Spells You gain oath spells at the paladin levels listed. Oath of Devotion Spells Paladin Level Spells 3rd protection from evil and good, sanctuary 5th lesser restoration, zone of truth 9th beacon of hope, dispel magic 13th freedom of movement, guardian of faith 17th commune, flame strike Channel Divinity When you take this oath at 3rd level, you gain the following two Channel Divinity options. Sacred Weapon. As an action, you can imbue one weapon that you are holding with positive energy, using your Channel Divinity. For 1 minute, you add your Charisma modifier to attack rolls made with that weapon (with a minimum bonus of +1). The weapon also emits bright light in a 20-foot radius and dim light 20 feet beyond that. If the weapon is not already magical, it becomes magical for the duration. You can end this effect on your turn as part of any other action. If you are no longer holding or carrying this weapon, or if you fall unconscious, this effect ends. Turn the Unholy. As an action, you present your holy symbol and speak a prayer censuring fiends and undead, using your Channel Divinity. Each fiend or undead that can see or hear you within 30 feet of you must make a Wisdom saving throw. If the creature fails its saving throw, it is turned for 1 minute or until it takes damage. A turned creature must spend its turns trying to move as far away from you as it can, and it can’t willingly move to a space within 30 feet of you. It also can’t take reactions. For its action, it can use only the Dash action or try to escape from an effect that prevents it from moving. If there’s nowhere to move, the creature can use the Dodge action. Aura of Devotion Starting at 7th level, you and friendly creatures within 10 feet of you can’t be charmed while you are conscious. At 18th level, the range of this aura increases to 30 feet. Purity of Spirit Beginning at 15th level, you are always under the effects of a protection from evil and good spell. Holy Nimbus At 20th level, as an action, you can emanate an aura of sunlight. For 1 minute, bright light shines from you in a 30-foot radius, and dim light shines 30 feet beyond that. Whenever an enemy creature starts its turn in the bright light, the creature takes 10 radiant damage. In addition, for the duration, you have advantage on saving throws against spells cast by fiends or undead. Once you use this feature, you can’t use it again until you finish a long rest."
     },
     "source": "SRD 5.1 p. 32",
     "license": {

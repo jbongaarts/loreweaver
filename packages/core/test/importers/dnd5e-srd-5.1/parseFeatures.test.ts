@@ -25,6 +25,17 @@ function page(pageNumber: number, lines: string[]): PageText {
   return { pageNumber, lines };
 }
 
+function tieredPage(
+  pageNumber: number,
+  entries: readonly (readonly [line: string, height: number])[],
+): PageText {
+  return {
+    pageNumber,
+    lines: entries.map(([line]) => line),
+    lineHeights: entries.map(([, height]) => height),
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Simple class feature: Second Wind (Fighter). Its SRD prose carries no level
 // — the grant level comes from the class progression table rather than a
@@ -451,6 +462,130 @@ describe('parseFeatures — end-of-chapter option list re-uses the feature headi
 
   it('still emits the intervening feature between the two heading occurrences', () => {
     expect(features.map((f) => f.name)).toContain('Eldritch Master');
+  });
+});
+
+const BARBARIAN_BERSERKER_REAL_PDF_SHAPE = [
+  tieredPage(8, [
+    ['Class Features', 13.92],
+    ['The Barbarian', 12],
+    ['Level Proficiency Bonus Features', 8.88],
+    ['1st +2 Rage, Unarmored Defense', 8.88],
+    ['20th +6 Primal Unlimited +4', 8.88],
+    ['Champion', 8.88],
+    ['Rage', 13.92],
+    ['In battle, you fight with primal ferocity.', 9.84],
+  ]),
+  tieredPage(9, [
+    ['Path of the Berserker', 13.92],
+    ['For some barbarians, rage is a means to an end.', 9.84],
+    ['Frenzy', 12],
+    [
+      'Starting when you choose this path at 3rd level, you can go into a frenzy.',
+      9.84,
+    ],
+  ]),
+  tieredPage(10, [
+    ['Mindless Rage', 12],
+    [
+      'Beginning at 6th level, you cannot be charmed or frightened while raging.',
+      9.84,
+    ],
+    ['Intimidating Presence', 12],
+    [
+      'Beginning at 10th level, you can use your action to frighten someone.',
+      9.84,
+    ],
+    ['Retaliation', 12],
+    ['Starting at 14th level, you can strike back at a nearby attacker.', 9.84],
+    ['Bard', 25.92],
+  ]),
+];
+
+describe('parseFeatures — first sliced class and Path of the Berserker', () => {
+  const features = parseFeatures(BARBARIAN_BERSERKER_REAL_PDF_SHAPE);
+  const berserkerFeatures = features.filter(
+    (feature) => feature.grantorName === 'Path of the Berserker',
+  );
+
+  it('keeps the implicit opening class context after the Barbarian heading is sliced away', () => {
+    expect(
+      berserkerFeatures.map(({ name, level }) => ({ name, level })),
+    ).toEqual([
+      { name: 'Frenzy', level: 3 },
+      { name: 'Intimidating Presence', level: 10 },
+      { name: 'Mindless Rage', level: 6 },
+      { name: 'Retaliation', level: 14 },
+    ]);
+  });
+
+  it('does not treat the body-font Champion table fragment as a Barbarian subclass', () => {
+    expect(
+      features.filter((feature) => feature.grantorName === 'Champion'),
+    ).toEqual([]);
+  });
+});
+
+const PALADIN_OATH_TABLE_REAL_PDF_SHAPE = tieredPage(33, [
+  ['Paladin', 25.92],
+  ['Sacred Oaths', 13.92],
+  ['Oath of Devotion', 13.92],
+  ['The Oath of Devotion binds a paladin to the loftiest ideals.', 9.84],
+  ['Oath Spells', 12],
+  ['You gain oath spells at the paladin levels listed.', 9.84],
+  ['Oath of Devotion Spells', 12],
+  ['Paladin', 8.88],
+  ['Level Spells', 8.88],
+  ['3rd protection from evil and good, sanctuary', 8.88],
+  ['Aura of Devotion', 12],
+  ['Starting at 7th level, nearby allies cannot be charmed.', 9.84],
+  ['Purity of Spirit', 12],
+  [
+    'Beginning at 15th level, you are always protected from evil and good.',
+    9.84,
+  ],
+  ['Holy Nimbus', 12],
+  ['At 20th level, you can emanate an aura of sunlight.', 9.84],
+  ['Ranger', 25.92],
+]);
+
+describe('parseFeatures — body-font parent-class name inside a subclass table', () => {
+  const features = parseFeatures([PALADIN_OATH_TABLE_REAL_PDF_SHAPE]);
+
+  it('keeps post-table oath features attributed to Oath of Devotion', () => {
+    const oathFeatures = features
+      .filter((feature) =>
+        ['Aura of Devotion', 'Purity of Spirit', 'Holy Nimbus'].includes(
+          feature.name,
+        ),
+      )
+      .map(({ name, grantorKind, grantorName, level }) => ({
+        name,
+        grantorKind,
+        grantorName,
+        level,
+      }));
+
+    expect(oathFeatures).toEqual([
+      {
+        name: 'Aura of Devotion',
+        grantorKind: 'subclass',
+        grantorName: 'Oath of Devotion',
+        level: 7,
+      },
+      {
+        name: 'Holy Nimbus',
+        grantorKind: 'subclass',
+        grantorName: 'Oath of Devotion',
+        level: 20,
+      },
+      {
+        name: 'Purity of Spirit',
+        grantorKind: 'subclass',
+        grantorName: 'Oath of Devotion',
+        level: 15,
+      },
+    ]);
   });
 });
 

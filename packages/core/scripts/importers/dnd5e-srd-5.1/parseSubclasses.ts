@@ -93,6 +93,11 @@ export const PARENT_CLASS_NAMES = new Set(
 // body is bounded here — only the real extraction is affected (loreweaver-6fw).
 const CALLOUT_BOX_MIN_H = 10.3;
 const CALLOUT_BOX_MAX_H = 11.5;
+// Base-class chapter headings render at h≈25.9 in the real SRD, above every
+// nested class/subclass heading. Exact class-name text below this tier can be a
+// table cell (notably the "Paladin" header in the Oath of Devotion spells
+// table), so it must not move grantor context or bound a subclass body.
+const CLASS_CHAPTER_MIN_H = 20;
 
 /**
  * Is `height` a Classes-chapter gray callout-box heading (a generic class/DM
@@ -127,6 +132,23 @@ export function hasHeadingTiers(
   const defined = heights.filter((h): h is number => h !== undefined);
   return (
     new Set(defined).size > 1 && defined.some((h) => h >= CALLOUT_BOX_MAX_H)
+  );
+}
+
+/**
+ * Is this exact class-name line a base-class chapter heading?
+ *
+ * Real multi-tier extraction requires the chapter font tier. Uniform/no-height
+ * fixtures retain the historical exact-text fallback.
+ */
+export function isParentClassHeading(
+  line: string,
+  height: number | undefined,
+  tiersPresent: boolean,
+): boolean {
+  if (!PARENT_CLASS_NAMES.has(line)) return false;
+  return (
+    !tiersPresent || (height !== undefined && height >= CLASS_CHAPTER_MIN_H)
   );
 }
 
@@ -212,7 +234,7 @@ export function parseSubclasses(
   for (let i = 0; i < flat.length; i++) {
     // `flat[i].line` is already whitespace-normalized (see `flatten`).
     const line = flat[i].line;
-    if (PARENT_CLASS_NAMES.has(line)) {
+    if (isParentClassHeading(line, flat[i].height, tiersPresent)) {
       currentParent = line;
       boundaries.push(i);
       continue;

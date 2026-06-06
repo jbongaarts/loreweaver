@@ -45,12 +45,16 @@
 import {
   hasHeadingTiers,
   isCalloutBoxHeading,
+  isParentClassHeading,
   KNOWN_SUBCLASSES,
   PARENT_CLASS_NAMES,
 } from './parseSubclasses.js';
 import type { FeatureExtraction, PageText } from './types.js';
 
 const SUBCLASS_NAMES = new Set(KNOWN_SUBCLASSES.map((s) => s.name));
+const SUBCLASS_PARENT_BY_NAME = new Map(
+  KNOWN_SUBCLASSES.map((subclass) => [subclass.name, subclass.parent]),
+);
 
 // The 12 subclass-group headings the Classes chapter prints between a class's
 // own features and its subclasses ("Martial Archetypes", "Divine Domains", …).
@@ -182,7 +186,18 @@ function isTableHeaderLine(line: string): boolean {
  * group heading, or class-block / table heading)? Such lines bound a feature
  * body and are never themselves features.
  */
-function isStructuralLine(line: string): boolean {
+function isStructuralLine(flatLine: FlatLine, tiersPresent: boolean): boolean {
+  const { line, height } = flatLine;
+  return (
+    isParentClassHeading(line, height, tiersPresent) ||
+    SUBCLASS_NAMES.has(line) ||
+    SUBCLASS_GROUP_HEADINGS.has(line) ||
+    isTableHeaderLine(line) ||
+    STRUCTURAL_HEADINGS.has(line)
+  );
+}
+
+function isStructuralText(line: string): boolean {
   return (
     PARENT_CLASS_NAMES.has(line) ||
     SUBCLASS_NAMES.has(line) ||
@@ -203,7 +218,7 @@ function isFeatureHeading(line: string): boolean {
   if (/[:.;,]/.test(line)) return false; // labels / sentence punctuation
   if (/\d/.test(line)) return false; // table rows, level lines
   if (PROSE_STARTER.test(line)) return false;
-  if (isStructuralLine(line)) return false;
+  if (isStructuralText(line)) return false;
   return /^[A-Z][A-Za-z '\-/()]+$/.test(line);
 }
 
@@ -233,19 +248,29 @@ function progressionFeaturesFromLine(
 
 function collectFeatureAnchors(
   flat: readonly FlatLine[],
+  tiersPresent: boolean,
 ): ReadonlyMap<string, FeatureAnchor> {
   const anchors = new Map<string, FeatureAnchor>();
   let currentClass: string | null = null;
   let currentSubclass: string | null = null;
 
-  for (const { line } of flat) {
-    if (PARENT_CLASS_NAMES.has(line)) {
+  for (const flatLine of flat) {
+    const { line, height } = flatLine;
+    if (isParentClassHeading(line, height, tiersPresent)) {
       currentClass = line;
       currentSubclass = null;
       continue;
     }
     if (SUBCLASS_NAMES.has(line)) {
-      currentSubclass = line;
+      // The classes slice starts after the Barbarian chapter heading. Treat
+      // Barbarian as the implicit parent only when its real subclass heading
+      // arrives; this restores Berserker context without changing the existing
+      // base-class feature coverage before that heading.
+      const expectedParent: string = currentClass ?? 'Barbarian';
+      if (SUBCLASS_PARENT_BY_NAME.get(line) === expectedParent) {
+        currentClass = expectedParent;
+        currentSubclass = line;
+      }
       continue;
     }
     if (currentClass === null) continue;
@@ -282,12 +307,13 @@ function anchorFor(
 function leadingLevelFromFollowingLines(
   flat: readonly FlatLine[],
   startIdx: number,
+  tiersPresent: boolean,
 ): number | null {
   const parts: string[] = [];
   for (let i = startIdx; i < flat.length && parts.length < 3; i++) {
     const line = flat[i].line.trim();
     if (line.length === 0) continue;
-    if (isStructuralLine(line)) break;
+    if (isStructuralLine(flat[i], tiersPresent)) break;
     parts.push(line);
     if (/[.?!]/.test(line)) break;
   }
@@ -302,6 +328,7 @@ function featureStartAt(
   grantorKind: 'class' | 'subclass',
   grantorName: string,
   anchors: ReadonlyMap<string, FeatureAnchor>,
+  tiersPresent: boolean,
 ): FeatureStart | null {
   const line = flat[idx].line;
   if (!isFeatureHeading(line)) return null;
@@ -311,7 +338,11 @@ function featureStartAt(
     return { level: anchor.level };
   }
 
-  const proseLevel = leadingLevelFromFollowingLines(flat, idx + 1);
+  const proseLevel = leadingLevelFromFollowingLines(
+    flat,
+    idx + 1,
+    tiersPresent,
+  );
   if (proseLevel !== null) {
     return { level: proseLevel };
   }
@@ -328,11 +359,11 @@ export function parseFeatures(pages: readonly PageText[]): FeatureExtraction[] {
   const flat = flatten(pages);
   if (flat.length === 0) return [];
 
-  const anchors = collectFeatureAnchors(flat);
   // Only honor callout-box font heights on a genuinely multi-tier slice;
   // uniform-font fixtures render body lines inside the callout band and must
   // not be bounded as boxes (loreweaver-6fw).
   const tiersPresent = hasHeadingTiers(flat.map((f) => f.height));
+  const anchors = collectFeatureAnchors(flat, tiersPresent);
   const out: FeatureExtraction[] = [];
   const emittedIndexByKey = new Map<string, number>();
   let currentClass: string | null = null;
@@ -342,16 +373,20 @@ export function parseFeatures(pages: readonly PageText[]): FeatureExtraction[] {
     const { line, page } = flat[i];
 
     // Known-name anchors update grantor context and are not themselves features.
-    if (PARENT_CLASS_NAMES.has(line)) {
+    if (isParentClassHeading(line, flat[i].height, tiersPresent)) {
       currentClass = line;
       currentSubclass = null;
       continue;
     }
     if (SUBCLASS_NAMES.has(line)) {
-      currentSubclass = line;
+      const expectedParent: string = currentClass ?? 'Barbarian';
+      if (SUBCLASS_PARENT_BY_NAME.get(line) === expectedParent) {
+        currentClass = expectedParent;
+        currentSubclass = line;
+      }
       continue;
     }
-    if (isStructuralLine(line)) continue;
+    if (isStructuralLine(flat[i], tiersPresent)) continue;
     // A gray callout-box heading (e.g. Wizard "Your Spellbook") is generic
     // class/DM sidebar prose printed after the last subclass feature, not a
     // feature — never promote it (loreweaver-6fw).
@@ -362,7 +397,14 @@ export function parseFeatures(pages: readonly PageText[]): FeatureExtraction[] {
     if (currentClass === null) continue;
     const grantorKind = currentSubclass === null ? 'class' : 'subclass';
     const grantorName = currentSubclass ?? currentClass;
-    const start = featureStartAt(flat, i, grantorKind, grantorName, anchors);
+    const start = featureStartAt(
+      flat,
+      i,
+      grantorKind,
+      grantorName,
+      anchors,
+      tiersPresent,
+    );
     if (start === null) continue;
 
     // Collect the body: every line up to the next structural anchor or the next
@@ -370,16 +412,24 @@ export function parseFeatures(pages: readonly PageText[]): FeatureExtraction[] {
     const bodyLines: string[] = [];
     let j = i + 1;
     for (; j < flat.length; j++) {
-      const next = flat[j].line;
-      if (isStructuralLine(next)) break;
+      if (isStructuralLine(flat[j], tiersPresent)) break;
       // The next subclass feature's own grant-level callout box (e.g. Wizard
       // "Your Spellbook" after Overchannel) bounds this feature's body so the
       // generic class/DM sidebar does not bleed in (loreweaver-6fw).
       if (tiersPresent && isCalloutBoxHeading(flat[j].height)) break;
-      if (featureStartAt(flat, j, grantorKind, grantorName, anchors) !== null) {
+      if (
+        featureStartAt(
+          flat,
+          j,
+          grantorKind,
+          grantorName,
+          anchors,
+          tiersPresent,
+        ) !== null
+      ) {
         break;
       }
-      bodyLines.push(next);
+      bodyLines.push(flat[j].line);
     }
 
     const description = joinParagraphs(bodyLines);
