@@ -209,6 +209,7 @@ export { isMarkSceneToolData } from './orchestrator/tools.js';
 export type { ResolveDoltOptions } from './persistence/checkpoint/doltBinary.js';
 export {
   managedDoltDir,
+  managedDoltRoot,
   resolveDoltBinary,
 } from './persistence/checkpoint/doltBinary.js';
 export { DoltCli, sqlLiteral } from './persistence/checkpoint/doltCli.js';
