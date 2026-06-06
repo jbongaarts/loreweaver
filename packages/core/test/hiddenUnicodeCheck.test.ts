@@ -80,6 +80,7 @@ describe('hidden/bidi Unicode guard', () => {
     expect(shouldScan('README.md')).toBe(true);
     expect(shouldScan('package.json')).toBe(true);
     expect(shouldScan('migration.sql')).toBe(true);
+    expect(shouldScan('scripts/verify-current-worktree.ps1')).toBe(true);
     // Generated SRD rules-pack JSON is the path most likely to carry
     // PDF-extracted text, so it IS scanned (not skipped like a vendor dir).
     expect(shouldScan('packages/core/data/dnd5e-srd-rules.json')).toBe(true);

@@ -98,7 +98,7 @@ a reliable signal for manual review. Instead, CI blocks only the small set of
 genuinely dangerous invisible / directional control characters via
 `scripts/check-hidden-unicode.mjs` (`npm run check:hidden-unicode`, also run as
 the first step of `npm run check`). The script scans git-tracked text files
-(`.ts/.tsx/.js/.mjs/.cjs/.json/.jsonc/.md/.yml/.yaml/.txt/.sql`) and fails on
+(`.ts/.tsx/.js/.mjs/.cjs/.json/.jsonc/.md/.ps1/.yml/.yaml/.txt/.sql`) and fails on
 bidi embedding/override controls (`U+202A..U+202E`), bidi isolates
 (`U+2066..U+2069`), zero-width characters and directional marks
 (`U+200B..U+200F`), the Arabic Letter Mark (`U+061C`), the BOM / zero-width
@@ -112,6 +112,54 @@ gate exists to catch. Biome's `suspicious.noIrregularWhitespace` is set to `erro
 supplemental protection, but the dedicated script is the primary guard because
 Biome does not scan every relevant file type. The behavior is covered by
 `packages/core/test/hiddenUnicodeCheck.test.ts`.
+
+## Agent Worktree Workflow
+
+Agents should keep parent-checkout preflight cheap and run full verification
+only from the linked worktree being modified.
+
+Before creating a worktree, fetch the current base:
+
+```powershell
+npm run agent:preflight
+# equivalent: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/agent-preflight-main.ps1
+```
+
+That script runs `git fetch origin main` and reports the fetched base. Fetch
+the current base before branching. Fetch `origin/main`. Do not run full
+verification from the parent checkout. Do not run Biome, tests, build, or
+package checks merely to prove `main` is clean. CI keeps `main` clean, so a
+fresh `origin/main` is the known-good base for new worktrees.
+
+After creating a linked worktree, immediately enter it and normalize to its own
+git root:
+
+```powershell
+Set-Location .worktrees/<worktree-name>
+Set-Location (git rev-parse --show-toplevel)
+```
+
+All subsequent install, edit, format, lint, test, build, and verification
+commands must run from that directory. Before commit/push, run full
+verification from the current worktree root:
+
+```powershell
+npm run verify:worktree
+# equivalent: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-current-worktree.ps1
+```
+
+The verification helper resolves `git rev-parse --show-toplevel`, runs
+`Set-Location (git rev-parse --show-toplevel)` by using that resolved root, and
+then runs the repo's canonical `npm run format`, `npm run check`,
+`npm run typecheck`, and `npm run test` sequence from that root.
+Inside `.worktrees`, it preserves the parent Biome configuration and uses a
+temporary worktree-local Biome config so only the active linked worktree is
+checked.
+
+If Biome says no relevant files were checked because `.worktrees` is ignored,
+the command was run from the wrong checkout; do not delete or recreate the
+worktree. Change into the intended worktree, normalize with
+`Set-Location (git rev-parse --show-toplevel)`, and rerun verification there.
 
 ## Architecture
 

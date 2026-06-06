@@ -189,6 +189,59 @@ describe('Node runtime policy', () => {
     }
   });
 
+  it('documents the linked-worktree verification workflow for agents', () => {
+    const agents = readText('AGENTS.md');
+
+    expect(agents).toContain('scripts/agent-preflight-main.ps1');
+    expect(agents).toContain('scripts/verify-current-worktree.ps1');
+    expect(agents).toContain('Fetch `origin/main`');
+    expect(agents).toMatch(
+      /Do not run full\s+verification from the parent checkout/,
+    );
+    expect(agents).toContain('Set-Location (git rev-parse --show-toplevel)');
+    expect(agents).toContain(
+      'If Biome says no relevant files were checked because `.worktrees` is ignored',
+    );
+    expect(agents).toMatch(/do not delete or recreate the\s+worktree/);
+  });
+
+  it('provides simple PowerShell helpers for agent worktree workflow', () => {
+    const root = readPackageJson('package.json');
+    const scripts = root.scripts ?? {};
+
+    expect(scripts['agent:preflight']).toBe(
+      'powershell -NoProfile -ExecutionPolicy Bypass -File scripts/agent-preflight-main.ps1',
+    );
+    expect(scripts['verify:worktree']).toBe(
+      'powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-current-worktree.ps1',
+    );
+
+    const preflight = readText('scripts/agent-preflight-main.ps1');
+    expect(preflight).toContain("$ErrorActionPreference = 'Stop'");
+    expect(preflight).toContain('git fetch origin main');
+    expect(preflight).not.toContain('npm run check');
+    expect(preflight).not.toContain('npm run test');
+    expect(preflight).not.toContain('npm run build');
+
+    const verify = readText('scripts/verify-current-worktree.ps1');
+    expect(verify).toContain("$ErrorActionPreference = 'Stop'");
+    expect(verify).toContain('git rev-parse --show-toplevel');
+    expect(verify).toContain('Set-Location $repoRoot');
+    expect(verify).toContain('BIOME_CONFIG_PATH');
+    expect(verify).toContain('.biome-worktree-');
+    expect(verify).toContain('!**/.biome-worktree-*.json');
+    expect(verify).toContain('Remove-Item Env:\\BIOME_CONFIG_PATH');
+    for (const command of [
+      'npm run format',
+      'npm run check',
+      'npm run typecheck',
+      'npm run test',
+    ]) {
+      expect(verify).toContain(command);
+    }
+    expect(verify).not.toContain('bd preflight --check');
+  });
+
   it('requires manual review for major runtime and toolchain updates', () => {
     const dependabot = readText('.github/dependabot.yml');
 

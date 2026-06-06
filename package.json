@@ -27,6 +27,8 @@
     "audit:rules-pack": "tsx packages/core/scripts/rules-pack-audit/cli.ts audit",
     "diff:rules-pack": "tsx packages/core/scripts/rules-pack-audit/cli.ts diff",
     "audit-bundle:dnd5e-srd": "tsx packages/core/scripts/create-dnd5e-srd-audit-bundle/cli.ts",
+    "agent:preflight": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/agent-preflight-main.ps1",
+    "verify:worktree": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-current-worktree.ps1",
     "format": "biome format --write .",
     "format:check": "biome format .",
     "lint": "biome lint .",
