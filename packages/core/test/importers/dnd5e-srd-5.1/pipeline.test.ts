@@ -24,6 +24,7 @@ import {
   NpcCoverageError,
   runImporter,
   SubclassCoverageError,
+  TableCoverageError,
   TrapCoverageError,
 } from '../../../scripts/importers/dnd5e-srd-5.1/index.js';
 import { SectionNotFoundError } from '../../../scripts/importers/dnd5e-srd-5.1/sections.js';
@@ -406,6 +407,117 @@ const HAZARDS_PAGE_MISSING_END: FixturePage = {
   ],
 };
 
+const MADNESS_PAGE_ONE: FixturePage = {
+  lines: [
+    'Madness',
+    'A horror-themed campaign can use madness to reinforce that theme.',
+    'Going Mad',
+    'Magical effects, diseases, poisons, and planar effects can inflict madness.',
+    'Madness Effects',
+    'Madness can be short-term, long-term, or indefinite.',
+    'Short-Term Madness',
+    'd100 Effect (lasts 1d10 minutes)',
+    '01–20 Short effect one.',
+    '21–30 Short effect two.',
+    '31–40 Short effect three.',
+    '41–50 Short effect four.',
+    '51–60 Short effect five.',
+    '61–70 Short effect six.',
+    '71–75 Short effect seven.',
+    '76–80 Short effect eight.',
+    '81–90 Short effect nine.',
+    '91–100 Short effect ten.',
+    'Long-Term Madness',
+    'd100 Effect (lasts 1d10 × 10 hours)',
+    '01–10 Long effect one.',
+    '11–20 Long effect two.',
+    '21–30 Long effect three.',
+    '31–40 Long effect four.',
+    '41–45 Long effect five.',
+    '46–55 Long effect six.',
+    '56–65 Long effect seven.',
+    '66–75 Long effect eight.',
+    '76–85 Long effect nine.',
+    '86–90 Long effect ten.',
+    '91–95 Long effect eleven.',
+    '96–100 Long effect twelve.',
+  ],
+};
+
+const MADNESS_PAGE_TWO: FixturePage = {
+  lines: [
+    'Indefinite Madness',
+    'd100 Flaw (lasts until cured)',
+    '01–15 Indefinite flaw one.',
+    '16–25 Indefinite flaw two.',
+    '26–30 Indefinite flaw three.',
+    '31–35 Indefinite flaw four.',
+    '36–45 Indefinite flaw five.',
+    '46–50 Indefinite flaw six.',
+    '51–55 Indefinite flaw seven.',
+    '56–70 Indefinite flaw eight.',
+    '71–80 Indefinite flaw nine.',
+    '81–85 Indefinite flaw ten.',
+    '86–95 Indefinite flaw eleven.',
+    '96–100 Indefinite flaw twelve.',
+    'Curing Madness',
+    'Greater restoration can end indefinite madness.',
+  ],
+};
+
+const OBJECTS_PAGE: FixturePage = {
+  lines: [
+    'Objects',
+    'Characters can destroy any destructible object with enough time and the right tools.',
+    'Statistics for Objects',
+    'When time is a factor, assign Armor Class and hit points.',
+    'Armor Class. The table suggests AC values for common substances.',
+    'Object Armor Class',
+    'Substance AC',
+    'Cloth, paper, rope 11',
+    'Crystal, glass, ice 13',
+    'Wood, bone 15',
+    'Stone 17',
+    'Iron, steel 19',
+    'Mithral 21',
+    'Adamantine 23',
+    'Hit Points. Resilient objects have more hit points than fragile ones.',
+    'Object Hit Points',
+    'Size',
+    'Tiny (bottle, lock)',
+    'Small (chest, lute)',
+    'Medium (barrel, chandelier)',
+    'Large (cart, 10-ft.-by-10-ft. window)',
+    'Huge and Gargantuan Objects. Track smaller sections separately.',
+    'Objects and Damage Types. Objects are immune to poison and psychic damage.',
+    'Damage Threshold. Superficial damage does not reduce hit points.',
+    'Fragile Resilient',
+    '2 (1d4) 5 (2d4)',
+    '3 (1d6) 10 (3d6)',
+    '4 (1d8) 18 (4d8)',
+    '5 (1d10) 27 (5d10)',
+    'Poisons',
+  ],
+};
+
+const MADNESS_PAGE_MISSING_END: FixturePage = {
+  lines: [
+    'Madness',
+    'A horror-themed campaign can use madness to reinforce that theme.',
+    'Going Mad',
+    'Magical effects can inflict madness.',
+  ],
+};
+
+const OBJECTS_PAGE_MISSING_END: FixturePage = {
+  lines: [
+    'Madness',
+    'A horror-themed campaign can use madness to reinforce that theme.',
+    'Objects',
+    'Characters can destroy any destructible object.',
+  ],
+};
+
 // Feats fixture: mirrors the SRD "Feats" section (only Grappler in SRD 5.1).
 const FEATS_PAGE: FixturePage = {
   lines: [
@@ -778,13 +890,41 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       COMBAT_ACTIONS_PAGE,
       MAKING_AN_ATTACK_PAGE,
       HAZARDS_PAGE,
+      MADNESS_PAGE_ONE,
+      MADNESS_PAGE_TWO,
+      OBJECTS_PAGE,
       FEATS_PAGE,
       EQUIPMENT_PAGE,
       MULTICLASSING_PAGE,
       CONDITIONS_PAGE,
     ]);
 
-    const result = await runImporter({ pdfPath, outDir });
+    const result = await runImporter({
+      pdfPath,
+      outDir,
+      expectedRuleKeys: [
+        'rule:cover',
+        'rule:curing-madness',
+        'rule:going-mad',
+        'rule:madness',
+        'rule:madness-effects',
+        'rule:objects',
+        'rule:resting',
+      ],
+      expectedTableNames: [
+        'Damage Severity by Level',
+        'Difficulty Classes',
+        'Indefinite Madness',
+        'Individual Treasure: Challenge 0-4',
+        'Long-Term Madness',
+        'Object Armor Class',
+        'Object Hit Points',
+        'Short-Term Madness',
+        'Trap Save DCs and Attack Bonuses',
+        'Treasure Hoard: Challenge 0-4',
+        'XP Thresholds by Character Level',
+      ],
+    });
     expect(result.counts.spells).toBe(2);
     expect(result.counts.creatures).toBe(1);
     // No Appendix MM-B page in this fixture, so the best-effort NPC slice
@@ -798,17 +938,17 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(result.counts.hazards).toBe(1);
     expect(result.counts.traps).toBe(2);
     expect(result.counts.actions).toBe(10);
-    expect(result.counts.rules).toBe(2);
-    // 4 prior tables + the two trap reference tables (loreweaver-hvp).
-    expect(result.counts.tables).toBe(6);
+    expect(result.counts.rules).toBe(7);
+    // 4 prior tables + 2 trap tables + 3 madness tables + 2 object tables.
+    expect(result.counts.tables).toBe(11);
     expect(result.counts.equipment).toBe(4);
     expect(result.counts.magicItems).toBe(2);
     expect(result.counts.ancestries).toBe(18);
     expect(result.sourceHash).toMatch(/^[0-9a-f]{64}$/);
 
     const pack = loadRulesPackFromDirectory(outDir);
-    // 48 prior records + 2 sample traps + 2 trap tables + 2 magic items.
-    expect(pack.records).toHaveLength(54);
+    // 48 prior records + 2 sample traps + 7 new tables + 5 rules + 2 magic items.
+    expect(pack.records).toHaveLength(64);
     const keys = pack.records.map((r) => r.key).sort();
     expect(keys).toContain('class:fighter');
     expect(keys).toContain('subclass:champion');
@@ -867,12 +1007,25 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       'action:use-an-object',
     ]);
     const ruleKeys = keys.filter((k) => k.startsWith('rule:'));
-    expect(ruleKeys).toEqual(['rule:cover', 'rule:resting']);
+    expect(ruleKeys).toEqual([
+      'rule:cover',
+      'rule:curing-madness',
+      'rule:going-mad',
+      'rule:madness',
+      'rule:madness-effects',
+      'rule:objects',
+      'rule:resting',
+    ]);
     const tableKeys = keys.filter((k) => k.startsWith('table:'));
     expect(tableKeys).toEqual([
       'table:damage-severity-by-level',
       'table:difficulty-classes',
+      'table:indefinite-madness',
       'table:individual-treasure-challenge-0-4',
+      'table:long-term-madness',
+      'table:object-armor-class',
+      'table:object-hit-points',
+      'table:short-term-madness',
       'table:trap-save-dcs-and-attack-bonuses',
       'table:treasure-hoard-challenge-0-4',
       'table:xp-thresholds-by-character-level',
@@ -1036,6 +1189,17 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       'Deadly',
     ]);
     expect((damageData.rows as unknown[]).length).toBe(4);
+
+    const objectsRule = pack.records.find((r) => r.key === 'rule:objects');
+    const objectsData = objectsRule?.data as Record<string, unknown>;
+    expect(objectsData.text).toMatch(/Damage Threshold/);
+    expect(objectsData.text).not.toMatch(/Cloth, paper, rope 11/);
+    const objectHitPoints = pack.records.find(
+      (r) => r.key === 'table:object-hit-points',
+    );
+    expect(
+      (objectHitPoints?.data as Record<string, unknown>).rows,
+    ).toHaveLength(4);
 
     const mm = pack.records.find((r) => r.key === 'spell:magic-missile');
     const mmData = mm?.data as Record<string, unknown>;
@@ -1263,6 +1427,42 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     ]);
   });
 
+  it('fails closed when the expected table-name set drifts', async () => {
+    const workDir = makeTmpDir();
+    const pdfPath = join(workDir, 'fixture.pdf');
+    const outDir = join(workDir, 'pack');
+    await writeFixturePdf(pdfPath, [
+      RACES_PAGE,
+      CLASSES_PAGE,
+      CORE_RULES_PAGE_ONE,
+      CORE_RULES_PAGE_TWO,
+      CORE_RULES_TABLES_PAGE,
+      SPELL_LISTS_PAGE,
+      SPELLS_PAGE,
+      MONSTERS_PAGE,
+      TREASURE_TABLES_PAGE,
+      MAGIC_ITEMS_PAGE,
+      COMBAT_ACTIONS_PAGE,
+      MAKING_AN_ATTACK_PAGE,
+      HAZARDS_PAGE,
+      MADNESS_PAGE_ONE,
+      MADNESS_PAGE_TWO,
+      OBJECTS_PAGE,
+      FEATS_PAGE,
+      EQUIPMENT_PAGE,
+      MULTICLASSING_PAGE,
+      CONDITIONS_PAGE,
+    ]);
+
+    await expect(
+      runImporter({
+        pdfPath,
+        outDir,
+        expectedTableNames: ['Difficulty Classes'],
+      }),
+    ).rejects.toThrow(TableCoverageError);
+  });
+
   it('produces a byte-identical pack across two runs over the same PDF', async () => {
     const workDir = makeTmpDir();
     const pdfPath = join(workDir, 'fixture.pdf');
@@ -1474,6 +1674,60 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       HAZARDS_PAGE_MISSING_END,
       FEATS_PAGE,
       CONDITIONS_PAGE,
+    ]);
+
+    await expect(runImporter({ pdfPath, outDir })).rejects.toThrow(
+      SectionNotFoundError,
+    );
+  });
+
+  it('fails closed when the Madness end heading is missing', async () => {
+    const workDir = makeTmpDir();
+    const pdfPath = join(workDir, 'fixture.pdf');
+    const outDir = join(workDir, 'pack');
+    await writeFixturePdf(pdfPath, [
+      RACES_PAGE,
+      CLASSES_PAGE,
+      CORE_RULES_PAGE_ONE,
+      CORE_RULES_PAGE_TWO,
+      SPELL_LISTS_PAGE,
+      SPELLS_PAGE,
+      MONSTERS_PAGE,
+      MAGIC_ITEMS_PAGE,
+      COMBAT_ACTIONS_PAGE,
+      MAKING_AN_ATTACK_PAGE,
+      HAZARDS_PAGE,
+      FEATS_PAGE,
+      EQUIPMENT_PAGE,
+      CONDITIONS_PAGE,
+      MADNESS_PAGE_MISSING_END,
+    ]);
+
+    await expect(runImporter({ pdfPath, outDir })).rejects.toThrow(
+      SectionNotFoundError,
+    );
+  });
+
+  it('fails closed when the Objects end heading is missing', async () => {
+    const workDir = makeTmpDir();
+    const pdfPath = join(workDir, 'fixture.pdf');
+    const outDir = join(workDir, 'pack');
+    await writeFixturePdf(pdfPath, [
+      RACES_PAGE,
+      CLASSES_PAGE,
+      CORE_RULES_PAGE_ONE,
+      CORE_RULES_PAGE_TWO,
+      SPELL_LISTS_PAGE,
+      SPELLS_PAGE,
+      MONSTERS_PAGE,
+      MAGIC_ITEMS_PAGE,
+      COMBAT_ACTIONS_PAGE,
+      MAKING_AN_ATTACK_PAGE,
+      HAZARDS_PAGE,
+      FEATS_PAGE,
+      EQUIPMENT_PAGE,
+      CONDITIONS_PAGE,
+      OBJECTS_PAGE_MISSING_END,
     ]);
 
     await expect(runImporter({ pdfPath, outDir })).rejects.toThrow(

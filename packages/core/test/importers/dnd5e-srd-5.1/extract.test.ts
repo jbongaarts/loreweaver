@@ -492,6 +492,104 @@ describe('extractPdfText — heading merge', () => {
     expect(lines.indexOf('wish spell')).toBeGreaterThan(rightIdx);
   });
 
+  it('picks the supported page gutter when five justified fragments form a wider outlier island', async () => {
+    const pages = await extractFromOps([
+      // Left-column line-final fragments narrow the real start-x gutter.
+      { text: 'left line one', size: 11, x: 60, y: 200 },
+      { text: 'left middle one', size: 11, x: 120, y: 200 },
+      { text: 'left tail one', size: 11, x: 250, y: 200 },
+      { text: 'left line two', size: 11, x: 60, y: 220 },
+      { text: 'left middle two', size: 11, x: 180, y: 220 },
+      { text: 'left tail two', size: 11, x: 250, y: 220 },
+      { text: 'left line three', size: 11, x: 70, y: 240 },
+      { text: 'left middle three', size: 11, x: 220, y: 240 },
+      { text: 'left tail three', size: 11, x: 250, y: 240 },
+      // Five justified fragments open a wider gap inside the right column.
+      { text: 'right line one', size: 11, x: 330, y: 204 },
+      { text: 'right wrap one', size: 11, x: 340, y: 224 },
+      { text: 'right line two', size: 11, x: 330, y: 244 },
+      { text: 'right wrap two', size: 11, x: 340, y: 264 },
+      { text: 'right line three', size: 11, x: 330, y: 284 },
+      { text: 'right wrap three', size: 11, x: 340, y: 304 },
+      { text: 'far one', size: 11, x: 430, y: 204 },
+      { text: 'far two', size: 11, x: 450, y: 224 },
+      { text: 'far three', size: 11, x: 470, y: 244 },
+      { text: 'far four', size: 11, x: 490, y: 264 },
+      { text: 'far five', size: 11, x: 510, y: 284 },
+    ]);
+    const lines = pages[0].lines;
+    const lastLeft = Math.max(
+      lines.findIndex((line) => line.startsWith('left line one')),
+      lines.findIndex((line) => line.startsWith('left line two')),
+      lines.findIndex((line) => line.startsWith('left line three')),
+    );
+    const firstRight = lines.findIndex((line) =>
+      line.startsWith('right line one'),
+    );
+    expect(lastLeft).toBeGreaterThanOrEqual(0);
+    expect(firstRight).toBeGreaterThan(lastLeft);
+    for (const fragment of [
+      'far one',
+      'far two',
+      'far three',
+      'far four',
+      'far five',
+    ]) {
+      expect(lines.some((line) => line.includes(fragment))).toBe(true);
+      expect(lines).not.toContain(fragment);
+    }
+  });
+
+  it('keeps the vendored Objects page in column reading order', async () => {
+    const pdf = readFileSync(
+      'packages/core/sources/dnd5e-srd-5.1/SRD_CC_v5.1.pdf',
+    );
+    const pages = await extractPdfText(new Uint8Array(pdf), {
+      pageRange: { start: 203, end: 203 },
+    });
+    const lines = pages[0].lines;
+    const objects = lines.indexOf('Objects');
+    const objectHitPoints = lines.indexOf('Object Hit Points');
+    const hugeObjects = lines.findIndex((line) =>
+      line.startsWith('Huge and Gargantuan Objects.'),
+    );
+
+    expect(objects).toBeGreaterThanOrEqual(0);
+    expect(objectHitPoints).toBeGreaterThan(objects);
+    expect(hugeObjects).toBeGreaterThan(objectHitPoints);
+    expect(lines).toContain('Object Armor Class');
+    expect(
+      lines.some((line) =>
+        line.startsWith('Object Armor Class damage threshold'),
+      ),
+    ).toBe(false);
+  });
+
+  it('keeps the vendored Horn of Valhalla table out of later magic items', async () => {
+    const pdf = readFileSync(
+      'packages/core/sources/dnd5e-srd-5.1/SRD_CC_v5.1.pdf',
+    );
+    const pages = await extractPdfText(new Uint8Array(pdf), {
+      pageRange: { start: 226, end: 226 },
+    });
+    const lines = pages[0].lines;
+    const requirement = lines.findIndex((line) => line.includes('Requirement'));
+    const horseshoes = lines.indexOf('Horseshoes of a Zephyr');
+    const instantFortress = lines.indexOf('Instant Fortress');
+
+    expect(requirement).toBeGreaterThanOrEqual(0);
+    expect(horseshoes).toBeGreaterThan(requirement);
+    expect(instantFortress).toBeGreaterThan(horseshoes);
+    expect(lines.slice(instantFortress)).not.toContain('Requirement');
+    expect(lines.slice(instantFortress)).not.toContain('None');
+    expect(lines).not.toContain('.');
+    expect(
+      lines.some((line) =>
+        line.includes('Four types of horn of Valhalla are known to exist'),
+      ),
+    ).toBe(true);
+  });
+
   it('reassigns repeated left-column fragments before a denser right margin', async () => {
     // Regression for PR #150 review. SRD p238 has two left-column phrase
     // fragments past x=230 ("telekinesis" and "spell from") after an internal

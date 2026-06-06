@@ -140,6 +140,144 @@ const INCOMPLETE_TREASURE_PAGE = page(137, [
   'A magic item is a rare and precious thing.',
 ]);
 
+const MADNESS_TABLE_PAGES = [
+  page(201, [
+    'Short-Term Madness',
+    'd100 Effect (lasts 1d10 minutes)',
+    '01–20 The character retreats into his or her mind and',
+    'becomes paralyzed. The effect ends if the',
+    'character takes any damage.',
+    '21–30 The character becomes incapacitated and',
+    'spends the duration screaming, laughing, or',
+    'weeping.',
+    '31–40 The character becomes frightened and must',
+    'use his or her action and movement each',
+    'round to flee from the source of the fear.',
+    '41–50 The character begins babbling and is incapable',
+    'of normal speech or spellcasting.',
+    '51–60 The character must use his or her action each',
+    'round to attack the nearest creature.',
+    '61–70 The character experiences vivid hallucinations',
+    'and has disadvantage on ability checks.',
+    '71–75 The character does whatever anyone tells him',
+    'or her to do that isn’t obviously self-',
+    'destructive.',
+    '76–80 The character experiences an overpowering',
+    'urge to eat something strange such as dirt,',
+    'slime, or offal.',
+    '81–90 The character is stunned.',
+    '91–100 The character falls unconscious.',
+    'Long-Term Madness',
+    'd100 Effect (lasts 1d10 × 10 hours)',
+    '01–10 The character feels compelled to repeat a',
+    'specific activity over and over, such as washing',
+    'hands, touching things, praying, or counting',
+    'coins.',
+    '11–20 The character experiences vivid hallucinations',
+    'and has disadvantage on ability checks.',
+    '21–30 The character suffers extreme paranoia. The',
+    'character has disadvantage on Wisdom and',
+    'Charisma checks.',
+    '31–40 The character regards something (usually the',
+    'source of madness) with intense revulsion, as if',
+    'affected by the antipathy effect of the',
+    'antipathy/sympathy spell.',
+    '41–45 The character experiences a powerful delusion.',
+    'Choose a potion. The character imagines that',
+    'he or she is under its effects.',
+    '46–55 The character becomes attached to a “lucky',
+    'charm,” such as a person or an object, and has',
+    'disadvantage on attack rolls, ability checks, and',
+    'saving throws while more than 30 feet from it.',
+    '56–65 The character is blinded (25%) or deafened',
+    '(75%).',
+    '66–75 The character experiences uncontrollable',
+    'tremors or tics, which impose disadvantage on',
+    'attack rolls, ability checks, and saving throws',
+    'that involve Strength or Dexterity.',
+    '76–85 The character suffers from partial amnesia. The',
+    'character knows who he or she is and retains',
+    'racial traits and class features, but doesn’t',
+    'recognize other people or remember anything',
+    'that happened before the madness took effect.',
+    '86–90 Whenever the character takes damage, he or',
+    'she must succeed on a DC 15 Wisdom saving',
+    'throw or be affected as though he or she failed',
+    'a saving throw against the confusion spell. The',
+    'confusion effect lasts for 1 minute.',
+    '91–95 The character loses the ability to speak.',
+    '96–100 The character falls unconscious. No amount of',
+    'jostling or damage can wake the character.',
+  ]),
+  page(202, [
+    'Indefinite Madness',
+    'd100 Flaw (lasts until cured)',
+    '01–15 “Being drunk keeps me sane.”',
+    '16–25 “I keep whatever I find.”',
+    '26–30 “I try to become more like someone else I',
+    'know—adopting his or her style of dress,',
+    'mannerisms, and name.”',
+    '31–35 “I must bend the truth, exaggerate, or outright',
+    'lie to be interesting to other people.”',
+    '36–45 “Achieving my goal is the only thing of interest',
+    'to me, and I’ll ignore everything else to pursue',
+    'it.”',
+    '46–50 “I find it hard to care about anything that goes',
+    'on around me.”',
+    '51–55 “I don’t like the way people judge me all the',
+    'time.”',
+    '56–70 “I am the smartest, wisest, strongest, fastest,',
+    'and most beautiful person I know.”',
+    '71–80 “I am convinced that powerful enemies are',
+    'hunting me, and their agents are everywhere I',
+    'go. I am sure they’re watching me all the time.”',
+    '81–85 “There’s only one person I can trust. And only I',
+    'can see this special friend.”',
+    '86–95 “I can’t take anything seriously. The more',
+    'serious the situation, the funnier I find it.”',
+    '96–100 “I’ve discovered that I really like killing people.”',
+    'Curing Madness',
+    'A calm emotions spell can suppress the effects of madness.',
+  ]),
+];
+
+const OBJECT_TABLE_PAGE = page(203, [
+  'Object Armor Class',
+  'Substance AC',
+  'Cloth, paper, rope 11',
+  'Crystal, glass, ice 13',
+  'Wood, bone 15',
+  'Stone 17',
+  'Iron, steel 19',
+  'Mithral 21',
+  'Adamantine 23',
+  'Hit Points. An object’s hit points measure how much damage it can take.',
+  'Object Hit Points',
+  'Size',
+  'Tiny (bottle, lock)',
+  'Small (chest, lute)',
+  'Medium (barrel, chandelier)',
+  'Large (cart, 10-ft.-by-10-ft. window)',
+  'Huge and Gargantuan Objects. Normal weapons are of little use.',
+  'Objects and Damage Types. Objects are immune to poison and psychic damage.',
+  'Damage Threshold. Big objects such as castle walls have extra resilience.',
+  'Fragile Resilient',
+  '2 (1d4) 5 (2d4)',
+  '3 (1d6) 10 (3d6)',
+  '4 (1d8) 18 (4d8)',
+  '5 (1d10) 27 (5d10)',
+]);
+
+const INLINE_OBJECT_HIT_POINTS_PAGE = page(203, [
+  'Object Hit Points',
+  'Size Fragile Resilient',
+  'Tiny (bottle, lock) 2 (1d4) 5 (2d4)',
+  'Small (chest, lute) 3 (1d6) 10 (3d6)',
+  'Medium (barrel, chandelier) 4 (1d8) 18 (4d8)',
+  'Large (cart, 10-ft.-by-10-ft. window) 5 (1d10) 27 (5d10)',
+  'Huge and Gargantuan Objects. Normal weapons are of little use.',
+]);
+
 describe('parseTables', () => {
   it('extracts the two-column ability-check DC table', () => {
     const tables = parseTables([DIFFICULTY_CLASSES_PAGE]);
@@ -268,6 +406,201 @@ describe('parseTables', () => {
 
   it('rejects incomplete treasure column blocks instead of consuming later headings as cells', () => {
     expect(parseTables([INCOMPLETE_TREASURE_PAGE])).toEqual([]);
+  });
+
+  it('reconstructs the Madness effect tables and Objects statistics tables', () => {
+    expect(parseTables([...MADNESS_TABLE_PAGES, OBJECT_TABLE_PAGE])).toEqual([
+      {
+        name: 'Indefinite Madness',
+        columns: ['d100', 'Flaw'],
+        rows: [
+          ['01–15', '“Being drunk keeps me sane.”'],
+          ['16–25', '“I keep whatever I find.”'],
+          [
+            '26–30',
+            '“I try to become more like someone else I know—adopting his or her style of dress, mannerisms, and name.”',
+          ],
+          [
+            '31–35',
+            '“I must bend the truth, exaggerate, or outright lie to be interesting to other people.”',
+          ],
+          [
+            '36–45',
+            '“Achieving my goal is the only thing of interest to me, and I’ll ignore everything else to pursue it.”',
+          ],
+          [
+            '46–50',
+            '“I find it hard to care about anything that goes on around me.”',
+          ],
+          ['51–55', '“I don’t like the way people judge me all the time.”'],
+          [
+            '56–70',
+            '“I am the smartest, wisest, strongest, fastest, and most beautiful person I know.”',
+          ],
+          [
+            '71–80',
+            '“I am convinced that powerful enemies are hunting me, and their agents are everywhere I go. I am sure they’re watching me all the time.”',
+          ],
+          [
+            '81–85',
+            '“There’s only one person I can trust. And only I can see this special friend.”',
+          ],
+          [
+            '86–95',
+            '“I can’t take anything seriously. The more serious the situation, the funnier I find it.”',
+          ],
+          ['96–100', '“I’ve discovered that I really like killing people.”'],
+        ],
+        sourcePage: 202,
+      },
+      {
+        name: 'Long-Term Madness',
+        columns: ['d100', 'Effect'],
+        rows: [
+          [
+            '01–10',
+            'The character feels compelled to repeat a specific activity over and over, such as washing hands, touching things, praying, or counting coins.',
+          ],
+          [
+            '11–20',
+            'The character experiences vivid hallucinations and has disadvantage on ability checks.',
+          ],
+          [
+            '21–30',
+            'The character suffers extreme paranoia. The character has disadvantage on Wisdom and Charisma checks.',
+          ],
+          [
+            '31–40',
+            'The character regards something (usually the source of madness) with intense revulsion, as if affected by the antipathy effect of the antipathy/sympathy spell.',
+          ],
+          [
+            '41–45',
+            'The character experiences a powerful delusion. Choose a potion. The character imagines that he or she is under its effects.',
+          ],
+          [
+            '46–55',
+            'The character becomes attached to a “lucky charm,” such as a person or an object, and has disadvantage on attack rolls, ability checks, and saving throws while more than 30 feet from it.',
+          ],
+          ['56–65', 'The character is blinded (25%) or deafened (75%).'],
+          [
+            '66–75',
+            'The character experiences uncontrollable tremors or tics, which impose disadvantage on attack rolls, ability checks, and saving throws that involve Strength or Dexterity.',
+          ],
+          [
+            '76–85',
+            'The character suffers from partial amnesia. The character knows who he or she is and retains racial traits and class features, but doesn’t recognize other people or remember anything that happened before the madness took effect.',
+          ],
+          [
+            '86–90',
+            'Whenever the character takes damage, he or she must succeed on a DC 15 Wisdom saving throw or be affected as though he or she failed a saving throw against the confusion spell. The confusion effect lasts for 1 minute.',
+          ],
+          ['91–95', 'The character loses the ability to speak.'],
+          [
+            '96–100',
+            'The character falls unconscious. No amount of jostling or damage can wake the character.',
+          ],
+        ],
+        sourcePage: 201,
+      },
+      {
+        name: 'Object Armor Class',
+        columns: ['Substance', 'AC'],
+        rows: [
+          ['Cloth, paper, rope', 11],
+          ['Crystal, glass, ice', 13],
+          ['Wood, bone', 15],
+          ['Stone', 17],
+          ['Iron, steel', 19],
+          ['Mithral', 21],
+          ['Adamantine', 23],
+        ],
+        sourcePage: 203,
+      },
+      {
+        name: 'Object Hit Points',
+        columns: ['Size', 'Fragile', 'Resilient'],
+        rows: [
+          ['Tiny (bottle, lock)', '2 (1d4)', '5 (2d4)'],
+          ['Small (chest, lute)', '3 (1d6)', '10 (3d6)'],
+          ['Medium (barrel, chandelier)', '4 (1d8)', '18 (4d8)'],
+          ['Large (cart, 10-ft.-by-10-ft. window)', '5 (1d10)', '27 (5d10)'],
+        ],
+        sourcePage: 203,
+      },
+      {
+        name: 'Short-Term Madness',
+        columns: ['d100', 'Effect'],
+        rows: [
+          [
+            '01–20',
+            'The character retreats into his or her mind and becomes paralyzed. The effect ends if the character takes any damage.',
+          ],
+          [
+            '21–30',
+            'The character becomes incapacitated and spends the duration screaming, laughing, or weeping.',
+          ],
+          [
+            '31–40',
+            'The character becomes frightened and must use his or her action and movement each round to flee from the source of the fear.',
+          ],
+          [
+            '41–50',
+            'The character begins babbling and is incapable of normal speech or spellcasting.',
+          ],
+          [
+            '51–60',
+            'The character must use his or her action each round to attack the nearest creature.',
+          ],
+          [
+            '61–70',
+            'The character experiences vivid hallucinations and has disadvantage on ability checks.',
+          ],
+          [
+            '71–75',
+            'The character does whatever anyone tells him or her to do that isn’t obviously self-destructive.',
+          ],
+          [
+            '76–80',
+            'The character experiences an overpowering urge to eat something strange such as dirt, slime, or offal.',
+          ],
+          ['81–90', 'The character is stunned.'],
+          ['91–100', 'The character falls unconscious.'],
+        ],
+        sourcePage: 201,
+      },
+    ]);
+  });
+
+  it('omits an incomplete Object Hit Points column block', () => {
+    const incomplete = page(203, [
+      'Object Hit Points',
+      'Size',
+      'Tiny (bottle, lock)',
+      'Small (chest, lute)',
+      'Medium (barrel, chandelier)',
+      'Large (cart, 10-ft.-by-10-ft. window)',
+      'Fragile Resilient',
+      '2 (1d4) 5 (2d4)',
+      '3 (1d6) 10 (3d6)',
+      '4 (1d8) 18 (4d8)',
+    ]);
+    expect(parseTables([incomplete])).toEqual([]);
+  });
+
+  it('reconstructs Object Hit Points from inline extracted rows', () => {
+    expect(parseTables([INLINE_OBJECT_HIT_POINTS_PAGE])).toEqual([
+      {
+        name: 'Object Hit Points',
+        columns: ['Size', 'Fragile', 'Resilient'],
+        rows: [
+          ['Tiny (bottle, lock)', '2 (1d4)', '5 (2d4)'],
+          ['Small (chest, lute)', '3 (1d6)', '10 (3d6)'],
+          ['Medium (barrel, chandelier)', '4 (1d8)', '18 (4d8)'],
+          ['Large (cart, 10-ft.-by-10-ft. window)', '5 (1d10)', '27 (5d10)'],
+        ],
+        sourcePage: 203,
+      },
+    ]);
   });
 
   it('sorts tables by name for stable downstream emission', () => {

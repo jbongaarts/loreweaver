@@ -201,24 +201,26 @@ const MIN_ITEMS_PER_COLUMN = 2;
  * has exactly two far-right text runs ("jump" + "spell") that satisfy the
  * minimum guards and open a wider x-gap than the real page gutter.
  *
- * Raised to 3 for the Magic Items A-Z pages (SRD p217-p218), where the right
- * column is justified and pushes up to THREE line-final words flush to the
- * page's right edge — p218 has "wish" (x≈494), "spell" (x≈515) and
- * "remove curse" (x≈487), all far right of the right column margin (x≈329).
- * Those three stragglers open a ≈106pt gap that exceeds the real ≈78pt page
- * gutter (x≈251→329), so the widest-gap cut isolates them as a phantom third
- * column and the rest of the page (BOTH real columns) collapses into a single
- * y-interleaved flow — splicing the embedded "Avatar of Death" stat block
- * (left column, part of the Deck of Many Things entry) line-by-line into the
- * Defender and Demon Armor item bodies in the right column. A ceiling of 3
- * lets the tiny-outlier guard divert to the well-supported real-gutter cut on
- * these pages; the per-side item/distinct-x guards plus
- * `reassignGutterStragglers` keep the stragglers attached to their true (left)
- * column. Empirically this changes the column decision on only p217 and p218
- * across the whole SRD; split-column table pages (armor/weapons/tools) are
- * unaffected because their minority side carries far more than 3 items.
+ * The Magic Items A-Z pages (SRD p217-p218) push three line-final words flush
+ * to the page edge. The Objects page (p203) pushes five fragments into the
+ * same shape: they open a wider x-gap than the real page gutter and otherwise
+ * look like a phantom third column. A ceiling of 5 lets the tiny-outlier guard
+ * divert to the better-supported real-gutter cut on all reviewed cases; the
+ * per-side item/distinct-x guards plus `reassignGutterStragglers` keep the
+ * fragments attached to their true column. Split-column table pages carry
+ * substantially more items on each side and do not qualify as tiny islands.
  */
-const TINY_OUTLIER_SIDE_MAX_ITEMS = 3;
+const TINY_OUTLIER_SIDE_MAX_ITEMS = 5;
+
+/**
+ * The original tiny-island fallback handled 2-3 fragments by choosing the
+ * most balanced supported cut. Keep that behavior for the sparse inline-flow
+ * regressions it was designed around. Larger 4-5-fragment islands occur on
+ * dense two-column pages where an embedded table can make an internal cut look
+ * more balanced than the actual page gutter; those use the rightmost
+ * well-supported cut instead.
+ */
+const BALANCED_TINY_OUTLIER_SIDE_MAX_ITEMS = 3;
 
 /**
  * Minimum number of distinct rounded x-coordinates a candidate column
@@ -541,6 +543,9 @@ function partitionItemsByColumn(
   let supportedMinSideItems = 0;
   let supportedLeft: PdfTextItem[] | null = null;
   let supportedRight: PdfTextItem[] | null = null;
+  let rightmostSupportedCutAt = Number.NEGATIVE_INFINITY;
+  let rightmostSupportedLeft: PdfTextItem[] | null = null;
+  let rightmostSupportedRight: PdfTextItem[] | null = null;
   for (let i = 1; i < sortedXs.length; i++) {
     const gap = sortedXs[i] - sortedXs[i - 1];
     if (gap < COLUMN_GAP_THRESHOLD) continue;
@@ -587,6 +592,14 @@ function partitionItemsByColumn(
       supportedLeft = left;
       supportedRight = right;
     }
+    if (
+      minSideItems > TINY_OUTLIER_SIDE_MAX_ITEMS &&
+      cutAt > rightmostSupportedCutAt
+    ) {
+      rightmostSupportedCutAt = cutAt;
+      rightmostSupportedLeft = left;
+      rightmostSupportedRight = right;
+    }
   }
   if (widestLeft === null || widestRight === null) return [items];
   if (widestMinSideItems <= TINY_OUTLIER_SIDE_MAX_ITEMS) {
@@ -605,6 +618,16 @@ function partitionItemsByColumn(
     // rule body. Scoping the contiguity test to the tiny-island case keeps
     // genuine multi-item gutters — where one justified left line can legitimately
     // end ≈43pt from the right column — untouched.
+    if (
+      widestMinSideItems > BALANCED_TINY_OUTLIER_SIDE_MAX_ITEMS &&
+      rightmostSupportedLeft !== null &&
+      rightmostSupportedRight !== null
+    ) {
+      return reassignGutterStragglers(
+        rightmostSupportedLeft,
+        rightmostSupportedRight,
+      );
+    }
     if (
       supportedLeft !== null &&
       supportedRight !== null &&
