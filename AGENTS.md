@@ -151,6 +151,12 @@ organization, then runs the repo checks and tests. The npm commands wrap
 `scripts/agent-preflight-main.ps1` and
 `scripts/verify-current-worktree.ps1`, respectively.
 
+Full `npm run verify:worktree` is required before commit/push. It may be run
+earlier when a task specifically needs a clean baseline, but agents should not
+treat full verification as mandatory immediately after creating a worktree. The
+cheap parent-checkout preflight plus CI-clean `origin/main` is sufficient to
+start work.
+
 If Biome says no relevant files were checked because `.worktrees` is ignored,
 the command ran from the wrong checkout. The parent checkout's `.worktrees/`
 directory remains ignored; do not make Biome scan nested worktrees. In
