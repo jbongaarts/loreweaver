@@ -29,8 +29,8 @@
     "audit-bundle:dnd5e-srd": "tsx packages/core/scripts/create-dnd5e-srd-audit-bundle/cli.ts",
     "agent:preflight": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/agent-preflight-main.ps1",
     "verify:worktree": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-current-worktree.ps1",
-    "format": "biome format --write .",
-    "format:check": "biome format .",
+    "format": "biome check --write .",
+    "format:check": "biome check .",
     "lint": "biome lint .",
     "check:hidden-unicode": "node scripts/check-hidden-unicode.mjs",
     "check": "npm run check:hidden-unicode && biome ci ."

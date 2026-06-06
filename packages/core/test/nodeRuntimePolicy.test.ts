@@ -104,14 +104,18 @@ describe('Node runtime policy', () => {
         '!**/dist',
         '!**/coverage',
         '!**/.beads',
-        '!**/.worktrees',
         '!**/package-lock.json',
         // Generated SRD rules-packs (large, machine-emitted JSON) are an
         // intentional, explicit exclusion so Biome never reformats them.
         '!**/packages/core/data',
       ]),
     );
+    // Linked worktrees must stay ignored from the parent checkout through
+    // .gitignore/VCS ignore. Do not add a Biome glob like !**/.worktrees here:
+    // it also matches the active linked worktree's own root path.
+    expect(biome.files?.includes ?? []).not.toContain('!**/.worktrees');
     expect(gitignore).toContain('.dolt/');
+    expect(gitignore).toContain('.worktrees/');
     expect(gitignore).toContain('*.db');
     expect(gitignore).toContain('.env');
     expect(gitignore).toContain('.claude/settings.local.json');
@@ -167,6 +171,7 @@ describe('Node runtime policy', () => {
             token !== '' &&
             token !== 'biome' &&
             token !== 'format' &&
+            token !== 'check' &&
             token !== 'lint' &&
             token !== 'ci' &&
             !token.startsWith('-'),
@@ -203,6 +208,8 @@ describe('Node runtime policy', () => {
       'If Biome says no relevant files were checked because `.worktrees` is ignored',
     );
     expect(agents).toMatch(/do not delete or recreate the\s+worktree/);
+    expect(agents).toContain('`npm run format` (`biome check --write .`)');
+    expect(agents).not.toContain('temporary worktree-local Biome config');
   });
 
   it('provides simple PowerShell helpers for agent worktree workflow', () => {
@@ -215,6 +222,8 @@ describe('Node runtime policy', () => {
     expect(scripts['verify:worktree']).toBe(
       'powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-current-worktree.ps1',
     );
+    expect(scripts.format).toBe('biome check --write .');
+    expect(scripts['format:check']).toBe('biome check .');
 
     const preflight = readText('scripts/agent-preflight-main.ps1');
     expect(preflight).toContain("$ErrorActionPreference = 'Stop'");
@@ -227,10 +236,9 @@ describe('Node runtime policy', () => {
     expect(verify).toContain("$ErrorActionPreference = 'Stop'");
     expect(verify).toContain('git rev-parse --show-toplevel');
     expect(verify).toContain('Set-Location $repoRoot');
-    expect(verify).toContain('BIOME_CONFIG_PATH');
-    expect(verify).toContain('.biome-worktree-');
-    expect(verify).toContain('!**/.biome-worktree-*.json');
-    expect(verify).toContain('Remove-Item Env:\\BIOME_CONFIG_PATH');
+    expect(verify).not.toContain('BIOME_CONFIG_PATH');
+    expect(verify).not.toContain('.biome-worktree-');
+    expect(verify).not.toContain('New-WorktreeBiomeConfig');
     for (const command of [
       'npm run format',
       'npm run check',

@@ -66,8 +66,8 @@ introduce a second formatter for these file types; do not manually reformat code
 to fight Biome's output.
 
 ```bash
-npm run format        # apply Biome formatting and import organization
-npm run format:check  # check formatting without writing
+npm run format        # apply Biome safe fixes, formatting, and import organization
+npm run format:check  # check Biome format/lint/import rules without writing
 npm run lint          # run Biome lint rules
 npm run check         # CI-style Biome validation (format + lint, no writes)
 ```
@@ -150,11 +150,13 @@ npm run verify:worktree
 
 The verification helper resolves `git rev-parse --show-toplevel`, runs
 `Set-Location (git rev-parse --show-toplevel)` by using that resolved root, and
-then runs the repo's canonical `npm run format`, `npm run check`,
-`npm run typecheck`, and `npm run test` sequence from that root.
-Inside `.worktrees`, it preserves the parent Biome configuration and uses a
-temporary worktree-local Biome config so only the active linked worktree is
-checked.
+then runs the repo's canonical `npm run format` (`biome check --write .`),
+`npm run check`, `npm run typecheck`, and `npm run test` sequence from that
+root. The format step is the pre-verification fix pass: it applies Biome safe
+fixes, formatting, and import organization before the non-mutating checks.
+The parent checkout's `.worktrees/` directory remains ignored through
+`.gitignore` and Biome's VCS ignore support; do not make Biome scan nested
+worktrees from the parent checkout.
 
 If Biome says no relevant files were checked because `.worktrees` is ignored,
 the command was run from the wrong checkout; do not delete or recreate the
