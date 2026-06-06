@@ -14,13 +14,16 @@
  * confer.
  *
  * Grantor tracking: the parser walks the flattened lines maintaining the
- * current class and subclass context. A line that exactly matches a known base
- * class name (the 12 SRD parents) opens a class context and clears any subclass
- * context; a line that exactly matches a known subclass name opens a subclass
- * context within the current class. A feature is attributed to the current
- * subclass when one is open, otherwise to the current class. These are the same
- * known-name anchors `parseSubclasses` uses; only structural anchors are
- * hard-coded (ADR 0007) — every field VALUE is extracted from the source.
+ * current class and subclass context. On real multi-tier PDF input, a known
+ * base-class name opens class context only at the chapter-heading font tier, so
+ * a body-font table cell such as the Oath of Devotion spells table's "Paladin"
+ * header cannot clear subclass context. Uniform/no-height fixtures retain the
+ * exact-name fallback. A known subclass name opens context only when its known
+ * parent matches the current class (or the implicit opening Barbarian section).
+ * A feature is attributed to the current subclass when one is open, otherwise
+ * to the current class. These are the same structural anchors
+ * `parseSubclasses` uses; only structural anchors are hard-coded (ADR 0007) —
+ * every field VALUE is extracted from the source.
  *
  * Feature-heading detection is table-driven where the source gives a table:
  * class/subclass progression rows populate grant-level anchors, and only
