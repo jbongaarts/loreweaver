@@ -4,6 +4,8 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   DoltUnavailableError,
+  managedDoltDir,
+  managedDoltRoot,
   resolveDoltBinary,
 } from '../src/persistence/checkpoint/doltBinary.js';
 
@@ -89,5 +91,25 @@ describe('resolveDoltBinary precedence', () => {
         pathDirs: [],
       }),
     ).toThrow(DoltUnavailableError);
+  });
+});
+
+describe('managedDoltRoot', () => {
+  it('is a "root" subdir of the managed dolt dir (isolated global home)', () => {
+    const env = { LOREWEAVER_DOLT_HOME: '/opt/dolt' };
+    expect(managedDoltRoot(env)).toBe(join('/opt/dolt', 'root'));
+    expect(managedDoltRoot(env)).toBe(join(managedDoltDir(env), 'root'));
+  });
+
+  it('honors LOREWEAVER_DOLT_HOME so the root never lands in the user home', () => {
+    const home = emptyHome();
+    expect(managedDoltRoot({ LOREWEAVER_DOLT_HOME: home })).toBe(
+      join(home, 'root'),
+    );
+  });
+
+  it('is a sibling of the binary, never the binary dir itself', () => {
+    const env = { LOREWEAVER_DOLT_HOME: '/opt/dolt' };
+    expect(managedDoltRoot(env)).not.toBe(managedDoltDir(env));
   });
 });

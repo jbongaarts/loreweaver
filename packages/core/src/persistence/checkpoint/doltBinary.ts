@@ -44,6 +44,23 @@ export function managedDoltDir(
 }
 
 /**
+ * Isolated dolt "global" home (`DOLT_ROOT_PATH`) for Loreweaver-invoked dolt.
+ *
+ * `DOLT_ROOT_PATH` relocates dolt's global state — `config_global.json` and the
+ * `eventsData` telemetry queue — but NOT checkpoint repos (those live in the cwd
+ * passed to {@link DoltCli}). Pointing it at a Loreweaver-owned dir under the
+ * managed cache keeps both config and telemetry out of the user's `~/.dolt`, so
+ * we never read or pollute the user's personal dolt config and never accumulate
+ * a metrics backlog in their home. A sibling of the binary dir, not the binary
+ * dir itself, so the global `.dolt` never sits next to `dolt.exe`.
+ */
+export function managedDoltRoot(
+  env: Record<string, string | undefined> = process.env,
+): string {
+  return join(managedDoltDir(env), 'root');
+}
+
+/**
  * Resolve a usable `dolt` binary path. Precedence:
  *  1. explicit override (opt.explicitPath, then env LOREWEAVER_DOLT_BIN)
  *  2. Loreweaver-managed cache dir (env LOREWEAVER_DOLT_HOME or OS default)
