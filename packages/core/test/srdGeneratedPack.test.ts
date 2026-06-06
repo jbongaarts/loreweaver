@@ -103,7 +103,7 @@ const EXPECTED_COUNTS_BY_KIND: Readonly<Record<string, number>> = {
   creature: 317,
   equipment: 218,
   feat: 1,
-  feature: 144,
+  feature: 148,
   // 8 sample traps (loreweaver-hvp) + 3 sample diseases + 14 sample poisons
   // (loreweaver-6ra) all emit under the `hazard` kind; SRD 5.1 has no
   // environmental hazards. Traps carry a `trapType` discriminator; diseases and
@@ -145,6 +145,8 @@ const EXPECTED_STABLE_KEYS: readonly string[] = [
   'equipment:smiths-tools',
   'feat:grappler',
   'feature:champion:improved-critical',
+  'feature:oath-of-devotion:aura-of-devotion',
+  'feature:path-of-the-berserker:frenzy',
   'hazard:fire-breathing-statue',
   'hazard:sphere-of-annihilation',
   // Sample diseases + poisons under the `hazard` kind (loreweaver-6ra).
@@ -391,6 +393,88 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
       for (const expected of EXPECTED_STABLE_KEYS) {
         expect(keys.has(expected)).toBe(true);
       }
+    });
+  });
+
+  describe('subclass-granted feature regression (loreweaver-fak)', () => {
+    const features = pack.records.filter((record) => record.kind === 'feature');
+
+    function featureProjection(source: string) {
+      return features
+        .filter(
+          (record) => (record.data as { source?: unknown }).source === source,
+        )
+        .map((record) => ({
+          name: record.name,
+          level: (record.data as { level?: unknown }).level,
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    it('keeps the exact reviewed feature count for every SRD subclass', () => {
+      const counts = new Map<string, number>();
+      for (const record of features) {
+        const source = (record.data as { source?: unknown }).source;
+        if (typeof source === 'string' && source.startsWith('subclass:')) {
+          counts.set(source, (counts.get(source) ?? 0) + 1);
+        }
+      }
+
+      expect(Object.fromEntries([...counts.entries()].sort())).toEqual({
+        'subclass:champion': 5,
+        'subclass:circle-of-the-land': 2,
+        'subclass:college-of-lore': 2,
+        'subclass:draconic-bloodline': 4,
+        'subclass:hunter': 2,
+        'subclass:life-domain': 4,
+        'subclass:oath-of-devotion': 3,
+        'subclass:path-of-the-berserker': 4,
+        'subclass:school-of-evocation': 5,
+        'subclass:the-fiend': 2,
+        'subclass:thief': 3,
+        'subclass:way-of-the-open-hand': 4,
+      });
+    });
+
+    it('attributes Oath of Devotion features to the subclass at correct levels', () => {
+      expect(featureProjection('subclass:oath-of-devotion')).toEqual([
+        { name: 'Aura of Devotion', level: 7 },
+        { name: 'Holy Nimbus', level: 20 },
+        { name: 'Purity of Spirit', level: 15 },
+      ]);
+
+      const oathFeatureNames = new Set([
+        'Aura of Devotion',
+        'Holy Nimbus',
+        'Purity of Spirit',
+      ]);
+      expect(
+        features.filter(
+          (record) =>
+            (record.data as { source?: unknown }).source === 'class:paladin' &&
+            oathFeatureNames.has(record.name),
+        ),
+      ).toEqual([]);
+    });
+
+    it('emits every Path of the Berserker feature at its grant level', () => {
+      expect(featureProjection('subclass:path-of-the-berserker')).toEqual([
+        { name: 'Frenzy', level: 3 },
+        { name: 'Intimidating Presence', level: 10 },
+        { name: 'Mindless Rage', level: 6 },
+        { name: 'Retaliation', level: 14 },
+      ]);
+    });
+
+    it('keeps the Oath of Devotion description beyond its spells table', () => {
+      const oath = pack.records.find(
+        (record) => record.key === 'subclass:oath-of-devotion',
+      );
+      const description = (oath?.data as { description?: unknown }).description;
+      expect(typeof description).toBe('string');
+      expect(description).toContain('Oath of Devotion Spells');
+      expect(description).toContain('Aura of Devotion');
+      expect(description).toContain('Holy Nimbus');
     });
   });
 
@@ -977,7 +1061,7 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
       ['feature:the-fiend:hurl-through-hell', 'Your Pact Boon'],
       ['subclass:circle-of-the-land', 'Sacred Plants and Wood'],
       ['feature:circle-of-the-land:natural-recovery', 'Druids and the Gods'],
-      ['feature:paladin:holy-nimbus', 'Breaking Your Oath'],
+      ['feature:oath-of-devotion:holy-nimbus', 'Breaking Your Oath'],
     ];
 
     for (const [key, boxPhrase] of cases) {

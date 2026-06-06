@@ -22,6 +22,17 @@ function page(pageNumber: number, lines: string[]): PageText {
   return { pageNumber, lines };
 }
 
+function tieredPage(
+  pageNumber: number,
+  entries: readonly (readonly [line: string, height: number])[],
+): PageText {
+  return {
+    pageNumber,
+    lines: entries.map(([line]) => line),
+    lineHeights: entries.map(([, height]) => height),
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Fighter → Champion: a martial subclass. The slice mirrors the SRD shape: the
 // base-class name and its Class Features precede the "Martial Archetypes" intro
@@ -263,6 +274,41 @@ describe('parseSubclasses — "Primal Champion" column-wrap in Barbarian progres
     const berserker = subs.find((s) => s.name === 'Path of the Berserker');
     expect(berserker).toBeDefined();
     expect(berserker?.parentClass).toBe('Barbarian');
+  });
+});
+
+const PALADIN_OATH_TABLE_REAL_PDF_SHAPE = tieredPage(33, [
+  ['Paladin', 25.92],
+  ['Sacred Oaths', 13.92],
+  ['Oath of Devotion', 13.92],
+  ['The Oath of Devotion binds a paladin to the loftiest ideals.', 9.84],
+  ['Oath Spells', 12],
+  ['You gain oath spells at the paladin levels listed.', 9.84],
+  ['Oath of Devotion Spells', 12],
+  ['Paladin', 8.88],
+  ['Level Spells', 8.88],
+  ['3rd protection from evil and good, sanctuary', 8.88],
+  ['Aura of Devotion', 12],
+  ['Starting at 7th level, nearby allies cannot be charmed.', 9.84],
+  ['Purity of Spirit', 12],
+  [
+    'Beginning at 15th level, you are always protected from evil and good.',
+    9.84,
+  ],
+  ['Holy Nimbus', 12],
+  ['At 20th level, you can emanate an aura of sunlight.', 9.84],
+  ['Ranger', 25.92],
+]);
+
+describe('parseSubclasses — body-font parent-class name inside a subclass table', () => {
+  const [oath] = parseSubclasses([PALADIN_OATH_TABLE_REAL_PDF_SHAPE]);
+
+  it('does not truncate Oath of Devotion at its spell-table Paladin cell', () => {
+    expect(oath.name).toBe('Oath of Devotion');
+    expect(oath.description).toContain('Oath of Devotion Spells');
+    expect(oath.description).toContain('Aura of Devotion');
+    expect(oath.description).toContain('Holy Nimbus');
+    expect(oath.description).toContain('emanate an aura of sunlight');
   });
 });
 
