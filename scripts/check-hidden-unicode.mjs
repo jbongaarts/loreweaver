@@ -59,6 +59,7 @@ export const SCANNED_EXTENSIONS = new Set([
   '.json',
   '.jsonc',
   '.md',
+  '.ps1',
   '.yml',
   '.yaml',
   '.txt',

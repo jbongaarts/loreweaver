@@ -66,8 +66,8 @@ introduce a second formatter for these file types; do not manually reformat code
 to fight Biome's output.
 
 ```bash
-npm run format        # apply Biome formatting and import organization
-npm run format:check  # check formatting without writing
+npm run format        # apply Biome safe fixes, formatting, and import organization
+npm run format:check  # check Biome format/lint/import rules without writing
 npm run lint          # run Biome lint rules
 npm run check         # CI-style Biome validation (format + lint, no writes)
 ```
@@ -98,7 +98,7 @@ a reliable signal for manual review. Instead, CI blocks only the small set of
 genuinely dangerous invisible / directional control characters via
 `scripts/check-hidden-unicode.mjs` (`npm run check:hidden-unicode`, also run as
 the first step of `npm run check`). The script scans git-tracked text files
-(`.ts/.tsx/.js/.mjs/.cjs/.json/.jsonc/.md/.yml/.yaml/.txt/.sql`) and fails on
+(`.ts/.tsx/.js/.mjs/.cjs/.json/.jsonc/.md/.ps1/.yml/.yaml/.txt/.sql`) and fails on
 bidi embedding/override controls (`U+202A..U+202E`), bidi isolates
 (`U+2066..U+2069`), zero-width characters and directional marks
 (`U+200B..U+200F`), the Arabic Letter Mark (`U+061C`), the BOM / zero-width
@@ -112,6 +112,50 @@ gate exists to catch. Biome's `suspicious.noIrregularWhitespace` is set to `erro
 supplemental protection, but the dedicated script is the primary guard because
 Biome does not scan every relevant file type. The behavior is covered by
 `packages/core/test/hiddenUnicodeCheck.test.ts`.
+
+## Agent Worktree Workflow
+
+Keep parent-checkout preflight cheap; run full verification only from the
+linked worktree being modified.
+
+Fetch `origin/main` before creating a worktree:
+
+```powershell
+npm run agent:preflight
+```
+
+This refreshes the base ref only. Do not run full
+verification from the parent checkout: do not run Biome, tests, build,
+typecheck, or package verification merely to prove `main` is clean. CI keeps
+`main` clean.
+
+After creating a linked worktree, immediately enter it and normalize to its git
+root:
+
+```powershell
+Set-Location .worktrees/<worktree-name>
+Set-Location (git rev-parse --show-toplevel)
+```
+
+Run all install, edit, format, lint, test, build, and verification commands from
+that directory. Before commit/push, run full verification there, not from the
+parent checkout:
+
+```powershell
+npm run verify:worktree
+```
+
+The helper resolves the active git root. It runs
+`npm run format` (`biome check --write .`) for safe fixes and import
+organization, then runs the repo checks and tests. The npm commands wrap
+`scripts/agent-preflight-main.ps1` and
+`scripts/verify-current-worktree.ps1`, respectively.
+
+If Biome says no relevant files were checked because `.worktrees` is ignored,
+the command ran from the wrong checkout. The parent checkout's `.worktrees/`
+directory remains ignored; do not make Biome scan nested worktrees. In
+response, do not delete or recreate the worktree. Enter the intended worktree,
+run `Set-Location (git rev-parse --show-toplevel)`, and rerun verification.
 
 ## Architecture
 
