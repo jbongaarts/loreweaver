@@ -2,6 +2,6 @@
   "database": "dolt",
   "backend": "dolt",
   "dolt_mode": "embedded",
-  "dolt_database": "eshyra",
+  "dolt_database": "loreweaver",
   "project_id": "a7f74599-89c4-4dd4-ab94-e87d339479e0"
 }
