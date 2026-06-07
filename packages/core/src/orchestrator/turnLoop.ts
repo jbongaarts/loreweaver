@@ -101,6 +101,27 @@ export async function runModelLoop(
       tools,
       ...(trace ? { trace } : {}),
     });
+    // Native tool-use channel is NOT wired into the runtime. The orchestrator
+    // drives tools exclusively through the fenced-text protocol below (see
+    // protocol.ts). The ModelClient contract carries `toolCalls`/`stopReason`
+    // as a forward-looking seam for native-tool adapters
+    // (eshyra-0jq.10/0jq.11), but no adapter populates them today. If one ever
+    // does, silently treating the response as final narration would drop those
+    // mechanical actions on the floor — exactly the canon-integrity failure the
+    // hybrid contract exists to prevent (state changes asserted without a tool
+    // call do not change the game). Fail loudly instead so the gap is caught
+    // when a native adapter is introduced, rather than corrupting a turn.
+    if (
+      (result.toolCalls !== undefined && result.toolCalls.length > 0) ||
+      result.stopReason === 'tool_use'
+    ) {
+      throw new OrchestratorError(
+        'model returned a native tool-use response ' +
+          '(toolCalls / stopReason="tool_use"), but the runtime only supports ' +
+          'the fenced-text tool-call protocol. No adapter should populate the ' +
+          'native tool channel until runModelLoop consumes it.',
+      );
+    }
     const modelText = result.text;
     const calls = parseToolCalls(modelText);
     if (calls.length === 0) {

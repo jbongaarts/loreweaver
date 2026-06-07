@@ -94,8 +94,14 @@ export type ModelStopReason = 'end_turn' | 'tool_use' | 'max_tokens' | 'other';
  * Structured result of a ModelClient call (eshyra-0jq.11). `text` is
  * always populated (possibly empty) so callers that only care about narration
  * can ignore the structured fields entirely. Adapters that produce native
- * tool calls populate {@link toolCalls}; the orchestrator may read them in
- * future work but today still parses fenced `tool_call` blocks out of `text`.
+ * tool calls populate {@link toolCalls} / {@link stopReason}, but the
+ * orchestrator runtime does NOT consume them yet: it drives tools solely
+ * through the fenced-text `tool_call` protocol parsed out of `text`. To keep
+ * that gap from silently dropping mechanical actions, `runModelLoop` rejects
+ * any result that carries native tool calls or `stopReason: 'tool_use'` with a
+ * loud `OrchestratorError`. A native-tool adapter must wait until the loop is
+ * taught to consume these fields (the bead audit is eshyra-0jq.25). Until then,
+ * adapters MUST leave them unset.
  */
 export interface ModelCompleteResult {
   /** Free-text assistant response. Always present, possibly empty. */
