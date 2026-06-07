@@ -14,7 +14,7 @@
 // fields in CharacterConditionEntry and InventoryItemProperties. `undefined`
 // is intentionally absent (JSON.parse never produces it).
 
-import type { AbilityScoreName, AbilityScores } from '../characterCreation.js';
+import type { AbilityScoreName, AbilityScores } from '../character/creation.js';
 
 export type { AbilityScoreName, AbilityScores };
 

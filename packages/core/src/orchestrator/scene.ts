@@ -1,6 +1,6 @@
 import type { Db } from '../persistence/db.js';
 import { withTransaction } from '../persistence/db.js';
-import { getSession } from '../session.js';
+import { getSession } from '../session/session.js';
 import { requireNonEmpty } from '../validation.js';
 
 /**

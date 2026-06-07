@@ -18,6 +18,21 @@
  * core's own tests, `'../src/internal.js'`) covers both buckets.
  */
 
+// Demo-mode policy + budget helpers (the high-level entrypoints are stable).
+export {
+  assertDemoContentAllowed,
+  assertDemoTurnAllowed,
+  demoTurnBudget,
+  evaluateDemoContent,
+  resolveDemoModel,
+} from './campaign/demoMode.js';
+export type { CharacterCreationMutationMetadata } from './character/creation.js';
+// Character-creation low-level helpers + Pathfinder-specific draft validator
+// (the high-level `completeCharacterCreation` is the stable entrypoint).
+export {
+  buildCharacterCreationMutations,
+  validateCharacterDraft,
+} from './character/creation.js';
 export type {
   CreatedPathfinderCharacter,
   PathfinderCharacterCreationResult,
@@ -27,21 +42,6 @@ export {
   PathfinderCharacterCreationError,
   validatePathfinderCharacterDraft,
 } from './character/pathfinder2e.js';
-export type { CharacterCreationMutationMetadata } from './characterCreation.js';
-// Character-creation low-level helpers + Pathfinder-specific draft validator
-// (the high-level `completeCharacterCreation` is the stable entrypoint).
-export {
-  buildCharacterCreationMutations,
-  validateCharacterDraft,
-} from './characterCreation.js';
-// Demo-mode policy + budget helpers (the high-level entrypoints are stable).
-export {
-  assertDemoContentAllowed,
-  assertDemoTurnAllowed,
-  demoTurnBudget,
-  evaluateDemoContent,
-  resolveDemoModel,
-} from './demoMode.js';
 export * from './index.js';
 export type {
   CampaignArcRecord,

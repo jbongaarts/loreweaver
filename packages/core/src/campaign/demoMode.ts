@@ -16,7 +16,6 @@
  * campaign is an ordinary campaign with a cap and a content allow-list.
  */
 
-import { createCampaign } from './campaign.js';
 import {
   DEFAULT_PROFILE_REGISTRY,
   getProfile,
@@ -24,12 +23,13 @@ import {
   type ProfileRegistry,
   type ProfileTier,
   type ProviderId,
-} from './model/profiles.js';
-import type { Db } from './persistence/db.js';
-import { type SessionRecord, startSession } from './session.js';
-import { evaluatePackPolicy } from './world/license.js';
-import { EMBERFALL_HOLLOW } from './world/samples/emberfallHollow.js';
-import type { ModulePack } from './world/types.js';
+} from '../model/profiles.js';
+import type { Db } from '../persistence/db.js';
+import { type SessionRecord, startSession } from '../session/session.js';
+import { evaluatePackPolicy } from '../world/license.js';
+import { EMBERFALL_HOLLOW } from '../world/samples/emberfallHollow.js';
+import type { ModulePack } from '../world/types.js';
+import { createCampaign } from './campaign.js';
 
 /** Default turn cap for the bounded public demo. */
 export const DEMO_TURN_CAP = 25;
