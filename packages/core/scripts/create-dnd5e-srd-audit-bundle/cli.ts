@@ -312,7 +312,7 @@ function buildReadme(meta: {
   return [
     '# D&D SRD 5.1 Rules-Pack Audit Bundle',
     '',
-    'This bundle was generated from the loreweaver repository to support a',
+    'This bundle was generated from the eshyra repository to support a',
     'field-by-field external review of the committed D&D SRD 5.1 rules pack',
     'against the vendored SRD 5.1 PDF.',
     '',
@@ -368,7 +368,7 @@ function buildReadme(meta: {
     '## How to reproduce',
     '',
     '```bash',
-    'cd <loreweaver-repo>',
+    'cd <eshyra-repo>',
     `git checkout ${meta.commitSha}`,
     'npm install',
     'npm run audit-bundle:dnd5e-srd',

@@ -82,27 +82,27 @@ describe('applyConfigToEnv', () => {
       {},
       { doltHome: '/opt/dolt', doltBin: '/usr/bin/dolt' },
     );
-    expect(merged.LOREWEAVER_DOLT_HOME).toBe('/opt/dolt');
-    expect(merged.LOREWEAVER_DOLT_BIN).toBe('/usr/bin/dolt');
+    expect(merged.ESHYRA_DOLT_HOME).toBe('/opt/dolt');
+    expect(merged.ESHYRA_DOLT_BIN).toBe('/usr/bin/dolt');
   });
 
   it('lets an environment variable outrank the config file', () => {
     const merged = applyConfigToEnv(
-      { LOREWEAVER_DOLT_HOME: '/env/dolt' },
+      { ESHYRA_DOLT_HOME: '/env/dolt' },
       { doltHome: '/config/dolt' },
     );
-    expect(merged.LOREWEAVER_DOLT_HOME).toBe('/env/dolt');
+    expect(merged.ESHYRA_DOLT_HOME).toBe('/env/dolt');
   });
 
-  it('maps profile overrides onto LOREWEAVER_PROFILE_<NAME>_* variables', () => {
+  it('maps profile overrides onto ESHYRA_PROFILE_<NAME>_* variables', () => {
     const merged = applyConfigToEnv(
       {},
       {
         profiles: { premium_dm: { provider: 'anthropic', model: 'claude-x' } },
       },
     );
-    expect(merged.LOREWEAVER_PROFILE_PREMIUM_DM_PROVIDER).toBe('anthropic');
-    expect(merged.LOREWEAVER_PROFILE_PREMIUM_DM_MODEL).toBe('claude-x');
+    expect(merged.ESHYRA_PROFILE_PREMIUM_DM_PROVIDER).toBe('anthropic');
+    expect(merged.ESHYRA_PROFILE_PREMIUM_DM_MODEL).toBe('claude-x');
   });
 
   it('does not mutate the input environment', () => {
@@ -116,14 +116,14 @@ describe('installConfigDefaults', () => {
   it('fills unset keys on the env in place', () => {
     const env: Record<string, string | undefined> = {};
     installConfigDefaults({ doltBin: '/usr/bin/dolt' }, env);
-    expect(env.LOREWEAVER_DOLT_BIN).toBe('/usr/bin/dolt');
+    expect(env.ESHYRA_DOLT_BIN).toBe('/usr/bin/dolt');
   });
 
   it('never overwrites a key already set in the env', () => {
     const env: Record<string, string | undefined> = {
-      LOREWEAVER_DOLT_BIN: '/env/dolt',
+      ESHYRA_DOLT_BIN: '/env/dolt',
     };
     installConfigDefaults({ doltBin: '/config/dolt' }, env);
-    expect(env.LOREWEAVER_DOLT_BIN).toBe('/env/dolt');
+    expect(env.ESHYRA_DOLT_BIN).toBe('/env/dolt');
   });
 });

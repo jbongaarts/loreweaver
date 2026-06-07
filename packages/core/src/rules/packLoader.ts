@@ -25,7 +25,7 @@
  *
  * When this package is published, the `data/` directory is included in
  * `files` in `package.json` alongside `dist/`, so consumers that install
- * `@loreweaver/core` from npm get the seed packs pre-populated.
+ * `@eshyra/core` from npm get the seed packs pre-populated.
  *
  * ## Loader guarantee
  *

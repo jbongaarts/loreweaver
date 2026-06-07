@@ -6,41 +6,41 @@ Date: 2026-05-22
 
 > **Superseded.** ADR 0004 replaces the explicit-only storage model below with
 > a managed per-user data root, a config file, and a campaign registry. The
-> `LOREWEAVER_DB_PATH` explicit path survives as a deliberate advanced option,
+> `ESHYRA_DB_PATH` explicit path survives as a deliberate advanced option,
 > not as the only mechanism. There was no installed user base to migrate.
 
 ## Context
 
 The local CLI MVP currently reads campaign and provider configuration from
-environment variables. `LOREWEAVER_DB_PATH` is required and names the active
+environment variables. `ESHYRA_DB_PATH` is required and names the active
 campaign SQLite file. Dolt checkpoints are optional and live beside that file.
 
 Before the first npm CLI release, distribution docs need a concrete storage
-decision so users know where Loreweaver writes data and release automation can
+decision so users know where Eshyra writes data and release automation can
 smoke the installed command without waiting for a broader config-file or
 campaign-picker design.
 
 ## Decision
 
-For the first local CLI release, Loreweaver keeps campaign storage explicit.
+For the first local CLI release, Eshyra keeps campaign storage explicit.
 There is no default per-user app-data root for campaign databases yet.
 
-- Campaign SQLite database: required `LOREWEAVER_DB_PATH`.
+- Campaign SQLite database: required `ESHYRA_DB_PATH`.
 - SQLite sidecars: beside the configured campaign database.
-- Dolt checkpoint repos: `<LOREWEAVER_DB_PATH>.checkpoints`.
+- Dolt checkpoint repos: `<ESHYRA_DB_PATH>.checkpoints`.
 - Checkpoint restore/fork destinations: explicit paths chosen by the command
   or caller.
-- Managed Dolt binary cache: `LOREWEAVER_DOLT_HOME` when set, otherwise
-  `~/.loreweaver/dolt`.
+- Managed Dolt binary cache: `ESHYRA_DOLT_HOME` when set, otherwise
+  `~/.eshyra/dolt`.
 - Provider secrets: local process environment for the CLI release.
 - Config/env templates: repository/package documentation such as
   `.env.example`; the CLI does not auto-load `.env` files.
 - Bundled static content: npm package build output, copied into campaign
   tables when a campaign is created.
 
-Platform app-data roots such as `%APPDATA%\Loreweaver`,
-`~/Library/Application Support/Loreweaver`, and
-`~/.local/share/loreweaver` are deferred until Loreweaver has an explicit
+Platform app-data roots such as `%APPDATA%\Eshyra`,
+`~/Library/Application Support/Eshyra`, and
+`~/.local/share/eshyra` are deferred until Eshyra has an explicit
 config-file and campaign-selection design.
 
 ## Consequences
@@ -50,7 +50,7 @@ config-file and campaign-selection design.
 - Users and automation can keep campaign state in a project directory, backup
   directory, synced folder, or other path they choose.
 - The CLI remains responsible for actionable config errors when
-  `LOREWEAVER_DB_PATH` or provider credentials are missing.
+  `ESHYRA_DB_PATH` or provider credentials are missing.
 - Future work can add a config file, campaign registry, and per-platform
   app-data defaults without migrating implicit first-release storage.
 

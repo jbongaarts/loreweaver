@@ -1,6 +1,6 @@
 # Licensing Posture
 
-This document records Loreweaver's **current** licensing posture. It is
+This document records Eshyra's **current** licensing posture. It is
 intentionally a statement of a *deferred* decision, not a final license. It will
 be revised once the open business decisions below are made.
 
@@ -8,7 +8,7 @@ be revised once the open business decisions below are made.
 
 **No source-code license has been granted for this repository.**
 
-The Loreweaver source code is published for visibility only. Absent an explicit
+The Eshyra source code is published for visibility only. Absent an explicit
 license, default copyright applies and **no rights to use, copy, modify, or
 redistribute the source code are granted** to third parties. Viewing the
 repository does not convey any such rights.
@@ -19,8 +19,8 @@ decided the commercialization model (see
 license prematurely would foreclose options that decision must remain free to
 take. Until that decision is recorded:
 
-- The root workspace and both npm workspaces (`@loreweaver/core`,
-  `@loreweaver/cli`) are marked `private: true`.
+- The root workspace and both npm workspaces (`@eshyra/core`,
+  `@eshyra/cli`) are marked `private: true`.
 - Their `package.json` `license` metadata is set to `UNLICENSED`, the npm
   convention for a package that carries **no** grant of source-code rights and
   is not licensed for redistribution.

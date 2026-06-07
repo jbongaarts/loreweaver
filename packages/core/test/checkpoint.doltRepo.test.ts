@@ -63,19 +63,19 @@ describe('DoltRepo.available', () => {
 });
 
 // Regression guard for loreweaver-l6n: dolt invocations must run against an
-// isolated, Loreweaver-owned global home with telemetry disabled, so they never
+// isolated, Eshyra-owned global home with telemetry disabled, so they never
 // read or pollute the user's ~/.dolt. We pin the binary explicitly and point
-// LOREWEAVER_DOLT_HOME at a temp dir so managedDoltRoot() resolves into temp.
+// ESHYRA_DOLT_HOME at a temp dir so managedDoltRoot() resolves into temp.
 describe.skipIf(!doltOk)('DoltRepo telemetry isolation', () => {
   it(
     'runs in an isolated root with metrics disabled and no event backlog',
     () => {
       const bin = resolveDoltBinary();
       const home = mkdtempSync(join(tmpdir(), 'lw-isohome-'));
-      const prevHome = process.env.LOREWEAVER_DOLT_HOME;
-      const prevBin = process.env.LOREWEAVER_DOLT_BIN;
-      process.env.LOREWEAVER_DOLT_HOME = home;
-      process.env.LOREWEAVER_DOLT_BIN = bin;
+      const prevHome = process.env.ESHYRA_DOLT_HOME;
+      const prevBin = process.env.ESHYRA_DOLT_BIN;
+      process.env.ESHYRA_DOLT_HOME = home;
+      process.env.ESHYRA_DOLT_BIN = bin;
       try {
         const repo = new DoltRepo(join(tmp(), 'dolt'));
         repo.init();
@@ -97,10 +97,10 @@ describe.skipIf(!doltOk)('DoltRepo telemetry isolation', () => {
           : [];
         expect(events).toHaveLength(0);
       } finally {
-        if (prevHome === undefined) delete process.env.LOREWEAVER_DOLT_HOME;
-        else process.env.LOREWEAVER_DOLT_HOME = prevHome;
-        if (prevBin === undefined) delete process.env.LOREWEAVER_DOLT_BIN;
-        else process.env.LOREWEAVER_DOLT_BIN = prevBin;
+        if (prevHome === undefined) delete process.env.ESHYRA_DOLT_HOME;
+        else process.env.ESHYRA_DOLT_HOME = prevHome;
+        if (prevBin === undefined) delete process.env.ESHYRA_DOLT_BIN;
+        else process.env.ESHYRA_DOLT_BIN = prevBin;
       }
     },
     DOLT_TEST_TIMEOUT_MS,

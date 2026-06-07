@@ -1,12 +1,12 @@
-# Running Loreweaver on a Claude Pro/Max Plan
+# Running Eshyra on a Claude Pro/Max Plan
 
-Loreweaver can drive the Claude Agent SDK with **either** an Anthropic Console
+Eshyra can drive the Claude Agent SDK with **either** an Anthropic Console
 API key **or** a **Claude Pro/Max subscription** OAuth token. Short version:
 
 - **The Agent SDK supports subscription auth.** It wraps the Claude Code CLI,
   which natively authenticates with either an API key or a subscription OAuth
   token.
-- **The Loreweaver CLI supports both.** `loadConfig`
+- **The Eshyra CLI supports both.** `loadConfig`
   (`packages/core/src/config.ts`) accepts `ANTHROPIC_API_KEY` **or**
   `CLAUDE_CODE_OAUTH_TOKEN`, and the CLI injects whichever one is in use through
   the `AgentSdkModelClient` auth seam — never both, so an API key cannot shadow
@@ -30,7 +30,7 @@ first):
 The critical consequence: **`ANTHROPIC_API_KEY` outranks the subscription
 token.** If an API key is exported anywhere in the environment, it silently
 wins — you bill API credits while believing you are on your subscription.
-Loreweaver mirrors this precedence: when both `ANTHROPIC_API_KEY` and
+Eshyra mirrors this precedence: when both `ANTHROPIC_API_KEY` and
 `CLAUDE_CODE_OAUTH_TOKEN` are set, `loadConfig` selects the API key. To run on
 the subscription, leave `ANTHROPIC_API_KEY` **unset**.
 
@@ -44,7 +44,7 @@ Generate a long-lived OAuth token rather than relying on cached interactive
 #    plan). Walks through browser OAuth and prints the token; it is NOT saved.
 claude setup-token
 
-# 2. Export the printed token where Loreweaver runs.
+# 2. Export the printed token where Eshyra runs.
 export CLAUDE_CODE_OAUTH_TOKEN=sk-ant-oat01-...
 #    PowerShell: $env:CLAUDE_CODE_OAUTH_TOKEN = "sk-ant-oat01-..."
 
@@ -52,18 +52,18 @@ export CLAUDE_CODE_OAUTH_TOKEN=sk-ant-oat01-...
 unset ANTHROPIC_API_KEY
 #    PowerShell: Remove-Item Env:ANTHROPIC_API_KEY
 
-# 4. Run Loreweaver as usual.
-loreweaver play
+# 4. Run Eshyra as usual.
+eshyra play
 ```
 
-Loreweaver reads `CLAUDE_CODE_OAUTH_TOKEN` when `ANTHROPIC_API_KEY` is absent,
+Eshyra reads `CLAUDE_CODE_OAUTH_TOKEN` when `ANTHROPIC_API_KEY` is absent,
 resolves `auth.mode = 'oauth-token'`, and injects only the OAuth token into the
 SDK process.
 
 Interactive `claude` `/login` is *not* sufficient on its own: `loadConfig`
 requires an explicit `ANTHROPIC_API_KEY` or `CLAUDE_CODE_OAUTH_TOKEN` in the
 environment, and does not read the cached `~/.claude/.credentials.json` that
-`/login` writes. Use `claude setup-token` to mint a token Loreweaver can see.
+`/login` writes. Use `claude setup-token` to mint a token Eshyra can see.
 
 ## Limitations and policy constraints
 
@@ -73,18 +73,18 @@ environment, and does not read the cached `~/.claude/.credentials.json` that
   Standard $20, Team Premium $100; Enterprise varies). API-key Console accounts
   do **not** receive this credit. Beyond the credit, subscription rate limits
   apply — a long campaign can exhaust them.
-- **No third-party "Log in with Claude" for hosted Loreweaver.** Anthropic does
+- **No third-party "Log in with Claude" for hosted Eshyra.** Anthropic does
   not allow third-party developers to offer claude.ai login in products built on
   the Agent SDK without prior approval. A *self-hosted* user authenticating
-  their *own* subscription locally is fine; a hosted Loreweaver service letting
+  their *own* subscription locally is fine; a hosted Eshyra service letting
   end-users log in with their Claude.ai accounts is not, absent approval. Hosted
   BYOK remains governed by [ADR 0002](adr/0002-hosted-web-pwa-byok-deployment-path.md).
 - **Token scope.** `CLAUDE_CODE_OAUTH_TOKEN` is inference-only and cannot
   establish Remote Control sessions; Claude Code "bare mode" does not read it.
 
-## Status in Loreweaver
+## Status in Eshyra
 
-| Path | Supported by Agent SDK | Supported by Loreweaver CLI |
+| Path | Supported by Agent SDK | Supported by Eshyra CLI |
 | --- | --- | --- |
 | `ANTHROPIC_API_KEY` | yes | **yes** |
 | `CLAUDE_CODE_OAUTH_TOKEN` (Pro/Max) | yes | **yes** |

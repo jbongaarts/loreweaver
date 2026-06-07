@@ -7,8 +7,8 @@ import type {
   RunTurnResult,
   SessionCheckpointRunner,
   ToolRegistry,
-} from '@loreweaver/core';
-import type { MemoryConfig } from '@loreweaver/core/internal';
+} from '@eshyra/core';
+import type { MemoryConfig } from '@eshyra/core/internal';
 
 /** Player-facing input/output seam. A terminal impl is {@link nodeIO}. */
 export interface CliIO {

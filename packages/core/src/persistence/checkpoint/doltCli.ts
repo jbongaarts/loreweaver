@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { managedDoltRoot, resolveDoltBinary } from './doltBinary.js';
 
 /**
- * Thrown when the Loreweaver-managed `config_global.json` exists but is not a
+ * Thrown when the Eshyra-managed `config_global.json` exists but is not a
  * JSON object. We refuse to overwrite it (it could hold unrelated data) and
  * surface the problem instead of silently clobbering or proceeding with
  * telemetry left enabled.
@@ -25,7 +25,7 @@ export class DoltConfigError extends Error {
 const preparedRoots = new Set<string>();
 
 /**
- * Ensure the Loreweaver-owned dolt home exists with telemetry disabled.
+ * Ensure the Eshyra-owned dolt home exists with telemetry disabled.
  *
  * Writes `<root>/.dolt/config_global.json` so it always contains
  * `"metrics.disabled": "true"`, which stops dolt queuing usage events (the
@@ -72,13 +72,13 @@ function readManagedDoltConfig(cfg: string): Record<string, unknown> {
     parsed = JSON.parse(text);
   } catch (err) {
     throw new DoltConfigError(
-      `Loreweaver-managed dolt config at ${cfg} is not valid JSON; refusing to ` +
+      `Eshyra-managed dolt config at ${cfg} is not valid JSON; refusing to ` +
         `overwrite it. Inspect or remove the file. (${(err as Error).message})`,
     );
   }
   if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
     throw new DoltConfigError(
-      `Loreweaver-managed dolt config at ${cfg} is not a JSON object; refusing ` +
+      `Eshyra-managed dolt config at ${cfg} is not a JSON object; refusing ` +
         'to overwrite it. Inspect or remove the file.',
     );
   }
@@ -87,7 +87,7 @@ function readManagedDoltConfig(cfg: string): Record<string, unknown> {
 
 /**
  * Environment for every dolt invocation. Isolates dolt's global home
- * (`DOLT_ROOT_PATH`) to a Loreweaver-owned dir, disables event flush as
+ * (`DOLT_ROOT_PATH`) to a Eshyra-owned dir, disables event flush as
  * belt-and-suspenders against any event that slips past `metrics.disabled`, and
  * keeps `NO_COLOR` so ANSI escapes never corrupt hash/JSON parsing.
  */
@@ -165,12 +165,12 @@ export class DoltCli {
       // user's global dolt config.
       execFileSync(
         this.binary(),
-        ['init', '--name', 'loreweaver', '--email', 'loreweaver@local'],
+        ['init', '--name', 'eshyra', '--email', 'eshyra@local'],
         { cwd: this.dir, stdio: 'ignore', env: doltEnv() },
       );
     }
-    this.run(['config', '--local', '--add', 'user.name', 'loreweaver']);
-    this.run(['config', '--local', '--add', 'user.email', 'loreweaver@local']);
+    this.run(['config', '--local', '--add', 'user.name', 'eshyra']);
+    this.run(['config', '--local', '--add', 'user.email', 'eshyra@local']);
   }
 
   /**

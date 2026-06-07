@@ -46,7 +46,7 @@ function clone(): ModulePack {
 describe('module schema validation', () => {
   it('accepts the original sample pack and enforces referential integrity', () => {
     const pack = validateModulePack(clone());
-    expect(pack.meta.packId).toBe('loreweaver:emberfall-hollow');
+    expect(pack.meta.packId).toBe('eshyra:emberfall-hollow');
     expect(pack.locations.map((l) => l.id)).toContain('emberfall-square');
     expect(pack.encounters[0].creatures[0].rulesRef).toBe('creature:goblin');
     expect(pack.meta.rulesRequirements.baseSystemId).toBe('dnd5e-srd');
@@ -219,7 +219,7 @@ describe('campaign fork + worldQuery', () => {
     const meta = worldQuery(db, { type: 'meta' });
     expect(meta).toMatchObject({
       ok: true,
-      resolved: { packId: 'loreweaver:emberfall-hollow' },
+      resolved: { packId: 'eshyra:emberfall-hollow' },
     });
     const npc = worldQuery(db, { type: 'npc', id: 'warden-sela' });
     expect(npc).toMatchObject({

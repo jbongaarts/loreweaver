@@ -94,14 +94,14 @@ describe('model profiles', () => {
     expect(() =>
       getProfile(DEFAULT_PROFILE_REGISTRY, 'embedding_provider'),
     ).toThrowError(
-      /LOREWEAVER_PROFILE_EMBEDDING_PROVIDER_PROVIDER.*LOREWEAVER_PROFILE_EMBEDDING_PROVIDER_MODEL/,
+      /ESHYRA_PROFILE_EMBEDDING_PROVIDER_PROVIDER.*ESHYRA_PROFILE_EMBEDDING_PROVIDER_MODEL/,
     );
   });
 
   it('resolveProfileRegistry allows per-profile provider/model override via env', () => {
     const reg = resolveProfileRegistry({
-      LOREWEAVER_PROFILE_PREMIUM_DM_PROVIDER: 'bedrock',
-      LOREWEAVER_PROFILE_PREMIUM_DM_MODEL: 'some-bedrock-model',
+      ESHYRA_PROFILE_PREMIUM_DM_PROVIDER: 'bedrock',
+      ESHYRA_PROFILE_PREMIUM_DM_MODEL: 'some-bedrock-model',
     });
     expect(reg.premium_dm).toMatchObject({
       configured: true,
@@ -114,9 +114,8 @@ describe('model profiles', () => {
 
   it('resolveProfileRegistry enables an unconfigured profile when both env vars are set', () => {
     const reg = resolveProfileRegistry({
-      LOREWEAVER_PROFILE_ECONOMY_OR_EXPERIMENTAL_PROVIDER: 'anthropic',
-      LOREWEAVER_PROFILE_ECONOMY_OR_EXPERIMENTAL_MODEL:
-        'claude-haiku-4-5-20251001',
+      ESHYRA_PROFILE_ECONOMY_OR_EXPERIMENTAL_PROVIDER: 'anthropic',
+      ESHYRA_PROFILE_ECONOMY_OR_EXPERIMENTAL_MODEL: 'claude-haiku-4-5-20251001',
     });
     const entry = reg.economy_or_experimental;
     expect(entry.configured).toBe(true);
@@ -131,15 +130,15 @@ describe('model profiles', () => {
   it('resolveProfileRegistry throws when only one env var is set for an unconfigured profile', () => {
     expect(() =>
       resolveProfileRegistry({
-        LOREWEAVER_PROFILE_SUMMARIZER_MODEL: 'some-model',
-        // LOREWEAVER_PROFILE_SUMMARIZER_PROVIDER intentionally missing
+        ESHYRA_PROFILE_SUMMARIZER_MODEL: 'some-model',
+        // ESHYRA_PROFILE_SUMMARIZER_PROVIDER intentionally missing
       }),
     ).toThrow(ProfileConfigError);
 
     expect(() =>
       resolveProfileRegistry({
-        LOREWEAVER_PROFILE_SUMMARIZER_PROVIDER: 'anthropic',
-        // LOREWEAVER_PROFILE_SUMMARIZER_MODEL intentionally missing
+        ESHYRA_PROFILE_SUMMARIZER_PROVIDER: 'anthropic',
+        // ESHYRA_PROFILE_SUMMARIZER_MODEL intentionally missing
       }),
     ).toThrow(ProfileConfigError);
   });
@@ -147,7 +146,7 @@ describe('model profiles', () => {
   it('resolveProfileRegistry rejects an unknown provider id', () => {
     expect(() =>
       resolveProfileRegistry({
-        LOREWEAVER_PROFILE_SUMMARIZER_PROVIDER: 'not-a-provider',
+        ESHYRA_PROFILE_SUMMARIZER_PROVIDER: 'not-a-provider',
       }),
     ).toThrow(ProfileConfigError);
   });

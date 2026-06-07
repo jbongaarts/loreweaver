@@ -12,13 +12,13 @@ import {
   type DoltInstallPrompt,
   EMBERFALL_HOLLOW,
   type EnsureDoltOptions,
+  type EshyraConfig,
   ensureDoltAvailable,
-  type LoreweaverConfig,
   loadConfig,
   openDatabase,
   runTurn,
-} from '@loreweaver/core';
-import { DEFAULT_MEMORY_CONFIG } from '@loreweaver/core/internal';
+} from '@eshyra/core';
+import { DEFAULT_MEMORY_CONFIG } from '@eshyra/core/internal';
 import {
   type CampaignDeps,
   resolvePlayCampaign,
@@ -43,7 +43,7 @@ import {
 } from './play.js';
 
 export function buildBanner(version: string): string {
-  return `Loreweaver — core v${version}`;
+  return `Eshyra — core v${version}`;
 }
 
 /** Format provider-auth config failures with the next command to run. */
@@ -52,7 +52,7 @@ export function formatConfigError(err: ConfigError): string {
     `config error: ${err.message}`,
     'For the Claude Agent SDK adapter, set ANTHROPIC_API_KEY (a Console API',
     'key) or CLAUDE_CODE_OAUTH_TOKEN (a Claude Pro/Max subscription token).',
-    'Then run: loreweaver play',
+    'Then run: eshyra play',
   ].join('\n');
 }
 
@@ -76,8 +76,8 @@ function makeId(prefix: string): string {
 export async function ttyConfirm(prompt: DoltInstallPrompt): Promise<boolean> {
   const head =
     prompt.reason === 'explicit-path-missing'
-      ? `LOREWEAVER_DOLT_BIN="${prompt.explicitPath}" is set, but no file exists there.`
-      : 'dolt was not found (PATH, managed cache, or LOREWEAVER_DOLT_BIN).';
+      ? `ESHYRA_DOLT_BIN="${prompt.explicitPath}" is set, but no file exists there.`
+      : 'dolt was not found (PATH, managed cache, or ESHYRA_DOLT_BIN).';
   console.log(head);
   console.log(
     `Proposed: download dolt ${prompt.version} and install it to ${prompt.targetDir}`,
@@ -104,7 +104,7 @@ export interface DoltInstallDeps {
   log?: (message: string) => void;
 }
 
-/** `loreweaver dolt install` — installs only if dolt is absent and consented. */
+/** `eshyra dolt install` — installs only if dolt is absent and consented. */
 export async function runDoltInstall(
   deps: DoltInstallDeps = {},
 ): Promise<number> {
@@ -122,9 +122,9 @@ export async function runDoltInstall(
 }
 
 /**
- * Build the real, terminal-and-model-backed dependencies for `loreweaver play`.
+ * Build the real, terminal-and-model-backed dependencies for `eshyra play`.
  */
-function buildPlayDeps(cfg: LoreweaverConfig, io: PlayDeps['io']): PlayDeps {
+function buildPlayDeps(cfg: EshyraConfig, io: PlayDeps['io']): PlayDeps {
   return {
     io,
     openDb: (path) => openDatabase(path),
@@ -191,7 +191,7 @@ function resolveCliEnv(): CliEnv | undefined {
  * yield an exit code. Shared by the `play` and `demo` subcommands.
  */
 function loadCliConfig():
-  | { ok: true; cfg: LoreweaverConfig }
+  | { ok: true; cfg: EshyraConfig }
   | { ok: false; code: number } {
   try {
     return { ok: true, cfg: loadConfig() };
@@ -204,7 +204,7 @@ function loadCliConfig():
   }
 }
 
-/** `loreweaver play [campaign-id]` — the interactive campaign front-end. */
+/** `eshyra play [campaign-id]` — the interactive campaign front-end. */
 export async function runPlaySubcommand(campaignArg?: string): Promise<number> {
   const cli = resolveCliEnv();
   if (cli === undefined) {
@@ -218,7 +218,7 @@ export async function runPlaySubcommand(campaignArg?: string): Promise<number> {
   try {
     let dbPath: string;
     if (config.cfg.campaignDbPath !== undefined) {
-      // LOREWEAVER_DB_PATH set: an explicit, unmanaged campaign database
+      // ESHYRA_DB_PATH set: an explicit, unmanaged campaign database
       // (ADR 0004). The registry and picker are bypassed entirely.
       dbPath = config.cfg.campaignDbPath;
     } else {
@@ -245,15 +245,15 @@ export async function runPlaySubcommand(campaignArg?: string): Promise<number> {
 }
 
 /** Resolve the demo campaign database path. */
-function demoDbPath(cli: CliEnv, cfg: LoreweaverConfig): string {
+function demoDbPath(cli: CliEnv, cfg: EshyraConfig): string {
   if (cfg.campaignDbPath !== undefined) {
-    return join(dirname(cfg.campaignDbPath), 'loreweaver-demo.db');
+    return join(dirname(cfg.campaignDbPath), 'eshyra-demo.db');
   }
   ensureDataRoot(cli.dataRoot);
-  return join(campaignsDir(cli.dataRoot), 'loreweaver-demo.db');
+  return join(campaignsDir(cli.dataRoot), 'eshyra-demo.db');
 }
 
-/** `loreweaver demo` — the bounded public demo campaign. */
+/** `eshyra demo` — the bounded public demo campaign. */
 export async function runDemoSubcommand(): Promise<number> {
   const cli = resolveCliEnv();
   if (cli === undefined) {
@@ -274,7 +274,7 @@ export async function runDemoSubcommand(): Promise<number> {
   }
 }
 
-/** `loreweaver new [name]` — create and register a managed campaign. */
+/** `eshyra new [name]` — create and register a managed campaign. */
 export function runNewSubcommand(argv: string[]): number {
   const cli = resolveCliEnv();
   if (cli === undefined) {
@@ -286,7 +286,7 @@ export function runNewSubcommand(argv: string[]): number {
   );
 }
 
-/** `loreweaver campaigns <list|add|remove|rename>` — manage the registry. */
+/** `eshyra campaigns <list|add|remove|rename>` — manage the registry. */
 export function runCampaignsSubcommand(argv: string[]): number {
   const cli = resolveCliEnv();
   if (cli === undefined) {
@@ -298,7 +298,7 @@ export function runCampaignsSubcommand(argv: string[]): number {
   );
 }
 
-/** `loreweaver checkpoint <list|restore|fork>` — campaign checkpoint workflow. */
+/** `eshyra checkpoint <list|restore|fork>` — campaign checkpoint workflow. */
 export function runCheckpointSubcommand(argv: string[]): number {
   const cli = resolveCliEnv();
   if (cli === undefined) {

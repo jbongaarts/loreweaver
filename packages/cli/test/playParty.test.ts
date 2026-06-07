@@ -1,10 +1,10 @@
-import type { Db } from '@loreweaver/core';
-import { initSchema, openDatabase } from '@loreweaver/core';
+import type { Db } from '@eshyra/core';
+import { initSchema, openDatabase } from '@eshyra/core';
 import {
   ensureCharacterRow,
   mutateState,
   setActiveCharacterId,
-} from '@loreweaver/core/internal';
+} from '@eshyra/core/internal';
 import { describe, expect, it } from 'vitest';
 import { createAdditionalCharacter } from '../src/playCharacter.js';
 import { showParty, switchActiveCharacter } from '../src/playParty.js';

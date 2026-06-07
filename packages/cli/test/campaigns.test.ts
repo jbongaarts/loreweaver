@@ -6,8 +6,8 @@ import {
   getCampaign,
   openDatabase,
   readCampaignRulesBinding,
-} from '@loreweaver/core';
-import { DND5E_SRD_RULES_PACK } from '@loreweaver/core/internal';
+} from '@eshyra/core';
+import { DND5E_SRD_RULES_PACK } from '@eshyra/core/internal';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   type CampaignDeps,
@@ -76,7 +76,7 @@ describe('runNewCommand', () => {
     const db = openDatabase(entry.dbPath);
     try {
       expect(getCampaign(db)).toBeDefined();
-      // `loreweaver new` persists the default D&D SRD rules binding so
+      // `eshyra new` persists the default D&D SRD rules binding so
       // managed campaigns ship with an authoritative system identity.
       const binding = readCampaignRulesBinding(db);
       expect(binding).toBeDefined();

@@ -5,7 +5,7 @@ import { basename, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
-const scratch = mkdtempSync(join(tmpdir(), 'loreweaver-cli-install-'));
+const scratch = mkdtempSync(join(tmpdir(), 'eshyra-cli-install-'));
 const packDir = join(scratch, 'packs');
 const prefix = join(scratch, 'prefix');
 const cache = join(scratch, 'npm-cache');
@@ -18,8 +18,8 @@ try {
   runNpm(['run', 'clean']);
   runNpm(['run', 'typecheck']);
 
-  const coreTarball = packWorkspace('@loreweaver/core');
-  const cliTarball = packWorkspace('@loreweaver/cli');
+  const coreTarball = packWorkspace('@eshyra/core');
+  const cliTarball = packWorkspace('@eshyra/cli');
 
   runNpm([
     'install',
@@ -33,22 +33,18 @@ try {
     cliTarball,
   ]);
 
-  assertInstalled('@loreweaver/core');
-  assertInstalled('@loreweaver/cli');
+  assertInstalled('@eshyra/core');
+  assertInstalled('@eshyra/cli');
 
-  const bin = loreweaverBin(prefix);
+  const bin = eshyraBin(prefix);
   const run = runInstalledBin(bin);
   const output = `${run.stdout ?? ''}${run.stderr ?? ''}`;
   if (run.status !== 1) {
     throw new Error(
-      `expected loreweaver without config to exit 1, got ${run.status}\n${run.error?.message ?? ''}\n${output}`,
+      `expected eshyra without config to exit 1, got ${run.status}\n${run.error?.message ?? ''}\n${output}`,
     );
   }
-  for (const expected of [
-    'Loreweaver',
-    'ANTHROPIC_API_KEY',
-    'loreweaver play',
-  ]) {
+  for (const expected of ['Eshyra', 'ANTHROPIC_API_KEY', 'eshyra play']) {
     if (!output.includes(expected)) {
       throw new Error(
         `missing expected output ${JSON.stringify(expected)}:\n${output}`,
@@ -100,14 +96,14 @@ function assertInstalled(packageName) {
   }
 }
 
-function loreweaverBin(globalPrefix) {
+function eshyraBin(globalPrefix) {
   const candidates =
     process.platform === 'win32'
-      ? [join(globalPrefix, 'loreweaver.cmd'), join(globalPrefix, 'loreweaver')]
-      : [join(globalPrefix, 'bin', 'loreweaver')];
+      ? [join(globalPrefix, 'eshyra.cmd'), join(globalPrefix, 'eshyra')]
+      : [join(globalPrefix, 'bin', 'eshyra')];
   const bin = candidates.find((candidate) => existsSync(candidate));
   if (bin === undefined) {
-    throw new Error(`installed loreweaver bin not found under ${globalPrefix}`);
+    throw new Error(`installed eshyra bin not found under ${globalPrefix}`);
   }
   return bin;
 }
@@ -117,13 +113,13 @@ function runInstalledBin(bin) {
     return spawnSync('cmd.exe', ['/d', '/s', '/c', bin], {
       cwd: scratch,
       encoding: 'utf8',
-      env: withoutLoreweaverConfig(),
+      env: withoutEshyraConfig(),
     });
   }
   return spawnSync(bin, [], {
     cwd: scratch,
     encoding: 'utf8',
-    env: withoutLoreweaverConfig(),
+    env: withoutEshyraConfig(),
   });
 }
 
@@ -162,9 +158,9 @@ function npmArgs(args) {
   return args;
 }
 
-function withoutLoreweaverConfig() {
+function withoutEshyraConfig() {
   const env = { ...process.env };
-  Reflect.deleteProperty(env, 'LOREWEAVER_DB_PATH');
+  Reflect.deleteProperty(env, 'ESHYRA_DB_PATH');
   Reflect.deleteProperty(env, 'ANTHROPIC_API_KEY');
   return env;
 }

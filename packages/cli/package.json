@@ -1,7 +1,7 @@
 {
-  "name": "@loreweaver/cli",
+  "name": "@eshyra/cli",
   "version": "0.0.0",
-  "description": "Command-line interface for running local Loreweaver campaigns.",
+  "description": "Command-line interface for running local Eshyra campaigns.",
   "private": true,
   "license": "UNLICENSED",
   "type": "module",
@@ -10,19 +10,19 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jbongaarts/loreweaver.git",
+    "url": "git+https://github.com/jbongaarts/eshyra.git",
     "directory": "packages/cli"
   },
   "engines": {
     "node": ">=24 <25"
   },
   "bin": {
-    "loreweaver": "./dist/index.js"
+    "eshyra": "./dist/index.js"
   },
   "scripts": {
     "build": "tsc --build"
   },
   "dependencies": {
-    "@loreweaver/core": "0.0.0"
+    "@eshyra/core": "0.0.0"
   }
 }

@@ -27,9 +27,9 @@ export interface ProviderAuth {
   env: Record<string, string>;
 }
 
-export interface LoreweaverConfig {
+export interface EshyraConfig {
   /**
-   * Explicit campaign database path from `LOREWEAVER_DB_PATH`, or `undefined`
+   * Explicit campaign database path from `ESHYRA_DB_PATH`, or `undefined`
    * when it is unset. The CLI resolves the campaign to open from its
    * registry/picker (ADR 0004) when this is absent; only provider auth and the
    * model profile are mandatory here.
@@ -37,13 +37,13 @@ export interface LoreweaverConfig {
   campaignDbPath?: string;
   /**
    * Resolved primary-DM model id. This is the `premium_dm` profile's model,
-   * unless the legacy flat `LOREWEAVER_MODEL` override is set — that still
+   * unless the legacy flat `ESHYRA_MODEL` override is set — that still
    * wins, for backward compatibility with the pre-registry flat config path.
    */
   model: string;
   /**
    * Resolved `premium_dm` profile entry (provider + model + tier) from the
-   * profile registry, including any `LOREWEAVER_PROFILE_PREMIUM_DM_*` overrides.
+   * profile registry, including any `ESHYRA_PROFILE_PREMIUM_DM_*` overrides.
    * Always a configured entry — `premium_dm` ships with a default provider+model.
    */
   dmProfile: ConfiguredProfileEntry;
@@ -90,10 +90,10 @@ function resolveProviderAuth(
 
 export function loadConfig(
   env: Record<string, string | undefined> = process.env,
-): LoreweaverConfig {
-  // LOREWEAVER_DB_PATH is optional: when set it names an explicit campaign
+): EshyraConfig {
+  // ESHYRA_DB_PATH is optional: when set it names an explicit campaign
   // database; when unset the CLI resolves the campaign from its registry.
-  const campaignDbPath = env.LOREWEAVER_DB_PATH?.trim() || undefined;
+  const campaignDbPath = env.ESHYRA_DB_PATH?.trim() || undefined;
   const auth = resolveProviderAuth(env);
 
   // The primary-DM model is resolved from the provider-neutral profile
@@ -119,17 +119,17 @@ export function loadConfig(
   }
   const dmProfile = dmRaw;
 
-  // LOREWEAVER_MODEL is the legacy flat override and still wins when set;
+  // ESHYRA_MODEL is the legacy flat override and still wins when set;
   // otherwise the runtime DM model comes from the premium_dm profile entry
-  // (its own LOREWEAVER_PROFILE_PREMIUM_DM_MODEL override, or the default).
-  const model = env.LOREWEAVER_MODEL?.trim() || dmProfile.model;
+  // (its own ESHYRA_PROFILE_PREMIUM_DM_MODEL override, or the default).
+  const model = env.ESHYRA_MODEL?.trim() || dmProfile.model;
 
   // The CLI ships only the Claude Agent SDK adapter, so the resolved DM
   // profile must select the `anthropic` provider. A non-anthropic override
   // would otherwise be silently ignored.
   if (dmProfile.provider !== 'anthropic') {
     throw new ConfigError(
-      `premium_dm profile resolves to provider '${dmProfile.provider}', but the CLI ships only the Anthropic (Claude Agent SDK) adapter. Unset LOREWEAVER_PROFILE_PREMIUM_DM_PROVIDER or set it to "anthropic".`,
+      `premium_dm profile resolves to provider '${dmProfile.provider}', but the CLI ships only the Anthropic (Claude Agent SDK) adapter. Unset ESHYRA_PROFILE_PREMIUM_DM_PROVIDER or set it to "anthropic".`,
     );
   }
 

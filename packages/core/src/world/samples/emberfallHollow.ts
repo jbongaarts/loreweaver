@@ -1,7 +1,7 @@
 import type { ModulePack } from '../types.js';
 
 /**
- * Original sample adventure authored for Loreweaver, licensed CC-BY-4.0. It
+ * Original sample adventure authored for Eshyra, licensed CC-BY-4.0. It
  * exists to exercise the module schema, campaign fork, and `worldQuery`
  * without depending on any third-party adventure (that conversion is gated on
  * a confirmed legal source — see beads loreweaver-9s6). Creatures reference
@@ -10,7 +10,7 @@ import type { ModulePack } from '../types.js';
  */
 export const EMBERFALL_HOLLOW: ModulePack = {
   meta: {
-    packId: 'loreweaver:emberfall-hollow',
+    packId: 'eshyra:emberfall-hollow',
     title: 'The Hollow Beneath Emberfall',
     packType: 'adventure',
     description:
@@ -23,7 +23,7 @@ export const EMBERFALL_HOLLOW: ModulePack = {
       licenseClass: 'original',
       licenseName: 'Creative Commons Attribution 4.0 International',
       attributionText:
-        'The Hollow Beneath Emberfall, original work for Loreweaver, released under CC-BY-4.0.',
+        'The Hollow Beneath Emberfall, original work for Eshyra, released under CC-BY-4.0.',
       requiresAttribution: true,
       commercialUseAllowed: true,
       hostedUseAllowed: true,

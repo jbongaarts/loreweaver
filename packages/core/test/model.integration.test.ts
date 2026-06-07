@@ -6,7 +6,7 @@ const hasKey = !!process.env.ANTHROPIC_API_KEY;
 describe.skipIf(!hasKey)('AgentSdkModelClient round-trip', () => {
   it('returns non-empty assistant text from a real call', async () => {
     const client = new AgentSdkModelClient(
-      process.env.LOREWEAVER_MODEL ?? 'claude-opus-4-7',
+      process.env.ESHYRA_MODEL ?? 'claude-opus-4-7',
     );
     const out = await client.complete({
       system: 'Reply with exactly the word: pong',

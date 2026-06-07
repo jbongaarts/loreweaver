@@ -1,6 +1,6 @@
 # CLI Distribution Plan
 
-This is the initial post-MVP distribution plan for the local Loreweaver CLI.
+This is the initial post-MVP distribution plan for the local Eshyra CLI.
 It covers the pre-1.0 CLI release path; hosted web/PWA distribution remains
 governed by ADR 0002.
 Local storage uses the managed per-user data root and campaign registry; see
@@ -20,15 +20,15 @@ Local storage uses the managed per-user data root and campaign registry; see
 
 Ship the local CLI as two npm packages:
 
-- `@loreweaver/core`
-- `@loreweaver/cli`
+- `@eshyra/core`
+- `@eshyra/cli`
 
 The initial release channel is the npm registry, with a matching GitHub Release
 for changelog, tag provenance, and attached `npm pack` tarballs. The supported
 user install command is:
 
 ```bash
-npm install -g @loreweaver/cli
+npm install -g @eshyra/cli
 ```
 
 No separate curl/bash one-command installer is required for the first release.
@@ -37,19 +37,19 @@ and consent-installed through the CLI.
 
 ## Package Shape
 
-`@loreweaver/core` is the reusable engine package. Publish only:
+`@eshyra/core` is the reusable engine package. Publish only:
 
 - `dist/**`
 - `package.json`
 - README/license files needed by the registry
 
-`@loreweaver/cli` is the executable package. Publish only:
+`@eshyra/cli` is the executable package. Publish only:
 
 - `dist/**`
 - `package.json`
 - README/license files needed by the registry
 
-The CLI package depends on the matching `@loreweaver/core` version. Releases
+The CLI package depends on the matching `@eshyra/core` version. Releases
 must publish both packages from the same git tag and version. The root workspace
 stays private; only the package workspaces are published.
 
@@ -74,10 +74,10 @@ npm ci
 npm run clean
 npm run typecheck
 npm run test
-npm pack --workspace @loreweaver/core --pack-destination dist-release
-npm pack --workspace @loreweaver/cli --pack-destination dist-release
-npm publish --workspace @loreweaver/core --provenance
-npm publish --workspace @loreweaver/cli --provenance
+npm pack --workspace @eshyra/core --pack-destination dist-release
+npm pack --workspace @eshyra/cli --pack-destination dist-release
+npm publish --workspace @eshyra/core --provenance
+npm publish --workspace @eshyra/cli --provenance
 ```
 
 Use `npm run typecheck` rather than plain `npm run build` as the release gate
@@ -127,11 +127,11 @@ session close still writes the recap and reports that no checkpoint was made.
 For checkpoints, users can either:
 
 - install Dolt themselves so `dolt` is on `PATH`
-- set `LOREWEAVER_DOLT_BIN` to an explicit binary path
-- run `loreweaver dolt install` to install a verified binary into the managed
+- set `ESHYRA_DOLT_BIN` to an explicit binary path
+- run `eshyra dolt install` to install a verified binary into the managed
   cache
 
-`LOREWEAVER_DOLT_HOME` controls the managed cache root and defaults to
+`ESHYRA_DOLT_HOME` controls the managed cache root and defaults to
 `<data-root>/dolt`. Managed install requires interactive consent; CI and
 non-interactive shells decline automatically.
 
@@ -153,15 +153,15 @@ npm run smoke:cli-install
 
 That script performs a clean TypeScript build, packs both workspaces, installs
 the local tarballs into a temporary global npm prefix, invokes the installed
-`loreweaver` command, and verifies the expected first-run config guidance.
+`eshyra` command, and verifies the expected first-run config guidance.
 
 Run this on a machine or container with no repository checkout and Node 24 LTS:
 
 ```bash
 node --version
 npm --version
-npm install -g @loreweaver/cli@<version>
-loreweaver
+npm install -g @eshyra/cli@<version>
+eshyra
 ```
 
 Expected: the banner prints the core version and the resolved data root.
@@ -171,26 +171,26 @@ Without provider credentials it exits with a config error naming
 Then smoke the configured CLI:
 
 ```bash
-mkdir loreweaver-smoke
-cd loreweaver-smoke
-export LOREWEAVER_HOME="$PWD/.loreweaver"
+mkdir eshyra-smoke
+cd eshyra-smoke
+export ESHYRA_HOME="$PWD/.eshyra"
 export ANTHROPIC_API_KEY="<real test key or live smoke key>"
-loreweaver
-loreweaver new "Smoke Campaign"
-loreweaver campaigns list
+eshyra
+eshyra new "Smoke Campaign"
+eshyra campaigns list
 ```
 
 Expected: with a real provider credential, the banner prints the resolved data
 root and model, `new` creates a managed database under
-`$LOREWEAVER_HOME/campaigns/`, and `campaigns list` shows the registered
+`$ESHYRA_HOME/campaigns/`, and `campaigns list` shows the registered
 campaign. An empty `ANTHROPIC_API_KEY` is treated as unset; use
 `CLAUDE_CODE_OAUTH_TOKEN` instead when smoking subscription-token auth.
 
 Optional explicit-path smoke:
 
 ```bash
-export LOREWEAVER_DB_PATH="$PWD/dev.db"
-loreweaver
+export ESHYRA_DB_PATH="$PWD/dev.db"
+eshyra
 ```
 
 Expected: the banner also prints the explicit database path. This bypasses the
@@ -199,7 +199,7 @@ managed registry and is intended for scripted, CI, and power-user workflows.
 Optional Dolt smoke:
 
 ```bash
-loreweaver dolt install
+eshyra dolt install
 ```
 
 Expected: in an interactive shell, the command asks for consent before
@@ -208,7 +208,7 @@ installing; in a non-interactive shell, it declines automatically.
 Live play smoke:
 
 ```bash
-loreweaver play
+eshyra play
 ```
 
 Expected: the registered managed campaign opens, one player input can complete
@@ -227,4 +227,4 @@ first publish should not happen until these are resolved or explicitly waived:
   `UNLICENSED` placeholder is replaced, and publishable workspaces are no longer
   marked `private`
 - release automation installs the packed tarballs and invokes the global
-  `loreweaver` command in a clean prefix before publish
+  `eshyra` command in a clean prefix before publish

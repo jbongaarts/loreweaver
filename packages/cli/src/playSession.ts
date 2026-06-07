@@ -1,10 +1,10 @@
-import type { CampaignInfo, Db, SessionLaunchState } from '@loreweaver/core';
+import type { CampaignInfo, Db, SessionLaunchState } from '@eshyra/core';
 import {
   createCampaign,
   getCampaign,
   getSessionLaunchState,
   startSession,
-} from '@loreweaver/core';
+} from '@eshyra/core';
 import { gracefulClose } from './playClose.js';
 import type { PlayDeps } from './playTypes.js';
 

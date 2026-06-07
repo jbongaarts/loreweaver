@@ -1,12 +1,12 @@
 {
-  "name": "loreweaver",
+  "name": "eshyra",
   "description": "Text-first persistent AI Dungeon Master for long-running fantasy campaigns.",
   "private": true,
   "license": "UNLICENSED",
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jbongaarts/loreweaver.git"
+    "url": "git+https://github.com/jbongaarts/eshyra.git"
   },
   "workspaces": [
     "packages/core",

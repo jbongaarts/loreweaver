@@ -6,7 +6,7 @@ Date: 2026-05-20
 
 ## Context
 
-ADR 0001 set Loreweaver as a text-first, premium-model campaign engine whose
+ADR 0001 set Eshyra as a text-first, premium-model campaign engine whose
 MVP is CLI/local-friendly, with a hosted mobile-friendly web app or PWA as the
 likely medium-term public experience and native mobile deferred. It also set
 billing as BYOK-first with hosted credits as a future option.
@@ -20,12 +20,12 @@ later front-end work cannot quietly leak provider keys or assume a billing
 model that was never agreed.
 
 "BYOK" (bring your own key) means the player supplies their own model-provider
-API key and pays the provider directly; Loreweaver never resells model access
+API key and pays the provider directly; Eshyra never resells model access
 in this mode.
 
 ## Decision
 
-Loreweaver ships along one deployment path with three stages over the same
+Eshyra ships along one deployment path with three stages over the same
 UI-agnostic TypeScript core. The core never changes between stages; only the
 front-end and the key-handling surface do.
 
@@ -46,9 +46,9 @@ development surface and the power-user/local surface, and it remains supported
 after later stages ship — it is not replaced.
 
 **Local BYOK.** The provider key is read from the local environment or a local
-config file owned by the user (e.g. `LOREWEAVER_PROFILE_*` / provider env
+config file owned by the user (e.g. `ESHYRA_PROFILE_*` / provider env
 vars). The key never leaves the user's machine, is never transmitted to a
-Loreweaver-operated service, and is never written into the campaign DB, Dolt
+Eshyra-operated service, and is never written into the campaign DB, Dolt
 history, or `turn_trace`. The user owns the key's lifecycle entirely.
 
 ### Stage 2 — Hosted web / PWA
@@ -61,13 +61,13 @@ canon writes stay server-side. The PWA gives a near-app mobile experience
 without a native build.
 
 **Hosted BYOK is the default hosted billing shape.** The player supplies their
-own provider key; Loreweaver hosts the engine and storage but does not resell
+own provider key; Eshyra hosts the engine and storage but does not resell
 model tokens. This keeps Stage 2 free of a billing/payments dependency and
 matches ADR 0001's BYOK-first position.
 
 ### Stage 3 — Hosted credits (future, optional, not an MVP blocker)
 
-A future option where Loreweaver provisions model access and meters usage as
+A future option where Eshyra provisions model access and meters usage as
 credits, for players who do not want to manage a provider key. This requires a
 separate decision record covering payments, metering, abuse limits, and cost
 exposure. It is explicitly **not** an MVP blocker and nothing in Stages 1–2 may

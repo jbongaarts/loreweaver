@@ -33,7 +33,7 @@ authoritative content.
 
 ## Decision
 
-Loreweaver ships D&D SRD 5.1 and D&D SRD 5.2 as **two independent base
+Eshyra ships D&D SRD 5.1 and D&D SRD 5.2 as **two independent base
 rules packs**. Campaigns pin to one of them via the existing rules
 binding. No automatic upgrade or merging between the two — a 5.1 campaign
 stays on 5.1 unless the user explicitly rebinds.
@@ -52,7 +52,7 @@ packs lists the supported `version` values explicitly.
 
 The existing fixture's pack id (`rules:dnd5e-srd`) is renamed to
 `rules:dnd5e-srd-5.1` as part of the SRD 5.1 importer in
-`loreweaver-0m9.5`. There is no on-disk user data to migrate (Loreweaver
+`loreweaver-0m9.5`. There is no on-disk user data to migrate (Eshyra
 has no released installations — see ADR 0003 §"no migration path"), so
 the rename is a code change only.
 
@@ -121,7 +121,7 @@ and including them inflates pack size without serving rules lookup.
 
 ## Consequences
 
-- Two SRD packs ship in `@loreweaver/core` and load through the new pack
+- Two SRD packs ship in `@eshyra/core` and load through the new pack
   loader (`loreweaver-0m9.3`).
 - The current fixture's records flow into the 5.1 pack only; the 5.2
   pack starts empty until the 5.2 importer runs.
@@ -139,7 +139,7 @@ and including them inflates pack size without serving rules lookup.
   community data targets today and is a stable baseline we can compare
   the 5.2 importer against. Dropping 5.1 strands existing 5e content.
 - **Ship only SRD 5.1.** Rejected: 5.2 is the live SRD going forward and
-  carries the 2024 rules revisions. Tying Loreweaver to 5.1 ages out
+  carries the 2024 rules revisions. Tying Eshyra to 5.1 ages out
   quickly.
 - **Ship a single merged "latest SRD" pack.** Rejected: the two SRDs are
   not strictly upward-compatible. Some records change semantics between

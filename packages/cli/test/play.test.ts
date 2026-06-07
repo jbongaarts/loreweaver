@@ -22,7 +22,7 @@ import {
   type RunTurnResult,
   readCampaignRulesBinding,
   startSession,
-} from '@loreweaver/core';
+} from '@eshyra/core';
 import {
   appendSceneLog,
   assembleContext,
@@ -36,7 +36,7 @@ import {
   openScene,
   recordTurnTrace,
   renderContextMessage,
-} from '@loreweaver/core/internal';
+} from '@eshyra/core/internal';
 import { describe, expect, it, vi } from 'vitest';
 import {
   type CliIO,

@@ -34,21 +34,21 @@ function isFile(p: string): boolean {
   }
 }
 
-/** OS-default Loreweaver-managed dolt cache dir (where the opt-in provisioner installs). */
+/** OS-default Eshyra-managed dolt cache dir (where the opt-in provisioner installs). */
 export function managedDoltDir(
   env: Record<string, string | undefined> = process.env,
 ): string {
-  const override = env.LOREWEAVER_DOLT_HOME?.trim();
+  const override = env.ESHYRA_DOLT_HOME?.trim();
   if (override) return override;
-  return join(homedir(), '.loreweaver', 'dolt');
+  return join(homedir(), '.eshyra', 'dolt');
 }
 
 /**
- * Isolated dolt "global" home (`DOLT_ROOT_PATH`) for Loreweaver-invoked dolt.
+ * Isolated dolt "global" home (`DOLT_ROOT_PATH`) for Eshyra-invoked dolt.
  *
  * `DOLT_ROOT_PATH` relocates dolt's global state — `config_global.json` and the
  * `eventsData` telemetry queue — but NOT checkpoint repos (those live in the cwd
- * passed to {@link DoltCli}). Pointing it at a Loreweaver-owned dir under the
+ * passed to {@link DoltCli}). Pointing it at a Eshyra-owned dir under the
  * managed cache keeps both config and telemetry out of the user's `~/.dolt`, so
  * we never read or pollute the user's personal dolt config and never accumulate
  * a metrics backlog in their home. A sibling of the binary dir, not the binary
@@ -62,8 +62,8 @@ export function managedDoltRoot(
 
 /**
  * Resolve a usable `dolt` binary path. Precedence:
- *  1. explicit override (opt.explicitPath, then env LOREWEAVER_DOLT_BIN)
- *  2. Loreweaver-managed cache dir (env LOREWEAVER_DOLT_HOME or OS default)
+ *  1. explicit override (opt.explicitPath, then env ESHYRA_DOLT_BIN)
+ *  2. Eshyra-managed cache dir (env ESHYRA_DOLT_HOME or OS default)
  *  3. a directory on PATH
  *  4. otherwise throw DoltUnavailableError with install guidance
  *
@@ -72,11 +72,11 @@ export function managedDoltRoot(
 export function resolveDoltBinary(opts: ResolveDoltOptions = {}): string {
   const env = opts.env ?? process.env;
 
-  const explicit = opts.explicitPath ?? env.LOREWEAVER_DOLT_BIN?.trim();
+  const explicit = opts.explicitPath ?? env.ESHYRA_DOLT_BIN?.trim();
   if (explicit) {
     if (isFile(explicit)) return explicit;
     throw new DoltUnavailableError(
-      `LOREWEAVER_DOLT_BIN / explicit dolt path is set to "${explicit}" but no file exists there.`,
+      `ESHYRA_DOLT_BIN / explicit dolt path is set to "${explicit}" but no file exists there.`,
     );
   }
 
@@ -91,6 +91,6 @@ export function resolveDoltBinary(opts: ResolveDoltOptions = {}): string {
   }
 
   throw new DoltUnavailableError(
-    `No "dolt" binary found. Checkpoint/restore/fork need the Dolt CLI. Resolve it by either: set LOREWEAVER_DOLT_BIN=/path/to/${BIN}; install via "brew install dolt" (macOS), "curl -L https://github.com/dolthub/dolt/releases/latest/download/install.sh | sudo bash" (Linux/macOS), or the Windows .msi from github.com/dolthub/dolt/releases; or place it under ${managedDoltDir(env)}.`,
+    `No "dolt" binary found. Checkpoint/restore/fork need the Dolt CLI. Resolve it by either: set ESHYRA_DOLT_BIN=/path/to/${BIN}; install via "brew install dolt" (macOS), "curl -L https://github.com/dolthub/dolt/releases/latest/download/install.sh | sudo bash" (Linux/macOS), or the Windows .msi from github.com/dolthub/dolt/releases; or place it under ${managedDoltDir(env)}.`,
   );
 }

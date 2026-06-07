@@ -1,5 +1,5 @@
 /**
- * `@loreweaver/core/internal` — non-stable surface.
+ * `@eshyra/core/internal` — non-stable surface.
  *
  * Everything re-exported below is **explicitly unstable**: low-level
  * primitives, raw datasets, model-profile/benchmarking helpers, world/rules
@@ -7,14 +7,14 @@
  * pieces. Names, signatures, and locations may change in any release with
  * no migration path.
  *
- * Use the stable root export (`@loreweaver/core`) from production code.
+ * Use the stable root export (`@eshyra/core`) from production code.
  * Imports of this subpath belong in co-developed callers inside this
  * repository (tests, evaluation tooling) that genuinely need to assert
  * against implementation details. See the header of `./index.ts` for the
  * stability contract.
  *
  * For convenience to those in-repo callers this subpath also re-exports the
- * stable surface, so a single import from `@loreweaver/core/internal` (or, for
+ * stable surface, so a single import from `@eshyra/core/internal` (or, for
  * core's own tests, `'../src/internal.js'`) covers both buckets.
  */
 
@@ -246,7 +246,7 @@ export {
 // Database internals.
 export { withTransaction } from './persistence/db.js';
 // Built-in rules pack objects (pre-importer; superseded by 0m9 deterministic importer outputs).
-// Not on the stable public surface — use @loreweaver/core for consumer-facing API.
+// Not on the stable public surface — use @eshyra/core for consumer-facing API.
 export type {
   ChangedRecord,
   FieldDelta,

@@ -1,5 +1,5 @@
 /**
- * `loreweaver checkpoint` commands (loreweaver-v3k).
+ * `eshyra checkpoint` commands (loreweaver-v3k).
  *
  * Checkpoints are Dolt snapshots of campaign canon, written on graceful
  * session close. The core `CheckpointStore` can already list, restore, and
@@ -10,14 +10,14 @@
 
 import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
-import { CheckpointStore, DoltRepo } from '@loreweaver/core';
+import { CheckpointStore, DoltRepo } from '@eshyra/core';
 import { resolveCampaignDbPath } from './campaigns.js';
 
 /** Host seam for the checkpoint commands. */
 export interface CheckpointDeps {
   /** The resolved per-user data root (for registry campaign lookup). */
   root: string;
-  /** Environment map — read for the `LOREWEAVER_DB_PATH` explicit override. */
+  /** Environment map — read for the `ESHYRA_DB_PATH` explicit override. */
   env: Record<string, string | undefined>;
   /** Output sink. */
   log: (message: string) => void;
@@ -41,7 +41,7 @@ function doltReady(log: (message: string) => void): boolean {
   }
   log(
     'Dolt is not available. Checkpoint commands need the dolt binary — ' +
-      'install it or run `loreweaver dolt install`.',
+      'install it or run `eshyra dolt install`.',
   );
   return false;
 }
@@ -52,7 +52,7 @@ function resolveDb(
   campaignId: string | undefined,
 ): { ok: true; dbPath: string } | { ok: false } {
   const resolved = resolveCampaignDbPath(deps.root, {
-    explicitDbPath: deps.env.LOREWEAVER_DB_PATH?.trim() || undefined,
+    explicitDbPath: deps.env.ESHYRA_DB_PATH?.trim() || undefined,
     campaignId,
   });
   if (!resolved.ok) {
@@ -62,7 +62,7 @@ function resolveDb(
   return { ok: true, dbPath: resolved.dbPath };
 }
 
-/** `loreweaver checkpoint list [campaign-id]`. */
+/** `eshyra checkpoint list [campaign-id]`. */
 function runList(rest: string[], deps: CheckpointDeps): number {
   const db = resolveDb(deps, rest[0]);
   if (!db.ok) {
@@ -96,12 +96,12 @@ function runList(rest: string[], deps: CheckpointDeps): number {
   }
 }
 
-/** `loreweaver checkpoint restore <checkpoint-id> <new-db-path> [campaign-id]`. */
+/** `eshyra checkpoint restore <checkpoint-id> <new-db-path> [campaign-id]`. */
 function runRestore(rest: string[], deps: CheckpointDeps): number {
   const [checkpointId, dest, campaignId] = rest;
   if (!checkpointId || !dest) {
     deps.log(
-      'usage: loreweaver checkpoint restore <checkpoint-id> <new-db-path> [campaign-id]',
+      'usage: eshyra checkpoint restore <checkpoint-id> <new-db-path> [campaign-id]',
     );
     return 1;
   }
@@ -134,14 +134,14 @@ function runRestore(rest: string[], deps: CheckpointDeps): number {
 }
 
 /**
- * `loreweaver checkpoint fork <checkpoint-id> <branch-name> <new-db-path>
+ * `eshyra checkpoint fork <checkpoint-id> <branch-name> <new-db-path>
  * [campaign-id]`.
  */
 function runFork(rest: string[], deps: CheckpointDeps): number {
   const [checkpointId, branchName, dest, campaignId] = rest;
   if (!checkpointId || !branchName || !dest) {
     deps.log(
-      'usage: loreweaver checkpoint fork <checkpoint-id> <branch-name> ' +
+      'usage: eshyra checkpoint fork <checkpoint-id> <branch-name> ' +
         '<new-db-path> [campaign-id]',
     );
     return 1;
@@ -176,7 +176,7 @@ function runFork(rest: string[], deps: CheckpointDeps): number {
   }
 }
 
-/** `loreweaver checkpoint <list|restore|fork>` dispatcher. */
+/** `eshyra checkpoint <list|restore|fork>` dispatcher. */
 export function runCheckpointCommand(
   args: string[],
   deps: CheckpointDeps,
@@ -190,7 +190,7 @@ export function runCheckpointCommand(
     case 'fork':
       return runFork(rest, deps);
     default:
-      deps.log('usage: loreweaver checkpoint <list|restore|fork> ...');
+      deps.log('usage: eshyra checkpoint <list|restore|fork> ...');
       return 1;
   }
 }

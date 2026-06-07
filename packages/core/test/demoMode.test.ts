@@ -95,9 +95,8 @@ describe('demo campaign mode', () => {
     // economy_or_experimental has no default provider/model — explicit config
     // is required. This mirrors real usage: ops must opt in deliberately.
     const economyRegistry = resolveProfileRegistry({
-      LOREWEAVER_PROFILE_ECONOMY_OR_EXPERIMENTAL_PROVIDER: 'anthropic',
-      LOREWEAVER_PROFILE_ECONOMY_OR_EXPERIMENTAL_MODEL:
-        'claude-haiku-4-5-20251001',
+      ESHYRA_PROFILE_ECONOMY_OR_EXPERIMENTAL_PROVIDER: 'anthropic',
+      ESHYRA_PROFILE_ECONOMY_OR_EXPERIMENTAL_MODEL: 'claude-haiku-4-5-20251001',
     });
     const economy = resolveDemoModel(
       economyRegistry,

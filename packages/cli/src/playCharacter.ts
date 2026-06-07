@@ -1,6 +1,6 @@
-import type { CharacterCreationDraft, Db } from '@loreweaver/core';
-import { completeCharacterCreation } from '@loreweaver/core';
-import { listParty } from '@loreweaver/core/internal';
+import type { CharacterCreationDraft, Db } from '@eshyra/core';
+import { completeCharacterCreation } from '@eshyra/core';
+import { listParty } from '@eshyra/core/internal';
 import type { CliIO, PlayDeps } from './playTypes.js';
 
 interface CharacterCanonRow {

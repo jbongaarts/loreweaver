@@ -2,7 +2,7 @@
 
 ## External code contributions are not accepted yet
 
-Loreweaver's source-code license is intentionally deferred — **no source-code
+Eshyra's source-code license is intentionally deferred — **no source-code
 license has been granted** and the packages are marked `private` / `UNLICENSED`.
 See [docs/licensing.md](docs/licensing.md) for the full posture.
 

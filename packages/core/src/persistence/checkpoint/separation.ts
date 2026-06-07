@@ -99,7 +99,7 @@ export function assertSeparateFromBeads(
   const b = resolve(beadsDir);
   if (a === b || isInside(a, b) || isInside(b, a)) {
     throw new SeparationError(
-      `Loreweaver Dolt dir ${a} must be disjoint from beads Dolt dir ${b}`,
+      `Eshyra Dolt dir ${a} must be disjoint from beads Dolt dir ${b}`,
     );
   }
 
@@ -111,12 +111,12 @@ export function assertSeparateFromBeads(
   for (const remote of campaignRemotes) {
     if (beadsUrls.has(normalizeRemoteUrl(remote.url))) {
       throw new SeparationError(
-        `Loreweaver Dolt remote "${remote.name}" (${remote.url}) collides with a beads Dolt remote; campaign history must not share a remote with beads.`,
+        `Eshyra Dolt remote "${remote.name}" (${remote.url}) collides with a beads Dolt remote; campaign history must not share a remote with beads.`,
       );
     }
     if (touchesBeadsRefNamespace(remote.fetchSpecs)) {
       throw new SeparationError(
-        `Loreweaver Dolt remote "${remote.name}" uses the beads-reserved ref ` +
+        `Eshyra Dolt remote "${remote.name}" uses the beads-reserved ref ` +
           `namespace (${BEADS_RESERVED_REF_NS}* / ${BEADS_RESERVED_REF}).`,
       );
     }
