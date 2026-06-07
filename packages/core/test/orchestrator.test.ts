@@ -226,12 +226,13 @@ describe('orchestrator turn loop', () => {
       `UPDATE character SET hp_max = 20, hp_current = 15 WHERE id = 'pc-1'`,
     ).run();
     // A native-tool adapter signals "run adjust_hp" through the structured
-    // channel with empty narration text. The fenced-text loop would otherwise
-    // treat the empty text as final narration and silently lose the HP change.
+    // channel. The narration text carries NO fenced tool_call, so without the
+    // guard the loop would treat this text as final narration and succeed —
+    // silently losing the HP change. `stopReason` is deliberately left unset so
+    // this test isolates the `toolCalls` rejection branch.
     const model = new NativeToolModel({
-      text: '',
+      text: 'You bandage your wounds.',
       toolCalls: [{ name: 'adjust_hp', args: { amount: -3 } }],
-      stopReason: 'tool_use',
     });
 
     const result = await runTurn(
