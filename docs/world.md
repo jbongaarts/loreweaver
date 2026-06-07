@@ -66,4 +66,4 @@ Schema, license metadata, fork, overlay resolution, and `world_query` ship now,
 proven by the original sample pack `EMBERFALL_HOLLOW`
 (`packages/core/src/world/samples/`). Converting a third-party adventure into
 the schema is a separate content task gated on a confirmed legal source
-(beads `loreweaver-9s6`); no third-party adventure text is bundled.
+(beads `eshyra-9s6`); no third-party adventure text is bundled.

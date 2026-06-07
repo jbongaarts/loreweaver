@@ -41,7 +41,7 @@ describe('ModelClient contract', () => {
     expect(out.stopReason).toBe('end_turn');
   });
 
-  it('carries optional tools, responseFormat, profile, and trace through to the adapter (loreweaver-0jq.11)', async () => {
+  it('carries optional tools, responseFormat, profile, and trace through to the adapter (eshyra-0jq.11)', async () => {
     const fake = new FakeModelClient();
     const client: ModelClient = fake;
     const rollSchema: ModelToolDefinition = {

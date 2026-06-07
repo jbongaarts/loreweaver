@@ -87,7 +87,7 @@ describe('AgentSdkModelClient', () => {
     expect(out.text).toBe('final');
   });
 
-  it('ignores structured tools / responseFormat / profile / trace without failing (loreweaver-0jq.11)', async () => {
+  it('ignores structured tools / responseFormat / profile / trace without failing (eshyra-0jq.11)', async () => {
     queryMock.mockReturnValue(sdkStream(ok('ok')));
 
     const out = await new AgentSdkModelClient('m').complete({

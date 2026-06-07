@@ -4,7 +4,7 @@ import type { ModulePack } from '../types.js';
  * Original sample adventure authored for Eshyra, licensed CC-BY-4.0. It
  * exists to exercise the module schema, campaign fork, and `worldQuery`
  * without depending on any third-party adventure (that conversion is gated on
- * a confirmed legal source — see beads loreweaver-9s6). Creatures reference
+ * a confirmed legal source — see beads eshyra-9s6). Creatures reference
  * rules records by provider-neutral `rulesRef`, resolved through the
  * campaign's rules binding (default D&D 5e SRD).
  */

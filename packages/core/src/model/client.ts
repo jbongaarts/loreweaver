@@ -15,7 +15,7 @@ export type ModelResponseFormat = 'text' | 'json';
 
 /**
  * Provider-neutral profile metadata threaded through the call site
- * (loreweaver-0jq.11). Adapters may use this for routing, logging, or
+ * (eshyra-0jq.11). Adapters may use this for routing, logging, or
  * rate-limit shaping. Never contains provider-specific identifiers.
  */
 export interface ModelProfileMetadata {
@@ -51,7 +51,7 @@ export interface ModelCompleteInput {
   system?: string;
   messages: readonly ModelMessage[];
   /**
-   * Provider-neutral tool definitions the model may invoke (loreweaver-0jq.10).
+   * Provider-neutral tool definitions the model may invoke (eshyra-0jq.10).
    * The fenced-text tool-call protocol does not consult this list — it's the
    * seam for adapters that target native provider tool channels.
    */
@@ -91,7 +91,7 @@ export interface ModelToolCall {
 export type ModelStopReason = 'end_turn' | 'tool_use' | 'max_tokens' | 'other';
 
 /**
- * Structured result of a ModelClient call (loreweaver-0jq.11). `text` is
+ * Structured result of a ModelClient call (eshyra-0jq.11). `text` is
  * always populated (possibly empty) so callers that only care about narration
  * can ignore the structured fields entirely. Adapters that produce native
  * tool calls populate {@link toolCalls}; the orchestrator may read them in

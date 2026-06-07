@@ -432,7 +432,7 @@ describe('memory_drilldown tool', () => {
   });
 });
 
-describe('tool schema metadata (loreweaver-0jq.10)', () => {
+describe('tool schema metadata (eshyra-0jq.10)', () => {
   it('every bundled tool publishes an object-typed input schema', () => {
     for (const tool of DEFAULT_TOOLS) {
       expect(tool.inputSchema.type).toBe('object');
