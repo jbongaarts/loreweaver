@@ -169,8 +169,7 @@ export {
 export type { DiceNotation, DiceRoll } from './orchestrator/dice.js';
 // Dice notation parser + roller.
 export { DiceError, parseDice, rollDice } from './orchestrator/dice.js';
-export type { ParsedToolCall } from './orchestrator/protocol.js';
-// DM-protocol prompt building and tool-call parsing.
+// DM-protocol prompt building and fenced tool-call parsing.
 export {
   buildSystemPrompt,
   parseToolCalls,
@@ -203,6 +202,12 @@ export {
   openScene,
   SceneError,
 } from './orchestrator/scene.js';
+export type {
+  ToolRequest,
+  ToolRequestSource,
+} from './orchestrator/toolRequest.js';
+// Transport-neutral model-requested tool action abstraction (eshyra-0jq.16).
+export { hasNativeToolRequests } from './orchestrator/toolRequest.js';
 export type { MarkSceneToolData } from './orchestrator/tools.js';
 // Tool-data helpers (the registry itself is stable; these are internals).
 export { isMarkSceneToolData } from './orchestrator/tools.js';

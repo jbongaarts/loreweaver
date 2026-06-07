@@ -1,28 +1,28 @@
+import type { ToolRequest } from './toolRequest.js';
 import type { ToolRegistry, ToolResult } from './tools.js';
 
 /**
- * DM system prompt and the text-channel tool-call protocol (E5).
+ * DM system prompt and the fenced text-channel tool-call protocol (E5).
  *
- * The ModelClient contract is text-in / text-out — there is no native
- * tool-use channel — so tool calls ride the text channel. The model emits
- * fenced ```tool_call blocks; the orchestrator parses them, executes the
- * deterministic tool layer, and feeds ```tool_result blocks back. When the
- * model replies with no tool_call block, that reply is the final narration.
+ * This module owns the *fenced* transport: the model emits fenced ```tool_call
+ * blocks, this parser turns them into the transport-neutral {@link ToolRequest}
+ * shape the orchestrator executes, and `renderToolResults` feeds ```tool_result
+ * blocks back. When the model replies with no tool_call block, that reply is the
+ * final narration. Native provider tool use (eshyra-1q5) is a separate producer
+ * of the same {@link ToolRequest} shape; the loop does not care which transport
+ * a request arrived through once it has been normalized.
  */
 
 const TOOL_CALL_FENCE = /```tool_call[^\S\n]*\n([\s\S]*?)```/g;
 
-export type ParsedToolCall =
-  | { ok: true; tool: string; args: unknown }
-  | { ok: false; error: string; raw: string };
-
 /**
- * Extract every tool call from a model reply, in document order. Malformed
+ * Extract every fenced tool call from a model reply, in document order, as
+ * transport-neutral {@link ToolRequest}s tagged `source: 'fenced'`. Malformed
  * blocks are returned as `ok: false` entries (never thrown) so the orchestrator
  * can feed the parse error back to the model as a tool_result.
  */
-export function parseToolCalls(modelText: string): ParsedToolCall[] {
-  const calls: ParsedToolCall[] = [];
+export function parseToolCalls(modelText: string): ToolRequest[] {
+  const calls: ToolRequest[] = [];
   for (const match of modelText.matchAll(TOOL_CALL_FENCE)) {
     const raw = match[1].trim();
     let parsed: unknown;
@@ -31,6 +31,7 @@ export function parseToolCalls(modelText: string): ParsedToolCall[] {
     } catch (e) {
       calls.push({
         ok: false,
+        source: 'fenced',
         error: `malformed tool_call JSON: ${
           e instanceof Error ? e.message : String(e)
         }`,
@@ -45,13 +46,19 @@ export function parseToolCalls(modelText: string): ParsedToolCall[] {
     ) {
       calls.push({
         ok: false,
+        source: 'fenced',
         error: 'tool_call must be a JSON object with a string "tool" field',
         raw,
       });
       continue;
     }
     const obj = parsed as { tool: string; args?: unknown };
-    calls.push({ ok: true, tool: obj.tool, args: obj.args ?? {} });
+    calls.push({
+      ok: true,
+      source: 'fenced',
+      tool: obj.tool,
+      args: obj.args ?? {},
+    });
   }
   return calls;
 }
