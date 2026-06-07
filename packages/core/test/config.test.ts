@@ -5,8 +5,8 @@ import { DEFAULT_PROFILE_REGISTRY, getProfile } from '../src/model/profiles.js';
 describe('loadConfig', () => {
   it('returns a valid config from a complete env', () => {
     const cfg = loadConfig({
-      LOREWEAVER_DB_PATH: './campaigns/x.db',
-      LOREWEAVER_MODEL: 'claude-opus-4-7',
+      ESHYRA_DB_PATH: './campaigns/x.db',
+      ESHYRA_MODEL: 'claude-opus-4-7',
       ANTHROPIC_API_KEY: 'sk-test',
     });
     expect(cfg).toEqual({
@@ -19,7 +19,7 @@ describe('loadConfig', () => {
 
   it('defaults the model to the premium_dm profile when unset', () => {
     const cfg = loadConfig({
-      LOREWEAVER_DB_PATH: './x.db',
+      ESHYRA_DB_PATH: './x.db',
       ANTHROPIC_API_KEY: 'sk-test',
     });
     const premiumDm = getProfile(DEFAULT_PROFILE_REGISTRY, 'premium_dm');
@@ -29,20 +29,20 @@ describe('loadConfig', () => {
 
   it('resolves the runtime DM model from a premium_dm profile override', () => {
     const cfg = loadConfig({
-      LOREWEAVER_DB_PATH: './x.db',
+      ESHYRA_DB_PATH: './x.db',
       ANTHROPIC_API_KEY: 'sk-test',
-      LOREWEAVER_PROFILE_PREMIUM_DM_MODEL: 'claude-future-1',
+      ESHYRA_PROFILE_PREMIUM_DM_MODEL: 'claude-future-1',
     });
     expect(cfg.model).toBe('claude-future-1');
     expect(cfg.dmProfile.model).toBe('claude-future-1');
   });
 
-  it('lets the legacy flat LOREWEAVER_MODEL override win over the profile', () => {
+  it('lets the legacy flat ESHYRA_MODEL override win over the profile', () => {
     const cfg = loadConfig({
-      LOREWEAVER_DB_PATH: './x.db',
+      ESHYRA_DB_PATH: './x.db',
       ANTHROPIC_API_KEY: 'sk-test',
-      LOREWEAVER_MODEL: 'claude-flat-override',
-      LOREWEAVER_PROFILE_PREMIUM_DM_MODEL: 'claude-profile-model',
+      ESHYRA_MODEL: 'claude-flat-override',
+      ESHYRA_PROFILE_PREMIUM_DM_MODEL: 'claude-profile-model',
     });
     expect(cfg.model).toBe('claude-flat-override');
     // The resolved profile entry still reflects the profile-level override.
@@ -52,9 +52,9 @@ describe('loadConfig', () => {
   it('throws ConfigError when the premium_dm profile selects a non-anthropic provider', () => {
     expect(() =>
       loadConfig({
-        LOREWEAVER_DB_PATH: './x.db',
+        ESHYRA_DB_PATH: './x.db',
         ANTHROPIC_API_KEY: 'sk-test',
-        LOREWEAVER_PROFILE_PREMIUM_DM_PROVIDER: 'openai',
+        ESHYRA_PROFILE_PREMIUM_DM_PROVIDER: 'openai',
       }),
     ).toThrow(ConfigError);
   });
@@ -62,23 +62,23 @@ describe('loadConfig', () => {
   it('throws ConfigError when a profile provider override is not a known provider id', () => {
     expect(() =>
       loadConfig({
-        LOREWEAVER_DB_PATH: './x.db',
+        ESHYRA_DB_PATH: './x.db',
         ANTHROPIC_API_KEY: 'sk-test',
-        LOREWEAVER_PROFILE_PREMIUM_DM_PROVIDER: 'not-a-provider',
+        ESHYRA_PROFILE_PREMIUM_DM_PROVIDER: 'not-a-provider',
       }),
     ).toThrow(ConfigError);
   });
 
-  it('leaves campaignDbPath undefined when LOREWEAVER_DB_PATH is missing', () => {
-    // LOREWEAVER_DB_PATH is optional (ADR 0004): the CLI resolves the campaign
+  it('leaves campaignDbPath undefined when ESHYRA_DB_PATH is missing', () => {
+    // ESHYRA_DB_PATH is optional (ADR 0004): the CLI resolves the campaign
     // from its registry when it is unset. Provider auth is still mandatory.
     const cfg = loadConfig({ ANTHROPIC_API_KEY: 'sk-test' });
     expect(cfg.campaignDbPath).toBeUndefined();
   });
 
-  it('leaves campaignDbPath undefined when LOREWEAVER_DB_PATH is blank', () => {
+  it('leaves campaignDbPath undefined when ESHYRA_DB_PATH is blank', () => {
     const cfg = loadConfig({
-      LOREWEAVER_DB_PATH: '   ',
+      ESHYRA_DB_PATH: '   ',
       ANTHROPIC_API_KEY: 'sk-test',
     });
     expect(cfg.campaignDbPath).toBeUndefined();
@@ -87,7 +87,7 @@ describe('loadConfig', () => {
   describe('provider auth', () => {
     it('resolves api-key auth from ANTHROPIC_API_KEY', () => {
       const cfg = loadConfig({
-        LOREWEAVER_DB_PATH: './x.db',
+        ESHYRA_DB_PATH: './x.db',
         ANTHROPIC_API_KEY: 'sk-test',
       });
       expect(cfg.auth).toEqual({
@@ -98,7 +98,7 @@ describe('loadConfig', () => {
 
     it('resolves oauth-token auth from CLAUDE_CODE_OAUTH_TOKEN (Pro/Max plan)', () => {
       const cfg = loadConfig({
-        LOREWEAVER_DB_PATH: './x.db',
+        ESHYRA_DB_PATH: './x.db',
         CLAUDE_CODE_OAUTH_TOKEN: 'sk-ant-oat01-test',
       });
       expect(cfg.auth).toEqual({
@@ -111,7 +111,7 @@ describe('loadConfig', () => {
       // Mirrors Claude Code precedence: an API key outranks the OAuth token,
       // so loadConfig picks api-key auth and injects only that one credential.
       const cfg = loadConfig({
-        LOREWEAVER_DB_PATH: './x.db',
+        ESHYRA_DB_PATH: './x.db',
         ANTHROPIC_API_KEY: 'sk-test',
         CLAUDE_CODE_OAUTH_TOKEN: 'sk-ant-oat01-test',
       });
@@ -122,14 +122,14 @@ describe('loadConfig', () => {
     });
 
     it('throws ConfigError when neither credential is set', () => {
-      expect(() => loadConfig({ LOREWEAVER_DB_PATH: './x.db' })).toThrow(
+      expect(() => loadConfig({ ESHYRA_DB_PATH: './x.db' })).toThrow(
         ConfigError,
       );
     });
 
     it('treats a blank ANTHROPIC_API_KEY as unset and falls back to the OAuth token', () => {
       const cfg = loadConfig({
-        LOREWEAVER_DB_PATH: './x.db',
+        ESHYRA_DB_PATH: './x.db',
         ANTHROPIC_API_KEY: '   ',
         CLAUDE_CODE_OAUTH_TOKEN: 'sk-ant-oat01-test',
       });

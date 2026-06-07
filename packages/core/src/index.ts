@@ -1,5 +1,5 @@
 /**
- * `@loreweaver/core` — stable public surface.
+ * `@eshyra/core` — stable public surface.
  *
  * This file is the **stable** entry point: every symbol exported below is
  * intended for use by external consumers (the CLI today; a future hosted/PWA
@@ -9,7 +9,7 @@
  * Implementation details, scaffolding, low-level primitives, raw datasets,
  * evaluation/benchmark helpers, and anything that is expected to move as the
  * architecture evolves are intentionally **not** re-exported here. They live
- * behind the explicit `@loreweaver/core/internal` subpath. Consumers should
+ * behind the explicit `@eshyra/core/internal` subpath. Consumers should
  * never import that subpath from production code — it carries no compatibility
  * promise. Co-developed callers inside this repository (e.g. the CLI tests)
  * may import from `/internal` when they genuinely need to assert against
@@ -46,7 +46,7 @@ export {
   completeCharacterCreation,
 } from './characterCreation.js';
 export type {
-  LoreweaverConfig,
+  EshyraConfig,
   ProviderAuth,
   ProviderAuthMode,
 } from './config.js';
@@ -165,7 +165,7 @@ export type {
 // Campaign rules-binding read/write API.
 // Note: the built-in pack objects (DND5E_SRD_RULES_PACK, PATHFINDER2E_REMASTER_RULES_PACK) are
 // intentionally NOT exported here. They are pre-importer generated-data blobs that will be
-// superseded by the 0m9 deterministic importer outputs. Access them via @loreweaver/core/internal
+// superseded by the 0m9 deterministic importer outputs. Access them via @eshyra/core/internal
 // for in-repo use only until stable, consumer-facing packs exist.
 export {
   DEFAULT_DND5E_SRD_BINDING,

@@ -6,7 +6,7 @@ import type {
   Db,
   ExtractCampaignBibleInput,
   SessionRecapRecord,
-} from '@loreweaver/core';
+} from '@eshyra/core';
 import {
   closeSessionGracefully,
   composeArcSummary,
@@ -14,13 +14,13 @@ import {
   extractCampaignBible,
   getCampaignBible,
   getSessionRecap,
-} from '@loreweaver/core';
+} from '@eshyra/core';
 import {
   closeOpenArcAndOpenNext,
   getClosedSessionsInOpenArc,
   listClosedArcSummaries,
   openArcIfMissing,
-} from '@loreweaver/core/internal';
+} from '@eshyra/core/internal';
 import type { PlayDeps } from './playTypes.js';
 
 /**

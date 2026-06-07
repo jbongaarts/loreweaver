@@ -1,11 +1,11 @@
 /**
  * Campaign management commands and the `play` campaign picker (ADR 0004).
  *
- * When `LOREWEAVER_DB_PATH` is set the CLI opens that explicit, unmanaged
+ * When `ESHYRA_DB_PATH` is set the CLI opens that explicit, unmanaged
  * database and never consults the registry — that path is handled by the
- * caller. Everything here is the *managed* path: `loreweaver new`, the
- * `loreweaver campaigns` subcommands, and resolving which registered campaign
- * `loreweaver play` should open.
+ * caller. Everything here is the *managed* path: `eshyra new`, the
+ * `eshyra campaigns` subcommands, and resolving which registered campaign
+ * `eshyra play` should open.
  *
  * The module owns no game-rule logic. Creating a campaign delegates to the
  * core `createCampaign`; this layer only allocates a database path under the
@@ -21,7 +21,7 @@ import {
   getCampaign,
   initSchema,
   type ModulePack,
-} from '@loreweaver/core';
+} from '@eshyra/core';
 import { campaignsDir, ensureDataRoot } from './dataRoot.js';
 import type { CliIO } from './play.js';
 import {
@@ -104,7 +104,7 @@ function createManagedCampaign(
   return entry;
 }
 
-/** `loreweaver new [name...]` — create and register a campaign. */
+/** `eshyra new [name...]` — create and register a campaign. */
 export function runNewCommand(args: string[], deps: CampaignDeps): number {
   const name = args.join(' ').trim() || 'Campaign';
   try {
@@ -112,7 +112,7 @@ export function runNewCommand(args: string[], deps: CampaignDeps): number {
     deps.log(
       `Created campaign '${entry.name}' (id: ${entry.id}) at ${entry.dbPath}`,
     );
-    deps.log(`Play it with: loreweaver play ${entry.id}`);
+    deps.log(`Play it with: eshyra play ${entry.id}`);
     return 0;
   } catch (err) {
     deps.log(`could not create campaign: ${(err as Error).message}`);
@@ -127,11 +127,11 @@ function describeEntry(entry: CampaignRegistryEntry): string {
   return `${entry.id}  —  ${entry.name}  (${played})`;
 }
 
-/** `loreweaver campaigns list` — print every registered campaign. */
+/** `eshyra campaigns list` — print every registered campaign. */
 function runList(deps: CampaignDeps): number {
   const registry = loadRegistry(deps.root);
   if (registry.campaigns.length === 0) {
-    deps.log('No campaigns registered. Create one with: loreweaver new <name>');
+    deps.log('No campaigns registered. Create one with: eshyra new <name>');
     return 0;
   }
   deps.log(`Registered campaigns (${registry.campaigns.length}):`);
@@ -141,11 +141,11 @@ function runList(deps: CampaignDeps): number {
   return 0;
 }
 
-/** `loreweaver campaigns add <path> [name...]` — register an external DB. */
+/** `eshyra campaigns add <path> [name...]` — register an external DB. */
 function runAdd(args: string[], deps: CampaignDeps): number {
   const rawPath = args[0];
   if (!rawPath) {
-    deps.log('usage: loreweaver campaigns add <database-path> [name]');
+    deps.log('usage: eshyra campaigns add <database-path> [name]');
     return 1;
   }
   const dbPath = resolve(rawPath);
@@ -173,13 +173,13 @@ function runAdd(args: string[], deps: CampaignDeps): number {
 }
 
 /**
- * `loreweaver campaigns remove <id>` — unregister a campaign. The database
+ * `eshyra campaigns remove <id>` — unregister a campaign. The database
  * file is left on disk; only the registry pointer is dropped.
  */
 function runRemove(args: string[], deps: CampaignDeps): number {
   const id = args[0];
   if (!id) {
-    deps.log('usage: loreweaver campaigns remove <id>');
+    deps.log('usage: eshyra campaigns remove <id>');
     return 1;
   }
   const registry = loadRegistry(deps.root);
@@ -192,12 +192,12 @@ function runRemove(args: string[], deps: CampaignDeps): number {
   return 0;
 }
 
-/** `loreweaver campaigns rename <id> <new name...>` — change a display name. */
+/** `eshyra campaigns rename <id> <new name...>` — change a display name. */
 function runRename(args: string[], deps: CampaignDeps): number {
   const id = args[0];
   const name = args.slice(1).join(' ').trim();
   if (!id || !name) {
-    deps.log('usage: loreweaver campaigns rename <id> <new name>');
+    deps.log('usage: eshyra campaigns rename <id> <new name>');
     return 1;
   }
   const registry = loadRegistry(deps.root);
@@ -215,7 +215,7 @@ function runRename(args: string[], deps: CampaignDeps): number {
 
 /**
  * Resolve a campaign database path non-interactively, for commands that act on
- * an existing campaign (checkpoints). `LOREWEAVER_DB_PATH` wins; then a named
+ * an existing campaign (checkpoints). `ESHYRA_DB_PATH` wins; then a named
  * registry campaign; then the sole registered campaign.
  */
 export function resolveCampaignDbPath(
@@ -232,7 +232,7 @@ export function resolveCampaignDbPath(
       ? { ok: true, dbPath: entry.dbPath }
       : {
           ok: false,
-          message: `no campaign with id '${opts.campaignId}'. Run 'loreweaver campaigns list'.`,
+          message: `no campaign with id '${opts.campaignId}'. Run 'eshyra campaigns list'.`,
         };
   }
   if (registry.campaigns.length === 1) {
@@ -241,8 +241,7 @@ export function resolveCampaignDbPath(
   if (registry.campaigns.length === 0) {
     return {
       ok: false,
-      message:
-        "no campaigns registered. Create one with 'loreweaver new <name>'.",
+      message: "no campaigns registered. Create one with 'eshyra new <name>'.",
     };
   }
   return {
@@ -251,7 +250,7 @@ export function resolveCampaignDbPath(
   };
 }
 
-/** `loreweaver campaigns <subcommand>` dispatcher. */
+/** `eshyra campaigns <subcommand>` dispatcher. */
 export function runCampaignsCommand(
   args: string[],
   deps: CampaignDeps,
@@ -267,7 +266,7 @@ export function runCampaignsCommand(
     case 'rename':
       return runRename(rest, deps);
     default:
-      deps.log('usage: loreweaver campaigns <list|add|remove|rename> ...');
+      deps.log('usage: eshyra campaigns <list|add|remove|rename> ...');
       return subcommand === undefined ? 1 : 1;
   }
 }
@@ -304,8 +303,8 @@ async function pickCampaign(
 }
 
 /**
- * Resolve which registered campaign `loreweaver play` should open when
- * `LOREWEAVER_DB_PATH` is not set:
+ * Resolve which registered campaign `eshyra play` should open when
+ * `ESHYRA_DB_PATH` is not set:
  *
  *  - an explicit `campaignArg` selects that campaign by id;
  *  - an empty registry offers to create the first campaign;
@@ -326,7 +325,7 @@ export async function resolvePlayCampaign(
     if (!entry) {
       return {
         ok: false,
-        message: `no campaign with id '${opts.campaignArg}'. Run 'loreweaver campaigns list'.`,
+        message: `no campaign with id '${opts.campaignArg}'. Run 'eshyra campaigns list'.`,
       };
     }
   } else if (registry.campaigns.length === 0) {
@@ -337,7 +336,7 @@ export async function resolvePlayCampaign(
       return {
         ok: false,
         message:
-          "no campaigns registered. Create one with 'loreweaver new <name>'.",
+          "no campaigns registered. Create one with 'eshyra new <name>'.",
       };
     }
     if (answer.toLowerCase() === 'n' || answer.toLowerCase() === 'no') {

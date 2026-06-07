@@ -1,5 +1,5 @@
-import type { Db } from '@loreweaver/core';
-import { getDemoTurnBudget } from '@loreweaver/core';
+import type { Db } from '@eshyra/core';
+import { getDemoTurnBudget } from '@eshyra/core';
 import { createAdditionalCharacter } from './playCharacter.js';
 import { gracefulClose } from './playClose.js';
 import { showParty, switchActiveCharacter } from './playParty.js';

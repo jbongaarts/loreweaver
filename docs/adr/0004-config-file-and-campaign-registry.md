@@ -7,20 +7,20 @@ Date: 2026-05-22
 ## Context
 
 [ADR 0003](0003-local-cli-first-release-storage.md) kept first-release storage
-explicit: `LOREWEAVER_DB_PATH` is required and names the single active campaign
+explicit: `ESHYRA_DB_PATH` is required and names the single active campaign
 SQLite file. ADR 0003 deliberately deferred per-user app-data roots, a config
 file, and a campaign registry/picker until a design existed.
 
 That explicit-path model is a usability ceiling:
 
 - A new user must learn an environment variable before the CLI does anything.
-- Running a second campaign means editing `LOREWEAVER_DB_PATH`; there is no
+- Running a second campaign means editing `ESHYRA_DB_PATH`; there is no
   list of campaigns the user already has.
 - Non-secret preferences (model profile overrides, Dolt home) are only
   settable through environment variables, which are awkward to persist on
   Windows and easy to lose between shells.
 
-Loreweaver has no released installations. There is no installed user base, no
+Eshyra has no released installations. There is no installed user base, no
 on-disk data, and no shipped behavior to preserve, so this design specifies the
 managed-storage model directly — it carries no migration path or compatibility
 constraint. This ADR is the design tracked by beads `loreweaver-d4r.2` under
@@ -33,17 +33,17 @@ keeps secrets in the environment (local) or a dedicated KMS-backed store
 
 ## Decision
 
-Loreweaver's local storage is a managed per-user model with three components.
+Eshyra's local storage is a managed per-user model with three components.
 
 ### 1. Per-user data root
 
-The CLI resolves a single per-user Loreweaver data root:
+The CLI resolves a single per-user Eshyra data root:
 
-1. `LOREWEAVER_HOME` when set — an explicit root chosen by the user.
+1. `ESHYRA_HOME` when set — an explicit root chosen by the user.
 2. Otherwise the per-user default for the platform:
-   - Windows: `%LOCALAPPDATA%\Loreweaver`
-     (e.g. `C:\Users\<name>\AppData\Local\Loreweaver`)
-   - macOS and Linux: `~/.loreweaver`
+   - Windows: `%LOCALAPPDATA%\Eshyra`
+     (e.g. `C:\Users\<name>\AppData\Local\Eshyra`)
+   - macOS and Linux: `~/.eshyra`
 
 Both defaults are per-user, not machine-wide. On Windows, `%LOCALAPPDATA%`
 (`AppData\Local`) is the canonical per-user, non-roaming application-data
@@ -51,7 +51,7 @@ location; it is preferred over `%APPDATA%` (`AppData\Roaming`) because campaign
 SQLite databases and the cached Dolt binary are large and machine-specific and
 must not be synced by roaming profiles. A home-directory dotfolder is the
 matching idiomatic per-user location on macOS and Linux, and it is already
-where the managed Dolt cache lives (`~/.loreweaver/dolt`); a bare dotfolder in
+where the managed Dolt cache lives (`~/.eshyra/dolt`); a bare dotfolder in
 `%USERPROFILE%` is a Unix idiom rather than the Windows convention, so Windows
 uses its native `%LOCALAPPDATA%` location instead.
 
@@ -66,12 +66,12 @@ The root contains:
   dolt/               # managed Dolt binary cache
 ```
 
-The managed Dolt cache is `<root>/dolt` — `~/.loreweaver/dolt` on macOS and
-Linux (unchanged from current behavior) and `%LOCALAPPDATA%\Loreweaver\dolt` on
-Windows. `LOREWEAVER_DOLT_HOME` overrides that location.
+The managed Dolt cache is `<root>/dolt` — `~/.eshyra/dolt` on macOS and
+Linux (unchanged from current behavior) and `%LOCALAPPDATA%\Eshyra\dolt` on
+Windows. `ESHYRA_DOLT_HOME` overrides that location.
 
 The CLI creates the root and its subdirectories lazily, on the first command
-that needs to write managed data — never on a plain `loreweaver` banner run.
+that needs to write managed data — never on a plain `eshyra` banner run.
 
 ### 2. Config file
 
@@ -82,9 +82,9 @@ JSON regardless, and a single serialization keeps the read/write code small.
 Recognized keys (all optional):
 
 - `defaultCampaignId` — campaign selected by `play` when none is given.
-- `profiles` — model profile overrides equivalent to `LOREWEAVER_PROFILE_*`.
-- `doltHome` / `doltBin` — equivalents of `LOREWEAVER_DOLT_HOME` /
-  `LOREWEAVER_DOLT_BIN`.
+- `profiles` — model profile overrides equivalent to `ESHYRA_PROFILE_*`.
+- `doltHome` / `doltBin` — equivalents of `ESHYRA_DOLT_HOME` /
+  `ESHYRA_DOLT_BIN`.
 
 Provider credentials are **never** written to `config.json`. The CLI rejects a
 config file that contains an API-key-shaped value, to fail loud if a user
@@ -119,12 +119,12 @@ used by checkpoint restore, so a crash mid-write cannot corrupt it.
 
 CLI behavior, the default path:
 
-- `loreweaver new` creates `campaigns/<slug>.db`, forks the starting module
+- `eshyra new` creates `campaigns/<slug>.db`, forks the starting module
   into it, and registers the entry.
-- `loreweaver play` with no campaign argument: if the registry is empty it
+- `eshyra play` with no campaign argument: if the registry is empty it
   offers to create the first campaign; if it has one entry it opens that one;
   if it has several it shows a picker (honoring `defaultCampaignId`).
-- `loreweaver campaigns list | rename | remove | add <path>` manage entries.
+- `eshyra campaigns list | rename | remove | add <path>` manage entries.
   `remove` unregisters and does not delete the database file unless asked;
   `add` registers a database that lives outside `<root>/campaigns/`.
 
@@ -133,7 +133,7 @@ CLI behavior, the default path:
 RPG rules/mechanics data is a distinct layer from module content and live
 campaign state, and is stored distinctly:
 
-- **Bundled packs** ship inside the `@loreweaver/core` npm package build
+- **Bundled packs** ship inside the `@eshyra/core` npm package build
   output. Today that is the D&D SRD 5.1 catalog and its CC-BY license metadata
   (`packages/core/src/srd/data.ts` — a compiled-in `SRD_CATALOG` constant).
   Bundled packs are read-only, in-process, and identical for every user and
@@ -158,11 +158,11 @@ storage boundary: bundled packs in the npm package, installed packs in
 
 ### Explicit-path campaigns
 
-`LOREWEAVER_DB_PATH` is kept as a deliberate explicit-path option for scripted,
+`ESHYRA_DB_PATH` is kept as a deliberate explicit-path option for scripted,
 CI, and power-user workflows — project directories, backup directories, and
 synced folders. When it is set the CLI opens exactly that database and does not
 register it; the campaign is unmanaged by design. A user who later wants such a
-database managed runs `loreweaver campaigns add <path>`. This is a chosen
+database managed runs `eshyra campaigns add <path>`. This is a chosen
 feature of the storage model, not a compatibility shim.
 
 `loreweaver-d4r.2` only commits this design. Implementation is split into
@@ -170,22 +170,22 @@ follow-up beads under epic `loreweaver-d4r`.
 
 ## Consequences
 
-- A new user can run `loreweaver` and create or pick a campaign without first
+- A new user can run `eshyra` and create or pick a campaign without first
   learning an environment variable.
-- The managed registry is the default; the explicit `LOREWEAVER_DB_PATH` path
+- The managed registry is the default; the explicit `ESHYRA_DB_PATH` path
   is a deliberate advanced option, so project-directory, backup-directory, and
   synced-folder workflows remain available.
 - New code is required: per-platform root resolution, config-file load/validate
   with the documented precedence, registry read/write with atomic writes, and
-  picker UX. None of it touches `@loreweaver/core` orchestration.
+  picker UX. None of it touches `@eshyra/core` orchestration.
 - Secrets stay out of managed storage: `config.json` is non-secret and is
   validated to reject key-shaped values; ADR 0002's secret boundary is intact.
-- One Loreweaver directory per user (config, registry, managed campaigns,
+- One Eshyra directory per user (config, registry, managed campaigns,
   installed rules packs, Dolt cache) makes the storage model easy to document,
   back up, and delete.
 - `<root>/rules-packs/` is reserved now so epic `loreweaver-x3w` has a fixed
   storage boundary to design against; the bundled D&D SRD continues to ship in
-  the `@loreweaver/core` package and is unaffected.
+  the `@eshyra/core` package and is unaffected.
 - When accepted and implemented this ADR supersedes ADR 0003: the explicit-only
   first-release model is replaced outright, with no migration step because no
   installations exist. ADR 0003 should be marked superseded at that point, and
@@ -198,7 +198,7 @@ follow-up beads under epic `loreweaver-d4r`.
   (Local) — campaign databases and the cached Dolt binary are large and
   machine-specific, and roaming profiles should not sync them.
 - **`~/Library/Application Support` / `$XDG_DATA_HOME` on macOS and Linux:**
-  rejected in favor of `~/.loreweaver` — a single home-directory dotfolder is
+  rejected in favor of `~/.eshyra` — a single home-directory dotfolder is
   unambiguously user-level, easy to find and back up, and matches the existing
   Dolt cache path. Windows still uses its canonical `%LOCALAPPDATA%` location
   because a bare dotfolder in `%USERPROFILE%` is a Unix idiom, not the Windows
@@ -212,6 +212,6 @@ follow-up beads under epic `loreweaver-d4r`.
 - **Backing the registry with SQLite or Dolt:** rejected — the registry is a
   handful of pointer records; a JSON file with atomic writes avoids another
   schema, migration story, and the beads/`refs/dolt/data` separation concerns.
-- **Removing `LOREWEAVER_DB_PATH` entirely:** rejected — an explicit-path
+- **Removing `ESHYRA_DB_PATH` entirely:** rejected — an explicit-path
   option is genuinely useful for CI smoke tests and synced-folder workflows;
   it is kept as a deliberate feature, distinct from the managed default.

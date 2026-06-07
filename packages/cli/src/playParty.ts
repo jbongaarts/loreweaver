@@ -1,10 +1,10 @@
-import type { Db } from '@loreweaver/core';
+import type { Db } from '@eshyra/core';
 import {
   CharacterResolutionError,
   listParty,
   resolveCharacterRef,
   setActiveCharacterId,
-} from '@loreweaver/core/internal';
+} from '@eshyra/core/internal';
 import type { CliIO } from './playTypes.js';
 
 /** Print the party roster: one line per member, active member flagged. */

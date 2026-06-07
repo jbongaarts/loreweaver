@@ -8,7 +8,7 @@ below.
 
 ## Build & Test
 
-Monorepo (npm workspaces): `@loreweaver/core` + `@loreweaver/cli`.
+Monorepo (npm workspaces): `@eshyra/core` + `@eshyra/cli`.
 
 ```bash
 npm ci             # clean install (CI)
@@ -30,7 +30,7 @@ rough current baseline the suite is ~239 tests across 37 files.)
 **Deterministic builds / core-alone boundary proof:** `tsc --build` is
 incremental and keys off `packages/*/tsconfig.tsbuildinfo`. Deleting only
 `dist/` leaves a stale `tsbuildinfo`, so `tsc` reports up-to-date, emits
-nothing, and exits 0 — a false negative for any proof that builds `@loreweaver/core`
+nothing, and exits 0 — a false negative for any proof that builds `@eshyra/core`
 alone and asserts `packages/core/dist/index.js` exists. Always reset with
 `npm run clean` (clears `dist` **and** `tsbuildinfo`) before such a proof, or
 use `npm run typecheck` (`--force`). CI uses `--force` for this reason.
@@ -188,9 +188,9 @@ Load-bearing principles:
   publisher-licensed; fair use is not the permission model.
 - Native VTT, native mobile, hosted billing, and custom/local primary-DM
   replacement are out of early scope absent a new decision record.
-- `@loreweaver/core` has two import paths and they are **not** interchangeable:
+- `@eshyra/core` has two import paths and they are **not** interchangeable:
   the root export (`packages/core/src/index.ts`) is the stable public surface
-  for external consumers; `@loreweaver/core/internal`
+  for external consumers; `@eshyra/core/internal`
   (`packages/core/src/internal.ts`) re-exports movable internals with **no**
   compatibility promise. Production callers (the CLI today, hosted/PWA
   consumers tomorrow) should depend only on the root. The `/internal` subpath

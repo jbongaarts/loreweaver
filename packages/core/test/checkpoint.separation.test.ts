@@ -35,7 +35,7 @@ function doltRepoWithRemotes(
 describe('beads-Dolt separation guard', () => {
   it('allows a clearly disjoint dolt dir', () => {
     expect(() =>
-      assertSeparateFromBeads('/proj/.loreweaver/dolt', '/proj/.beads'),
+      assertSeparateFromBeads('/proj/.eshyra/dolt', '/proj/.beads'),
     ).not.toThrow();
   });
 
@@ -92,7 +92,7 @@ describe('readDoltRemotes', () => {
 describe('beads remote / ref-namespace collision guard', () => {
   it('allows campaign and beads repos with disjoint remotes', () => {
     const campaign = doltRepoWithRemotes({
-      origin: { url: 'file:///srv/loreweaver-campaign' },
+      origin: { url: 'file:///srv/eshyra-campaign' },
     });
     const beads = doltRepoWithRemotes({
       origin: { url: 'https://git.example.com/team/repo.git' },

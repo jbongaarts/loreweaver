@@ -1,20 +1,20 @@
 /**
- * Per-user Loreweaver data root (ADR 0004).
+ * Per-user Eshyra data root (ADR 0004).
  *
- * Loreweaver keeps one managed directory per user holding the config file, the
+ * Eshyra keeps one managed directory per user holding the config file, the
  * campaign registry, managed campaign databases, installed rules packs, and the
  * managed Dolt binary cache. This module resolves that root and the paths
  * inside it; it is a pure path layer with one lazy `mkdir` helper and no other
  * I/O.
  *
  * Default location:
- *  - Windows: `%LOCALAPPDATA%\Loreweaver` (the canonical per-user, non-roaming
+ *  - Windows: `%LOCALAPPDATA%\Eshyra` (the canonical per-user, non-roaming
  *    application-data location — campaign databases and the cached Dolt binary
  *    are large and machine-specific and must not be synced by roaming
  *    profiles).
- *  - macOS / Linux: `~/.loreweaver`.
+ *  - macOS / Linux: `~/.eshyra`.
  *
- * `LOREWEAVER_HOME` overrides the default on every platform.
+ * `ESHYRA_HOME` overrides the default on every platform.
  */
 
 import { mkdirSync } from 'node:fs';
@@ -24,23 +24,23 @@ import { join } from 'node:path';
 type Env = Record<string, string | undefined>;
 
 /**
- * Resolve the per-user Loreweaver data root. `platform` is injectable so the
+ * Resolve the per-user Eshyra data root. `platform` is injectable so the
  * Windows and POSIX branches are both testable on one host.
  */
 export function resolveDataRoot(
   env: Env = process.env,
   platform: NodeJS.Platform = process.platform,
 ): string {
-  const override = env.LOREWEAVER_HOME?.trim();
+  const override = env.ESHYRA_HOME?.trim();
   if (override) {
     return override;
   }
   if (platform === 'win32') {
     const localAppData =
       env.LOCALAPPDATA?.trim() || join(homedir(), 'AppData', 'Local');
-    return join(localAppData, 'Loreweaver');
+    return join(localAppData, 'Eshyra');
   }
-  return join(homedir(), '.loreweaver');
+  return join(homedir(), '.eshyra');
 }
 
 /** `<root>/config.json` — non-secret CLI preferences. */

@@ -1,7 +1,7 @@
 /**
  * Provider-neutral model profile configuration.
  *
- * Loreweaver routes different tasks to different model "profiles" describing
+ * Eshyra routes different tasks to different model "profiles" describing
  * CAPABILITY NEEDS, not provider names. A profile is mapped to a provider
  * adapter (selected by a neutral identifier) plus a model id. No code here
  * imports any vendor SDK — the only file permitted to touch the Claude Agent
@@ -88,8 +88,8 @@ export interface ConfiguredProfileEntry {
 /**
  * A declared profile that has not yet been configured with a provider and
  * model. Accessing it via {@link getProfile} throws {@link ProfileConfigError}.
- * Enable it by setting both LOREWEAVER_PROFILE_<PROFILE>_PROVIDER and
- * LOREWEAVER_PROFILE_<PROFILE>_MODEL in the environment.
+ * Enable it by setting both ESHYRA_PROFILE_<PROFILE>_PROVIDER and
+ * ESHYRA_PROFILE_<PROFILE>_MODEL in the environment.
  */
 export interface UnconfiguredProfileEntry {
   configured: false;
@@ -135,7 +135,7 @@ export const PREMIUM_DM_CAPABILITY_FLOOR =
  * (`configured: false`) — they carry capability metadata but have no
  * provider/model assignment. Accessing an unconfigured profile via
  * {@link getProfile} throws {@link ProfileConfigError}; set both
- * LOREWEAVER_PROFILE_<PROFILE>_PROVIDER and LOREWEAVER_PROFILE_<PROFILE>_MODEL
+ * ESHYRA_PROFILE_<PROFILE>_PROVIDER and ESHYRA_PROFILE_<PROFILE>_MODEL
  * to enable a profile explicitly.
  */
 export const DEFAULT_PROFILE_REGISTRY: ProfileRegistry = {
@@ -205,8 +205,8 @@ export function isProviderId(value: string): value is ProviderId {
  * Look up the resolved entry for a profile by name.
  *
  * @throws {ProfileConfigError} if the profile is not configured. Configure it
- *   with LOREWEAVER_PROFILE_<PROFILE>_PROVIDER and
- *   LOREWEAVER_PROFILE_<PROFILE>_MODEL environment variables.
+ *   with ESHYRA_PROFILE_<PROFILE>_PROVIDER and
+ *   ESHYRA_PROFILE_<PROFILE>_MODEL environment variables.
  */
 export function getProfile(
   registry: ProfileRegistry,
@@ -225,14 +225,14 @@ function envKey(
   profile: ModelProfileName,
   suffix: 'PROVIDER' | 'MODEL',
 ): string {
-  return `LOREWEAVER_PROFILE_${profile.toUpperCase()}_${suffix}`;
+  return `ESHYRA_PROFILE_${profile.toUpperCase()}_${suffix}`;
 }
 
 /**
  * Resolve the profile registry, applying optional per-profile overrides from
  * the environment. Each profile supports:
- *   LOREWEAVER_PROFILE_<PROFILE>_PROVIDER  (a neutral provider id)
- *   LOREWEAVER_PROFILE_<PROFILE>_MODEL     (a provider-specific model id)
+ *   ESHYRA_PROFILE_<PROFILE>_PROVIDER  (a neutral provider id)
+ *   ESHYRA_PROFILE_<PROFILE>_MODEL     (a provider-specific model id)
  *
  * For profiles that already have a configured default (currently only
  * `premium_dm`), env vars override individual fields.

@@ -1,6 +1,6 @@
 # Dependency Update Policy
 
-Loreweaver accepts dependency updates through conservative, reviewable pull
+Eshyra accepts dependency updates through conservative, reviewable pull
 requests. Dependency PRs should improve maintenance, security, or compatibility
 without mixing in feature work, importer parser changes, or broad unrelated
 package churn.

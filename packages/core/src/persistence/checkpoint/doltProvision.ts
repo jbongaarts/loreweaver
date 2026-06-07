@@ -76,7 +76,7 @@ export function doltAssetFor(
   const spec = MANIFEST[`${platform}-${arch}`];
   if (!spec) {
     throw new DoltUnavailableError(
-      `No pinned dolt asset for ${platform}/${arch}. Install dolt manually and point LOREWEAVER_DOLT_BIN at it.`,
+      `No pinned dolt asset for ${platform}/${arch}. Install dolt manually and point ESHYRA_DOLT_BIN at it.`,
     );
   }
   return {
@@ -95,7 +95,7 @@ export function verifyArchive(filePath: string, expectedSha256: string): void {
   if (!expectedSha256 || expectedSha256 === 'UNPINNED') {
     throw new DoltUnverifiedError(
       'dolt checksum is not pinned for this platform; refusing to install an ' +
-        'unverified binary. Install dolt manually and set LOREWEAVER_DOLT_BIN.',
+        'unverified binary. Install dolt manually and set ESHYRA_DOLT_BIN.',
     );
   }
   const actual = sha256File(filePath);
@@ -244,7 +244,7 @@ export interface EnsureDoltOptions {
  *  1. If dolt already resolves (override / managed cache / PATH) → return it;
  *     no prompt, no install.
  *  2. `confirm` is always awaited before any download/install.
- *  3. If LOREWEAVER_DOLT_BIN is set but its file is missing → NEVER auto-install;
+ *  3. If ESHYRA_DOLT_BIN is set but its file is missing → NEVER auto-install;
  *     prompt with reason 'explicit-path-missing'. Declining yields an actionable
  *     error (fix the path, or re-run and approve a managed install).
  */
@@ -260,7 +260,7 @@ export async function ensureDoltAvailable(
     if (!(err instanceof DoltUnavailableError)) throw err;
   }
 
-  const explicit = env.LOREWEAVER_DOLT_BIN?.trim();
+  const explicit = env.ESHYRA_DOLT_BIN?.trim();
   const platform = opts.platform ?? process.platform;
   const arch = opts.arch ?? process.arch;
   // Propagates DoltUnavailableError for unsupported platforms (cannot auto-install).
@@ -278,9 +278,9 @@ export async function ensureDoltAvailable(
   if (!approved) {
     throw new DoltUnavailableError(
       explicit
-        ? `LOREWEAVER_DOLT_BIN="${explicit}" was set but no file exists there, and a managed install was declined. Fix the path, or re-run and approve a managed install.`
+        ? `ESHYRA_DOLT_BIN="${explicit}" was set but no file exists there, and a managed install was declined. Fix the path, or re-run and approve a managed install.`
         : 'dolt not found and a managed install was declined. Set ' +
-            'LOREWEAVER_DOLT_BIN to a dolt binary, or re-run and approve the ' +
+            'ESHYRA_DOLT_BIN to a dolt binary, or re-run and approve the ' +
             'managed install.',
     );
   }

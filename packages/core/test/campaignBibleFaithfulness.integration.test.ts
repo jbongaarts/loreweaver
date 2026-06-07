@@ -104,7 +104,7 @@ describe.skipIf(!hasKey)(
   () => {
     it('keeps the session-1 NPC in majorNpcs even after 9 off-screen recaps', async () => {
       const client = new AgentSdkModelClient(
-        process.env.LOREWEAVER_MODEL ?? 'claude-opus-4-7',
+        process.env.ESHYRA_MODEL ?? 'claude-opus-4-7',
       );
 
       let priorBible: CampaignBibleInput | undefined;

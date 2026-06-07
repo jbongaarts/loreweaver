@@ -9,13 +9,13 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { getCampaign, getOpenSession, openDatabase } from '@loreweaver/core';
+import { getCampaign, getOpenSession, openDatabase } from '@eshyra/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { buildBanner, main, runDoltInstall } from '../src/index.js';
 
 describe('cli', () => {
   it('builds a banner that includes the core version', () => {
-    expect(buildBanner('1.2.3')).toBe('Loreweaver — core v1.2.3');
+    expect(buildBanner('1.2.3')).toBe('Eshyra — core v1.2.3');
   });
 });
 
@@ -66,21 +66,21 @@ describe('main', () => {
   });
 
   it('prints the banner and resolved config on the happy path', () => {
-    vi.stubEnv('LOREWEAVER_DB_PATH', '/tmp/lw.db');
+    vi.stubEnv('ESHYRA_DB_PATH', '/tmp/lw.db');
     vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test');
-    vi.stubEnv('LOREWEAVER_MODEL', '');
+    vi.stubEnv('ESHYRA_MODEL', '');
     const log = vi.spyOn(console, 'log').mockImplementation(() => {});
 
     main(['node', 'cli']);
 
     const printed = log.mock.calls.map((c) => String(c[0])).join('\n');
-    expect(printed).toContain('Loreweaver — core v');
+    expect(printed).toContain('Eshyra — core v');
     expect(printed).toContain('db=/tmp/lw.db');
     expect(process.exitCode).not.toBe(1);
   });
 
   it('reports a ConfigError to stderr and sets process.exitCode to 1', () => {
-    vi.stubEnv('LOREWEAVER_DB_PATH', '');
+    vi.stubEnv('ESHYRA_DB_PATH', '');
     vi.stubEnv('ANTHROPIC_API_KEY', '');
     vi.spyOn(console, 'log').mockImplementation(() => {});
     const err = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -91,7 +91,7 @@ describe('main', () => {
     const printed = err.mock.calls.map((c) => String(c[0])).join('\n');
     expect(printed).toContain('config error:');
     expect(printed).toContain('ANTHROPIC_API_KEY');
-    expect(printed).toContain('loreweaver play');
+    expect(printed).toContain('eshyra play');
   });
 });
 
@@ -110,11 +110,11 @@ describe('entrypoint guard', () => {
       encoding: 'utf8',
       env: {
         ...process.env,
-        LOREWEAVER_DB_PATH: '/tmp/lw-entrypoint.db',
+        ESHYRA_DB_PATH: '/tmp/lw-entrypoint.db',
         ANTHROPIC_API_KEY: 'sk-test',
       },
     });
-    expect(stdout).toContain('Loreweaver — core v');
+    expect(stdout).toContain('Eshyra — core v');
     expect(stdout).toContain('db=/tmp/lw-entrypoint.db');
   });
 
@@ -124,20 +124,20 @@ describe('entrypoint guard', () => {
       const cliDist = requireCliDist();
       const dir = mkdtempSync(join(tmpdir(), 'lw-bin-symlink-'));
       try {
-        const bin = join(dir, 'loreweaver');
+        const bin = join(dir, 'eshyra');
         symlinkSync(cliDist, bin);
         const result = spawnSync(process.execPath, [bin], {
           encoding: 'utf8',
           env: {
             ...process.env,
-            LOREWEAVER_DB_PATH: '',
+            ESHYRA_DB_PATH: '',
             ANTHROPIC_API_KEY: '',
           },
         });
 
         expect(result.status).toBe(1);
         expect(result.stderr).toContain('ANTHROPIC_API_KEY');
-        expect(result.stderr).toContain('loreweaver play');
+        expect(result.stderr).toContain('eshyra play');
       } finally {
         rmSync(dir, { recursive: true, force: true });
       }
@@ -147,7 +147,7 @@ describe('entrypoint guard', () => {
 
 /**
  * The `bin` target is `./dist/index.js`. Without a shebang an installed
- * `loreweaver` fails on POSIX shells, which exec the bin file directly. tsc
+ * `eshyra` fails on POSIX shells, which exec the bin file directly. tsc
  * preserves a leading shebang from the source file into the emitted output.
  * `npm test` (root `pretest`) and CI both build first; the `skipIf` only backs
  * out a bare `vitest run` with no prior build.
@@ -169,14 +169,14 @@ describe('package smoke', () => {
     requireCliDist();
     const dir = mkdtempSync(join(tmpdir(), 'lw-pack-'));
     try {
-      const cliFiles = packWorkspace(repoRoot, '@loreweaver/cli', dir);
+      const cliFiles = packWorkspace(repoRoot, '@eshyra/cli', dir);
       expect(cliFiles).toContain('dist/index.js');
       expect(cliFiles).toContain('dist/play.js');
       expect(cliFiles).toContain('package.json');
       expect(cliFiles).not.toContain('src/index.ts');
       expect(cliFiles).not.toContain('test/cli.test.ts');
 
-      const coreFiles = packWorkspace(repoRoot, '@loreweaver/core', dir);
+      const coreFiles = packWorkspace(repoRoot, '@eshyra/core', dir);
       expect(coreFiles).toContain('dist/index.js');
       expect(coreFiles).toContain('package.json');
       expect(coreFiles).not.toContain('src/index.ts');
@@ -188,7 +188,7 @@ describe('package smoke', () => {
 });
 
 /**
- * `loreweaver play` must run the graceful close pipeline on EOF/Ctrl-D, not
+ * `eshyra play` must run the graceful close pipeline on EOF/Ctrl-D, not
  * just on `/quit` — the `nodeIO` prompt contract promises a closed stdin is
  * treated as a graceful quit. Spawn the built CLI with explicit character
  * creation deferral, then EOF: no turns run, so no model call is made, and on
@@ -214,7 +214,7 @@ describe('play graceful close on stdin EOF', () => {
         timeout: 30_000,
         env: {
           ...process.env,
-          LOREWEAVER_DB_PATH: dbPath,
+          ESHYRA_DB_PATH: dbPath,
           ANTHROPIC_API_KEY: 'sk-eof-test-not-used',
         },
       });

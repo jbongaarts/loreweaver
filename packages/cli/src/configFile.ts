@@ -31,7 +31,7 @@ export class ConfigFileError extends Error {
   }
 }
 
-/** A per-profile model override, mirroring `LOREWEAVER_PROFILE_<NAME>_*`. */
+/** A per-profile model override, mirroring `ESHYRA_PROFILE_<NAME>_*`. */
 export interface ConfigProfileOverride {
   provider?: string;
   model?: string;
@@ -41,9 +41,9 @@ export interface ConfigProfileOverride {
 export interface CliConfigFile {
   /** Campaign opened by `play` when none is named (a registry campaign id). */
   defaultCampaignId?: string;
-  /** Managed Dolt cache directory — equivalent of `LOREWEAVER_DOLT_HOME`. */
+  /** Managed Dolt cache directory — equivalent of `ESHYRA_DOLT_HOME`. */
   doltHome?: string;
-  /** Explicit Dolt binary path — equivalent of `LOREWEAVER_DOLT_BIN`. */
+  /** Explicit Dolt binary path — equivalent of `ESHYRA_DOLT_BIN`. */
   doltBin?: string;
   /** Model profile overrides, keyed by profile name (e.g. `premium_dm`). */
   profiles?: Record<string, ConfigProfileOverride>;
@@ -190,16 +190,12 @@ function fillIfUnset(env: Env, key: string, value: string | undefined): void {
  */
 export function applyConfigToEnv(env: Env, config: CliConfigFile): Env {
   const merged: Env = { ...env };
-  fillIfUnset(merged, 'LOREWEAVER_DOLT_HOME', config.doltHome);
-  fillIfUnset(merged, 'LOREWEAVER_DOLT_BIN', config.doltBin);
+  fillIfUnset(merged, 'ESHYRA_DOLT_HOME', config.doltHome);
+  fillIfUnset(merged, 'ESHYRA_DOLT_BIN', config.doltBin);
   for (const [name, override] of Object.entries(config.profiles ?? {})) {
     const upper = name.toUpperCase();
-    fillIfUnset(
-      merged,
-      `LOREWEAVER_PROFILE_${upper}_PROVIDER`,
-      override.provider,
-    );
-    fillIfUnset(merged, `LOREWEAVER_PROFILE_${upper}_MODEL`, override.model);
+    fillIfUnset(merged, `ESHYRA_PROFILE_${upper}_PROVIDER`, override.provider);
+    fillIfUnset(merged, `ESHYRA_PROFILE_${upper}_MODEL`, override.model);
   }
   return merged;
 }

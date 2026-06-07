@@ -225,7 +225,7 @@ export async function evaluateModelProfile(
       transcript.push({ role: 'user', content: turn.playerInput });
       const modelInput: ModelCompleteInput = {
         system:
-          `Loreweaver model evaluation harness for profile ${input.profile}. ` +
+          `Eshyra model evaluation harness for profile ${input.profile}. ` +
           `Scenario: ${scenario.name}.`,
         messages: [...transcript],
       };

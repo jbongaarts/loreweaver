@@ -130,9 +130,7 @@ describe('ensureDoltAvailable decision tree', () => {
 
   it('prompts (reason=not-found) and installs on approval', async () => {
     const confirm = vi.fn().mockResolvedValue(true);
-    const provision = vi
-      .fn()
-      .mockResolvedValue('/home/u/.loreweaver/dolt/dolt');
+    const provision = vi.fn().mockResolvedValue('/home/u/.eshyra/dolt/dolt');
     const got = await ensureDoltAvailable({
       env: {},
       platform: 'linux',
@@ -141,7 +139,7 @@ describe('ensureDoltAvailable decision tree', () => {
       confirm,
       provision,
     });
-    expect(got).toBe('/home/u/.loreweaver/dolt/dolt');
+    expect(got).toBe('/home/u/.eshyra/dolt/dolt');
     expect(confirm).toHaveBeenCalledOnce();
     expect(confirm.mock.calls[0][0]).toMatchObject({
       reason: 'not-found',
@@ -165,13 +163,13 @@ describe('ensureDoltAvailable decision tree', () => {
     expect(provision).not.toHaveBeenCalled();
   });
 
-  it('with LOREWEAVER_DOLT_BIN set but missing: never auto-installs, prompts reason=explicit-path-missing, declines safely', async () => {
+  it('with ESHYRA_DOLT_BIN set but missing: never auto-installs, prompts reason=explicit-path-missing, declines safely', async () => {
     const provision = vi.fn();
     const confirm = vi.fn().mockResolvedValue(false);
     let err: unknown;
     try {
       await ensureDoltAvailable({
-        env: { LOREWEAVER_DOLT_BIN: '/nope/dolt' },
+        env: { ESHYRA_DOLT_BIN: '/nope/dolt' },
         platform: 'linux',
         arch: 'x64',
         resolve: failResolve,
@@ -190,19 +188,17 @@ describe('ensureDoltAvailable decision tree', () => {
     expect(provision).not.toHaveBeenCalled();
   });
 
-  it('with LOREWEAVER_DOLT_BIN set but missing: installs only on explicit approval', async () => {
-    const provision = vi
-      .fn()
-      .mockResolvedValue('/home/u/.loreweaver/dolt/dolt');
+  it('with ESHYRA_DOLT_BIN set but missing: installs only on explicit approval', async () => {
+    const provision = vi.fn().mockResolvedValue('/home/u/.eshyra/dolt/dolt');
     const got = await ensureDoltAvailable({
-      env: { LOREWEAVER_DOLT_BIN: '/nope/dolt' },
+      env: { ESHYRA_DOLT_BIN: '/nope/dolt' },
       platform: 'linux',
       arch: 'x64',
       resolve: failResolve,
       confirm: () => true,
       provision,
     });
-    expect(got).toBe('/home/u/.loreweaver/dolt/dolt');
+    expect(got).toBe('/home/u/.eshyra/dolt/dolt');
     expect(provision).toHaveBeenCalledOnce();
   });
 });

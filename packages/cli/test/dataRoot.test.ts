@@ -13,39 +13,39 @@ import {
 } from '../src/dataRoot.js';
 
 describe('resolveDataRoot', () => {
-  it('honors LOREWEAVER_HOME on every platform', () => {
-    expect(resolveDataRoot({ LOREWEAVER_HOME: '/custom/root' }, 'linux')).toBe(
+  it('honors ESHYRA_HOME on every platform', () => {
+    expect(resolveDataRoot({ ESHYRA_HOME: '/custom/root' }, 'linux')).toBe(
       '/custom/root',
     );
-    expect(resolveDataRoot({ LOREWEAVER_HOME: 'C:\\custom' }, 'win32')).toBe(
+    expect(resolveDataRoot({ ESHYRA_HOME: 'C:\\custom' }, 'win32')).toBe(
       'C:\\custom',
     );
   });
 
-  it('ignores a blank LOREWEAVER_HOME and falls back to the default', () => {
-    expect(resolveDataRoot({ LOREWEAVER_HOME: '   ' }, 'linux')).toBe(
-      join(homedir(), '.loreweaver'),
+  it('ignores a blank ESHYRA_HOME and falls back to the default', () => {
+    expect(resolveDataRoot({ ESHYRA_HOME: '   ' }, 'linux')).toBe(
+      join(homedir(), '.eshyra'),
     );
   });
 
-  it('uses ~/.loreweaver on macOS and Linux', () => {
-    const expected = join(homedir(), '.loreweaver');
+  it('uses ~/.eshyra on macOS and Linux', () => {
+    const expected = join(homedir(), '.eshyra');
     expect(resolveDataRoot({}, 'linux')).toBe(expected);
     expect(resolveDataRoot({}, 'darwin')).toBe(expected);
   });
 
-  it('uses %LOCALAPPDATA%\\Loreweaver on Windows', () => {
+  it('uses %LOCALAPPDATA%\\Eshyra on Windows', () => {
     expect(
       resolveDataRoot(
         { LOCALAPPDATA: 'C:\\Users\\x\\AppData\\Local' },
         'win32',
       ),
-    ).toBe(join('C:\\Users\\x\\AppData\\Local', 'Loreweaver'));
+    ).toBe(join('C:\\Users\\x\\AppData\\Local', 'Eshyra'));
   });
 
   it('falls back to ~/AppData/Local on Windows when LOCALAPPDATA is unset', () => {
     expect(resolveDataRoot({}, 'win32')).toBe(
-      join(homedir(), 'AppData', 'Local', 'Loreweaver'),
+      join(homedir(), 'AppData', 'Local', 'Eshyra'),
     );
   });
 });

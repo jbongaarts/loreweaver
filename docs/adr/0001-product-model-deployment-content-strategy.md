@@ -6,17 +6,17 @@ Date: 2026-05-17
 
 ## Context
 
-Loreweaver is intended to be a persistent AI Dungeon Master for long-running text-based tabletop fantasy campaigns. The project already has epics for foundation, SRD lookup, world modules, game state, memory, orchestration, session lifecycle, character creation, and Dolt checkpointing. Recent product strategy decisions need to be reflected in the architecture and issue plan.
+Eshyra is intended to be a persistent AI Dungeon Master for long-running text-based tabletop fantasy campaigns. The project already has epics for foundation, SRD lookup, world modules, game state, memory, orchestration, session lifecycle, character creation, and Dolt checkpointing. Recent product strategy decisions need to be reflected in the architecture and issue plan.
 
 ## Decision
 
-Loreweaver will be built as a text-first long-campaign AI DM engine.
+Eshyra will be built as a text-first long-campaign AI DM engine.
 
 The MVP remains CLI/local-friendly for development, power users, local campaign state, and BYOK usage. The likely public-facing medium-term experience is a hosted, mobile-friendly web app or PWA. Native mobile and native VTT work are deferred.
 
 Model integration will use provider adapters and model profiles. Initial Claude Agent SDK usage is an adapter choice, not a core dependency. The primary `premium_dm` profile targets Opus 4.6+ / GPT-5.5-class quality or a future equivalent. Economy models are allowed only for experiments or bounded auxiliary tasks unless explicitly validated for the profile they are serving.
 
-Loreweaver targets a capability floor, not a price floor. The strategic bet is that today's premium-enough model class becomes more affordable as newer frontier generations appear.
+Eshyra targets a capability floor, not a price floor. The strategic bet is that today's premium-enough model class becomes more affordable as newer frontier generations appear.
 
 Billing starts BYOK-first. Hosted credits are a future option, not an early architecture blocker.
 

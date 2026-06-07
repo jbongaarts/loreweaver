@@ -75,7 +75,7 @@ following roles:
   file). The model authors code; the code runs deterministically over the
   source.
 - **Proposing normalization mappings.** Suggesting how a source field maps to
-  the Loreweaver schema — for example, "the SRD 5.1 'speed' object maps to our
+  the Eshyra schema — for example, "the SRD 5.1 'speed' object maps to our
   `speed` field as a string-keyed number map." A human reviews and merges the
   mapping; the importer encodes it in code.
 - **Auditing importer output.** Running structural or semantic checks over

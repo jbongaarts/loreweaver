@@ -6,7 +6,7 @@ Date: 2026-05-29
 
 ## Context
 
-Loreweaver's local CLI is distributed through npm and depends on
+Eshyra's local CLI is distributed through npm and depends on
 `better-sqlite3` for the campaign SQLite store. `better-sqlite3` is the only
 native dependency in the workspace, so the Node runtime support decision is also
 a native binary support decision.

@@ -47,7 +47,7 @@ import { appendTurnTranscript } from './turnTranscript.js';
 export type { ExecutedToolCall };
 export { OrchestratorError };
 
-const TURN_SAVEPOINT = 'loreweaver_turn';
+const TURN_SAVEPOINT = 'eshyra_turn';
 const DEFAULT_MAX_TOOL_ROUNDS = 8;
 
 export interface RunTurnDeps {

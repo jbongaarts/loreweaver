@@ -91,7 +91,7 @@ export function resolveDemoModel(
     experimental: !intended,
     disclaimer: intended
       ? undefined
-      : `Demo running on the '${profile}' profile (${entry.tier} tier). Output is EXPERIMENTAL and does not represent the intended premium_dm quality of Loreweaver.`,
+      : `Demo running on the '${profile}' profile (${entry.tier} tier). Output is EXPERIMENTAL and does not represent the intended premium_dm quality of Eshyra.`,
   };
 }
 

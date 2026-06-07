@@ -1,17 +1,17 @@
-# Loreweaver Architecture And Roadmap Report
+# Eshyra Architecture And Roadmap Report
 
 Status: current strategy synthesis, 2026-05-17
 
-Loreweaver is a text-first, persistent AI Dungeon Master for long-running fantasy campaigns. The product is not a generic fantasy chatbot and not a VTT-first application. The core value is a campaign engine that preserves canon across many play sessions, remembers prior events, tracks structured state, adjudicates rules through deterministic tools, and sustains a tabletop-like solo or small-group experience through text.
+Eshyra is a text-first, persistent AI Dungeon Master for long-running fantasy campaigns. The product is not a generic fantasy chatbot and not a VTT-first application. The core value is a campaign engine that preserves canon across many play sessions, remembers prior events, tracks structured state, adjudicates rules through deterministic tools, and sustains a tabletop-like solo or small-group experience through text.
 
 ## Product Positioning
 
-Loreweaver serves two overlapping users:
+Eshyra serves two overlapping users:
 
 - Tabletop-seeking solo adventurers who want D&D/TTRPG-style play when friends are unavailable, uninterested, hard to schedule, or nobody wants to DM.
 - Living text-world nostalgists who loved text adventures, MUDs, BBS door games, and text RPGs but wanted worlds that could understand actions not preauthored by the designer.
 
-The shared promise is open-ended text adventure plus tabletop rules and consequences plus persistent campaign memory. Loreweaver should feel like a tabletop DM inhabiting a living text world, not a video game missing graphics.
+The shared promise is open-ended text adventure plus tabletop rules and consequences plus persistent campaign memory. Eshyra should feel like a tabletop DM inhabiting a living text world, not a video game missing graphics.
 
 ## Interface Strategy
 
@@ -21,7 +21,7 @@ MVP and medium-term scope are text-first:
 - Level 1: structured text UI panels for scene, party, active NPCs, locations, inventory, quests, clocks/fronts, conditions, recent rolls, memory/canon, and checkpoint history.
 - Level 2: tactical abstractions such as zones, relative positioning, terrain tags, hazards, and engagement state.
 - Level 3: compatibility or export for existing VTTs where useful.
-- Level 4: native Loreweaver VTT only after user demand proves it is necessary.
+- Level 4: native Eshyra VTT only after user demand proves it is necessary.
 
 The DM engine must expose structured scene, combat, and campaign state so future VTT or map interfaces can be added without rewriting orchestration. Native VTT work is not early scope.
 
@@ -33,7 +33,7 @@ The likely public-facing medium-term product is a hosted, mobile-friendly web ap
 
 ## Model Architecture
 
-Loreweaver must not hardcode one model provider. The core should use provider adapters and model profiles. Initial development can use a Claude Agent SDK adapter, but the rest of the codebase should depend on local abstractions.
+Eshyra must not hardcode one model provider. The core should use provider adapters and model profiles. Initial development can use a Claude Agent SDK adapter, but the rest of the codebase should depend on local abstractions.
 
 Likely provider adapters:
 
@@ -58,13 +58,13 @@ The same provider does not need to serve every profile.
 
 ## Premium Quality Floor
 
-Loreweaver is designed for premium frontier-model play. The intended primary DM experience assumes Opus 4.6+ / GPT-5.5-class quality or a future equivalent. The product targets a capability floor, not a price floor.
+Eshyra is designed for premium frontier-model play. The intended primary DM experience assumes Opus 4.6+ / GPT-5.5-class quality or a future equivalent. The product targets a capability floor, not a price floor.
 
-Economy models are not the default DM and should not power the primary public demo unless explicitly labeled experimental. Weaker models can fail on the exact differentiators Loreweaver is trying to prove: continuity, canon preservation, recurring NPC consistency, long-context discipline, nuanced rulings, tool use, and memory reconciliation.
+Economy models are not the default DM and should not power the primary public demo unless explicitly labeled experimental. Weaker models can fail on the exact differentiators Eshyra is trying to prove: continuity, canon preservation, recurring NPC consistency, long-context discipline, nuanced rulings, tool use, and memory reconciliation.
 
 Cheaper models may be useful for bounded auxiliary tasks where they cannot directly corrupt canon: intent classification, retrieval routing, candidate extraction, draft summaries, simple validation, formatting, and non-authoritative helper analysis. Canon-changing operations require the premium model or validation before commit.
 
-Custom, local, fine-tuned, or distilled models are not the primary DM strategy. The principle is trainable edges, frontier core. Loreweaver should collect consent-aware structured traces so future helper-model training and evaluation are possible, but raw transcripts alone are not the valuable artifact. Useful traces include turn IDs, retrieved context, prompt profile, model output, tool calls, rules resolution, accepted and rejected state deltas, final narration, memory updates, human corrections, and quality flags.
+Custom, local, fine-tuned, or distilled models are not the primary DM strategy. The principle is trainable edges, frontier core. Eshyra should collect consent-aware structured traces so future helper-model training and evaluation are possible, but raw transcripts alone are not the valuable artifact. Useful traces include turn IDs, retrieved context, prompt profile, model output, tool calls, rules resolution, accepted and rejected state deltas, final narration, memory updates, human corrections, and quality flags.
 
 ## Billing And Demo Strategy
 
@@ -76,7 +76,7 @@ Public demos should use a premium DM model, a short bounded turn limit, and a pr
 
 ## Cost Control And Evaluation
 
-Loreweaver must not send entire campaign history every turn. Cost control comes from orchestration:
+Eshyra must not send entire campaign history every turn. Cost control comes from orchestration:
 
 - retrieve only relevant campaign memory
 - keep active scene context compact
@@ -91,7 +91,7 @@ An evaluation harness should test whether a model meets the `premium_dm` quality
 
 ## Rules, Campaign Content, And Licensing
 
-Loreweaver keeps rules/mechanics knowledge, campaign/module content, live campaign/session state, user-private content, and generated campaign memory separate. This supports different rules systems, original campaign packs, user-private packs, publisher-licensed packs, attribution, provenance, and safer hosting policy.
+Eshyra keeps rules/mechanics knowledge, campaign/module content, live campaign/session state, user-private content, and generated campaign memory separate. This supports different rules systems, original campaign packs, user-private packs, publisher-licensed packs, attribution, provenance, and safer hosting policy.
 
 Public or bundled packs must be open-licensed, public domain, original, or publisher-licensed. Public/shared pack libraries follow the same rule. Hosted token usage is limited to allowed/open/original/licensed material unless a later private-use policy explicitly permits more.
 

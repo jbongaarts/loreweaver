@@ -1,6 +1,6 @@
 # Local Storage
 
-Loreweaver keeps one managed directory per user — the **data root** — holding
+Eshyra keeps one managed directory per user — the **data root** — holding
 the config file, the campaign registry, managed campaign databases, installed
 rules packs, and the managed Dolt binary cache. The model is recorded in
 [ADR 0004](adr/0004-config-file-and-campaign-registry.md). The CLI does not load
@@ -8,11 +8,11 @@ rules packs, and the managed Dolt binary cache. The model is recorded in
 
 ## Per-User Data Root
 
-Loreweaver resolves one data root per user:
+Eshyra resolves one data root per user:
 
-1. `LOREWEAVER_HOME`, when set.
-2. Otherwise the platform default: `%LOCALAPPDATA%\Loreweaver` on Windows,
-   `~/.loreweaver` on macOS and Linux.
+1. `ESHYRA_HOME`, when set.
+2. Otherwise the platform default: `%LOCALAPPDATA%\Eshyra` on Windows,
+   `~/.eshyra` on macOS and Linux.
 
 The root contains:
 
@@ -26,7 +26,7 @@ The root contains:
 ```
 
 The root and its subdirectories are created lazily — only on a command that
-writes managed data, never on a bare `loreweaver` banner run.
+writes managed data, never on a bare `eshyra` banner run.
 
 ### Config File
 
@@ -43,12 +43,12 @@ Each campaign is a single SQLite database. The CLI manages campaigns through a
 registry (`registry.json`) of pointer metadata — id, display name, database
 path, timestamps, and the module identity — and never campaign content:
 
-- `loreweaver new <name>` creates `campaigns/<slug>.db` under the data root,
+- `eshyra new <name>` creates `campaigns/<slug>.db` under the data root,
   forks the bundled starting module into it, and registers it.
-- `loreweaver play` opens a campaign: it plays the only registered campaign
+- `eshyra play` opens a campaign: it plays the only registered campaign
   directly, shows a picker when several exist, or offers to create the first
-  one when the registry is empty. `loreweaver play <id>` opens one by id.
-- `loreweaver campaigns list | rename | remove | add` manage the registry.
+  one when the registry is empty. `eshyra play <id>` opens one by id.
+- `eshyra campaigns list | rename | remove | add` manage the registry.
   `remove` unregisters a campaign without deleting its database file; `add`
   registers a database that lives outside `campaigns/`.
 
@@ -56,13 +56,13 @@ path, timestamps, and the module identity — and never campaign content:
 starting module when the database has no campaign, and stores live campaign
 state there. The same file is reused when the campaign is resumed.
 
-`LOREWEAVER_DB_PATH` overrides all of this: when it is set the CLI opens exactly
+`ESHYRA_DB_PATH` overrides all of this: when it is set the CLI opens exactly
 that database as an explicit, unmanaged campaign and does not consult the
 registry. It suits scripted, CI, and synced-folder workflows.
 
 SQLite may create transient sidecar files beside the database while it is open,
 such as `dev.db-wal`, `dev.db-shm`, or `dev.db-journal`. Treat those as part of
-the live local working copy, not as separate Loreweaver stores.
+the live local working copy, not as separate Eshyra stores.
 
 ## Schema Versions and Migration
 
@@ -71,13 +71,13 @@ Every campaign SQLite database records its schema version in the `meta` table
 
 ### Compatibility expectations (pre-release)
 
-Loreweaver is pre-release software. Campaign databases may not survive arbitrary
+Eshyra is pre-release software. Campaign databases may not survive arbitrary
 schema changes, but the migration framework minimises breakage:
 
 | Situation | Outcome |
 |-----------|---------|
 | DB version == current | Opens normally; `initSchema` is idempotent. |
-| DB version > current (newer build wrote it) | Rejected with `SchemaCompatibilityError`. Update your `loreweaver` installation. |
+| DB version > current (newer build wrote it) | Rejected with `SchemaCompatibilityError`. Update your `eshyra` installation. |
 | DB version < current, migration registered | `initSchema` runs all registered migrations in order before proceeding. Each migration step commits atomically; a partial failure leaves the DB at the last successfully migrated version. |
 | DB version < current, no migration registered | Fails with `SchemaMigrationError`. The DB is not touched. |
 | DB has tables but no `meta` table | Rejected with `SchemaCompatibilityError` (pre-migration legacy). |
@@ -109,7 +109,7 @@ Static content ships with the package source/build output:
 - `EMBERFALL_HOLLOW` is the bundled sample module currently forked into new
   campaigns by the CLI.
 - The SRD catalog and license metadata are bundled in the core package.
-- Bundled rules packs ship in `@loreweaver/core` under `src/rules/`:
+- Bundled rules packs ship in `@eshyra/core` under `src/rules/`:
   `DND5E_SRD_RULES_PACK` (D&D 5e SRD 5.1, CC-BY-4.0, adapted from the SRD
   catalog) and `PATHFINDER2E_REMASTER_RULES_PACK` (Pathfinder 2e Remaster
   fixture under the Open RPG Creative License). The Pathfinder fixture uses
@@ -158,7 +158,7 @@ campaign database, at `<dbPath>.checkpoints`. For example, a campaign database
 `dev.db` checkpoints into `dev.db.checkpoints`.
 
 `<dbPath>` is the campaign database selected for the run: a registry entry for
-managed campaigns, or `LOREWEAVER_DB_PATH` for an explicit unmanaged campaign.
+managed campaigns, or `ESHYRA_DB_PATH` for an explicit unmanaged campaign.
 
 Checkpoint restore and fork operations materialize a checkpoint into a new
 SQLite database path chosen by the command or caller. Restore refuses to
@@ -171,16 +171,16 @@ campaign history must not use the beads-reserved `refs/dolt/data` sync ref.
 
 ## Dolt Binary Cache
 
-Loreweaver resolves the Dolt binary in this order:
+Eshyra resolves the Dolt binary in this order:
 
-1. An explicit path from `LOREWEAVER_DOLT_BIN` (or `doltBin` in `config.json`).
+1. An explicit path from `ESHYRA_DOLT_BIN` (or `doltBin` in `config.json`).
 2. The managed Dolt cache directory.
 3. A `dolt` executable on `PATH`.
 
-The managed cache defaults to `<root>/dolt` — `~/.loreweaver/dolt` on macOS and
-Linux, `%LOCALAPPDATA%\Loreweaver\dolt` on Windows. Set `LOREWEAVER_DOLT_HOME`
+The managed cache defaults to `<root>/dolt` — `~/.eshyra/dolt` on macOS and
+Linux, `%LOCALAPPDATA%\Eshyra\dolt` on Windows. Set `ESHYRA_DOLT_HOME`
 (or `doltHome` in `config.json`) to use a different managed cache directory. The
-CLI only downloads a managed Dolt binary through `loreweaver dolt install`, and
+CLI only downloads a managed Dolt binary through `eshyra dolt install`, and
 that command requires interactive consent. Non-interactive shells decline the
 download automatically.
 
@@ -191,7 +191,7 @@ download automatically.
 `CLAUDE_CODE_OAUTH_TOKEN` (a Claude Pro/Max subscription token) and resolves a
 `ProviderAuth` describing which one is in use. See
 [docs/agent-sdk-auth.md](agent-sdk-auth.md). Model profile overrides use
-`LOREWEAVER_PROFILE_*_PROVIDER` and `LOREWEAVER_PROFILE_*_MODEL`. Secrets are
+`ESHYRA_PROFILE_*_PROVIDER` and `ESHYRA_PROFILE_*_MODEL`. Secrets are
 never read from or written to `config.json`.
 
 **Auth-injection seam.** The Agent SDK adapter (`AgentSdkModelClient`) does not

@@ -1,8 +1,8 @@
-# Loreweaver
+# Eshyra
 
 **A text-first, persistent AI Dungeon Master for long-running fantasy campaigns.**
 
-Loreweaver is not a generic fantasy chatbot and not a virtual tabletop. It is a
+Eshyra is not a generic fantasy chatbot and not a virtual tabletop. It is a
 campaign engine that preserves canon across many play sessions: it remembers
 prior events, tracks structured game state, adjudicates rules through
 deterministic tools, and sustains a tabletop-like solo or small-group
@@ -27,7 +27,7 @@ living world, not a video game missing its graphics.
 > orchestration, session launch/resume,
 > graceful session close, and optional Dolt checkpoints. The CLI can create or
 > resume a local campaign and run interactive model-backed turns, and manages
-> campaigns through a per-user data root and registry (`LOREWEAVER_DB_PATH`
+> campaigns through a per-user data root and registry (`ESHYRA_DB_PATH`
 > still works as an explicit-path override). The project is still
 > pre-distribution: packaging and release workflow are being planned.
 
@@ -49,7 +49,7 @@ living world, not a video game missing its graphics.
   core assumption.
 - **Premium quality floor.** The primary DM targets frontier-model quality
   (Opus 4.6+ / GPT-5.5-class or a future equivalent). Cheaper models are only
-  for bounded auxiliary tasks that cannot corrupt canon. Loreweaver targets a
+  for bounded auxiliary tasks that cannot corrupt canon. Eshyra targets a
   capability floor, not a price floor.
 - **Separated knowledge.** Rules/mechanics, campaign/module content, live
   campaign state, user-private content, and generated memory are kept separate.
@@ -72,8 +72,8 @@ Monorepo using npm workspaces:
 
 | Package            | Path             | Role                                                    |
 | ------------------ | ---------------- | ------------------------------------------------------- |
-| `@loreweaver/core` | `packages/core`  | UI-agnostic engine: config, models, tools, persistence  |
-| `@loreweaver/cli`  | `packages/cli`   | Thin CLI front end for local play and development       |
+| `@eshyra/core` | `packages/core`  | UI-agnostic engine: config, models, tools, persistence  |
+| `@eshyra/cli`  | `packages/cli`   | Thin CLI front end for local play and development       |
 
 ## Getting Started
 
@@ -94,8 +94,8 @@ Monorepo using npm workspaces:
 After the CLI packages are published, install the command with npm:
 
 ```bash
-npm install -g @loreweaver/cli
-loreweaver
+npm install -g @eshyra/cli
+eshyra
 ```
 
 That command prints the core version and resolved config. If required
@@ -118,7 +118,7 @@ report "up to date" after `dist/` was deleted if `.tsbuildinfo` remains.
 ## Configuration
 
 The CLI reads provider credentials and model overrides from environment
-variables. Campaigns normally live under Loreweaver's per-user data root and
+variables. Campaigns normally live under Eshyra's per-user data root and
 are selected through the managed registry. `.env.example` is a template, but
 the CLI does not currently load `.env` files by itself.
 
@@ -133,30 +133,30 @@ precedence. See
 
 Optional:
 
-- `LOREWEAVER_HOME` - explicit data-root directory for config, the campaign
+- `ESHYRA_HOME` - explicit data-root directory for config, the campaign
   registry, managed campaign databases, rules packs, and the managed Dolt cache.
-- `LOREWEAVER_MODEL` - legacy flat override for the primary-DM model id. When
+- `ESHYRA_MODEL` - legacy flat override for the primary-DM model id. When
   set it still takes precedence over the profile registry.
-- `LOREWEAVER_PROFILE_*_PROVIDER` / `LOREWEAVER_PROFILE_*_MODEL` - per-profile
+- `ESHYRA_PROFILE_*_PROVIDER` / `ESHYRA_PROFILE_*_MODEL` - per-profile
   provider/model overrides for the provider-neutral profile registry. The CLI
   runtime resolves its primary-DM model from the `premium_dm` profile entry, so
-  `LOREWEAVER_PROFILE_PREMIUM_DM_MODEL` selects the DM model when
-  `LOREWEAVER_MODEL` is unset. The resolved `premium_dm` provider must be
+  `ESHYRA_PROFILE_PREMIUM_DM_MODEL` selects the DM model when
+  `ESHYRA_MODEL` is unset. The resolved `premium_dm` provider must be
   `anthropic` — the only adapter the CLI ships today.
-- `LOREWEAVER_DOLT_BIN` - explicit path to a Dolt binary for checkpoints.
-- `LOREWEAVER_DOLT_HOME` - managed Dolt cache directory used by
-  `loreweaver dolt install`; defaults to `<data-root>/dolt`.
-- `LOREWEAVER_DB_PATH` - advanced override for an explicit, unmanaged SQLite
-  campaign database. When set, `loreweaver play` opens that file directly and
+- `ESHYRA_DOLT_BIN` - explicit path to a Dolt binary for checkpoints.
+- `ESHYRA_DOLT_HOME` - managed Dolt cache directory used by
+  `eshyra dolt install`; defaults to `<data-root>/dolt`.
+- `ESHYRA_DB_PATH` - advanced override for an explicit, unmanaged SQLite
+  campaign database. When set, `eshyra play` opens that file directly and
   bypasses the managed campaign registry.
 
 Installed CLI PowerShell example:
 
 ```powershell
 $env:ANTHROPIC_API_KEY = "sk-ant-..."
-loreweaver new "Emberfall Hollow"
-loreweaver campaigns list
-loreweaver play
+eshyra new "Emberfall Hollow"
+eshyra campaigns list
+eshyra play
 ```
 
 ## CLI Usage
@@ -164,7 +164,7 @@ loreweaver play
 After install, run the CLI with:
 
 ```bash
-loreweaver
+eshyra
 ```
 
 This prints the core version and resolved config.
@@ -172,9 +172,9 @@ This prints the core version and resolved config.
 Start or resume a campaign:
 
 ```bash
-loreweaver new "Emberfall Hollow"
-loreweaver campaigns list
-loreweaver play
+eshyra new "Emberfall Hollow"
+eshyra campaigns list
+eshyra play
 ```
 
 `new` creates a managed SQLite campaign database under the data root, forks the
@@ -182,20 +182,20 @@ bundled `EMBERFALL_HOLLOW` module into it, and records it in the registry.
 `campaigns list` shows registered campaigns. `play` opens the only registered
 campaign, prompts you to choose when several exist, or offers to create the
 first one when the registry is empty. You can also pass a campaign id:
-`loreweaver play <id>`.
+`eshyra play <id>`.
 
 During play, each player input goes through the core turn orchestrator. Type
 `/quit` or `/exit` to close and recap the session.
 
 For scripted, CI, synced-folder, or other explicit-path workflows, set
-`LOREWEAVER_DB_PATH`. In that mode `play` opens exactly that SQLite file as an
+`ESHYRA_DB_PATH`. In that mode `play` opens exactly that SQLite file as an
 unmanaged campaign and bypasses the registry.
 
 Install Dolt into the managed cache when you want local checkpoints and Dolt is
 not already on `PATH`:
 
 ```bash
-loreweaver dolt install
+eshyra dolt install
 ```
 
 Managed Dolt install is consent-based. Non-interactive shells decline
@@ -216,16 +216,16 @@ user-facing storage boundary.
 - **Static bundled content** lives in the package source/build output,
   including `EMBERFALL_HOLLOW` sample module data, SRD catalog data, and
   bundled rules packs (`DND5E_SRD_RULES_PACK`, `PATHFINDER2E_REMASTER_RULES_PACK`).
-- **Managed user data** lives under the data root: `LOREWEAVER_HOME` when set,
-  otherwise `%LOCALAPPDATA%\Loreweaver` on Windows and `~/.loreweaver` on
+- **Managed user data** lives under the data root: `ESHYRA_HOME` when set,
+  otherwise `%LOCALAPPDATA%\Eshyra` on Windows and `~/.eshyra` on
   macOS/Linux. The registry is `registry.json`; managed campaign databases live
   under `campaigns/`.
 - **Live campaign state** lives in the SQLite file selected by the registry.
-  `loreweaver new` creates managed databases under `<root>/campaigns/`, while
-  `loreweaver campaigns add <path>` registers an existing external database.
+  `eshyra new` creates managed databases under `<root>/campaigns/`, while
+  `eshyra campaigns add <path>` registers an existing external database.
   SQLite sidecar files such as `-wal`, `-shm`, or `-journal` may appear beside
   the database while it is open.
-- **Explicit unmanaged campaigns** use `LOREWEAVER_DB_PATH`. When set, the CLI
+- **Explicit unmanaged campaigns** use `ESHYRA_DB_PATH`. When set, the CLI
   opens exactly that SQLite file and does not consult or update the registry.
 - **Dolt checkpoints** live beside the selected database in
   `<dbPath>.checkpoints` when Dolt is available. Restore/fork commands

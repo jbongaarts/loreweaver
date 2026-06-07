@@ -1,7 +1,7 @@
 {
-  "name": "@loreweaver/core",
+  "name": "@eshyra/core",
   "version": "0.0.0",
-  "description": "UI-agnostic Loreweaver campaign engine, persistence, rules, and model orchestration.",
+  "description": "UI-agnostic Eshyra campaign engine, persistence, rules, and model orchestration.",
   "private": true,
   "license": "UNLICENSED",
   "type": "module",
@@ -11,7 +11,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jbongaarts/loreweaver.git",
+    "url": "git+https://github.com/jbongaarts/eshyra.git",
     "directory": "packages/core"
   },
   "engines": {
