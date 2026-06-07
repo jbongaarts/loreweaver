@@ -37,10 +37,21 @@ import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import {
   auditHasFindings,
   auditPack,
+  auditSrd,
   formatAuditReport,
+  formatSrdAuditReport,
   loadRulesPackFromDirectory,
   RulesPackError,
+  srdAuditHasFindings,
 } from '../../src/internal.js';
+import {
+  EXPECTED_SRD_5_1_ANCESTRY_NAMES,
+  EXPECTED_SRD_5_1_CREATURE_NAMES,
+  EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES,
+  EXPECTED_SRD_5_1_NPC_NAMES,
+  EXPECTED_SRD_5_1_RULE_KEYS,
+  EXPECTED_SRD_5_1_TABLE_NAMES,
+} from '../importers/dnd5e-srd-5.1/index.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(HERE, '../../../..');
@@ -360,7 +371,11 @@ function buildReadme(meta: {
     '- `record-keys-by-kind.json` — all record keys grouped by kind (sorted)',
     '- `audit-full.json` — full auditPack output (JSON)',
     '- `audit-full.txt` — full auditPack output (human-readable)',
-    '- `suspicious-records.json` — records flagged by audit heuristics',
+    '- `srd-structure-audit.json` — SRD-specific structure + coverage findings',
+    '  (class proficiency / feature / subclass / ancestry parser bleed, plus',
+    '  missing expected records). JSON form.',
+    '- `srd-structure-audit.txt` — the same findings, human-readable by category',
+    '- `suspicious-records.json` — records flagged by the generic audit heuristics',
     '- `partial-fields.json` — fields present on some but not all records of a kind',
     '- `unicode-scan.json` — records containing invisible hyphens or control chars',
     '- `source-hash-verification.txt` — SHA-256 and size check for the vendored PDF',
@@ -511,6 +526,52 @@ async function main(): Promise<void> {
     );
   }
 
+  // 6b. SRD-specific structure + coverage audit. The generic auditPack above
+  // is system-agnostic and reported 0 suspicious records against parser-bleed
+  // that it cannot see (eshyra-0m9.24); this run applies SRD-shaped structure
+  // checks plus name/key coverage against the importer's expectation sets.
+  log('Running SRD structure/coverage audit...');
+  let srdAudit: ReturnType<typeof auditSrd> | null = null;
+  try {
+    const pack = loadRulesPackFromDirectory(COMMITTED_PACK_DIR);
+    srdAudit = auditSrd(pack, {
+      requiredNamesByKind: {
+        'magic-item': EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES,
+        ancestry: EXPECTED_SRD_5_1_ANCESTRY_NAMES,
+        table: EXPECTED_SRD_5_1_TABLE_NAMES,
+        creature: [
+          ...EXPECTED_SRD_5_1_CREATURE_NAMES,
+          ...EXPECTED_SRD_5_1_NPC_NAMES,
+        ],
+      },
+      requiredKeys: EXPECTED_SRD_5_1_RULE_KEYS,
+    });
+    writeFileSync(
+      join(outDir, 'reports/srd-structure-audit.json'),
+      JSON.stringify(srdAudit, null, 2),
+      'utf8',
+    );
+    writeFileSync(
+      join(outDir, 'reports/srd-structure-audit.txt'),
+      formatSrdAuditReport(srdAudit),
+      'utf8',
+    );
+    log(
+      `  ${srdAudit.findings.length} structure/coverage findings (${srdAuditHasFindings(srdAudit) ? 'NEEDS REVIEW' : 'clean'})`,
+    );
+  } catch (cause) {
+    const msg =
+      cause instanceof RulesPackError
+        ? `pack validation failed: ${cause.message}`
+        : `failed to load pack: ${(cause as Error).message}`;
+    log(`  ERROR: ${msg}`);
+    writeFileSync(
+      join(outDir, 'reports/srd-structure-audit.txt'),
+      `ERROR: ${msg}\n`,
+      'utf8',
+    );
+  }
+
   // 7. Record keys by kind
   log('Generating record key listing...');
   const rawRecords = JSON.parse(
@@ -597,6 +658,12 @@ async function main(): Promise<void> {
           hasFindings: auditHasFindings(packAudit),
         }
       : null,
+    srdStructureAudit: srdAudit
+      ? {
+          findingCount: srdAudit.findings.length,
+          hasFindings: srdAuditHasFindings(srdAudit),
+        }
+      : null,
     pdfPages: pages.length,
     unicodeScan: {
       scanned: rawRecords.length,
@@ -647,6 +714,9 @@ async function main(): Promise<void> {
     log(`  Records: ${packAudit.recordCount}`);
     log(`  Suspicious: ${packAudit.suspiciousRecords.length}`);
     log(`  Unicode findings: ${unicodeFindings.length}`);
+  }
+  if (srdAudit) {
+    log(`  SRD structure/coverage findings: ${srdAudit.findings.length}`);
   }
 }
 

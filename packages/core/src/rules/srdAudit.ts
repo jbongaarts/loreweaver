@@ -1,0 +1,481 @@
+/**
+ * Structure-aware, SRD-specific audit checks for generated D&D 5e SRD rules
+ * packs.
+ *
+ * The generic `auditPack` in `audit.ts` is deliberately system-agnostic: it
+ * catches empty/blank fields, all-uppercase names, and partially-populated
+ * optional fields. Those heuristics are necessary but not sufficient. The
+ * 2026-06-07 manual SRD audit (eshyra-0m9.24) found a class of parser failures
+ * that pass both `validateRulesPack` and `auditPack` because the records are
+ * structurally well-formed — the *content* is contaminated by adjacent source
+ * material:
+ *
+ *   - Class proficiency arrays carrying whole class-progression table rows and
+ *     feature prose instead of clean proficiency tokens.
+ *   - Feature bodies carrying the class header's "Armor:/Weapons:/Tools:/
+ *     Saving Throws:/Skills:" proficiency setup block.
+ *   - Subclass/feature descriptions that swallow the headings and bodies of the
+ *     adjacent features that should be their own records.
+ *   - Ancestry traits whose names are line-wrap fragments of the Languages line
+ *     (e.g. "Common and Draconic", "Ancestry table") or whose bodies are
+ *     truncated mid-phrase or carry a bled-in table.
+ *
+ * The checks here are SRD-shaped heuristics that turn those failure modes into
+ * actionable findings. They are review prompts, not validation errors: a finding
+ * names the offending record, field, and the substring that tripped the check so
+ * a reviewer (or the importer fix beads eshyra-0m9.12..16) can act on it.
+ *
+ * Coverage (`auditSrdCoverage`) is the second half: a structurally clean pack
+ * can still be *missing* records the source contains (the manual audit found the
+ * Orb of Dragonkind magic item absent, plus unrepresented sections/tables).
+ * Coverage takes an explicit expectations object so the caller supplies the
+ * authoritative name/key sets; this module stays free of giant literal lists.
+ *
+ * Everything is pure and deterministic: findings are sorted so reports are
+ * diffable across runs. SRD-specific knowledge lives here, never in `audit.ts`.
+ */
+
+import type { RulesPack, RulesRecord } from './types.js';
+
+// ---------------------------------------------------------------------------
+// Finding model
+// ---------------------------------------------------------------------------
+
+export type SrdAuditCategory =
+  | 'class-proficiency-bleed'
+  | 'feature-setup-label-bleed'
+  | 'swallowed-feature-heading'
+  | 'ancestry-bogus-trait'
+  | 'missing-coverage';
+
+export interface SrdAuditFinding {
+  readonly category: SrdAuditCategory;
+  /** Owning record key, or a synthetic `coverage:<kind>:<slug>` for coverage gaps. */
+  readonly key: string;
+  readonly kind: string;
+  readonly name: string;
+  /** Actionable description naming the field and offending substring. */
+  readonly detail: string;
+}
+
+export interface SrdStructureAudit {
+  readonly packId: string;
+  readonly findings: readonly SrdAuditFinding[];
+}
+
+/**
+ * Authoritative expectations for `auditSrdCoverage`. The caller supplies the
+ * name/key sets (today: the importer's `EXPECTED_SRD_5_1_*` constants). Names
+ * are matched case-insensitively within a kind; keys are matched exactly.
+ */
+export interface SrdCoverageExpectations {
+  /** kind -> record names that MUST be present in that kind. */
+  readonly requiredNamesByKind?: Readonly<Record<string, readonly string[]>>;
+  /** record keys that MUST be present regardless of kind. */
+  readonly requiredKeys?: readonly string[];
+}
+
+// ---------------------------------------------------------------------------
+// Shared helpers
+// ---------------------------------------------------------------------------
+
+function dataObject(record: RulesRecord): Record<string, unknown> | null {
+  const data = record.data;
+  if (data === null || typeof data !== 'object' || Array.isArray(data)) {
+    return null;
+  }
+  return data as Record<string, unknown>;
+}
+
+function asString(value: unknown): string | null {
+  return typeof value === 'string' ? value : null;
+}
+
+function snippet(text: string, max = 80): string {
+  const collapsed = text.replace(/\s+/g, ' ').trim();
+  return collapsed.length <= max ? collapsed : `${collapsed.slice(0, max)}…`;
+}
+
+function sortFindings(
+  findings: readonly SrdAuditFinding[],
+): readonly SrdAuditFinding[] {
+  return [...findings].sort((a, b) => {
+    if (a.category !== b.category) return a.category < b.category ? -1 : 1;
+    if (a.key !== b.key) return a.key < b.key ? -1 : 1;
+    return a.detail < b.detail ? -1 : a.detail > b.detail ? 1 : 0;
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Class proficiency table-row / prose bleed
+// ---------------------------------------------------------------------------
+
+const PROFICIENCY_FIELDS = [
+  'armorProficiencies',
+  'weaponProficiencies',
+  'savingThrowProficiencies',
+  'toolProficiencies',
+  'skillProficiencies',
+  'primaryAbilities',
+] as const;
+
+// A clean proficiency token is a short noun phrase ("Light armor", "Simple
+// weapons", "Strength"). The signals below mark a token that has absorbed a
+// class progression table row or feature prose.
+const LEVEL_ORDINAL = /\b\d{1,2}(?:st|nd|rd|th)\b/;
+const PROFICIENCY_BONUS_CELL = /(?:^|\s)\+\d\b/;
+const PROGRESSION_TABLE_HEADER =
+  /\b(?:Proficiency Bonus|Features Known|Cantrips Known|Spells Known|Spell Slots|Sorcery Points|Ki Points|Rage Damage|Sneak Attack|Martial Arts|Invocations Known|Bonus Features)\b/i;
+const PROFICIENCY_TOKEN_MAX_LEN = 40;
+
+function proficiencyBleedReasons(token: string): string[] {
+  const reasons: string[] = [];
+  if (LEVEL_ORDINAL.test(token)) {
+    reasons.push('contains a class-table level ordinal (e.g. "1st", "2nd")');
+  }
+  if (PROFICIENCY_BONUS_CELL.test(token)) {
+    reasons.push('contains a proficiency-bonus table cell (e.g. "+2")');
+  }
+  if (PROGRESSION_TABLE_HEADER.test(token)) {
+    reasons.push('contains a class-progression table header');
+  }
+  if (token.length > PROFICIENCY_TOKEN_MAX_LEN) {
+    reasons.push(
+      `is ${token.length} chars long (a clean proficiency token is short)`,
+    );
+  }
+  return reasons;
+}
+
+function checkClassProficiencyBleed(record: RulesRecord): SrdAuditFinding[] {
+  if (record.kind !== 'class') return [];
+  const data = dataObject(record);
+  if (data === null) return [];
+  const findings: SrdAuditFinding[] = [];
+  for (const field of PROFICIENCY_FIELDS) {
+    const value = data[field];
+    if (!Array.isArray(value)) continue;
+    value.forEach((entry, index) => {
+      const token = asString(entry);
+      if (token === null) return;
+      const reasons = proficiencyBleedReasons(token);
+      if (reasons.length === 0) return;
+      findings.push({
+        category: 'class-proficiency-bleed',
+        key: record.key,
+        kind: record.kind,
+        name: record.name,
+        detail: `data.${field}[${index}] ${reasons.join('; ')}: "${snippet(token)}"`,
+      });
+    });
+  }
+  return findings;
+}
+
+// ---------------------------------------------------------------------------
+// Class setup labels inside feature bodies
+// ---------------------------------------------------------------------------
+
+// The class header's proficiency setup block uses these "Label:" prefixes.
+// None of them belong in a feature body; their presence means the header bled
+// into the feature record. "Saving Throws:", "Skills:", and "Tools:" are
+// effectively never legitimate feature prose, so a single occurrence is enough.
+const SETUP_LABEL = /\b(Armor|Weapons|Tools|Saving Throws|Skills):/g;
+
+function checkFeatureSetupLabelBleed(record: RulesRecord): SrdAuditFinding[] {
+  if (record.kind !== 'feature') return [];
+  const data = dataObject(record);
+  if (data === null) return [];
+  const description = asString(data.description);
+  if (description === null) return [];
+  const labels = new Set<string>();
+  for (const match of description.matchAll(SETUP_LABEL)) {
+    labels.add(match[1]);
+  }
+  if (labels.size === 0) return [];
+  return [
+    {
+      category: 'feature-setup-label-bleed',
+      key: record.key,
+      kind: record.kind,
+      name: record.name,
+      detail: `data.description carries class setup label(s) ${[...labels]
+        .sort()
+        .map((l) => `"${l}:"`)
+        .join(', ')} — the class header bled into this feature`,
+    },
+  ];
+}
+
+// ---------------------------------------------------------------------------
+// Swallowed adjacent feature headings
+// ---------------------------------------------------------------------------
+
+// A feature grant lead-in phrase. The parser uses these to locate where one
+// feature ends and the next begins, so several of them inside a single record's
+// description means adjacent features were swallowed.
+const GRANT_LEAD_IN =
+  /(?:Beginning at|Starting at|Beginning when you|When you reach\s+\d{1,2}(?:st|nd|rd|th)\s+level|At\s+\d{1,2}(?:st|nd|rd|th)\s+level)/g;
+
+// A Title-Case heading (1-5 words) immediately followed by a grant lead-in:
+// "Remarkable Athlete Starting at 7th level", "Survivor At 18th level". The
+// capture is the swallowed feature's heading.
+const HEADING_GRANT_PAIR =
+  /([A-Z][\w'’]+(?:\s+[A-Z][\w'’]+){0,4})\s+(?:Beginning at|Starting at|Beginning when you|When you reach\s+\d{1,2}(?:st|nd|rd|th)\s+level|At\s+\d{1,2}(?:st|nd|rd|th)\s+level)/g;
+
+function swallowedHeadings(description: string): string[] {
+  const headings: string[] = [];
+  for (const match of description.matchAll(HEADING_GRANT_PAIR)) {
+    headings.push(match[1].trim());
+  }
+  return headings;
+}
+
+function countLeadIns(description: string): number {
+  return [...description.matchAll(GRANT_LEAD_IN)].length;
+}
+
+function checkSwallowedFeatures(record: RulesRecord): SrdAuditFinding[] {
+  if (record.kind !== 'feature' && record.kind !== 'subclass') return [];
+  const data = dataObject(record);
+  if (data === null) return [];
+  const description = asString(data.description);
+  if (description === null) return [];
+
+  const headings = swallowedHeadings(description);
+  const leadIns = countLeadIns(description);
+
+  // A subclass blurb should describe the archetype and grant nothing inline, so
+  // any heading-grant pair (or two bare lead-ins) means features were swallowed.
+  // A standalone feature naturally contains at most its own single lead-in, so
+  // a Title-Case-heading-plus-lead-in pair is the swallow signal there too.
+  const triggered =
+    headings.length > 0 || (record.kind === 'subclass' && leadIns >= 2);
+  if (!triggered) return [];
+
+  const headingNote =
+    headings.length > 0
+      ? `swallowed feature heading(s): ${headings.map((h) => `"${h}"`).join(', ')}`
+      : `${leadIns} feature grant lead-ins in one description`;
+  return [
+    {
+      category: 'swallowed-feature-heading',
+      key: record.key,
+      kind: record.kind,
+      name: record.name,
+      detail: `data.description appears to absorb adjacent features — ${headingNote}`,
+    },
+  ];
+}
+
+// ---------------------------------------------------------------------------
+// Ancestry bogus / wrapped traits
+// ---------------------------------------------------------------------------
+
+interface AncestryTrait {
+  readonly name: string;
+  readonly text: string;
+}
+
+function readAncestryTraits(record: RulesRecord): AncestryTrait[] {
+  const data = dataObject(record);
+  if (data === null) return [];
+  const traits = data.traits;
+  if (!Array.isArray(traits)) return [];
+  const out: AncestryTrait[] = [];
+  for (const entry of traits) {
+    if (entry === null || typeof entry !== 'object' || Array.isArray(entry)) {
+      continue;
+    }
+    const obj = entry as Record<string, unknown>;
+    const name = asString(obj.name);
+    const text = asString(obj.text);
+    if (name === null) continue;
+    out.push({ name, text: text ?? '' });
+  }
+  return out;
+}
+
+// A lowercase function word inside a trait NAME means the "heading" is really a
+// wrapped line fragment ("Common and Draconic", "Ancestry table").
+const TRAIT_NAME_FRAGMENT = /\b(?:and|or|the|of|by|with|table)\b/;
+const TERMINAL_PUNCTUATION = /[.!?:)”"']$/;
+// The breath-weapon / similar tables bleed in as repeated "(... save)" cells.
+const TABLE_SAVE_CELL = /\bsave\)/gi;
+
+function checkAncestryTraits(record: RulesRecord): SrdAuditFinding[] {
+  if (record.kind !== 'ancestry') return [];
+  const traits = readAncestryTraits(record);
+  const findings: SrdAuditFinding[] = [];
+  traits.forEach((trait, index) => {
+    const reasons: string[] = [];
+    if (TRAIT_NAME_FRAGMENT.test(trait.name)) {
+      reasons.push(
+        `trait name "${trait.name}" looks like a wrapped line fragment, not a heading`,
+      );
+    }
+    const trimmedText = trait.text.trim();
+    if (trimmedText.length > 0 && !TERMINAL_PUNCTUATION.test(trimmedText)) {
+      reasons.push(
+        `trait body is truncated mid-phrase (ends "…${snippet(trimmedText.slice(-40), 40)}")`,
+      );
+    }
+    if ([...trimmedText.matchAll(TABLE_SAVE_CELL)].length >= 2) {
+      reasons.push('trait body has a bled-in table (repeated "save)" cells)');
+    }
+    if (reasons.length === 0) return;
+    findings.push({
+      category: 'ancestry-bogus-trait',
+      key: record.key,
+      kind: record.kind,
+      name: record.name,
+      detail: `data.traits[${index}] (${trait.name}): ${reasons.join('; ')}`,
+    });
+  });
+  return findings;
+}
+
+// ---------------------------------------------------------------------------
+// Structure audit entry point
+// ---------------------------------------------------------------------------
+
+/**
+ * Run every structure-aware check over a loaded SRD pack. Output is sorted for
+ * diffable reports.
+ */
+export function auditSrdStructure(pack: RulesPack): readonly SrdAuditFinding[] {
+  const findings: SrdAuditFinding[] = [];
+  for (const record of pack.records) {
+    findings.push(...checkClassProficiencyBleed(record));
+    findings.push(...checkFeatureSetupLabelBleed(record));
+    findings.push(...checkSwallowedFeatures(record));
+    findings.push(...checkAncestryTraits(record));
+  }
+  return sortFindings(findings);
+}
+
+// ---------------------------------------------------------------------------
+// Coverage
+// ---------------------------------------------------------------------------
+
+function slug(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+/**
+ * Report records the source is expected to contain but the pack is missing.
+ * Names are matched case-insensitively within their kind; keys are matched
+ * exactly. Catches gaps like the missing Orb of Dragonkind magic item and
+ * unrepresented rule/table sections.
+ */
+export function auditSrdCoverage(
+  pack: RulesPack,
+  expectations: SrdCoverageExpectations,
+): readonly SrdAuditFinding[] {
+  const findings: SrdAuditFinding[] = [];
+
+  const namesByKind = new Map<string, Set<string>>();
+  const keys = new Set<string>();
+  for (const record of pack.records) {
+    keys.add(record.key);
+    const bucket = namesByKind.get(record.kind);
+    const lowered = record.name.trim().toLowerCase();
+    if (bucket === undefined) {
+      namesByKind.set(record.kind, new Set([lowered]));
+    } else {
+      bucket.add(lowered);
+    }
+  }
+
+  const requiredNamesByKind = expectations.requiredNamesByKind ?? {};
+  for (const kind of Object.keys(requiredNamesByKind).sort()) {
+    const present = namesByKind.get(kind) ?? new Set<string>();
+    for (const name of requiredNamesByKind[kind]) {
+      if (present.has(name.trim().toLowerCase())) continue;
+      findings.push({
+        category: 'missing-coverage',
+        key: `coverage:${kind}:${slug(name)}`,
+        kind,
+        name,
+        detail: `expected ${kind} "${name}" is not present in the pack`,
+      });
+    }
+  }
+
+  for (const key of expectations.requiredKeys ?? []) {
+    if (keys.has(key)) continue;
+    findings.push({
+      category: 'missing-coverage',
+      key: `coverage:key:${key}`,
+      kind: '(key)',
+      name: key,
+      detail: `expected record key "${key}" is not present in the pack`,
+    });
+  }
+
+  return sortFindings(findings);
+}
+
+// ---------------------------------------------------------------------------
+// Combined audit + reporting
+// ---------------------------------------------------------------------------
+
+/**
+ * Run structure checks and (when expectations are supplied) coverage checks,
+ * returning the combined, sorted findings.
+ */
+export function auditSrd(
+  pack: RulesPack,
+  expectations?: SrdCoverageExpectations,
+): SrdStructureAudit {
+  const structure = auditSrdStructure(pack);
+  const coverage =
+    expectations === undefined ? [] : auditSrdCoverage(pack, expectations);
+  return {
+    packId: pack.meta.packId,
+    findings: sortFindings([...structure, ...coverage]),
+  };
+}
+
+/** True when an SRD audit has any finding — use for `--strict` CI gating. */
+export function srdAuditHasFindings(audit: SrdStructureAudit): boolean {
+  return audit.findings.length > 0;
+}
+
+/**
+ * Human-readable rendering of an `SrdStructureAudit`. Use
+ * `JSON.stringify(audit, null, 2)` for the machine-readable form.
+ */
+export function formatSrdAuditReport(audit: SrdStructureAudit): string {
+  const lines: string[] = [];
+  lines.push(`SRD structure/coverage audit for pack: ${audit.packId}`);
+  lines.push(`Findings: ${audit.findings.length}`);
+  lines.push('');
+
+  const byCategory = new Map<SrdAuditCategory, SrdAuditFinding[]>();
+  for (const finding of audit.findings) {
+    const bucket = byCategory.get(finding.category);
+    if (bucket === undefined) {
+      byCategory.set(finding.category, [finding]);
+    } else {
+      bucket.push(finding);
+    }
+  }
+  if (byCategory.size === 0) {
+    lines.push('  (no findings)');
+    return `${lines.join('\n')}\n`;
+  }
+  for (const category of [...byCategory.keys()].sort()) {
+    const bucket = byCategory.get(category) ?? [];
+    lines.push(`${category}: ${bucket.length}`);
+    for (const finding of bucket) {
+      lines.push(`  ${finding.key} (${finding.kind}) — ${finding.name}`);
+      lines.push(`    - ${finding.detail}`);
+    }
+    lines.push('');
+  }
+  return `${lines.join('\n').trimEnd()}\n`;
+}
