@@ -1,6 +1,6 @@
-import type { Db } from './persistence/db.js';
-import { withTransaction } from './persistence/db.js';
-import { requireNonEmpty } from './validation.js';
+import type { Db } from '../persistence/db.js';
+import { withTransaction } from '../persistence/db.js';
+import { requireNonEmpty } from '../validation.js';
 
 export type SessionStatus = 'open' | 'closed';
 

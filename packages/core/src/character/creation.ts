@@ -1,33 +1,33 @@
-import type {
-  CreatedPathfinderCharacter,
-  PathfinderCharacterDraft,
-} from './character/pathfinder2e.js';
-import {
-  PathfinderCharacterCreationError,
-  validatePathfinderCharacterDraft,
-} from './character/pathfinder2e.js';
-import type { Db } from './persistence/db.js';
-import { withTransaction } from './persistence/db.js';
+import type { Db } from '../persistence/db.js';
+import { withTransaction } from '../persistence/db.js';
 import {
   DEFAULT_DND5E_SRD_BINDING,
   readCampaignRulesBinding,
-} from './rules/binding.js';
-import { SRD_CATALOG } from './rules/srd/data.js';
-import { lookupSrdRecord } from './rules/srd/store.js';
+} from '../rules/binding.js';
+import { SRD_CATALOG } from '../rules/srd/data.js';
+import { lookupSrdRecord } from '../rules/srd/store.js';
 import type {
   SrdCatalog,
   SrdClassRecord,
   SrdRecord,
   SrdSpellRecord,
-} from './rules/srd/types.js';
+} from '../rules/srd/types.js';
 import {
   ensureCharacterRow,
   setActiveCharacterId,
-} from './state/activeCharacter.js';
+} from '../state/activeCharacter.js';
 import {
   type MutateStateInput,
   mutateStateBatch,
-} from './state/mutateState.js';
+} from '../state/mutateState.js';
+import type {
+  CreatedPathfinderCharacter,
+  PathfinderCharacterDraft,
+} from './pathfinder2e.js';
+import {
+  PathfinderCharacterCreationError,
+  validatePathfinderCharacterDraft,
+} from './pathfinder2e.js';
 
 /**
  * The rules system the character creator is dispatching for. The string set

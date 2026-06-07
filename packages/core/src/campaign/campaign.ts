@@ -9,17 +9,17 @@
  * records the campaign id; selection is a read.
  */
 
-import type { Db } from './persistence/db.js';
-import { withTransaction } from './persistence/db.js';
-import type { CampaignRulesBinding } from './rules/binding.js';
+import type { Db } from '../persistence/db.js';
+import { withTransaction } from '../persistence/db.js';
+import type { CampaignRulesBinding } from '../rules/binding.js';
 import {
   checkBindingAgainstModuleRequirements,
   DEFAULT_DND5E_SRD_BINDING,
   readCampaignRulesBinding,
   writeCampaignRulesBinding,
-} from './rules/binding.js';
-import { forkModuleIntoCampaign } from './world/forkCampaign.js';
-import type { ModulePack } from './world/types.js';
+} from '../rules/binding.js';
+import { forkModuleIntoCampaign } from '../world/forkCampaign.js';
+import type { ModulePack } from '../world/types.js';
 
 const CAMPAIGN_ID_META_KEY = 'campaign_id';
 

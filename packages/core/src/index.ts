@@ -26,9 +26,29 @@
 // Core version (used by the CLI banner).
 export const CORE_VERSION = '0.0.0';
 
-export type { CampaignInfo, CreateCampaignInput } from './campaign.js';
+export type { CampaignInfo, CreateCampaignInput } from './campaign/campaign.js';
 // Campaign lifecycle.
-export { CampaignError, createCampaign, getCampaign } from './campaign.js';
+export {
+  CampaignError,
+  createCampaign,
+  getCampaign,
+} from './campaign/campaign.js';
+export type {
+  CreateDemoCampaignOptions,
+  DemoCampaign,
+  DemoContentPolicy,
+  DemoModelDecision,
+  DemoQualityLabel,
+  DemoTurnBudget,
+} from './campaign/demoMode.js';
+// Demo mode (entrypoints — the policy/budget helpers live in /internal).
+export {
+  createDemoCampaign,
+  DEFAULT_DEMO_PACK,
+  DEMO_TURN_CAP,
+  DemoModeError,
+  getDemoTurnBudget,
+} from './campaign/demoMode.js';
 export type {
   AbilityScoreMethod,
   AbilityScoreName,
@@ -39,12 +59,12 @@ export type {
   CompleteCharacterCreationInput,
   CompleteCharacterCreationResult,
   CreatedCharacter,
-} from './characterCreation.js';
+} from './character/creation.js';
 // Character creation (high-level, system-dispatching).
 export {
   CharacterCreationError,
   completeCharacterCreation,
-} from './characterCreation.js';
+} from './character/creation.js';
 export type {
   EshyraConfig,
   ProviderAuth,
@@ -52,22 +72,6 @@ export type {
 } from './config.js';
 // Configuration.
 export { ConfigError, loadConfig } from './config.js';
-export type {
-  CreateDemoCampaignOptions,
-  DemoCampaign,
-  DemoContentPolicy,
-  DemoModelDecision,
-  DemoQualityLabel,
-  DemoTurnBudget,
-} from './demoMode.js';
-// Demo mode (entrypoints — the policy/budget helpers live in /internal).
-export {
-  createDemoCampaign,
-  DEFAULT_DEMO_PACK,
-  DEMO_TURN_CAP,
-  DemoModeError,
-  getDemoTurnBudget,
-} from './demoMode.js';
 export type { ComposeArcSummaryInput } from './memory/arcSummary.js';
 export { composeArcSummary } from './memory/arcSummary.js';
 export type { ExtractCampaignBibleInput } from './memory/campaignBibleExtractor.js';
@@ -184,13 +188,23 @@ export type {
 } from './rules/types.js';
 export { RulesPackError } from './rules/types.js';
 export type {
+  CloseSessionGracefullyInput,
+  CloseSessionGracefullyResult,
+  SessionCheckpointRunner,
+} from './session/close.js';
+// Graceful session close (commits a recap + checkpoint hand-off).
+export { closeSessionGracefully } from './session/close.js';
+export type { SessionLaunchState } from './session/launch.js';
+// Session launch (resume-or-new view used by the play UI).
+export { getSessionLaunchState } from './session/launch.js';
+export type {
   CampaignSelector,
   CloseSessionInput,
   SessionKey,
   SessionRecord,
   SessionStatus,
   StartSessionInput,
-} from './session.js';
+} from './session/session.js';
 // Session lifecycle.
 export {
   closeSession,
@@ -199,17 +213,7 @@ export {
   listSessions,
   SessionError,
   startSession,
-} from './session.js';
-export type {
-  CloseSessionGracefullyInput,
-  CloseSessionGracefullyResult,
-  SessionCheckpointRunner,
-} from './sessionClose.js';
-// Graceful session close (commits a recap + checkpoint hand-off).
-export { closeSessionGracefully } from './sessionClose.js';
-export type { SessionLaunchState } from './sessionLaunch.js';
-// Session launch (resume-or-new view used by the play UI).
-export { getSessionLaunchState } from './sessionLaunch.js';
+} from './session/session.js';
 // Built-in sample world module and module-pack shape.
 export { EMBERFALL_HOLLOW } from './world/samples/emberfallHollow.js';
 export type {

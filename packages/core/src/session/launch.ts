@@ -3,8 +3,8 @@ import {
   listSceneLog,
   type SceneLogRecord,
   type SceneRecord,
-} from './orchestrator/scene.js';
-import type { Db } from './persistence/db.js';
+} from '../orchestrator/scene.js';
+import type { Db } from '../persistence/db.js';
 import {
   type CampaignSelector,
   getOpenSession,
