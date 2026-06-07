@@ -7,6 +7,15 @@ Local storage uses the managed per-user data root and campaign registry; see
 [ADR 0004](adr/0004-config-file-and-campaign-registry.md) and
 [Local Storage](storage.md).
 
+> **Publication is deferred.** This plan describes the *mechanics* of an npm
+> release, but **npm publication is on hold pending a business/licensing
+> decision.** No package will be published while the source-code license is
+> unresolved and the workspaces remain `private` / `UNLICENSED`. See
+> [licensing.md](licensing.md). The distribution channel itself (npm vs binary
+> release vs hosted-first) is an open decision tracked by `loreweaver-bo2`, and
+> the commercialization model by `loreweaver-14h`; either could change the plan
+> below.
+
 ## Decision
 
 Ship the local CLI as two npm packages:
@@ -44,10 +53,13 @@ The CLI package depends on the matching `@loreweaver/core` version. Releases
 must publish both packages from the same git tag and version. The root workspace
 stays private; only the package workspaces are published.
 
-Before the first publish, package metadata should be tightened:
+Before the first publish, package metadata should be tightened. These steps are
+**blocked** until the deferred source-code license and commercialization
+decisions are made (see [licensing.md](licensing.md), `loreweaver-14h`,
+`loreweaver-bo2`):
 
-- finalize the repository source-code license and add package `license`
-  metadata
+- finalize the repository source-code license and replace the `UNLICENSED`
+  package `license` metadata with the chosen license
 - remove the temporary `private: true` package guards from publishable
   workspaces only after the source license is finalized
 - verify `repository` metadata and npm provenance settings
@@ -209,7 +221,10 @@ campaign database; otherwise it closes without a checkpoint.
 The plan is intentionally compatible with the current workspace shape, but the
 first publish should not happen until these are resolved or explicitly waived:
 
-- final source-code license, repository, and provenance metadata are added, and
-  publishable workspaces are no longer marked `private`
+- the deferred business decisions are made: distribution channel
+  (`loreweaver-bo2`) and commercialization model (`loreweaver-14h`)
+- final source-code license, repository, and provenance metadata are added, the
+  `UNLICENSED` placeholder is replaced, and publishable workspaces are no longer
+  marked `private`
 - release automation installs the packed tarballs and invokes the global
   `loreweaver` command in a clean prefix before publish

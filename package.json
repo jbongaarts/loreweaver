@@ -2,6 +2,7 @@
   "name": "loreweaver",
   "description": "Text-first persistent AI Dungeon Master for long-running fantasy campaigns.",
   "private": true,
+  "license": "UNLICENSED",
   "type": "module",
   "repository": {
     "type": "git",
