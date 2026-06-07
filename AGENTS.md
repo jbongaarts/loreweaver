@@ -245,7 +245,7 @@ All live beads issues now use the `eshyra-*` prefix. The migration from `lorewea
 
 - **Live work:** All current issues use `eshyra-*` (e.g., `eshyra-r00`, `eshyra-bo2`, `eshyra-tf8`).
 - **Historical references:** Old commits, branches, and chat logs may mention `loreweaver-*` IDs; map them to current issues by replacing only the prefix with `eshyra-` and preserving the suffix (e.g., `loreweaver-r00` → `eshyra-r00`).
-- **Configuration:** `issue-prefix` is `eshyra` in `.beads/config.yaml` and the database. `allowed_prefixes` is `eshyra` only.
+- **Configuration:** The beads database `issue_prefix` is `eshyra`, and `allowed_prefixes` is `eshyra` only. `.beads/config.yaml` keeps repository-local settings such as `sync.remote`; it does not control the active issue generator prefix for this existing database.
 - **Database name:** `.beads/metadata.json` `dolt_database` remains `loreweaver` (internal historical name, separate from issue prefix).
 
 ## Session Completion
