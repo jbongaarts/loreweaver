@@ -68,6 +68,16 @@ const CLASS_CALLOUT_PAGES: readonly PageText[] = [
   ]),
 ];
 
+const CALLOUT_AFTER_BODY_FONT_CLASS_NAME = tieredPage(116, [
+  ['Wizard', 25.92],
+  ['Oath of Devotion Spells', 12],
+  ['Paladin', 8.88],
+  ['Level Spells', 8.88],
+  ['Your Spellbook', 10.8],
+  ['The spells in your spellbook reflect your arcane research.', 9.84],
+  ['Arcane Tradition', 12],
+]);
+
 describe('parseClassCallouts', () => {
   const callouts = parseClassCallouts(CLASS_CALLOUT_PAGES);
 
@@ -143,5 +153,14 @@ describe('parseClassCallouts', () => {
 
     expect(parseClassCallouts([noHeights])).toEqual([]);
     expect(parseClassCallouts([uniformHeight])).toEqual([]);
+  });
+
+  it('does not change class context for a body-font class-name table cell', () => {
+    expect(parseClassCallouts([CALLOUT_AFTER_BODY_FONT_CLASS_NAME])).toEqual([
+      expect.objectContaining({
+        name: 'Your Spellbook',
+        keySlug: 'wizard-your-spellbook',
+      }),
+    ]);
   });
 });

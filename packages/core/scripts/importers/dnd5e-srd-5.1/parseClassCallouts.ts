@@ -1,7 +1,7 @@
 import {
   hasHeadingTiers,
   isCalloutBoxHeading,
-  PARENT_CLASS_NAMES,
+  isParentClassHeading,
 } from './parseSubclasses.js';
 import type { PageText, RuleExtraction } from './types.js';
 
@@ -57,7 +57,8 @@ export function parseClassCallouts(
   pages: readonly PageText[],
 ): RuleExtraction[] {
   const flat = flatten(pages);
-  if (!hasHeadingTiers(flat.map(({ height }) => height))) return [];
+  const tiersPresent = hasHeadingTiers(flat.map(({ height }) => height));
+  if (!tiersPresent) return [];
 
   const rules: RuleExtraction[] = [];
   let currentClass: string | undefined;
@@ -65,7 +66,7 @@ export function parseClassCallouts(
   for (let i = 0; i < flat.length; i++) {
     const heading = flat[i];
     const headingHeight = heading.height;
-    if (PARENT_CLASS_NAMES.has(heading.line)) {
+    if (isParentClassHeading(heading.line, headingHeight, tiersPresent)) {
       currentClass = heading.line;
       continue;
     }
