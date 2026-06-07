@@ -1017,14 +1017,14 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
 
     // The Wizard "Your Spellbook" prose ("You can copy a spell from your own…",
     // "Your spellbook is a unique…") lived on the same sparse page family and was
-    // a second real-pack witness for this extractor fix — but only because it had
-    // bled into the School of Evocation subclass/Overchannel records. loreweaver-6fw
-    // bounds that generic class callout box out of those records (it is dropped),
-    // so the spellbook prose is no longer in any committed record. The extractor's
-    // source-order behavior on that page shape stays covered directly by the
-    // synthetic-probe test in extract.test.ts ("does not split a contiguous inline
-    // run into a phantom column on a sparse page"); the bless example above remains
-    // the real-pack guard. See the callout-box bleed regression block below.
+    // a second real-pack witness for this extractor fix when it bled into the
+    // School of Evocation subclass/Overchannel records. loreweaver-6fw bounds the
+    // callout out of those records, and loreweaver-0m9.5.23 now retains it in the
+    // standalone `rule:wizard-your-spellbook` record. The extractor's source-order
+    // behavior on that page shape remains covered directly by the synthetic-probe
+    // test in extract.test.ts ("does not split a contiguous inline run into a
+    // phantom column on a sparse page"); the bless example above remains the
+    // real-pack guard. See the callout-box bleed regression block below.
   });
 
   // loreweaver-6fw: the Classes chapter prints five gray callout boxes (generic
