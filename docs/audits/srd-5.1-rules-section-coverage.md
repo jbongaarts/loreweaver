@@ -159,6 +159,17 @@ with a `category` discriminator.**
 - Objects -> `table` x2 + `rule` x1 (`loreweaver-uuk`)
 - Madness -> `table` x3 + `rule` x4 (`loreweaver-uuk`)
 
+**Classes gray-box callouts:**
+- All five structurally identified callouts are imported as standalone,
+  parent-qualified `rule` records: **Sacred Plants and Wood** (p.22),
+  **Druids and the Gods** (p.23), **Breaking Your Oath** (p.33),
+  **Your Pact Boon** (p.51), and **Your Spellbook** (p.54)
+  (`loreweaver-0m9.5.23`).
+- Subclass and feature bodies stop before each box; base-class records extract
+  labeled fields and do not absorb callout prose.
+  Inclusion is defined by the source's gray-box structure, not semantic
+  category; procedural, illustrative, and lore boxes are treated uniformly.
+
 **Intentionally out of scope for this milestone (record the decision):**
 - General trap-running *procedure* prose (already omitted by design,
   `loreweaver-hvp`).

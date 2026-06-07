@@ -22,6 +22,7 @@ import {
   CreatureCoverageError,
   FeatureCoverageError,
   NpcCoverageError,
+  RuleCoverageError,
   runImporter,
   SubclassCoverageError,
   TableCoverageError,
@@ -871,46 +872,50 @@ const CLASSES_PAGE_NO_FEATURES: FixturePage = {
   ],
 };
 
+const IMPLEMENTED_KINDS_FIXTURE_PAGES = [
+  RACES_PAGE,
+  CLASSES_PAGE,
+  CORE_RULES_PAGE_ONE,
+  CORE_RULES_PAGE_TWO,
+  CORE_RULES_TABLES_PAGE,
+  SPELL_LISTS_PAGE,
+  SPELLS_PAGE,
+  MONSTERS_PAGE,
+  TREASURE_TABLES_PAGE,
+  MAGIC_ITEMS_PAGE,
+  COMBAT_ACTIONS_PAGE,
+  MAKING_AN_ATTACK_PAGE,
+  HAZARDS_PAGE,
+  MADNESS_PAGE_ONE,
+  MADNESS_PAGE_TWO,
+  OBJECTS_PAGE,
+  FEATS_PAGE,
+  EQUIPMENT_PAGE,
+  MULTICLASSING_PAGE,
+  CONDITIONS_PAGE,
+] as const;
+
+const IMPLEMENTED_KINDS_FIXTURE_RULE_KEYS = [
+  'rule:cover',
+  'rule:curing-madness',
+  'rule:going-mad',
+  'rule:madness',
+  'rule:madness-effects',
+  'rule:objects',
+  'rule:resting',
+] as const;
+
 describe('runImporter — end-to-end against a fixture PDF', () => {
   it('extracts implemented SRD kinds and writes a pack that loads through loadRulesPackFromDirectory', async () => {
     const workDir = makeTmpDir();
     const pdfPath = join(workDir, 'fixture.pdf');
     const outDir = join(workDir, 'pack');
-    await writeFixturePdf(pdfPath, [
-      RACES_PAGE,
-      CLASSES_PAGE,
-      CORE_RULES_PAGE_ONE,
-      CORE_RULES_PAGE_TWO,
-      CORE_RULES_TABLES_PAGE,
-      SPELL_LISTS_PAGE,
-      SPELLS_PAGE,
-      MONSTERS_PAGE,
-      TREASURE_TABLES_PAGE,
-      MAGIC_ITEMS_PAGE,
-      COMBAT_ACTIONS_PAGE,
-      MAKING_AN_ATTACK_PAGE,
-      HAZARDS_PAGE,
-      MADNESS_PAGE_ONE,
-      MADNESS_PAGE_TWO,
-      OBJECTS_PAGE,
-      FEATS_PAGE,
-      EQUIPMENT_PAGE,
-      MULTICLASSING_PAGE,
-      CONDITIONS_PAGE,
-    ]);
+    await writeFixturePdf(pdfPath, IMPLEMENTED_KINDS_FIXTURE_PAGES);
 
     const result = await runImporter({
       pdfPath,
       outDir,
-      expectedRuleKeys: [
-        'rule:cover',
-        'rule:curing-madness',
-        'rule:going-mad',
-        'rule:madness',
-        'rule:madness-effects',
-        'rule:objects',
-        'rule:resting',
-      ],
+      expectedRuleKeys: IMPLEMENTED_KINDS_FIXTURE_RULE_KEYS,
       expectedTableNames: [
         'Damage Severity by Level',
         'Difficulty Classes',
@@ -1425,6 +1430,49 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
         'Table A',
       ],
     ]);
+  });
+
+  it('fails closed when the expected rule-key set omits a parsed key', async () => {
+    const workDir = makeTmpDir();
+    const pdfPath = join(workDir, 'fixture.pdf');
+    const outDir = join(workDir, 'pack');
+    await writeFixturePdf(pdfPath, IMPLEMENTED_KINDS_FIXTURE_PAGES);
+
+    const importPromise = runImporter({
+      pdfPath,
+      outDir,
+      expectedRuleKeys: IMPLEMENTED_KINDS_FIXTURE_RULE_KEYS.filter(
+        (key) => key !== 'rule:resting',
+      ),
+    });
+
+    await expect(importPromise).rejects.toThrow(RuleCoverageError);
+    await expect(importPromise).rejects.toThrow(
+      /unexpected rule\(s\): rule:resting/,
+    );
+    expect(() => readFileSync(join(outDir, 'records.json'), 'utf8')).toThrow();
+  });
+
+  it('fails closed when the expected rule-key set includes a nonexistent key', async () => {
+    const workDir = makeTmpDir();
+    const pdfPath = join(workDir, 'fixture.pdf');
+    const outDir = join(workDir, 'pack');
+    await writeFixturePdf(pdfPath, IMPLEMENTED_KINDS_FIXTURE_PAGES);
+
+    const importPromise = runImporter({
+      pdfPath,
+      outDir,
+      expectedRuleKeys: [
+        ...IMPLEMENTED_KINDS_FIXTURE_RULE_KEYS,
+        'rule:nonexistent',
+      ],
+    });
+
+    await expect(importPromise).rejects.toThrow(RuleCoverageError);
+    await expect(importPromise).rejects.toThrow(
+      /missing expected rule\(s\): rule:nonexistent/,
+    );
+    expect(() => readFileSync(join(outDir, 'records.json'), 'utf8')).toThrow();
   });
 
   it('fails closed when the expected table-name set drifts', async () => {

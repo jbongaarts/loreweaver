@@ -45,6 +45,7 @@ import { buildPack, writePackToDirectory } from './emit.js';
 import { extractPdfText } from './extract.js';
 import { parseActions } from './parseActions.js';
 import { parseAncestries } from './parseAncestries.js';
+import { parseClassCallouts } from './parseClassCallouts.js';
 import { parseClasses } from './parseClasses.js';
 import { parseConditions } from './parseConditions.js';
 import { parseCreatures } from './parseCreatures.js';
@@ -845,7 +846,7 @@ export const EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES: readonly string[] = [
 ];
 
 /**
- * Reviewed, checked-in SRD 5.1 core-rules `rule`-key baseline (loreweaver-yli).
+ * Reviewed, checked-in SRD 5.1 combined implemented `rule`-key baseline.
  * The nesting-aware `parseRules` emits one `rule` record per heading across the
  * Using Ability Scores, Adventuring, and Combat chapters — subsection (font
  * h≈18), sub-subsection (h≈13.9), leaf (h≈12), and gray callout-box (h≈10.8,
@@ -875,13 +876,14 @@ export const EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES: readonly string[] = [
  * `table` kind owns (Ability Scores and Modifiers score table, Typical
  * Difficulty Classes, Travel Pace, Size Categories).
  *
- * The general Spellcasting-rules chapter (loreweaver-3hp) adds the second block
- * below (34 keys). It is a separate slice (`spellcastingRules`, "Spellcasting" →
- * "Spell Lists") parsed by the same nesting-aware `parseRules` and concatenated;
- * the four titles it shares with the core-rules chapters ("Attack Rolls",
- * "Range", "Reactions", "Saving Throws") parent-qualify to
- * `rule:casting-a-spell-*` / `rule:casting-time-reactions` so the core keys
- * above stay untouched and no `rule:` key is duplicated across the two slices.
+ * The full baseline is 127 core-rules keys, 34 general Spellcasting keys, five
+ * gamemastering Madness/Objects keys, and five Classes-chapter callout keys.
+ * Spellcasting is a separate slice (`spellcastingRules`, "Spellcasting" →
+ * "Spell Lists") parsed by the same nesting-aware `parseRules`; the four titles
+ * it shares with the core-rules chapters ("Attack Rolls", "Range", "Reactions",
+ * "Saving Throws") parent-qualify to `rule:casting-a-spell-*` /
+ * `rule:casting-time-reactions` so the core keys stay untouched and no `rule:`
+ * key is duplicated across slices.
  */
 export const EXPECTED_SRD_5_1_RULE_KEYS: readonly string[] = [
   'rule:ability-checks',
@@ -1053,6 +1055,12 @@ export const EXPECTED_SRD_5_1_RULE_KEYS: readonly string[] = [
   'rule:madness',
   'rule:madness-effects',
   'rule:objects',
+  // Classes-chapter callout boxes (loreweaver-0m9.5.23).
+  'rule:druid-druids-and-the-gods',
+  'rule:druid-sacred-plants-and-wood',
+  'rule:paladin-breaking-your-oath',
+  'rule:warlock-your-pact-boon',
+  'rule:wizard-your-spellbook',
 ];
 
 export const EXPECTED_SRD_5_1_TABLE_NAMES: readonly string[] = [
@@ -1198,14 +1206,15 @@ export class MagicItemCoverageError extends Error {
 }
 
 /**
- * Thrown when the parsed core-rules `rule` set drifts from the reviewed SRD 5.1
- * baseline (loreweaver-yli). Validated on the record-key set rather than names
+ * Thrown when the combined implemented `rule` set drifts from the reviewed SRD
+ * 5.1 baseline. The set includes core, Spellcasting, gamemastering, and
+ * Classes-callout slices. It is validated on record keys rather than names
  * because the SRD repeats rule titles across chapters ("Hit Points",
  * "Initiative", "Difficult Terrain") and per-ability sidebars ("Spellcasting
- * Ability"), which the parser disambiguates with parent-qualified keys.
- * Distinct from `SectionNotFoundError` so callers can tell "the core-rules
- * slice parsed but produced the wrong rules" apart from "the anchor didn't
- * match".
+ * Ability"), which the parsers disambiguate with parent-qualified keys.
+ * Distinct from `SectionNotFoundError` so callers can tell "the rule slices
+ * parsed but produced the wrong combined set" apart from "a required section
+ * anchor didn't match".
  */
 export class RuleCoverageError extends Error {
   constructor(message: string) {
@@ -1337,13 +1346,13 @@ export interface RunImporterInput {
    */
   readonly expectedMagicItemNames?: readonly string[];
   /**
-   * Exact set of core-rules `rule` record keys the import must yield for the run
-   * to be accepted (loreweaver-yli). When provided and the parsed rule keys don't
+   * Exact combined set of implemented `rule` record keys the import must yield
+   * for the run to be accepted. When provided and the parsed rule keys don't
    * match it exactly, the importer throws `RuleCoverageError` naming the missing
    * and/or unexpected keys, and writes nothing. The real-import CLI passes
-   * `EXPECTED_SRD_5_1_RULE_KEYS`; fixture pipelines that exercise a reduced
-   * core-rules slice omit this. Keys (not names) are gated because the SRD
-   * repeats rule titles across chapters, which the parser disambiguates with
+   * `EXPECTED_SRD_5_1_RULE_KEYS`; fixture pipelines that exercise reduced rule
+   * slices omit this. Keys (not names) are gated because the SRD repeats rule
+   * titles across chapters, which the parsers disambiguate with
    * parent-qualified keys.
    */
   readonly expectedRuleKeys?: readonly string[];
@@ -1664,16 +1673,17 @@ function validateMagicItemCoverage(
 }
 
 /**
- * Fail closed on a core-rules `rule` result that drifts from the reviewed SRD
- * 5.1 baseline (loreweaver-yli). When the exact `expectedRuleKeys` set is
- * supplied (the real import via the CLI), the parsed rule record keys must match
- * it exactly — any missing or unexpected key is rejected, naming the specific
- * offenders so a dropped leaf rule (a heading-tier regression), a renamed
- * heading, or a newly-promoted caption/sidebar trips by key. Validated on keys
- * rather than names because the SRD repeats rule titles across chapters, which
- * the parser disambiguates with parent-qualified keys. Fixture pipelines that
- * exercise a reduced core-rules slice omit the set, in which case no check runs.
- * Runs after parsing and before any output is written.
+ * Fail closed when the combined implemented `rule` result drifts from the
+ * reviewed SRD 5.1 baseline. When the exact `expectedRuleKeys` set is supplied
+ * (the real import via the CLI), the parsed keys from core, Spellcasting,
+ * gamemastering, and Classes-callout slices must match it exactly. Any missing
+ * or unexpected key is rejected, naming the specific offenders so a dropped
+ * leaf rule (a heading-tier regression), a renamed heading, or a newly-promoted
+ * caption/sidebar trips by key. Validated on keys rather than names because the
+ * SRD repeats rule titles across chapters, which the parsers disambiguate with
+ * parent-qualified keys. Fixture pipelines that exercise reduced rule slices
+ * omit the set, in which case no check runs. Runs after all implemented rule
+ * slices are parsed and before any output is written.
  */
 function validateRuleCoverage(
   rules: readonly RuleExtraction[],
@@ -1694,7 +1704,7 @@ function validateRuleCoverage(
     parts.push(`unexpected rule(s): ${unexpected.join(', ')}`);
   }
   throw new RuleCoverageError(
-    `SRD 5.1 rule coverage check failed: parsed ${rules.length} core-rules record(s), expected exactly ${expectedRuleKeys.length}. ${parts.join('; ')}. The core-rules chapters may have been truncated, a heading renamed, or a caption/sidebar promoted. Refusing to write a pack with a drifted rule set.`,
+    `SRD 5.1 rule coverage check failed: parsed ${rules.length} rule record(s) across the implemented rule slices, expected exactly ${expectedRuleKeys.length}. ${parts.join('; ')}. One or more rule-bearing sections may have been truncated, a heading renamed, or a caption/sidebar promoted. Refusing to write a pack with a drifted rule set.`,
   );
 }
 
@@ -1883,11 +1893,11 @@ export async function runImporter(
     reservedRuleKeySlugs,
   );
   const gamemasteringRules = parseGamemasteringRules(madnessPages, objectPages);
-  const rules = [...coreRules, ...spellcastingRules, ...gamemasteringRules];
-  // Fail closed before any output is written when the real import (CLI) supplies
-  // the exact expected rule-key set and the nesting-aware parse drifts from it
-  // (loreweaver-yli, extended for the spellcasting chapter by loreweaver-3hp).
-  validateRuleCoverage(rules, input.expectedRuleKeys);
+  const nonClassRules = [
+    ...coreRules,
+    ...spellcastingRules,
+    ...gamemasteringRules,
+  ];
   // The two trap reference tables live in the Traps slice (loreweaver-hvp); feed
   // it alongside the core-rules and treasure slices so parseTables reconstructs
   // them with the same anchored row rules.
@@ -1910,6 +1920,12 @@ export async function runImporter(
   // match — class is an implemented kind, so fail closed rather than emit a
   // pack without classes (the classes anchor sets requireEndHeading: true).
   const classPages = sliceSection(pages, anchors.classes);
+  const classCalloutRules = parseClassCallouts(classPages);
+  const rules = [...nonClassRules, ...classCalloutRules];
+  // Fail closed before any output is written when the real import (CLI) supplies
+  // the exact expected rule-key set and any implemented rule slice drifts from
+  // it (loreweaver-yli, loreweaver-3hp, and loreweaver-0m9.5.23).
+  validateRuleCoverage(rules, input.expectedRuleKeys);
   const classes = parseClasses(classPages);
   // Fail closed before any output is written if class extraction is empty or
   // (when a floor is supplied) implausibly small. Class is an implemented kind.
