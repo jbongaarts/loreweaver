@@ -14,7 +14,7 @@ of early scope (no auth layer; consistent with ADR 0003 local-CLI-first).
 
 ## What the foundation already provides
 
-The party-oriented data refactor (`loreweaver-0jq.8`, schema **v9**) already did
+The party-oriented data refactor (`eshyra-0jq.8`, schema **v9**) already did
 the schema-breaking work, so the **party model itself needs no migration**. The
 only schema change this epic adds is one additive, nullable
 `turn_trace.acting_character_id` column (**v9→v10**) for per-PC memory

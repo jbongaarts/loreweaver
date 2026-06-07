@@ -55,7 +55,7 @@ export interface RunModelLoopInput {
   onRoundStart?: () => void;
   /**
    * Optional trace metadata forwarded to the ModelClient on every round
-   * (loreweaver-0jq.11). Adapters that can route trace info to provider-side
+   * (eshyra-0jq.11). Adapters that can route trace info to provider-side
    * logs will use it; others ignore it.
    */
   trace?: RunModelLoopTrace;
@@ -95,7 +95,7 @@ export async function runModelLoop(
     const result = await model.complete({
       system,
       messages,
-      // Provider-neutral tool definitions (loreweaver-0jq.10) — adapters with
+      // Provider-neutral tool definitions (eshyra-0jq.10) — adapters with
       // a native tool channel may use them; the fenced-text protocol below
       // does not consult them and is unchanged.
       tools,

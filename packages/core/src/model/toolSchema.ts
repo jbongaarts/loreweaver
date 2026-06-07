@@ -1,5 +1,5 @@
 /**
- * Provider-neutral tool schema vocabulary (loreweaver-0jq.10).
+ * Provider-neutral tool schema vocabulary (eshyra-0jq.10).
  *
  * The deterministic tool layer is the canonical owner of a tool's input
  * contract; the DM model speaks to tools through fenced text today and may

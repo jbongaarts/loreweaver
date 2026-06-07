@@ -10,8 +10,8 @@ Because there is no inbound source-code license or contributor agreement in
 place, **the project cannot accept external code contributions at this time.**
 Pull requests that add or modify source code from outside contributors will not
 be merged until a contribution licensing arrangement is defined. This hold is
-tied to the open commercialization decision (`loreweaver-14h`) and distribution
-decision (`loreweaver-bo2`); it will be revised once those are resolved.
+tied to the open commercialization decision (`eshyra-14h`) and distribution
+decision (`eshyra-bo2`); it will be revised once those are resolved.
 
 You are welcome to read the code, open issues to report bugs, and discuss ideas.
 Non-code feedback does not require a contribution license.

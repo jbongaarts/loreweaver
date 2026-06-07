@@ -75,7 +75,7 @@ export class AgentSdkModelClient implements ModelClient {
   async complete(input: ModelCompleteInput): Promise<ModelCompleteResult> {
     // The Agent SDK exposes a single `prompt` string + `systemPrompt` option,
     // so the adapter flattens the structured messages internally. This is the
-    // permitted-flatten path (loreweaver-0jq.11): the contract above carries
+    // permitted-flatten path (eshyra-0jq.11): the contract above carries
     // structure, the adapter renders the SDK's actual surface. Native tool
     // channels, response-format hints, profile, and trace are not yet wired
     // through the Agent SDK and are intentionally ignored — callers can

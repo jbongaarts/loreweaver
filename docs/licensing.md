@@ -40,7 +40,7 @@ bundled or referenced **content**:
 - **Adventures / modules** are governed by their own source legality. This
   repository must not bundle or publish third-party adventure text until that
   source is confirmed open, public domain, original, or publisher-licensed.
-  That review is tracked separately by bead `loreweaver-9s6`.
+  That review is tracked separately by bead `eshyra-9s6`.
 
 In short: a future grant of source-code rights would **not** automatically grant
 rights to bundled content, and the content licenses already in effect do **not**
@@ -68,9 +68,9 @@ and redistributed. See [CONTRIBUTING.md](../CONTRIBUTING.md).
 The deferred posture above is resolved by two follow-up decisions:
 
 - **Distribution channel** — npm vs binary release vs hosted-first
-  (`loreweaver-bo2`).
+  (`eshyra-bo2`).
 - **Commercialization model** — open source, open core, source-available,
-  proprietary, or hosted-first (`loreweaver-14h`).
+  proprietary, or hosted-first (`eshyra-14h`).
 
 Once those are decided, this document, the package `license` metadata, the
 `private` guards, and the contribution policy will be updated to match, and a

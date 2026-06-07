@@ -37,7 +37,7 @@ export interface Tool {
   readonly name: string;
   readonly description: string;
   /**
-   * Provider-neutral input schema (loreweaver-0jq.10). Lifted straight into
+   * Provider-neutral input schema (eshyra-0jq.10). Lifted straight into
    * {@link ToolRegistry.definitions} so adapters can render native tool calls;
    * the fenced-text protocol does not consult it. Tool authors are still
    * responsible for runtime validation in `run` — the schema is documentation

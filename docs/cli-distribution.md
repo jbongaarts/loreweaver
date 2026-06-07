@@ -12,8 +12,8 @@ Local storage uses the managed per-user data root and campaign registry; see
 > decision.** No package will be published while the source-code license is
 > unresolved and the workspaces remain `private` / `UNLICENSED`. See
 > [licensing.md](licensing.md). The distribution channel itself (npm vs binary
-> release vs hosted-first) is an open decision tracked by `loreweaver-bo2`, and
-> the commercialization model by `loreweaver-14h`; either could change the plan
+> release vs hosted-first) is an open decision tracked by `eshyra-bo2`, and
+> the commercialization model by `eshyra-14h`; either could change the plan
 > below.
 
 ## Decision
@@ -55,8 +55,8 @@ stays private; only the package workspaces are published.
 
 Before the first publish, package metadata should be tightened. These steps are
 **blocked** until the deferred source-code license and commercialization
-decisions are made (see [licensing.md](licensing.md), `loreweaver-14h`,
-`loreweaver-bo2`):
+decisions are made (see [licensing.md](licensing.md), `eshyra-14h`,
+`eshyra-bo2`):
 
 - finalize the repository source-code license and replace the `UNLICENSED`
   package `license` metadata with the chosen license
@@ -222,7 +222,7 @@ The plan is intentionally compatible with the current workspace shape, but the
 first publish should not happen until these are resolved or explicitly waived:
 
 - the deferred business decisions are made: distribution channel
-  (`loreweaver-bo2`) and commercialization model (`loreweaver-14h`)
+  (`eshyra-bo2`) and commercialization model (`eshyra-14h`)
 - final source-code license, repository, and provenance metadata are added, the
   `UNLICENSED` placeholder is replaced, and publishable workspaces are no longer
   marked `private`

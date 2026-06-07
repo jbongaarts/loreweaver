@@ -272,6 +272,6 @@ domain, original, or publisher-licensed, with license and provenance recorded in
 pack metadata.
 
 Third-party adventure or module source legality is also separate from the
-repository license. That review remains tracked by bead `loreweaver-9s6`; this
+repository license. That review remains tracked by bead `eshyra-9s6`; this
 repository must not bundle or publish third-party adventure text until that
 source is confirmed open, public domain, original, or publisher-licensed.
