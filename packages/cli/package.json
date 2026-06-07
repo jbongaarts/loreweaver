@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "description": "Command-line interface for running local Loreweaver campaigns.",
   "private": true,
+  "license": "UNLICENSED",
   "type": "module",
   "files": [
     "dist"

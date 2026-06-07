@@ -242,6 +242,10 @@ content lives in the npm package build output.
 
 ## Contributing
 
+- **External code contributions are not accepted yet.** The source-code license
+  is deferred, so there is no inbound license under which outside contributions
+  could be received. See [CONTRIBUTING.md](CONTRIBUTING.md) and
+  [docs/licensing.md](docs/licensing.md).
 - Issue tracking uses **bd (beads)**, not GitHub issues or markdown TODO lists.
   Run `bd ready` to find available work and `bd prime` for the full workflow.
 - Operational guidance for both humans and AI agents lives in
@@ -254,10 +258,13 @@ content lives in the npm package build output.
 
 ## License
 
-The Loreweaver source-code license is not finalized. Until a repository-level
-LICENSE file and package license metadata are added, the root workspace and both
-npm workspaces are marked private/unpublished and are not intended for npm
-publication.
+**No source-code license has been granted yet.** The decision is intentionally
+deferred pending the open commercialization and distribution decisions. Until it
+is made, the root workspace and both npm workspaces are marked `private` with
+`license` metadata `UNLICENSED`, are not intended for npm publication, and convey
+no rights to use, copy, modify, or redistribute the source code. The full
+posture — including why the decision is deferred and how it will be resolved — is
+in [docs/licensing.md](docs/licensing.md).
 
 That source-code decision is separate from bundled content licensing. Any
 bundled or publicly shared rules/campaign content must be open-licensed, public
