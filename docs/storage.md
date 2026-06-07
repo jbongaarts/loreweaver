@@ -169,6 +169,11 @@ Campaign checkpoint repos are separate from beads. The checkpoint store rejects
 paths or remotes that collide with the repository's `.beads` Dolt data, and
 campaign history must not use the beads-reserved `refs/dolt/data` sync ref.
 
+The serialized snapshot is optimized for restore/fork correctness, not for
+semantic "what changed in the campaign?" diffs. An optional semantic projection
+layer is designed — but deliberately deferred until a history UX needs it — in
+[docs/checkpoint-semantic-projection.md](checkpoint-semantic-projection.md).
+
 ## Dolt Binary Cache
 
 Eshyra resolves the Dolt binary in this order:
