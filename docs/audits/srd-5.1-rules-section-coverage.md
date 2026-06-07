@@ -165,8 +165,8 @@ with a `category` discriminator.**
   **Druids and the Gods** (p.23), **Breaking Your Oath** (p.33),
   **Your Pact Boon** (p.51), and **Your Spellbook** (p.54)
   (`loreweaver-0m9.5.23`).
-- Class, subclass, and feature bodies stop before each box, so those records
-  remain uncontaminated while the standalone rule retains the callout prose.
+- Subclass and feature bodies stop before each box; base-class records extract
+  labeled fields and do not absorb callout prose.
   Inclusion is defined by the source's gray-box structure, not semantic
   category; procedural, illustrative, and lore boxes are treated uniformly.
 
