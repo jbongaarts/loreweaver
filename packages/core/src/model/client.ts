@@ -99,9 +99,10 @@ export type ModelStopReason = 'end_turn' | 'tool_use' | 'max_tokens' | 'other';
  * through the fenced-text `tool_call` protocol parsed out of `text`. To keep
  * that gap from silently dropping mechanical actions, `runModelLoop` rejects
  * any result that carries native tool calls or `stopReason: 'tool_use'` with a
- * loud `OrchestratorError`. A native-tool adapter must wait until the loop is
- * taught to consume these fields (the bead audit is eshyra-0jq.25). Until then,
- * adapters MUST leave them unset.
+ * loud `OrchestratorError` (that guard/audit work is eshyra-0jq.25 / PR #169).
+ * Native consumption — normalizing these fields into the same internal
+ * tool-request path as the fenced protocol — is planned under epic eshyra-1q5;
+ * until that lands, adapters MUST leave `toolCalls` / `stopReason` unset.
  */
 export interface ModelCompleteResult {
   /** Free-text assistant response. Always present, possibly empty. */
