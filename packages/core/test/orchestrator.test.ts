@@ -41,6 +41,20 @@ class FailingModel implements ModelClient {
   }
 }
 
+/**
+ * A ModelClient that returns a native tool-use result — the seam a future
+ * native-tool adapter would populate (eshyra-0jq.25). The runtime does not
+ * consume `toolCalls`/`stopReason` yet, so the loop must reject this loudly
+ * rather than drop the mechanical action. Defaults to populating both signals;
+ * a single signal can be exercised by overriding the result.
+ */
+class NativeToolModel implements ModelClient {
+  constructor(private readonly result: ModelCompleteResult) {}
+  complete(): Promise<ModelCompleteResult> {
+    return Promise.resolve(this.result);
+  }
+}
+
 function withOpenScene(db: Db): void {
   openScene(db, {
     campaignId: CAMPAIGN,
@@ -202,6 +216,56 @@ describe('orchestrator turn loop', () => {
         sceneId: 'scene-0',
       }),
     ).toEqual([]);
+    db.close();
+  });
+
+  it('rejects a native toolCalls result instead of dropping the mechanical action (eshyra-0jq.25)', async () => {
+    const db = freshDbWithSession();
+    withOpenScene(db);
+    db.prepare(
+      `UPDATE character SET hp_max = 20, hp_current = 15 WHERE id = 'pc-1'`,
+    ).run();
+    // A native-tool adapter signals "run adjust_hp" through the structured
+    // channel. The narration text carries NO fenced tool_call, so without the
+    // guard the loop would treat this text as final narration and succeed —
+    // silently losing the HP change. `stopReason` is deliberately left unset so
+    // this test isolates the `toolCalls` rejection branch.
+    const model = new NativeToolModel({
+      text: 'You bandage your wounds.',
+      toolCalls: [{ name: 'adjust_hp', args: { amount: -3 } }],
+    });
+
+    const result = await runTurn(
+      { db, model, registry: createDefaultToolRegistry() },
+      baseInput(),
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain('native tool-use');
+    // The HP was NOT changed — the turn rolled back rather than partially
+    // applying or silently dropping the native call.
+    const row = db
+      .prepare(`SELECT hp_current FROM character WHERE id = 'pc-1'`)
+      .get() as { hp_current: number };
+    expect(row.hp_current).toBe(15);
+    db.close();
+  });
+
+  it('rejects a stopReason="tool_use" result even with no toolCalls array (eshyra-0jq.25)', async () => {
+    const db = freshDbWithSession();
+    withOpenScene(db);
+    const model = new NativeToolModel({
+      text: 'You ready your blade.',
+      stopReason: 'tool_use',
+    });
+
+    const result = await runTurn(
+      { db, model, registry: createDefaultToolRegistry() },
+      baseInput(),
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain('native tool-use');
     db.close();
   });
 
