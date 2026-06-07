@@ -239,6 +239,15 @@ bd close <id>         # Complete work
 
 **Architecture in one line:** issues live in a local Dolt DB; sync uses `refs/dolt/data` on your git remote; `.beads/issues.jsonl` is a passive export. See https://github.com/gastownhall/beads/blob/main/docs/SYNC_CONCEPTS.md for details and anti-patterns.
 
+### Issue Prefix Migration
+
+This repository supports both `loreweaver-*` (existing) and `eshyra-*` (new) issue prefixes:
+
+- **Existing issues:** All `loreweaver-*` IDs remain valid and unchanged. New child issues can still be created beneath existing loreweaver-* epics.
+- **New work:** Top-level issues created going forward use the `eshyra-*` prefix.
+- **Configuration:** The database config accepts both prefixes via `allowed_prefixes`. The active generation prefix is set in `.beads/config.yaml` as `issue-prefix: "eshyra"`.
+- **Safety:** Do **NOT** use `bd rename-prefix` — it rewrites all existing IDs and text references throughout the history, breaking links and consistency. Existing IDs must never be renamed.
+
 ## Session Completion
 
 **When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
