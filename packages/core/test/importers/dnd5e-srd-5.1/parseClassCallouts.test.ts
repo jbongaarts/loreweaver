@@ -163,4 +163,20 @@ describe('parseClassCallouts', () => {
       }),
     ]);
   });
+
+  it('removes apostrophes when normalizing class-qualified keys', () => {
+    const callout = tieredPage(116, [
+      ['Wizard', 25.92],
+      ["Wizard's Notes", 10.8],
+      ['Fixture body text.', 9.84],
+      ['Arcane Tradition', 12],
+    ]);
+
+    expect(parseClassCallouts([callout])).toEqual([
+      expect.objectContaining({
+        name: "Wizard's Notes",
+        keySlug: 'wizard-wizards-notes',
+      }),
+    ]);
+  });
 });

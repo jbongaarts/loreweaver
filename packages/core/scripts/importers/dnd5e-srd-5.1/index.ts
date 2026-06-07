@@ -846,7 +846,7 @@ export const EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES: readonly string[] = [
 ];
 
 /**
- * Reviewed, checked-in SRD 5.1 core-rules `rule`-key baseline (loreweaver-yli).
+ * Reviewed, checked-in SRD 5.1 combined implemented `rule`-key baseline.
  * The nesting-aware `parseRules` emits one `rule` record per heading across the
  * Using Ability Scores, Adventuring, and Combat chapters — subsection (font
  * h≈18), sub-subsection (h≈13.9), leaf (h≈12), and gray callout-box (h≈10.8,
