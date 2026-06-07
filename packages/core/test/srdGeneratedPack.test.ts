@@ -112,9 +112,10 @@ const EXPECTED_COUNTS_BY_KIND: Readonly<Record<string, number>> = {
   'magic-item': 238,
   // Nesting-aware core-rules parse: one rule per heading across the Using
   // Ability Scores, Adventuring, and Combat chapters (loreweaver-yli, 127),
-  // plus 34 general Spellcasting rules and five Madness/Objects rules,
-  // validated exactly against EXPECTED_SRD_5_1_RULE_KEYS.
-  rule: 166,
+  // plus 34 general Spellcasting rules, five Madness/Objects rules, and five
+  // Classes-chapter callout rules, validated exactly against
+  // EXPECTED_SRD_5_1_RULE_KEYS.
+  rule: 171,
   spell: 319,
   subclass: 12,
   // Difficulty Classes, two trap tables, three Madness tables, and two Objects
@@ -1044,6 +1045,63 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
       const body = data.text ?? data.description;
       expect(typeof body).toBe('string');
       return body as string;
+    }
+
+    const expectedCalloutRules: ReadonlyArray<{
+      readonly key: string;
+      readonly locator: string;
+      readonly bodyPhrase: string;
+      readonly excludedPhrase?: string;
+    }> = [
+      {
+        key: 'rule:druid-druids-and-the-gods',
+        locator: 'p. 23',
+        bodyPhrase: 'nature deities',
+        excludedPhrase: 'As a fighter, you gain the following class features',
+      },
+      {
+        key: 'rule:druid-sacred-plants-and-wood',
+        locator: 'p. 22',
+        bodyPhrase: 'A druid holds certain plants to be sacred',
+        excludedPhrase: 'nature deities',
+      },
+      {
+        key: 'rule:paladin-breaking-your-oath',
+        locator: 'p. 33',
+        bodyPhrase: 'impenitent paladin',
+        excludedPhrase: 'As a ranger, you gain the following class features',
+      },
+      {
+        key: 'rule:warlock-your-pact-boon',
+        locator: 'p. 51',
+        bodyPhrase: 'Pact of the Chain',
+        excludedPhrase: 'As a wizard, you gain the following class features',
+      },
+      {
+        key: 'rule:wizard-your-spellbook',
+        locator: 'p. 54',
+        bodyPhrase: 'the process takes 2 hours and costs 50 gp',
+      },
+    ];
+
+    for (const expected of expectedCalloutRules) {
+      it(`emits ${expected.key} as an independent rule`, () => {
+        const record = pack.records.find(
+          (candidate) => candidate.key === expected.key,
+        );
+        expect(
+          record,
+          `expected ${expected.key} in the committed pack`,
+        ).toBeDefined();
+        expect(record?.kind).toBe('rule');
+        const data = record?.data as { text?: unknown };
+        expect(typeof data.text).toBe('string');
+        expect(data.text).toContain(expected.bodyPhrase);
+        if (expected.excludedPhrase !== undefined) {
+          expect(data.text).not.toContain(expected.excludedPhrase);
+        }
+        expect(record?.provenance.locator).toBe(expected.locator);
+      });
     }
 
     // Each entry: the record whose body used to absorb the box, and a phrase

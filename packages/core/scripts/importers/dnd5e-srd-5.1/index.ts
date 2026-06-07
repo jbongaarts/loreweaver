@@ -45,6 +45,7 @@ import { buildPack, writePackToDirectory } from './emit.js';
 import { extractPdfText } from './extract.js';
 import { parseActions } from './parseActions.js';
 import { parseAncestries } from './parseAncestries.js';
+import { parseClassCallouts } from './parseClassCallouts.js';
 import { parseClasses } from './parseClasses.js';
 import { parseConditions } from './parseConditions.js';
 import { parseCreatures } from './parseCreatures.js';
@@ -875,13 +876,14 @@ export const EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES: readonly string[] = [
  * `table` kind owns (Ability Scores and Modifiers score table, Typical
  * Difficulty Classes, Travel Pace, Size Categories).
  *
- * The general Spellcasting-rules chapter (loreweaver-3hp) adds the second block
- * below (34 keys). It is a separate slice (`spellcastingRules`, "Spellcasting" →
- * "Spell Lists") parsed by the same nesting-aware `parseRules` and concatenated;
- * the four titles it shares with the core-rules chapters ("Attack Rolls",
- * "Range", "Reactions", "Saving Throws") parent-qualify to
- * `rule:casting-a-spell-*` / `rule:casting-time-reactions` so the core keys
- * above stay untouched and no `rule:` key is duplicated across the two slices.
+ * The full baseline is 127 core-rules keys, 34 general Spellcasting keys, five
+ * gamemastering Madness/Objects keys, and five Classes-chapter callout keys.
+ * Spellcasting is a separate slice (`spellcastingRules`, "Spellcasting" →
+ * "Spell Lists") parsed by the same nesting-aware `parseRules`; the four titles
+ * it shares with the core-rules chapters ("Attack Rolls", "Range", "Reactions",
+ * "Saving Throws") parent-qualify to `rule:casting-a-spell-*` /
+ * `rule:casting-time-reactions` so the core keys stay untouched and no `rule:`
+ * key is duplicated across slices.
  */
 export const EXPECTED_SRD_5_1_RULE_KEYS: readonly string[] = [
   'rule:ability-checks',
@@ -1053,6 +1055,12 @@ export const EXPECTED_SRD_5_1_RULE_KEYS: readonly string[] = [
   'rule:madness',
   'rule:madness-effects',
   'rule:objects',
+  // Classes-chapter callout boxes (loreweaver-0m9.5.23).
+  'rule:druid-druids-and-the-gods',
+  'rule:druid-sacred-plants-and-wood',
+  'rule:paladin-breaking-your-oath',
+  'rule:warlock-your-pact-boon',
+  'rule:wizard-your-spellbook',
 ];
 
 export const EXPECTED_SRD_5_1_TABLE_NAMES: readonly string[] = [
@@ -1883,11 +1891,11 @@ export async function runImporter(
     reservedRuleKeySlugs,
   );
   const gamemasteringRules = parseGamemasteringRules(madnessPages, objectPages);
-  const rules = [...coreRules, ...spellcastingRules, ...gamemasteringRules];
-  // Fail closed before any output is written when the real import (CLI) supplies
-  // the exact expected rule-key set and the nesting-aware parse drifts from it
-  // (loreweaver-yli, extended for the spellcasting chapter by loreweaver-3hp).
-  validateRuleCoverage(rules, input.expectedRuleKeys);
+  const nonClassRules = [
+    ...coreRules,
+    ...spellcastingRules,
+    ...gamemasteringRules,
+  ];
   // The two trap reference tables live in the Traps slice (loreweaver-hvp); feed
   // it alongside the core-rules and treasure slices so parseTables reconstructs
   // them with the same anchored row rules.
@@ -1910,6 +1918,12 @@ export async function runImporter(
   // match — class is an implemented kind, so fail closed rather than emit a
   // pack without classes (the classes anchor sets requireEndHeading: true).
   const classPages = sliceSection(pages, anchors.classes);
+  const classCalloutRules = parseClassCallouts(classPages);
+  const rules = [...nonClassRules, ...classCalloutRules];
+  // Fail closed before any output is written when the real import (CLI) supplies
+  // the exact expected rule-key set and any implemented rule slice drifts from
+  // it (loreweaver-yli, loreweaver-3hp, and loreweaver-0m9.5.23).
+  validateRuleCoverage(rules, input.expectedRuleKeys);
   const classes = parseClasses(classPages);
   // Fail closed before any output is written if class extraction is empty or
   // (when a floor is supplied) implausibly small. Class is an implemented kind.
