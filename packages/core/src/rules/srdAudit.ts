@@ -220,8 +220,14 @@ const GRANT_LEAD_IN =
 // A Title-Case heading (1-5 words) immediately followed by a grant lead-in:
 // "Remarkable Athlete Starting at 7th level", "Survivor At 18th level". The
 // capture is the swallowed feature's heading.
+//
+// The negative lookbehind excludes the spellcasting sub-heading "Spells Known
+// of Nth Level and Higher", whose body opens "At 1st level, you know …". There
+// the capture would be the lone Title-Case word "Higher" (preceded by the
+// lowercase "and"), and the following "At 1st level" is the sub-section's body,
+// not a swallowed feature grant — a false positive (eshyra-tzl).
 const HEADING_GRANT_PAIR =
-  /([A-Z][\w'’]+(?:\s+[A-Z][\w'’]+){0,4})\s+(?:Beginning at|Starting at|Beginning when you|When you reach\s+\d{1,2}(?:st|nd|rd|th)\s+level|At\s+\d{1,2}(?:st|nd|rd|th)\s+level)/g;
+  /(?<!Level and )([A-Z][\w'’]+(?:\s+[A-Z][\w'’]+){0,4})\s+(?:Beginning at|Starting at|Beginning when you|When you reach\s+\d{1,2}(?:st|nd|rd|th)\s+level|At\s+\d{1,2}(?:st|nd|rd|th)\s+level)/g;
 
 function swallowedHeadings(description: string): string[] {
   const headings: string[] = [];
