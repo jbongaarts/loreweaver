@@ -300,6 +300,19 @@ export type {
   SrdSpellRecord,
 } from './rules/srd/types.js';
 export type {
+  SrdAuditCategory,
+  SrdAuditFinding,
+  SrdCoverageExpectations,
+  SrdStructureAudit,
+} from './rules/srdAudit.js';
+export {
+  auditSrd,
+  auditSrdCoverage,
+  auditSrdStructure,
+  formatSrdAuditReport,
+  srdAuditHasFindings,
+} from './rules/srdAudit.js';
+export type {
   ResolvedRulesStack,
   ResolveRulesStackInput,
   RulesStackKindIndex,
