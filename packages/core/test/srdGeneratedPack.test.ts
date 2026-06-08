@@ -148,27 +148,27 @@ const EXPECTED_COUNTS_BY_KIND: Readonly<Record<string, number>> = {
   //   (feature:cleric:channel-divinity, feature:life-domain:channel-divinity-
   //   preserve-life). The subclass blurbs are produced by parseSubclasses and
   //   are unchanged.
-  // 169 -> 182 (eshyra-7tc): the Classes slice begins AFTER the "Barbarian"
-  // chapter heading (it is the `classes` section-anchor start boundary, excluded
-  // from the slice), so parseFeatures opened no class context for the Barbarian
-  // body and dropped every Barbarian base-class feature. parseFeatures now opens
-  // implicit Barbarian class context at the start of the slice (mirroring
-  // parseSubclasses' `currentParent = 'Barbarian'` default), recovering the 13
-  // Barbarian base features whose grant rows the progression table anchors
-  // cleanly: feature:barbarian:rage (1), :reckless-attack (2), :danger-sense (2),
+  // 169 -> 183 (eshyra-7tc + eshyra-ai9): the Classes slice begins AFTER the
+  // "Barbarian" chapter heading (it is the `classes` section-anchor start
+  // boundary, excluded from the slice), so parseFeatures opened no class context
+  // for the Barbarian body and dropped every Barbarian base-class feature.
+  // parseFeatures now opens implicit Barbarian class context at the start of the
+  // slice (mirroring parseSubclasses' `currentParent = 'Barbarian'` default),
+  // recovering all 14 SRD 5.1 Barbarian base features: feature:barbarian:rage
+  // (1), :unarmored-defense (1), :reckless-attack (2), :danger-sense (2),
   // :primal-path (3), :ability-score-improvement (4), :extra-attack (5),
   // :fast-movement (5), :feral-instinct (7), :brutal-critical (9),
   // :relentless-rage (11), :persistent-rage (15), :indomitable-might (18),
-  // :primal-champion (20). The 14th SRD Barbarian feature, Unarmored Defense
-  // (1st), is NOT yet recovered: the Barbarian table's 1st-level row interleaves
-  // the Rages/Rage Damage numeric columns BETWEEN the wrapped feature words
-  // ("Rage," | "2 +2" | "Unarmored" | "Defense"), so row-stitching yields the
-  // cell "Rage, 2 +2 Unarmored Defense" and the anchor key becomes "2 +2
-  // unarmored defense"; the body "Unarmored Defense" heading matches no anchor
-  // and is swallowed into Rage's body. That interleaved-column wrap is a separate
-  // table-extraction root cause tracked in its own follow-up bead, deliberately
-  // out of scope here per docs/importer-fix-protocol.md.
-  feature: 182,
+  // :primal-champion (20). Unarmored Defense (1st) required a second fix
+  // (eshyra-ai9): the Barbarian table is the only SRD 5.1 class table whose
+  // Features column is followed by numeric columns (Rages, Rage Damage), so its
+  // 1st-level row extracts with those numerics interleaved before the wrapped
+  // cell remainder ("1st +2 Rage, 2 +2" | "Unarmored" | "Defense"). Row-stitching
+  // now strips the trailing numeric columns before joining the continuation,
+  // reuniting the cell as "Rage, Unarmored Defense"; both Rage and Unarmored
+  // Defense emit at level 1 with source-bounded descriptions (Rage's body no
+  // longer absorbs the Unarmored Defense heading/body).
+  feature: 183,
   // 8 sample traps (loreweaver-hvp) + 3 sample diseases + 14 sample poisons
   // (loreweaver-6ra) all emit under the `hazard` kind; SRD 5.1 has no
   // environmental hazards. Traps carry a `trapType` discriminator; diseases and
@@ -556,13 +556,14 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
       ]);
     });
 
-    it('emits the recovered Barbarian base-class features at their grant levels (eshyra-7tc)', () => {
+    it('emits the complete SRD Barbarian base-class feature set at their grant levels (eshyra-7tc, eshyra-ai9)', () => {
       // The Classes slice begins after the sliced-away "Barbarian" chapter
-      // heading; parseFeatures' implicit Barbarian class context recovers these
-      // 13 base features (previously dropped entirely). Unarmored Defense (1st)
-      // is intentionally absent — its 1st-level table row interleaves numeric
-      // columns into the wrapped feature cell, so its anchor is malformed and the
-      // heading is swallowed into Rage's body (separate follow-up bead).
+      // heading; parseFeatures' implicit Barbarian class context recovers the
+      // base features (previously dropped entirely). Unarmored Defense (1st) is
+      // recovered by the eshyra-ai9 row-stitching fix that strips the Barbarian
+      // table's trailing Rages/Rage Damage numeric columns before reuniting the
+      // wrapped feature cell, so it is its own record rather than swallowed into
+      // Rage. This is the full 14-feature SRD 5.1 Barbarian base set.
       expect(featureProjection('class:barbarian')).toEqual([
         { name: 'Ability Score Improvement', level: 4 },
         { name: 'Brutal Critical', level: 9 },
@@ -577,6 +578,7 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
         { name: 'Rage', level: 1 },
         { name: 'Reckless Attack', level: 2 },
         { name: 'Relentless Rage', level: 11 },
+        { name: 'Unarmored Defense', level: 1 },
       ]);
     });
 

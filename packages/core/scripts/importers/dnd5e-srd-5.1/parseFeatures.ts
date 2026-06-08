@@ -179,6 +179,21 @@ function isRowContinuation(line: string): boolean {
 }
 
 /**
+ * Strip trailing table-column cells (bare integers, em-dashes, signed bonuses,
+ * dice tags) off the end of a progression-row tail, repeatedly, leaving just the
+ * Features-column text. The level + proficiency-bonus prefix is protected: those
+ * tokens sit to the LEFT of the feature text, so the right-anchored strip never
+ * reaches them once any feature word is present.
+ */
+function stripTrailingTableCells(text: string): string {
+  let out = text;
+  while (TRAILING_TABLE_CELL.test(out)) {
+    out = out.replace(TRAILING_TABLE_CELL, '').trim();
+  }
+  return out;
+}
+
+/**
  * Stitch wrapped progression-table cells back onto their row before any feature
  * detection runs. A wrapped cell always sits BETWEEN two progression rows, so a
  * run of continuation candidates is merged into the preceding row only when it
@@ -192,6 +207,19 @@ function isRowContinuation(line: string): boolean {
  * (Druid "Ability Score Improvement", Bard "Magical Secrets"), and a wrapped
  * repeated-use fragment ("Indomitable (three uses)") is mistaken for a standalone
  * feature heading and overrides the canonical name.
+ *
+ * Continuation position (eshyra-ai9): the wrapped continuation belongs to the
+ * Features cell, which is bounded on the right by any numeric columns printed
+ * after it on the row's first extracted line. The Barbarian table is the only
+ * SRD 5.1 class table whose Features column is followed by numeric columns
+ * (Rages, Rage Damage), so its 1st-level row extracts as "1st +2 Rage, 2 +2"
+ * with the wrapped "Unarmored Defense" on the following lines. Appending the
+ * continuation onto the raw row would interleave those numerics inside the cell
+ * ("Rage, 2 +2 Unarmored Defense") and corrupt the second feature's anchor. So
+ * the row's trailing table-column cells are stripped before the continuation is
+ * joined, reuniting the cell as "Rage, Unarmored Defense". For every other class
+ * the row has no trailing numeric column, so the strip is a no-op and the merge
+ * is unchanged.
  */
 function stitchProgressionRows(flat: readonly FlatLine[]): FlatLine[] {
   const out: FlatLine[] = [];
@@ -214,7 +242,8 @@ function stitchProgressionRows(flat: readonly FlatLine[]): FlatLine[] {
       j < flat.length &&
       PROGRESSION_ROW.test(flat[j].line)
     ) {
-      out.push({ ...row, line: `${row.line} ${continuation.join(' ')}` });
+      const head = stripTrailingTableCells(row.line);
+      out.push({ ...row, line: `${head} ${continuation.join(' ')}` });
       i = j;
     } else {
       out.push(row);
@@ -342,10 +371,7 @@ function progressionFeaturesFromLine(
   const match = PROGRESSION_ROW.exec(line);
   if (match === null) return null;
 
-  let featureCell = match[2].trim();
-  while (TRAILING_TABLE_CELL.test(featureCell)) {
-    featureCell = featureCell.replace(TRAILING_TABLE_CELL, '').trim();
-  }
+  const featureCell = stripTrailingTableCells(match[2].trim());
 
   return {
     level: Number.parseInt(match[1], 10),
