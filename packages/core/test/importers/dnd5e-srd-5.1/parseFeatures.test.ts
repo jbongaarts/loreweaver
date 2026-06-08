@@ -591,6 +591,149 @@ describe('parseFeatures — first sliced class and Path of the Berserker', () =>
   });
 });
 
+// ---------------------------------------------------------------------------
+// Real-PDF regression (eshyra-7tc): the classes slice begins AFTER the
+// "Barbarian" chapter heading (the `classes` section anchor consumes that
+// heading as its start boundary), so the Barbarian base-class body — every
+// feature from Rage (1st) through Primal Champion (20th) — is printed with no
+// preceding base-class heading to open class context. The parser must open
+// implicit Barbarian class context at the start of the slice (mirroring
+// `parseSubclasses`' `currentParent = 'Barbarian'` default) so those features
+// are attributed to Barbarian instead of being dropped while `currentClass`
+// stays null until the first subclass heading.
+//
+// Interleaved-column regression (eshyra-ai9): the Barbarian table is the only
+// SRD 5.1 class table whose Features column is followed by numeric columns
+// (Rages, Rage Damage). When a feature cell wraps, the numerics stay on the
+// row's first extracted line and the cell's remainder wraps to following lines,
+// so the 1st-level row extracts across three lines:
+//   "1st +2 Rage, 2 +2"   (numerics "2 +2" = Rages=2, Rage Damage=+2)
+//   "Unarmored"
+//   "Defense"
+// Naively appending the "Unarmored"/"Defense" continuation onto the row would
+// interleave the numerics inside the cell ("Rage, 2 +2 Unarmored Defense") and
+// the Unarmored Defense anchor would be lost — its body heading (which carries
+// no "Nth level" lead-in) would then be swallowed into Rage's body. Stitching
+// strips the row's trailing numeric columns before joining the continuation, so
+// both feature:barbarian:rage (1) and feature:barbarian:unarmored-defense (1)
+// emit with source-bounded descriptions.
+//
+// Font tiers mirror the real extraction: chapter title h=25.9 (absent here,
+// sliced away), feature headings h≈13.92, the "The Barbarian" table title h=12,
+// table rows h=8.88, body prose h=9.84.
+// ---------------------------------------------------------------------------
+
+const BARBARIAN_BASE_FEATURES_REAL_PDF_SHAPE = [
+  tieredPage(8, [
+    ['The Barbarian', 12],
+    ['Proficiency Rage', 8.88],
+    ['Level Bonus Features Rages Damage', 8.88],
+    // Feature cells that wrap with the Rages/Rage Damage numerics interleaved on
+    // the row's first line — the exact shape the SRD 5.1 PDF extracts.
+    ['1st +2 Rage, 2 +2', 8.88],
+    ['Unarmored', 8.88],
+    ['Defense', 8.88],
+    ['2nd +2 Reckless 2 +2', 8.88],
+    ['Attack,', 8.88],
+    ['Danger Sense', 8.88],
+    ['3rd +2 Primal Path 3 +2', 8.88],
+    ['4th +2 Ability Score 3 +2', 8.88],
+    ['Improvement', 8.88],
+    ['9th +4 Brutal Critical 4 +3', 8.88],
+    ['(1 die)', 8.88],
+    ['Class Features', 13.92],
+    ['Hit Dice: 1d12 per barbarian level', 9.84],
+    ['Armor: Light armor, medium armor, shields', 9.84],
+    ['Weapons: Simple weapons, martial weapons', 9.84],
+    ['Saving Throws: Strength, Constitution', 9.84],
+    ['Rage', 13.92],
+    ['In battle, you fight with primal ferocity. On your turn, you can', 9.84],
+    ['enter a rage as a bonus action. Once you have raged the number', 9.84],
+    ['of times shown for your level, you must finish a long rest before', 9.84],
+    ['you can rage again.', 9.84],
+    ['Unarmored Defense', 13.92],
+    ['While you are not wearing any armor, your Armor Class equals 10 +', 9.84],
+    ['your Dexterity modifier + your Constitution modifier.', 9.84],
+    ['Reckless Attack', 13.92],
+    [
+      'Starting at 2nd level, you can throw aside all concern for defense.',
+      9.84,
+    ],
+    ['Primal Path', 13.92],
+    [
+      'At 3rd level, you choose a path that shapes the nature of your rage.',
+      9.84,
+    ],
+    ['Ability Score Improvement', 13.92],
+    ['When you reach 4th level, and again at 8th, 12th, 16th, and 19th', 9.84],
+    ['level, you can increase one ability score by 2.', 9.84],
+    ['Brutal Critical', 13.92],
+    [
+      'Beginning at 9th level, you can roll one additional weapon damage die',
+      9.84,
+    ],
+    ['when determining the extra damage for a critical hit.', 9.84],
+  ]),
+];
+
+describe('parseFeatures — Barbarian base-class features after the chapter heading is sliced away', () => {
+  const features = parseFeatures(BARBARIAN_BASE_FEATURES_REAL_PDF_SHAPE);
+  const byName = new Map(features.map((f) => [f.name, f]));
+
+  it('emits Rage as a Barbarian class feature at level 1', () => {
+    const rage = byName.get('Rage');
+    expect(rage?.grantorKind).toBe('class');
+    expect(rage?.grantorName).toBe('Barbarian');
+    expect(rage?.level).toBe(1);
+  });
+
+  it('does not swallow the Unarmored Defense heading or body into Rage', () => {
+    const rage = byName.get('Rage');
+    expect(rage?.description).toMatch(/you can rage again\./);
+    expect(rage?.description).not.toMatch(/Unarmored Defense/);
+    expect(rage?.description).not.toMatch(/wearing any armor/);
+  });
+
+  it('emits Unarmored Defense as its own Barbarian feature at level 1', () => {
+    const unarmored = byName.get('Unarmored Defense');
+    expect(unarmored?.grantorKind).toBe('class');
+    expect(unarmored?.grantorName).toBe('Barbarian');
+    expect(unarmored?.level).toBe(1);
+    expect(unarmored?.description).toMatch(/your Armor Class equals/);
+  });
+
+  it('emits Ability Score Improvement at level 4 from the progression table', () => {
+    const asi = byName.get('Ability Score Improvement');
+    expect(asi?.grantorKind).toBe('class');
+    expect(asi?.grantorName).toBe('Barbarian');
+    expect(asi?.level).toBe(4);
+  });
+
+  it('emits Brutal Critical at level 9 (parens stripped from the table cell)', () => {
+    const brutal = byName.get('Brutal Critical');
+    expect(brutal?.grantorKind).toBe('class');
+    expect(brutal?.grantorName).toBe('Barbarian');
+    expect(brutal?.level).toBe(9);
+  });
+
+  it('attributes every detected feature to Barbarian, none dropped', () => {
+    expect(
+      features.map(({ name, grantorName, level }) => ({
+        name,
+        grantorName,
+        level,
+      })),
+    ).toEqual([
+      { name: 'Ability Score Improvement', grantorName: 'Barbarian', level: 4 },
+      { name: 'Brutal Critical', grantorName: 'Barbarian', level: 9 },
+      { name: 'Primal Path', grantorName: 'Barbarian', level: 3 },
+      { name: 'Rage', grantorName: 'Barbarian', level: 1 },
+      { name: 'Reckless Attack', grantorName: 'Barbarian', level: 2 },
+      { name: 'Unarmored Defense', grantorName: 'Barbarian', level: 1 },
+    ]);
+  });
+});
+
 const PALADIN_OATH_TABLE_REAL_PDF_SHAPE = tieredPage(33, [
   ['Paladin', 25.92],
   ['Sacred Oaths', 13.92],
