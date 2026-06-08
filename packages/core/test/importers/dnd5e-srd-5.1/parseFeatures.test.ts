@@ -822,3 +822,138 @@ describe('parseFeatures — later Circle of the Land features are not skipped', 
     );
   });
 });
+
+// ---------------------------------------------------------------------------
+// Repeated-use feature naming and earliest-grant level (eshyra-0m9.14).
+//
+// The SRD class progression tables wrap a single table cell across two
+// extracted lines when the feature text is too wide for the column. The
+// continuation line carries the rest of the cell (a wrapped word, or a
+// repeated-use parenthetical such as "Indomitable (three uses)"). The parser
+// must stitch the continuation back onto its row so that (a) a repeated-use
+// feature keeps its canonical base name and its EARLIEST grant level, and
+// (b) the wrapped fragment is never mistaken for a standalone feature heading.
+//
+// Excerpts reproduced from SRD 5.1 (CC-BY-4.0); reformatted to the importer's
+// extracted-line shape, with the column wrap preserved as separate lines.
+// ---------------------------------------------------------------------------
+
+const FIGHTER_INDOMITABLE_REPEATED = page(74, [
+  'Fighter',
+  'The Fighter',
+  'Level Proficiency Bonus Features',
+  '1st +2 Fighting Style, Second Wind',
+  '2nd +2 Action Surge (one use)',
+  '9th +4 Indomitable (one use)',
+  '13th +5 Indomitable (two uses)',
+  '17th +6 Action Surge (two uses),',
+  'Indomitable (three uses)',
+  '18th +6 Martial Archetype feature',
+  'Class Features',
+  'Hit Dice: 1d10 per fighter level',
+  'Saving Throws: Strength, Constitution',
+  'Indomitable',
+  'Beginning at 9th level, you can reroll a saving throw that you fail. If',
+  'you do so, you must use the new roll, and you can’t use this feature again',
+  'until you finish a long rest.',
+  'You can use this feature twice between long rests starting at 13th level',
+  'and three times between long rests starting at 17th level.',
+]);
+
+describe('parseFeatures — repeated-use feature keeps its canonical name and earliest level', () => {
+  const features = parseFeatures([FIGHTER_INDOMITABLE_REPEATED]);
+  const indomitable = features.filter((f) => /^Indomitable/.test(f.name));
+
+  it('emits a single Indomitable record named for the canonical heading', () => {
+    expect(indomitable).toHaveLength(1);
+    expect(indomitable[0]?.name).toBe('Indomitable');
+    expect(indomitable[0]?.grantorKind).toBe('class');
+    expect(indomitable[0]?.grantorName).toBe('Fighter');
+  });
+
+  it('never adopts a later repeated-use parenthetical as the feature name', () => {
+    expect(features.map((f) => f.name)).not.toContain(
+      'Indomitable (three uses)',
+    );
+    expect(features.some((f) => /\((?:two|three) uses\)/.test(f.name))).toBe(
+      false,
+    );
+  });
+
+  it('records the earliest grant level (9), not a later repeated-use row', () => {
+    expect(indomitable[0]?.level).toBe(9);
+  });
+
+  it('preserves the usage progression in the feature body', () => {
+    expect(indomitable[0]?.description).toMatch(/twice between long rests/);
+    expect(indomitable[0]?.description).toMatch(/three times/);
+  });
+});
+
+const DRUID_ASI_WRAPPED_FIRST_ROW = page(76, [
+  'Druid',
+  'The Druid',
+  'Level Proficiency Bonus Features',
+  '1st +2 Druidic, Spellcasting',
+  '2nd +2 Wild Shape, Druid Circle',
+  '4th +2 Wild Shape improvement, Ability Score',
+  'Improvement',
+  '8th +3 Wild Shape improvement, Ability Score',
+  'Improvement',
+  '12th +4 Ability Score Improvement',
+  '16th +5 Ability Score Improvement',
+  'Class Features',
+  'Hit Dice: 1d8 per druid level',
+  'Saving Throws: Intelligence, Wisdom',
+  'Ability Score Improvement',
+  'When you reach 4th level, and again at 8th, 12th, 16th, and 19th level,',
+  'you can increase one ability score of your choice by 2.',
+]);
+
+describe('parseFeatures — repeated feature takes its earliest table row when the first row wraps', () => {
+  const features = parseFeatures([DRUID_ASI_WRAPPED_FIRST_ROW]);
+  const asi = features.find((f) => f.name === 'Ability Score Improvement');
+
+  it('extracts the feature and links it to the base class', () => {
+    expect(asi).toBeDefined();
+    expect(asi?.grantorKind).toBe('class');
+    expect(asi?.grantorName).toBe('Druid');
+  });
+
+  it('reads the earliest grant level (4) even though the 4th-level cell wraps', () => {
+    expect(asi?.level).toBe(4);
+  });
+});
+
+const BARD_MAGICAL_SECRETS_WRAPPED = page(78, [
+  'Bard',
+  'The Bard',
+  'Level Proficiency Bonus Features',
+  '1st +2 Spellcasting, Bardic Inspiration',
+  '(d6)',
+  '10th +4 Bardic Inspiration (d10),',
+  'Expertise, Magical Secrets',
+  '14th +5 Magical Secrets, Bard College',
+  'feature',
+  '18th +6 Magical Secrets',
+  'Class Features',
+  'Hit Dice: 1d8 per bard level',
+  'Saving Throws: Dexterity, Charisma',
+  'Magical Secrets',
+  'By 10th level, you have plundered magical knowledge from a wide spectrum',
+  'of disciplines.',
+]);
+
+describe('parseFeatures — Magical Secrets uses its earliest (wrapped) grant row', () => {
+  const features = parseFeatures([BARD_MAGICAL_SECRETS_WRAPPED]);
+  const secrets = features.find((f) => f.name === 'Magical Secrets');
+
+  it('extracts the feature and links it to the base class', () => {
+    expect(secrets).toBeDefined();
+    expect(secrets?.grantorName).toBe('Bard');
+  });
+
+  it('reads the earliest grant level (10) from the wrapped 10th-level row', () => {
+    expect(secrets?.level).toBe(10);
+  });
+});
