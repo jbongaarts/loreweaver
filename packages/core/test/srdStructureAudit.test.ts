@@ -248,6 +248,25 @@ describe('swallowed adjacent features', () => {
     expect(auditSrdStructure(pack([corrected]))).toEqual([]);
   });
 
+  it('does not flag the "Spells Known of 1st Level and Higher" spellcasting sub-heading (eshyra-tzl)', () => {
+    // Mirrors the committed feature:warlock:pact-magic body. "Spells Known of
+    // 1st Level and Higher" is a legitimate spellcasting sub-heading; the "At
+    // 1st level" that opens its body is NOT a swallowed feature grant, so the
+    // capture "Higher" must not be reported as a swallowed heading.
+    const pactMagic = record({
+      kind: 'feature',
+      key: 'feature:warlock:pact-magic',
+      name: 'Pact Magic',
+      data: {
+        source: 'class:warlock',
+        level: 1,
+        description:
+          'Your arcane research and the magic bestowed on you by your patron have given you facility with spells. Spells Known of 1st Level and Higher At 1st level, you know two 1st-level spells of your choice from the warlock spell list.',
+      },
+    });
+    expect(auditSrdStructure(pack([pactMagic]))).toEqual([]);
+  });
+
   it('does not flag a standalone feature that contains only its own lead-in', () => {
     const standalone = record({
       kind: 'feature',

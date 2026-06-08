@@ -136,7 +136,19 @@ const EXPECTED_COUNTS_BY_KIND: Readonly<Record<string, number>> = {
   //   of feature:druid:ability-score-improvement (12 -> 4) and
   //   feature:bard:magical-secrets (14 -> 10) now come from their wrapped first
   //   grant rows rather than a later un-wrapped row.
-  feature: 167,
+  // 167 -> 169 (eshyra-tzl): two subclass features whose grant level is stated
+  // by a subclass-entry lead-in the parser did not recognize are now emitted at
+  // their 3rd-level grant. Each lead-in occurs exactly once in the SRD 5.1
+  // Classes chapter:
+  //   feature:college-of-lore:bonus-proficiencies (3rd, "When you join the
+  //   College of Lore at 3rd level …") and feature:oath-of-devotion:channel-
+  //   divinity (3rd, "When you take this oath at 3rd level …", carrying the
+  //   Sacred Weapon and Turn the Unholy options). Emitting the latter is
+  //   consistent with the existing Channel Divinity feature precedent
+  //   (feature:cleric:channel-divinity, feature:life-domain:channel-divinity-
+  //   preserve-life). The subclass blurbs are produced by parseSubclasses and
+  //   are unchanged.
+  feature: 169,
   // 8 sample traps (loreweaver-hvp) + 3 sample diseases + 14 sample poisons
   // (loreweaver-6ra) all emit under the `hazard` kind; SRD 5.1 has no
   // environmental hazards. Traps carry a `trapType` discriminator; diseases and
@@ -460,26 +472,28 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
       //     Ward, Nature's Sanctuary) = the full SRD set (Bonus Cantrip, Natural
       //     Recovery, Circle Spells, Land's Stride, Nature's Ward, Nature's
       //     Sanctuary);
-      //   college-of-lore 2 -> 3 (+Cutting Words); the 3rd-level "Bonus
-      //     Proficiencies" remains swallowed via the unrecognized "When you
-      //     join … at 3rd level" lead-in (tracked follow-up);
+      //   college-of-lore 2 -> 4 (+Cutting Words in 0m9.13; +Bonus Proficiencies
+      //     in eshyra-tzl via the now-recognized "When you join … at 3rd level"
+      //     lead-in) = the full SRD set;
       //   draconic-bloodline 4 -> 5 (+Draconic Resilience);
       //   hunter 2 -> 4 (+Hunter's Prey, Superior Hunter's Defense);
       //   life-domain 4 -> 6 (+Disciple of Life, Channel Divinity: Preserve
       //     Life) = the full SRD set;
       //   the-fiend 2 -> 4 (+Dark One's Blessing, Dark One's Own Luck) = full set;
       //   thief 3 -> 5 (+Use Magic Device, Thief's Reflexes) = full set.
-      // oath-of-devotion stays 3: its 3rd-level "Channel Divinity" feature uses
-      // the unrecognized "When you take this oath at 3rd level" lead-in and is a
-      // tracked follow-up (changing it would alter the protected oath-body design).
+      // oath-of-devotion 3 -> 4 (eshyra-tzl): its 3rd-level "Channel Divinity"
+      // feature (Sacred Weapon + Turn the Unholy options) now emits via the
+      // now-recognized "When you take this oath at 3rd level" lead-in, consistent
+      // with the Cleric/Life Domain Channel Divinity feature precedent. The
+      // subclass:oath-of-devotion blurb (parseSubclasses) is unchanged.
       expect(Object.fromEntries([...counts.entries()].sort())).toEqual({
         'subclass:champion': 5,
         'subclass:circle-of-the-land': 6,
-        'subclass:college-of-lore': 3,
+        'subclass:college-of-lore': 4,
         'subclass:draconic-bloodline': 5,
         'subclass:hunter': 4,
         'subclass:life-domain': 6,
-        'subclass:oath-of-devotion': 3,
+        'subclass:oath-of-devotion': 4,
         'subclass:path-of-the-berserker': 4,
         'subclass:school-of-evocation': 5,
         'subclass:the-fiend': 4,
@@ -489,14 +503,18 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
     });
 
     it('attributes Oath of Devotion features to the subclass at correct levels', () => {
+      // Channel Divinity (3rd) recovered in eshyra-tzl; projection is sorted by
+      // name, so it sits first.
       expect(featureProjection('subclass:oath-of-devotion')).toEqual([
         { name: 'Aura of Devotion', level: 7 },
+        { name: 'Channel Divinity', level: 3 },
         { name: 'Holy Nimbus', level: 20 },
         { name: 'Purity of Spirit', level: 15 },
       ]);
 
       const oathFeatureNames = new Set([
         'Aura of Devotion',
+        'Channel Divinity',
         'Holy Nimbus',
         'Purity of Spirit',
       ]);
@@ -695,6 +713,44 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
       expect(descOf('feature:warlock:otherworldly-patron')).not.toMatch(
         /Pact Magic/,
       );
+    });
+  });
+
+  // eshyra-tzl: subclass features whose grant level is stated by a subclass-
+  // entry lead-in the parser previously did not recognize ("When you join …",
+  // "When you take this oath …") are now emitted at their 3rd-level grant, and
+  // the structure audit no longer false-positives on the "Spells Known of 1st
+  // Level and Higher" spellcasting sub-heading.
+  describe('subclass-entry lead-in recovery + audit refinement (eshyra-tzl)', () => {
+    const features = pack.records.filter((record) => record.kind === 'feature');
+    const byKey = new Map(features.map((record) => [record.key, record]));
+    const levelOf = (key: string): unknown =>
+      (byKey.get(key)?.data as { level?: unknown }).level;
+    const descOf = (key: string): string =>
+      (byKey.get(key)?.data as { description?: unknown }).description as string;
+
+    it('emits College of Lore Bonus Proficiencies at its 3rd-level entry grant', () => {
+      expect(byKey.has('feature:college-of-lore:bonus-proficiencies')).toBe(
+        true,
+      );
+      expect(levelOf('feature:college-of-lore:bonus-proficiencies')).toBe(3);
+    });
+
+    it('emits Oath of Devotion Channel Divinity at level 3 with both options in the body', () => {
+      expect(byKey.has('feature:oath-of-devotion:channel-divinity')).toBe(true);
+      expect(levelOf('feature:oath-of-devotion:channel-divinity')).toBe(3);
+      const body = descOf('feature:oath-of-devotion:channel-divinity');
+      expect(body).toMatch(/Sacred Weapon/);
+      expect(body).toMatch(/Turn the Unholy/);
+    });
+
+    it('the structure audit no longer flags the Pact Magic spellcasting sub-heading', () => {
+      const finding = auditSrdStructure(pack).find(
+        (f) =>
+          f.category === 'swallowed-feature-heading' &&
+          f.key === 'feature:warlock:pact-magic',
+      );
+      expect(finding).toBeUndefined();
     });
   });
 

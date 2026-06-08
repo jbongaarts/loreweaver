@@ -99,12 +99,16 @@ const PROSE_STARTER =
 // the first such clause only. "fighter level" / "your barbarian level" do not
 // match because no digit+ordinal precedes "level". "Also" covers the Life
 // Domain "Also starting at 1st level …" lead-in; "By" covers the Thief
-// "By 13th level …" lead-in. The trailing ordinal enumeration captures the
-// FIRST grant level of a multi-level clause — the Circle of the Land "Circle
-// Spells" grant "At 3rd, 5th, 7th, and 9th level you gain access …" is level 3,
-// not the 9th that ends the list.
+// "By 13th level …" lead-in. "When you join" covers the College of Lore "When
+// you join the College of Lore at 3rd level …" entry lead-in; "When you take
+// this oath" covers the Oath of Devotion "When you take this oath at 3rd level
+// …" entry lead-in (both subclass-entry phrasings occur exactly once each in
+// the SRD 5.1 Classes chapter — eshyra-tzl). The trailing ordinal enumeration
+// captures the FIRST grant level of a multi-level clause — the Circle of the
+// Land "Circle Spells" grant "At 3rd, 5th, 7th, and 9th level you gain access …"
+// is level 3, not the 9th that ends the list.
 const LEVEL_LEAD_IN =
-  /^(?:Beginning|Starting|Also|When you reach|When you choose|At|By)\b[^.]*?\b(\d{1,2})(?:st|nd|rd|th)(?:,?\s+(?:and\s+)?\d{1,2}(?:st|nd|rd|th))*\s+level\b/i;
+  /^(?:Beginning|Starting|Also|When you reach|When you choose|When you join|When you take this oath|At|By)\b[^.]*?\b(\d{1,2})(?:st|nd|rd|th)(?:,?\s+(?:and\s+)?\d{1,2}(?:st|nd|rd|th))*\s+level\b/i;
 
 const PROGRESSION_ROW =
   /^(\d{1,2})(?:st|nd|rd|th)\s+(?:(?:\+\d+|[+\u2212-]\d+)\s+)?(.+)$/;

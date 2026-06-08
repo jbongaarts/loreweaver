@@ -264,6 +264,71 @@ describe('parseFeatures — subclass feature with a level lead-in (Channel Divin
   });
 });
 
+// Subclass features whose grant level is stated by a subclass-entry lead-in
+// the parser did not recognize (eshyra-tzl). Each phrase occurs exactly once in
+// the SRD 5.1 Classes chapter: "When you join the College of Lore at 3rd level"
+// (College of Lore "Bonus Proficiencies") and "When you take this oath at 3rd
+// level" (Oath of Devotion "Channel Divinity").
+const BARD_COLLEGE_OF_LORE_BONUS_PROFS = page(54, [
+  'Bard',
+  'Class Features',
+  'Hit Dice: 1d8 per bard level',
+  'Armor: Light armor',
+  'Weapons: Simple weapons, hand crossbows, longswords, rapiers, shortswords',
+  'Saving Throws: Dexterity, Charisma',
+  'Bardic Colleges',
+  'The way of a bard is gregarious.',
+  'College of Lore',
+  'Bards of the College of Lore know something about most things.',
+  'Bonus Proficiencies',
+  'When you join the College of Lore at 3rd level, you gain proficiency with',
+  'three skills of your choice.',
+]);
+
+describe('parseFeatures — subclass feature with a "When you join" lead-in (Bonus Proficiencies)', () => {
+  const [bonus] = parseFeatures([BARD_COLLEGE_OF_LORE_BONUS_PROFS]);
+
+  it('links the feature to its subclass grantor at the entry level', () => {
+    expect(bonus.name).toBe('Bonus Proficiencies');
+    expect(bonus.grantorKind).toBe('subclass');
+    expect(bonus.grantorName).toBe('College of Lore');
+    expect(bonus.level).toBe(3);
+  });
+});
+
+const PALADIN_OATH_OF_DEVOTION_CHANNEL = page(85, [
+  'Paladin',
+  'Class Features',
+  'Hit Dice: 1d10 per paladin level',
+  'Armor: All armor, shields',
+  'Weapons: Simple weapons, martial weapons',
+  'Saving Throws: Wisdom, Charisma',
+  'Sacred Oaths',
+  'Becoming a paladin involves taking vows.',
+  'Oath of Devotion',
+  'The Oath of Devotion binds a paladin to the loftiest ideals of justice.',
+  'Channel Divinity',
+  'When you take this oath at 3rd level, you gain the following two Channel',
+  'Divinity options.',
+  'Sacred Weapon. As an action, you can imbue one weapon that you are holding',
+  'with positive energy.',
+]);
+
+describe('parseFeatures — subclass feature with a "When you take this oath" lead-in (Channel Divinity)', () => {
+  const [channel] = parseFeatures([PALADIN_OATH_OF_DEVOTION_CHANNEL]);
+
+  it('links the feature to its subclass grantor at the oath entry level', () => {
+    expect(channel.name).toBe('Channel Divinity');
+    expect(channel.grantorKind).toBe('subclass');
+    expect(channel.grantorName).toBe('Oath of Devotion');
+    expect(channel.level).toBe(3);
+  });
+
+  it('keeps the Channel Divinity options inside the feature body', () => {
+    expect(channel.description).toMatch(/Sacred Weapon/);
+  });
+});
+
 const FIGHTER_CHAMPION_IMPROVED_CRIT = page(72, [
   'Fighter',
   'Class Features',
