@@ -43,6 +43,7 @@ import {
 } from '../scripts/importers/dnd5e-srd-5.1/index.js';
 import {
   auditPack,
+  auditSrdStructure,
   loadRulesPackFromDirectory,
   validateRulesPack,
 } from '../src/internal.js';
@@ -103,7 +104,25 @@ const EXPECTED_COUNTS_BY_KIND: Readonly<Record<string, number>> = {
   creature: 317,
   equipment: 218,
   feat: 1,
-  feature: 148,
+  // 148 -> 165 (eshyra-0m9.13): the feature-heading boundary fix recovered 17
+  // class/subclass features previously swallowed into the preceding feature's
+  // body because their heading or grant lead-in went undetected. Each is a real
+  // SRD 5.1 feature heading:
+  //   curly apostrophe (U+2019) headings — feature:circle-of-the-land:lands-stride
+  //   (6th), :natures-ward (10th), :natures-sanctuary (14th);
+  //   feature:hunter:hunters-prey (3rd), :superior-hunters-defense (15th);
+  //   feature:the-fiend:dark-ones-blessing (1st), :dark-ones-own-luck (6th);
+  //   feature:thief:thiefs-reflexes (17th); feature:ranger:lands-stride (8th).
+  //   colon heading — feature:life-domain:channel-divinity-preserve-life (2nd).
+  //   "Also starting at …" lead-in — feature:life-domain:disciple-of-life (1st);
+  //   feature:college-of-lore:cutting-words (3rd, "Also at 3rd level").
+  //   "By Nth level …" lead-in — feature:thief:use-magic-device (13th);
+  //   feature:rogue:reliable-talent (11th), :slippery-mind (15th).
+  //   second-sentence / enumerated grant clause — feature:circle-of-the-land:
+  //   circle-spells (3rd, "At 3rd, 5th, 7th, and 9th level"); feature:
+  //   draconic-bloodline:draconic-resilience (1st, "At 1st level" after an
+  //   intro sentence).
+  feature: 165,
   // 8 sample traps (loreweaver-hvp) + 3 sample diseases + 14 sample poisons
   // (loreweaver-6ra) all emit under the `hazard` kind; SRD 5.1 has no
   // environmental hazards. Traps carry a `trapType` discriminator; diseases and
@@ -421,18 +440,36 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
         }
       }
 
+      // eshyra-0m9.13 recovered subclass features whose headings/lead-ins the
+      // boundary detector previously missed (see the feature-count note above):
+      //   circle-of-the-land 2 -> 6 (+Circle Spells, Land's Stride, Nature's
+      //     Ward, Nature's Sanctuary) = the full SRD set (Bonus Cantrip, Natural
+      //     Recovery, Circle Spells, Land's Stride, Nature's Ward, Nature's
+      //     Sanctuary);
+      //   college-of-lore 2 -> 3 (+Cutting Words); the 3rd-level "Bonus
+      //     Proficiencies" remains swallowed via the unrecognized "When you
+      //     join … at 3rd level" lead-in (tracked follow-up);
+      //   draconic-bloodline 4 -> 5 (+Draconic Resilience);
+      //   hunter 2 -> 4 (+Hunter's Prey, Superior Hunter's Defense);
+      //   life-domain 4 -> 6 (+Disciple of Life, Channel Divinity: Preserve
+      //     Life) = the full SRD set;
+      //   the-fiend 2 -> 4 (+Dark One's Blessing, Dark One's Own Luck) = full set;
+      //   thief 3 -> 5 (+Use Magic Device, Thief's Reflexes) = full set.
+      // oath-of-devotion stays 3: its 3rd-level "Channel Divinity" feature uses
+      // the unrecognized "When you take this oath at 3rd level" lead-in and is a
+      // tracked follow-up (changing it would alter the protected oath-body design).
       expect(Object.fromEntries([...counts.entries()].sort())).toEqual({
         'subclass:champion': 5,
-        'subclass:circle-of-the-land': 2,
-        'subclass:college-of-lore': 2,
-        'subclass:draconic-bloodline': 4,
-        'subclass:hunter': 2,
-        'subclass:life-domain': 4,
+        'subclass:circle-of-the-land': 6,
+        'subclass:college-of-lore': 3,
+        'subclass:draconic-bloodline': 5,
+        'subclass:hunter': 4,
+        'subclass:life-domain': 6,
         'subclass:oath-of-devotion': 3,
         'subclass:path-of-the-berserker': 4,
         'subclass:school-of-evocation': 5,
-        'subclass:the-fiend': 2,
-        'subclass:thief': 3,
+        'subclass:the-fiend': 4,
+        'subclass:thief': 5,
         'subclass:way-of-the-open-hand': 4,
       });
     });
@@ -476,6 +513,112 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
       expect(description).toContain('Oath of Devotion Spells');
       expect(description).toContain('Aura of Devotion');
       expect(description).toContain('Holy Nimbus');
+    });
+  });
+
+  // eshyra-0m9.13 feature-boundary regression on the committed pack. The
+  // extraction-layer band fix removed the class proficiency setup block from
+  // every class first feature, and the parser-layer heading/lead-in fix split
+  // out subclass/class features that the previous detector swallowed into the
+  // preceding feature's body. These assertions pin both ends against the
+  // committed pack so the corruption cannot return.
+  describe('feature boundary regression (eshyra-0m9.13)', () => {
+    const features = pack.records.filter((record) => record.kind === 'feature');
+    const byKey = new Map(features.map((record) => [record.key, record]));
+    const descOf = (key: string): string => {
+      const record = byKey.get(key);
+      expect(record, `expected ${key} in the committed pack`).toBeDefined();
+      const description = (record?.data as { description?: unknown })
+        .description;
+      expect(typeof description).toBe('string');
+      return description as string;
+    };
+    const levelOf = (key: string): unknown =>
+      (byKey.get(key)?.data as { level?: unknown }).level;
+
+    const SETUP_LABEL = /\b(?:Armor|Weapons|Tools|Saving Throws|Skills):/;
+
+    // The 8 class first features that previously absorbed the proficiency setup
+    // block via the two-column-table reading-order bug.
+    const FIRST_FEATURE_KEYS: readonly string[] = [
+      'feature:bard:spellcasting',
+      'feature:cleric:spellcasting',
+      'feature:druid:druidic',
+      'feature:monk:martial-arts',
+      'feature:paladin:divine-sense',
+      'feature:ranger:favored-enemy',
+      'feature:warlock:otherworldly-patron',
+      'feature:wizard:cantrips',
+    ];
+
+    it('no class first feature carries the proficiency setup block', () => {
+      for (const key of FIRST_FEATURE_KEYS) {
+        expect(
+          SETUP_LABEL.test(descOf(key)),
+          `${key} carries a setup label`,
+        ).toBe(false);
+      }
+    });
+
+    it('the structure audit reports zero feature setup-label bleed', () => {
+      const bleed = auditSrdStructure(pack).filter(
+        (finding) => finding.category === 'feature-setup-label-bleed',
+      );
+      expect(bleed).toEqual([]);
+    });
+
+    it('completes the Bard Spellcasting body past its displaced continuation', () => {
+      const body = descOf('feature:bard:spellcasting');
+      // The intro continuation ("Your spells are part …") and the subsequent
+      // spellcasting subsections were displaced past the table pre-fix.
+      expect(body).toContain('Your spells are part of your vast repertoire');
+      expect(body).toContain('Spell Slots');
+    });
+
+    // Previously-swallowed headings now stand as their own records at their SRD
+    // grant levels (curly apostrophe, colon, and "Also"/"By"/enumerated lead-ins).
+    const RECOVERED: ReadonlyArray<readonly [key: string, level: number]> = [
+      ['feature:life-domain:disciple-of-life', 1],
+      ['feature:life-domain:channel-divinity-preserve-life', 2],
+      ['feature:hunter:hunters-prey', 3],
+      ['feature:hunter:superior-hunters-defense', 15],
+      ['feature:circle-of-the-land:circle-spells', 3],
+      ['feature:circle-of-the-land:lands-stride', 6],
+      ['feature:circle-of-the-land:natures-ward', 10],
+      ['feature:circle-of-the-land:natures-sanctuary', 14],
+      ['feature:thief:use-magic-device', 13],
+      ['feature:thief:thiefs-reflexes', 17],
+      ['feature:rogue:reliable-talent', 11],
+      ['feature:rogue:slippery-mind', 15],
+      ['feature:ranger:lands-stride', 8],
+      ['feature:college-of-lore:cutting-words', 3],
+      ['feature:draconic-bloodline:draconic-resilience', 1],
+      ['feature:the-fiend:dark-ones-blessing', 1],
+      ['feature:the-fiend:dark-ones-own-luck', 6],
+    ];
+
+    it('emits each recovered swallowed feature at its SRD grant level', () => {
+      for (const [key, level] of RECOVERED) {
+        expect(byKey.has(key), `expected ${key} in the committed pack`).toBe(
+          true,
+        );
+        expect(levelOf(key), `${key} grant level`).toBe(level);
+      }
+    });
+
+    it('the previously-swallowing feature no longer absorbs the recovered headings', () => {
+      expect(descOf('feature:life-domain:bonus-proficiency')).not.toMatch(
+        /Disciple of Life|Preserve Life/,
+      );
+      expect(descOf('feature:hunter:multiattack')).not.toMatch(
+        /Superior Hunter’s Defense/,
+      );
+      expect(descOf('feature:circle-of-the-land:natural-recovery')).not.toMatch(
+        /Land’s Stride|Nature’s Ward|Nature’s Sanctuary/,
+      );
+      expect(descOf('feature:thief:supreme-sneak')).not.toMatch(
+        /Use Magic Device|Thief’s Reflexes/,
+      );
     });
   });
 
