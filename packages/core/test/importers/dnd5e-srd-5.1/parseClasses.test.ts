@@ -172,6 +172,136 @@ describe('parseClasses — optional primary-ability line', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Progression-table interleaving — the SRD prints each class's level table
+// directly inside the Proficiencies block, between two proficiency labels, with
+// no blank line or label to bound it. The continuation collector must stop at
+// the table so its rows and following feature prose don't bleed into the
+// preceding proficiency value (eshyra-0m9.12). These fixtures reproduce the
+// real extracted line shape for Bard (table after a single-line Armor), Druid
+// (table after a wrapped Armor parenthetical), and Monk (table after
+// "Armor: None").
+// ---------------------------------------------------------------------------
+
+const BARD_TABLE_PAGE = page(11, [
+  'Bard',
+  'Class Features',
+  'As a bard, you gain the following class features.',
+  'Hit Points',
+  'Hit Dice: 1d8 per bard level',
+  'Hit Points at 1st Level: 8 + your Constitution',
+  'Proficiencies',
+  'Armor: Light armor',
+  'The Bard',
+  'Proficiency Cantrips',
+  'Level Bonus Features Known',
+  '1st +2 Spellcasting, Bardic Inspiration',
+  '(d6)',
+  '2nd +2 Jack of All Trades, Song of Rest',
+  '20th +6 Superior Inspiration',
+  'Spellcasting',
+  'You have learned to untangle and reshape the fabric',
+  'Weapons: Simple weapons, hand crossbows,',
+  'longswords, rapiers, shortswords',
+  'Tools: Three musical instruments of your choice',
+  'Saving Throws: Dexterity, Charisma',
+  'Skills: Choose any three',
+]);
+
+describe('parseClasses — table interleaved after a single-line Armor (Bard)', () => {
+  const [bard] = parseClasses([BARD_TABLE_PAGE]);
+
+  it('stops the Armor value at the "The Bard" table title', () => {
+    expect(bard.armorProficiencies).toEqual(['Light armor']);
+  });
+
+  it('still captures the Weapons list printed after the table', () => {
+    expect(bard.weaponProficiencies).toEqual([
+      'Simple weapons',
+      'hand crossbows',
+      'longswords',
+      'rapiers',
+      'shortswords',
+    ]);
+  });
+
+  it('captures saving throws printed after the table', () => {
+    expect(bard.savingThrowProficiencies).toEqual(['Dexterity', 'Charisma']);
+  });
+
+  it('lets no table row or feature prose bleed into any proficiency token', () => {
+    const tokens = [
+      ...bard.armorProficiencies,
+      ...bard.weaponProficiencies,
+      ...bard.savingThrowProficiencies,
+    ];
+    for (const token of tokens) {
+      expect(token).not.toMatch(
+        /\bThe Bard\b|Proficiency|Spellcasting|\b\d+(?:st|nd|rd|th)\b/,
+      );
+    }
+  });
+});
+
+const DRUID_TABLE_PAGE = page(19, [
+  'Druid',
+  'Hit Dice: 1d8 per druid level',
+  'Proficiencies',
+  'Armor: Light armor, medium armor, shields (druids',
+  'will not wear armor or use shields made of metal)',
+  'The Druid',
+  'Proficiency Cantrips',
+  'Level Bonus Features Known',
+  '1st +2 Druidic, Spellcasting',
+  'Weapons: Clubs, daggers, darts',
+  'Tools: Herbalism kit',
+  'Saving Throws: Intelligence, Wisdom',
+]);
+
+describe('parseClasses — table after a wrapped Armor parenthetical (Druid)', () => {
+  const [druid] = parseClasses([DRUID_TABLE_PAGE]);
+
+  it('absorbs the wrapped parenthetical as one intact token and stops at the table', () => {
+    // The "or" inside "(druids will not wear armor or use shields made of
+    // metal)" is parenthetical prose, not a list delimiter, so the shield
+    // qualifier stays a single coherent proficiency token (eshyra-0m9.12 review).
+    expect(druid.armorProficiencies).toEqual([
+      'Light armor',
+      'medium armor',
+      'shields (druids will not wear armor or use shields made of metal)',
+    ]);
+  });
+
+  it('captures the Weapons list after the table without contamination', () => {
+    expect(druid.weaponProficiencies).toEqual(['Clubs', 'daggers', 'darts']);
+  });
+});
+
+const MONK_TABLE_PAGE = page(26, [
+  'Monk',
+  'Hit Dice: 1d8 per monk level',
+  'Proficiencies',
+  'Armor: None',
+  'The Monk',
+  'Level Proficiency Bonus Martial Arts',
+  '1st +2 1d4 Unarmored Defense, Martial Arts',
+  'Weapons: Simple weapons, shortswords',
+  'Tools: Choose one type of artisan’s tools',
+  'Saving Throws: Strength, Dexterity',
+]);
+
+describe('parseClasses — table after "Armor: None" (Monk)', () => {
+  const [monk] = parseClasses([MONK_TABLE_PAGE]);
+
+  it('maps "Armor: None" to an empty array even with a trailing table', () => {
+    expect(monk.armorProficiencies).toEqual([]);
+  });
+
+  it('captures the Weapons list after the table', () => {
+    expect(monk.weaponProficiencies).toEqual(['Simple weapons', 'shortswords']);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Fail-closed — a confirmed class missing a required proficiency line.
 // ---------------------------------------------------------------------------
 

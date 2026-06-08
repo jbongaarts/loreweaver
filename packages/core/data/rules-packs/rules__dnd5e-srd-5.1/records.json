@@ -1387,15 +1387,7 @@
         "Charisma"
       ],
       "armorProficiencies": [
-        "Light armor The Bard Proficiency Cantrips Level Bonus Features Known 1st +2 Spellcasting",
-        "Bardic Inspiration (d6) 2nd +2 Jack of All Trades",
-        "Song of Rest (d6) 3rd +2 Bard College",
-        "Expertise 4th +2 Ability Score Improvement 5th +3 Bardic Inspiration (d8)",
-        "Font of Inspiration 6th +3 Countercharm",
-        "Bard College feature 7th +3 8th +3 Ability Score Improvement 9th +4 Song of Rest (d8) 10th +4 Bardic Inspiration (d10)",
-        "Expertise",
-        "Magical Secrets 11th +4 12th +4 Ability Score Improvement 13th +5 Song of Rest (d10) 14th +5 Magical Secrets",
-        "Bard College feature 15th +5 Bardic Inspiration (d12) 16th +5 Ability Score Improvement 17th +6 Song of Rest (d12) 18th +6 Magical Secrets 19th +6 Ability Score Improvement 20th +6 Superior Inspiration"
+        "Light armor"
       ],
       "weaponProficiencies": [
         "Simple weapons",
@@ -1447,13 +1439,7 @@
         "shields"
       ],
       "weaponProficiencies": [
-        "Simple weapons The Cleric Proficiency Cantrips Level Bonus Features Known 1st +2 Spellcasting",
-        "Divine Domain 2nd +2 Channel Divinity (1/rest)",
-        "Divine Domain feature 3rd +2 4th +2 Ability Score Improvement 5th +3 Destroy Undead (CR 1/2) 6th +3 Channel Divinity (2/rest)",
-        "Divine Domain feature 7th +3 8th +3 Ability Score Improvement",
-        "Destroy Undead (CR 1)",
-        "Divine Domain feature 9th +4 10th +4 Divine Intervention 11th +4 Destroy Undead (CR 2) 12th +4 Ability Score Improvement 13th +5 14th +5 Destroy Undead (CR 3) 15th +5 16th +5 Ability Score Improvement 17th +6 Destroy Undead (CR 4)",
-        "Divine Domain feature 18th +6 Channel Divinity (3/rest) 19th +6 Ability Score Improvement 20th +6 Divine Intervention improvement"
+        "Simple weapons"
       ]
     },
     "source": "SRD 5.1 p. 15",
@@ -1495,16 +1481,7 @@
       "armorProficiencies": [
         "Light armor",
         "medium armor",
-        "shields (druids will not wear armor",
-        "use shields made of metal) The Druid Proficiency Cantrips Level Bonus Features Known 1st +2 Druidic",
-        "Spellcasting 2nd +2 Wild Shape",
-        "Druid Circle 3rd +2 4th +2 Wild Shape improvement",
-        "Ability Score Improvement 5th +3 6th +3 Druid Circle feature 7th +3 8th +3 Wild Shape improvement",
-        "Ability Score Improvement 9th +4 10th +4 Druid Circle feature 11th +4 12th +4 Ability Score Improvement 13th +5 14th +5 Druid Circle feature 15th +5 16th +5 Ability Score Improvement 17th +6 18th +6 Timeless Body",
-        "Beast Spells 19th +6 Ability Score Improvement 20th +6 Archdruid Druidic You know Druidic",
-        "the secret language of druids. You can speak the language",
-        "use it to leave hidden messages. You",
-        "others who know this language automatically spot such a message. Others spot the message’s presence with a successful DC 15 Wisdom"
+        "shields (druids will not wear armor or use shields made of metal)"
       ],
       "weaponProficiencies": [
         "Clubs",
@@ -1602,17 +1579,7 @@
         "Strength",
         "Dexterity"
       ],
-      "armorProficiencies": [
-        "None The Monk Level Proficiency Bonus Martial Arts 1st +2 2nd +2 3rd +2 4th +2 5th +3 6th +3 7th +3 8th +3 9th +4 10th +4 11th +4 12th +4 13th +5 14th +5 15th +5 16th +5 17th +6 18th +6 19th +6 20th +6 Unarmored Defense Beginning at 1st level",
-        "while you are wearing no armor",
-        "not wielding a shield",
-        "your AC equals 10 + your Dexterity modifier + your Wisdom modifier. Martial Arts At 1st level",
-        "your practice of martial arts gives you mastery of combat styles that use unarmed strikes",
-        "monk weapons",
-        "which are shortswords",
-        "any simple melee weapons that don’t have the two- handed",
-        "heavy property"
-      ],
+      "armorProficiencies": [],
       "weaponProficiencies": [
         "Simple weapons",
         "shortswords"
@@ -1657,19 +1624,7 @@
       ],
       "armorProficiencies": [
         "All armor",
-        "shields The Paladin Proficiency Level Bonus Features 1st 1st +2 Divine Sense",
-        "Lay on Hands 2nd +2 Fighting Style",
-        "Spellcasting",
-        "Divine Smite 3rd +2 Divine Health",
-        "Sacred Oath 4th +2 Ability Score Improvement 5th +3 Extra Attack 6th +3 Aura of Protection 7th +3 Sacred Oath feature 8th +3 Ability Score Improvement 9th +4 10th +4 Aura of Courage 11th +4 Improved Divine Smite 12th +4 Ability Score Improvement 13th +5 14th +5 Cleansing Touch 15th +5 Sacred Oath feature 16th +5 Ability Score Improvement 17th +6 18th +6 Aura improvements 19th +6 Ability Score Improvement 20th +6 Sacred Oath feature Divine Sense The presence of strong evil registers on your senses like a noxious odor",
-        "and powerful good rings like heavenly music in your ears. As an action",
-        "you can open your awareness to detect such forces. Until the end of your next turn",
-        "you know the location of any celestial",
-        "fiend",
-        "or undead within 60 feet of you that is not behind total cover. You know the type (celestial",
-        "fiend",
-        "or undead) of any being whose presence you sense",
-        "but not its identity (the vampire"
+        "shields"
       ],
       "weaponProficiencies": [
         "Simple weapons",
@@ -1720,18 +1675,7 @@
       ],
       "weaponProficiencies": [
         "Simple weapons",
-        "martial weapons The Ranger Proficiency Level Bonus Features 1st +2 Favored Enemy",
-        "Natural Explorer 2nd +2 Fighting Style",
-        "Spellcasting 3rd +2 Ranger Archetype",
-        "Primeval Awareness 4th +2 Ability Score Improvement 5th +3 Extra Attack 6th +3 Favored Enemy",
-        "Natural Explorer improvements 7th +3 Ranger Archetype feature 8th +3 Ability Score Improvement",
-        "Land s Stride 9th +4 10th +4 Natural Explorer improvement",
-        "Hide in Plain Sight 11th +4 Ranger Archetype feature 12th +4 Ability Score Improvement 13th +5 14th +5 Favored Enemy improvement",
-        "Vanish 15th +5 Ranger Archetype feature 16th +5 Ability Score Improvement 17th +6 18th +6 Feral Senses 19th +6 Ability Score Improvement 20th +6 Foe Slayer Favored Enemy Beginning at 1st level",
-        "you have significant experience studying",
-        "tracking",
-        "hunting",
-        "and even talking to a certain type of enemy"
+        "martial weapons"
       ]
     },
     "source": "SRD 5.1 p. 35",
@@ -1817,10 +1761,7 @@
         "Constitution",
         "Charisma"
       ],
-      "armorProficiencies": [
-        "None The Sorcerer Proficiency Sorcery Cantrips Level Bonus Points Features Known 1st +2 Spellcasting",
-        "Sorcerous Origin 2nd +2 2 Font of Magic 3rd +2 3 Metamagic 4th +2 4 Ability Score Improvement 5th +3 5 6th +3 6 Sorcerous Origin feature 7th +3 7 8th +3 8 Ability Score Improvement 9th +4 9 10th +4 10 Metamagic 11th +4 11 12th +4 12 Ability Score Improvement 13th +5 13 14th +5 14 Sorcerous Origin feature 15th +5 15 16th +5 16 Ability Score Improvement 17th +6 17 Metamagic 18th +6 18 Sorcerous Origin feature 19th +6 19 Ability Score Improvement 20th +6 20 Sorcerous Restoration"
-      ],
+      "armorProficiencies": [],
       "weaponProficiencies": [
         "Daggers",
         "darts",
@@ -1866,9 +1807,7 @@
         "Charisma"
       ],
       "armorProficiencies": [
-        "Light armor The Warlock Proficiency Cantrips Level Bonus Features Known 1st +2 Otherworldly Patron",
-        "Pact Magic 2nd +2 Eldritch Invocations 3rd +2 Pact Boon 4th +2 Ability Score Improvement 5th +3 6th +3 Otherworldly Patron feature 7th +3 8th +3 Ability Score Improvement 9th +4 10th +4 Otherworldly Patron feature 11th +4 Mystic Arcanum (6th level) 12th +4 Ability Score Improvement 13th +5 Mystic Arcanum (7th level) 14th +5 Otherworldly Patron feature 15th +5 Mystic Arcanum (8th level) 16th +5 Ability Score Improvement 17th +6 Mystic Arcanum (9th level) 18th +6 19th +6 Ability Score Improvement 20th +6 Eldritch Master Otherworldly Patron At 1st level",
-        "you have struck a bargain with an"
+        "Light armor"
       ],
       "weaponProficiencies": [
         "Simple weapons"
@@ -1910,10 +1849,7 @@
         "Intelligence",
         "Wisdom"
       ],
-      "armorProficiencies": [
-        "None The Wizard Proficiency Cantrips Level Bonus Features Known 1st +2 Spellcasting",
-        "Arcane Recovery 2nd +2 Arcane Tradition 3rd +2 4th +2 Ability Score Improvement 5th +3 6th +3 Arcane Tradition feature 7th +3 8th +3 Ability Score Improvement 9th +4 10th +4 Arcane Tradition feature 11th +4 12th +4 Ability Score Improvement 13th +5 14th +5 Arcane Tradition feature 15th +5 16th +5 Ability Score Improvement 17th +6 18th +6 Spell Mastery 19th +6 Ability Score Improvement 20th +6 Signature Spell"
-      ],
+      "armorProficiencies": [],
       "weaponProficiencies": [
         "Daggers",
         "darts",
