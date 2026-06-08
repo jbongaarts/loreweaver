@@ -148,7 +148,27 @@ const EXPECTED_COUNTS_BY_KIND: Readonly<Record<string, number>> = {
   //   (feature:cleric:channel-divinity, feature:life-domain:channel-divinity-
   //   preserve-life). The subclass blurbs are produced by parseSubclasses and
   //   are unchanged.
-  feature: 169,
+  // 169 -> 182 (eshyra-7tc): the Classes slice begins AFTER the "Barbarian"
+  // chapter heading (it is the `classes` section-anchor start boundary, excluded
+  // from the slice), so parseFeatures opened no class context for the Barbarian
+  // body and dropped every Barbarian base-class feature. parseFeatures now opens
+  // implicit Barbarian class context at the start of the slice (mirroring
+  // parseSubclasses' `currentParent = 'Barbarian'` default), recovering the 13
+  // Barbarian base features whose grant rows the progression table anchors
+  // cleanly: feature:barbarian:rage (1), :reckless-attack (2), :danger-sense (2),
+  // :primal-path (3), :ability-score-improvement (4), :extra-attack (5),
+  // :fast-movement (5), :feral-instinct (7), :brutal-critical (9),
+  // :relentless-rage (11), :persistent-rage (15), :indomitable-might (18),
+  // :primal-champion (20). The 14th SRD Barbarian feature, Unarmored Defense
+  // (1st), is NOT yet recovered: the Barbarian table's 1st-level row interleaves
+  // the Rages/Rage Damage numeric columns BETWEEN the wrapped feature words
+  // ("Rage," | "2 +2" | "Unarmored" | "Defense"), so row-stitching yields the
+  // cell "Rage, 2 +2 Unarmored Defense" and the anchor key becomes "2 +2
+  // unarmored defense"; the body "Unarmored Defense" heading matches no anchor
+  // and is swallowed into Rage's body. That interleaved-column wrap is a separate
+  // table-extraction root cause tracked in its own follow-up bead, deliberately
+  // out of scope here per docs/importer-fix-protocol.md.
+  feature: 182,
   // 8 sample traps (loreweaver-hvp) + 3 sample diseases + 14 sample poisons
   // (loreweaver-6ra) all emit under the `hazard` kind; SRD 5.1 has no
   // environmental hazards. Traps carry a `trapType` discriminator; diseases and
@@ -533,6 +553,30 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
         { name: 'Intimidating Presence', level: 10 },
         { name: 'Mindless Rage', level: 6 },
         { name: 'Retaliation', level: 14 },
+      ]);
+    });
+
+    it('emits the recovered Barbarian base-class features at their grant levels (eshyra-7tc)', () => {
+      // The Classes slice begins after the sliced-away "Barbarian" chapter
+      // heading; parseFeatures' implicit Barbarian class context recovers these
+      // 13 base features (previously dropped entirely). Unarmored Defense (1st)
+      // is intentionally absent — its 1st-level table row interleaves numeric
+      // columns into the wrapped feature cell, so its anchor is malformed and the
+      // heading is swallowed into Rage's body (separate follow-up bead).
+      expect(featureProjection('class:barbarian')).toEqual([
+        { name: 'Ability Score Improvement', level: 4 },
+        { name: 'Brutal Critical', level: 9 },
+        { name: 'Danger Sense', level: 2 },
+        { name: 'Extra Attack', level: 5 },
+        { name: 'Fast Movement', level: 5 },
+        { name: 'Feral Instinct', level: 7 },
+        { name: 'Indomitable Might', level: 18 },
+        { name: 'Persistent Rage', level: 15 },
+        { name: 'Primal Champion', level: 20 },
+        { name: 'Primal Path', level: 3 },
+        { name: 'Rage', level: 1 },
+        { name: 'Reckless Attack', level: 2 },
+        { name: 'Relentless Rage', level: 11 },
       ]);
     });
 

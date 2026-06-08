@@ -358,7 +358,16 @@ function collectFeatureAnchors(
   tiersPresent: boolean,
 ): ReadonlyMap<string, FeatureAnchor> {
   const anchors = new Map<string, FeatureAnchor>();
-  let currentClass: string | null = null;
+  // The classes slice begins AFTER the "Barbarian" chapter heading (consumed by
+  // sectionAnchors.classes as the start anchor), so Barbarian is the implicit
+  // class context for the slice's leading content: its base-class progression
+  // rows (Rage … Primal Champion) are printed before any base-class heading
+  // line. Mirror parseSubclasses' `currentParent = 'Barbarian'` default so those
+  // anchors are attributed to Barbarian instead of being dropped while
+  // currentClass stays null until the first subclass heading arrives
+  // (eshyra-7tc). Fixtures that name the parent class explicitly as their first
+  // line override this before any progression row is reached.
+  let currentClass = 'Barbarian';
   let currentSubclass: string | null = null;
 
   for (const flatLine of flat) {
@@ -369,18 +378,15 @@ function collectFeatureAnchors(
       continue;
     }
     if (SUBCLASS_NAMES.has(line)) {
-      // The classes slice starts after the Barbarian chapter heading. Treat
-      // Barbarian as the implicit parent only when its real subclass heading
-      // arrives; this restores Berserker context without changing the existing
-      // base-class feature coverage before that heading.
-      const expectedParent: string = currentClass ?? 'Barbarian';
-      if (SUBCLASS_PARENT_BY_NAME.get(line) === expectedParent) {
-        currentClass = expectedParent;
+      // A subclass heading opens subclass context only when its known parent is
+      // the currently open class; the implicit Barbarian default makes Path of
+      // the Berserker resolve correctly even though the Barbarian heading was
+      // sliced away.
+      if (SUBCLASS_PARENT_BY_NAME.get(line) === currentClass) {
         currentSubclass = line;
       }
       continue;
     }
-    if (currentClass === null) continue;
 
     const parsed = progressionFeaturesFromLine(line);
     if (parsed === null) continue;
@@ -493,7 +499,11 @@ export function parseFeatures(pages: readonly PageText[]): FeatureExtraction[] {
   const anchors = collectFeatureAnchors(flat, tiersPresent);
   const out: FeatureExtraction[] = [];
   const emittedIndexByKey = new Map<string, number>();
-  let currentClass: string | null = null;
+  // Implicit Barbarian context: the slice starts after the "Barbarian" chapter
+  // heading, so Barbarian's base-class features (Rage … Primal Champion) precede
+  // any base-class heading. Mirror collectFeatureAnchors / parseSubclasses so
+  // those features are attributed to Barbarian rather than dropped (eshyra-7tc).
+  let currentClass = 'Barbarian';
   let currentSubclass: string | null = null;
 
   for (let i = 0; i < flat.length; i++) {
@@ -506,9 +516,11 @@ export function parseFeatures(pages: readonly PageText[]): FeatureExtraction[] {
       continue;
     }
     if (SUBCLASS_NAMES.has(line)) {
-      const expectedParent: string = currentClass ?? 'Barbarian';
-      if (SUBCLASS_PARENT_BY_NAME.get(line) === expectedParent) {
-        currentClass = expectedParent;
+      // Open subclass context only when the subclass's known parent is the
+      // currently open class (Barbarian by default until a base-class heading
+      // moves it), keeping Path of the Berserker correct after the sliced-away
+      // Barbarian heading.
+      if (SUBCLASS_PARENT_BY_NAME.get(line) === currentClass) {
         currentSubclass = line;
       }
       continue;
@@ -519,9 +531,6 @@ export function parseFeatures(pages: readonly PageText[]): FeatureExtraction[] {
     // feature — never promote it (loreweaver-6fw).
     if (tiersPresent && isCalloutBoxHeading(flat[i].height)) continue;
 
-    // Features only exist once a class context is open (so the chapter heading
-    // and pre-class prose are never promoted).
-    if (currentClass === null) continue;
     const grantorKind = currentSubclass === null ? 'class' : 'subclass';
     const grantorName = currentSubclass ?? currentClass;
     const start = featureStartAt(
