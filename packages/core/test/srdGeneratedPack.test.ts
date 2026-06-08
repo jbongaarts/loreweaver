@@ -122,7 +122,21 @@ const EXPECTED_COUNTS_BY_KIND: Readonly<Record<string, number>> = {
   //   circle-spells (3rd, "At 3rd, 5th, 7th, and 9th level"); feature:
   //   draconic-bloodline:draconic-resilience (1st, "At 1st level" after an
   //   intro sentence).
-  feature: 165,
+  // 165 -> 167 (eshyra-0m9.14): the progression-table row-stitching fix merges
+  // feature cells that wrap across two extracted lines back onto their row
+  // before feature detection. Two SRD 5.1 base-class features whose ONLY grant
+  // cell wrapped were previously truncated in the table and so swallowed into
+  // the preceding feature's body; they are now emitted as their own records:
+  //   feature:sorcerer:sorcerous-origin (1st; "Spellcasting, Sorcerous" + wrap
+  //   "Origin") and feature:warlock:pact-magic (1st; "Otherworldly Patron, Pact"
+  //   + wrap "Magic"). The same fix also corrects two existing records in place
+  //   (no count change): feature:fighter:indomitable is renamed from the bogus
+  //   feature:fighter:indomitable-three-uses (the wrapped 17th-level repeated-use
+  //   cell was mistaken for the canonical heading), and the earliest-grant levels
+  //   of feature:druid:ability-score-improvement (12 -> 4) and
+  //   feature:bard:magical-secrets (14 -> 10) now come from their wrapped first
+  //   grant rows rather than a later un-wrapped row.
+  feature: 167,
   // 8 sample traps (loreweaver-hvp) + 3 sample diseases + 14 sample poisons
   // (loreweaver-6ra) all emit under the `hazard` kind; SRD 5.1 has no
   // environmental hazards. Traps carry a `trapType` discriminator; diseases and
@@ -618,6 +632,68 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
       );
       expect(descOf('feature:thief:supreme-sneak')).not.toMatch(
         /Use Magic Device|Thief’s Reflexes/,
+      );
+    });
+  });
+
+  // eshyra-0m9.14 progression-table row-stitching regression on the committed
+  // pack. SRD class tables wrap a feature cell across two extracted lines when
+  // the text exceeds its column width; stitching the continuation back onto its
+  // row before feature detection fixes two failure modes: a repeated feature
+  // losing its earliest grant level / canonical name to a later un-wrapped row,
+  // and a wrapped first/only-grant cell being truncated so the feature gets
+  // swallowed into the preceding feature's body. These assertions pin the
+  // committed pack so the corruption cannot return.
+  describe('progression-table row-stitching regression (eshyra-0m9.14)', () => {
+    const features = pack.records.filter((record) => record.kind === 'feature');
+    const byKey = new Map(features.map((record) => [record.key, record]));
+    const levelOf = (key: string): unknown =>
+      (byKey.get(key)?.data as { level?: unknown }).level;
+    const descOf = (key: string): string =>
+      (byKey.get(key)?.data as { description?: unknown }).description as string;
+
+    it('emits Fighter Indomitable under its canonical heading at its earliest grant', () => {
+      expect(byKey.has('feature:fighter:indomitable')).toBe(true);
+      expect(byKey.get('feature:fighter:indomitable')?.name).toBe(
+        'Indomitable',
+      );
+      expect(levelOf('feature:fighter:indomitable')).toBe(9);
+      // The bogus key built from the wrapped 17th-level "(three uses)" cell is gone.
+      expect(byKey.has('feature:fighter:indomitable-three-uses')).toBe(false);
+      // No feature name carries a repeated-use progression parenthetical.
+      expect(
+        features.some((record) =>
+          /\((?:one|two|three) uses?\)/.test(record.name),
+        ),
+      ).toBe(false);
+      // The usage progression stays in the body.
+      expect(descOf('feature:fighter:indomitable')).toMatch(
+        /twice between long rests/,
+      );
+    });
+
+    it('takes the earliest (wrapped) grant level for repeated class features', () => {
+      // Druid/Bard ASI/Magical Secrets first grants wrap across two lines; the
+      // un-wrapped later rows must no longer win the level.
+      expect(levelOf('feature:druid:ability-score-improvement')).toBe(4);
+      expect(levelOf('feature:bard:magical-secrets')).toBe(10);
+    });
+
+    it('emits the base-class features whose only grant cell wrapped', () => {
+      // Previously truncated to "Sorcerous"/"Pact" and swallowed into the
+      // preceding feature; stitching completes the cell so they stand alone.
+      expect(byKey.has('feature:sorcerer:sorcerous-origin')).toBe(true);
+      expect(levelOf('feature:sorcerer:sorcerous-origin')).toBe(1);
+      expect(byKey.has('feature:warlock:pact-magic')).toBe(true);
+      expect(levelOf('feature:warlock:pact-magic')).toBe(1);
+    });
+
+    it('the preceding feature no longer absorbs the recovered base-class headings', () => {
+      expect(descOf('feature:sorcerer:cantrips')).not.toMatch(
+        /Sorcerous Origin/,
+      );
+      expect(descOf('feature:warlock:otherworldly-patron')).not.toMatch(
+        /Pact Magic/,
       );
     });
   });

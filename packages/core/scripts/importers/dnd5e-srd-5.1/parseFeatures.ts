@@ -111,6 +111,12 @@ const PROGRESSION_ROW =
 const TRAILING_TABLE_CELL =
   /\s+(?:\d+|[-—]|\+\d+|[+\u2212-]\d+|\d+d\d+(?:\s*\([^)]*\))?)$/i;
 
+// A line consisting only of numbers, signs, and separators — the spell-slot
+// sub-table rows ("2 4 3") and the bonus columns printed beside the feature
+// column. Such a line is never a wrapped feature-cell fragment, so it bounds
+// (rather than continues) a progression row.
+const NUMERIC_TABLE_LINE = /^[\d\s+−/—-]+$/;
+
 interface FlatLine {
   readonly line: string;
   readonly page: number;
@@ -143,6 +149,72 @@ function flatten(pages: readonly PageText[]): readonly FlatLine[] {
         page: page.pageNumber,
         height: page.lineHeights?.[i],
       });
+    }
+  }
+  return out;
+}
+
+/**
+ * A class progression table wraps a single feature cell across two extracted
+ * lines when the cell text is wider than its column. The continuation line
+ * carries the rest of the cell — a wrapped word ("Ability Score" / "Improvement"),
+ * a die-size tag ("(d6)"), or a repeated-use parenthetical that belongs to a
+ * later grant ("Action Surge (two uses)," / "Indomitable (three uses)"). A
+ * continuation candidate is any non-empty line that is not itself a progression
+ * row, not a structural anchor, not a numeric sub-table line, and does not open
+ * like body prose.
+ */
+function isRowContinuation(line: string): boolean {
+  return (
+    line.length > 0 &&
+    !PROGRESSION_ROW.test(line) &&
+    !isStructuralText(line) &&
+    !NUMERIC_TABLE_LINE.test(line) &&
+    !PROSE_STARTER.test(line)
+  );
+}
+
+/**
+ * Stitch wrapped progression-table cells back onto their row before any feature
+ * detection runs. A wrapped cell always sits BETWEEN two progression rows, so a
+ * run of continuation candidates is merged into the preceding row only when it
+ * is terminated by another progression row. A run terminated by anything else
+ * (the numeric spell-slot sub-table, a structural heading, or body prose) is the
+ * table's bottom edge and is left untouched so the following content — e.g. a
+ * feature's body paragraph — is never absorbed into the last row.
+ *
+ * Without this pass two failure modes appear (eshyra-0m9.14): a repeated feature
+ * whose EARLIEST grant row wraps loses that row's level to a later un-wrapped row
+ * (Druid "Ability Score Improvement", Bard "Magical Secrets"), and a wrapped
+ * repeated-use fragment ("Indomitable (three uses)") is mistaken for a standalone
+ * feature heading and overrides the canonical name.
+ */
+function stitchProgressionRows(flat: readonly FlatLine[]): FlatLine[] {
+  const out: FlatLine[] = [];
+  let i = 0;
+  while (i < flat.length) {
+    const row = flat[i];
+    if (!PROGRESSION_ROW.test(row.line)) {
+      out.push(row);
+      i++;
+      continue;
+    }
+    let j = i + 1;
+    const continuation: string[] = [];
+    while (j < flat.length && isRowContinuation(flat[j].line)) {
+      continuation.push(flat[j].line);
+      j++;
+    }
+    if (
+      continuation.length > 0 &&
+      j < flat.length &&
+      PROGRESSION_ROW.test(flat[j].line)
+    ) {
+      out.push({ ...row, line: `${row.line} ${continuation.join(' ')}` });
+      i = j;
+    } else {
+      out.push(row);
+      i++;
     }
   }
   return out;
@@ -407,7 +479,7 @@ function featureStartAt(
  * then grantor.
  */
 export function parseFeatures(pages: readonly PageText[]): FeatureExtraction[] {
-  const flat = flatten(pages);
+  const flat = stitchProgressionRows(flatten(pages));
   if (flat.length === 0) return [];
 
   // Only honor callout-box font heights on a genuinely multi-tier slice;
