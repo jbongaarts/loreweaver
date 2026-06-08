@@ -273,3 +273,18 @@ All live beads issues now use the `eshyra-*` prefix. The migration from `lorewea
 - NEVER say "ready to push when you are" - YOU must push
 - If push fails, resolve and retry until it succeeds
 <!-- END BEADS INTEGRATION -->
+
+<!-- BEGIN IMPORTER FIX PROTOCOL POINTER -->
+### Deterministic rules-pack importer work
+
+When touching SRD importer, extractor, parser, audit, generated rules-pack, or importer test files, follow `docs/importer-fix-protocol.md`.
+
+This applies to changes under:
+
+- `packages/core/scripts/importers/`
+- `packages/core/test/importers/`
+- `packages/core/data/rules-packs/`
+- SRD audit/oracle code such as `packages/core/src/rules/srdAudit.ts`
+
+Do not weaken regression tests or audit expectations to match current generated output. Fix the importer, extractor, or parser behavior, or document source-backed evidence that the expectation was wrong.
+<!-- END IMPORTER FIX PROTOCOL POINTER -->
