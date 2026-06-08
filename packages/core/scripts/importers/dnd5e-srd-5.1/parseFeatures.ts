@@ -97,9 +97,14 @@ const PROSE_STARTER =
 
 // Grant-level clause at the START of a feature body. The level is captured from
 // the first such clause only. "fighter level" / "your barbarian level" do not
-// match because no digit+ordinal precedes "level".
+// match because no digit+ordinal precedes "level". "Also" covers the Life
+// Domain "Also starting at 1st level …" lead-in; "By" covers the Thief
+// "By 13th level …" lead-in. The trailing ordinal enumeration captures the
+// FIRST grant level of a multi-level clause — the Circle of the Land "Circle
+// Spells" grant "At 3rd, 5th, 7th, and 9th level you gain access …" is level 3,
+// not the 9th that ends the list.
 const LEVEL_LEAD_IN =
-  /^(?:Beginning|Starting|When you reach|When you choose|At)\b[^.]*?\b(\d{1,2})(?:st|nd|rd|th)\s+level\b/i;
+  /^(?:Beginning|Starting|Also|When you reach|When you choose|At|By)\b[^.]*?\b(\d{1,2})(?:st|nd|rd|th)(?:,?\s+(?:and\s+)?\d{1,2}(?:st|nd|rd|th))*\s+level\b/i;
 
 const PROGRESSION_ROW =
   /^(\d{1,2})(?:st|nd|rd|th)\s+(?:(?:\+\d+|[+\u2212-]\d+)\s+)?(.+)$/;
@@ -210,19 +215,42 @@ function isStructuralText(line: string): boolean {
   );
 }
 
+// Allowed characters in a feature name: letters, spaces, straight AND curly
+// apostrophes, hyphen, slash, parentheses. The curly apostrophe (U+2019) is the
+// glyph the SRD 5.1 PDF actually renders in possessive headings — "Land's
+// Stride", "Superior Hunter's Defense", "Thief's Reflexes", "Nature's Ward" —
+// so a straight-apostrophe-only class silently dropped every one of them.
+const FEATURE_NAME = /^[A-Z][A-Za-z '’\-/()]+$/;
+
 /**
  * Heuristic: a feature name is a short (<= 50 char) title-case line that is not
  * a label, not body prose, not a structural anchor, and carries no digits
  * (table rows / "Hit Points at 1st Level" are excluded). Letters, spaces,
  * apostrophes, hyphens, slashes, and parens are allowed in names.
+ *
+ * Colon-qualified headings ("Channel Divinity: Preserve Life") are admitted as
+ * a special case: exactly one ": " splitting two Title-Case names. That matches
+ * the SRD's Channel Divinity options while still rejecting a proficiency
+ * label/value line, which either carries a comma ("Saving Throws: Wisdom,
+ * Charisma") or a non-heading value, and never confirms as a feature without a
+ * level lead-in or table anchor (`featureStartAt`) regardless.
  */
 function isFeatureHeading(line: string): boolean {
   if (line.length === 0 || line.length > 50) return false;
-  if (/[:.;,]/.test(line)) return false; // labels / sentence punctuation
   if (/\d/.test(line)) return false; // table rows, level lines
   if (PROSE_STARTER.test(line)) return false;
   if (isStructuralText(line)) return false;
-  return /^[A-Z][A-Za-z '\-/()]+$/.test(line);
+  if (line.includes(':')) {
+    if (/[.;,]/.test(line)) return false; // sentence punctuation / list value
+    const parts = line.split(': ');
+    return (
+      parts.length === 2 &&
+      FEATURE_NAME.test(parts[0]) &&
+      FEATURE_NAME.test(parts[1])
+    );
+  }
+  if (/[.;,]/.test(line)) return false; // sentence punctuation
+  return FEATURE_NAME.test(line);
 }
 
 function splitFeatureCell(cell: string): readonly string[] {
@@ -312,17 +340,37 @@ function leadingLevelFromFollowingLines(
   startIdx: number,
   tiersPresent: boolean,
 ): number | null {
+  // Collect the opening prose lines up to a small window or the second
+  // sentence end, stopping at a structural boundary.
   const parts: string[] = [];
-  for (let i = startIdx; i < flat.length && parts.length < 3; i++) {
+  let sentenceEnds = 0;
+  for (let i = startIdx; i < flat.length && parts.length < 6; i++) {
     const line = flat[i].line.trim();
     if (line.length === 0) continue;
     if (isStructuralLine(flat[i], tiersPresent)) break;
     parts.push(line);
-    if (/[.?!]/.test(line)) break;
+    if (/[.?!]/.test(line) && ++sentenceEnds >= 2) break;
   }
 
-  const match = LEVEL_LEAD_IN.exec(parts.join(' ').trim());
-  return match === null ? null : Number.parseInt(match[1], 10);
+  // Test the grant lead-in against the START of each of the first two
+  // sentences; the first match wins. A feature whose grant clause opens its
+  // FIRST sentence ("At 2nd level, …") matches as before; one whose first
+  // sentence is a one-line intro and whose grant clause opens the SECOND
+  // sentence — the Circle of the Land "Circle Spells" shape ("Your mystical
+  // connection to the land infuses you … . At 3rd, 5th, 7th, and 9th level you
+  // gain access …") — matches on that second sentence. Capping at two sentences
+  // keeps a later in-body scaling mention ("At 11th level, the bonus increases")
+  // from being mistaken for the grant level.
+  const sentences = parts
+    .join(' ')
+    .trim()
+    .split(/(?<=[.?!])\s+/)
+    .slice(0, 2);
+  for (const sentence of sentences) {
+    const match = LEVEL_LEAD_IN.exec(sentence.trim());
+    if (match !== null) return Number.parseInt(match[1], 10);
+  }
+  return null;
 }
 
 function featureStartAt(

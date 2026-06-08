@@ -262,6 +262,75 @@ const MIN_LINE_STARTS_FOR_DENSE_MARGIN = 3;
  */
 const WIDE_GUTTER_GAP_THRESHOLD = 150;
 
+/**
+ * x-bin width (in PDF user-space points) for detecting vertically-aligned table
+ * cell columns in `partitionItemsIntoReadingOrder`. Item start-x values are
+ * binned at this width so a column's slight per-row drift (the SRD class table's
+ * level cell wobbles x≈58→62) lands in one bin while genuinely distinct cell
+ * columns (≈20–40pt apart) stay separate.
+ */
+const TABLE_COLUMN_BIN = 5;
+
+/**
+ * Minimum number of rows that must start an item in the same x-bin for that bin
+ * to count as a structural (vertically-aligned) cell column. Random prose word
+ * positions never recur this often at one x; a table's cell columns recur on
+ * every row.
+ */
+const MIN_COLUMN_ROW_SUPPORT = 4;
+
+/**
+ * A full-width table row must occupy at least `MIN_LEFT_CELL_COLUMNS` structural
+ * columns whose x is below `TABLE_LEFT_REGION_MAX_X` AND at least
+ * `MIN_RIGHT_CELL_COLUMNS` whose x is at or above `TABLE_RIGHT_REGION_MIN_X`.
+ * This is what separates the SRD class level-progression table (cells at the
+ * level x≈58, bonus x≈104, feature x≈140 columns plus spell-slot columns out
+ * past x≈326 — a true full-width table) from a right-column-only in-spell /
+ * in-item stat table (the Animate Objects Size/HP/AC table sits wholly at
+ * x≈329–545) and from a two-column prose line that coincidentally shares a
+ * baseline (only the x≈58 left margin and the x≈329 right margin, never two
+ * distinct LEFT cell columns). Only a row spanning real cells on BOTH sides of
+ * the page bands the page.
+ *
+ * The right side requires ≥2 cell columns, not 1: every affected first-feature
+ * class (Bard, Cleric, Druid, Monk, Paladin, Ranger, Warlock, Wizard) prints a
+ * progression table with multiple right-side columns — the spellcasters' spell-
+ * slot / spells-known cells, or the Monk's Martial Arts / Ki Points / Unarmored
+ * Movement cells — whereas a two-column prose line or a label:value metadata
+ * line ("Components: V, S, M …" at x≈58/120) reaches the right side only through
+ * the single x≈329 prose margin of a coincidental shared baseline. The classes
+ * whose table is printed AFTER the proficiency block (Barbarian, Fighter, Rogue)
+ * are unaffected by the band path — their first feature was never split — so a
+ * Fighter table with no right columns simply stays on the unbanded
+ * `partitionItemsByColumn` path, unchanged.
+ */
+const TABLE_LEFT_REGION_MAX_X = 200;
+const TABLE_RIGHT_REGION_MIN_X = 260;
+const MIN_LEFT_CELL_COLUMNS = 2;
+const MIN_RIGHT_CELL_COLUMNS = 2;
+
+/**
+ * Minimum length of a CONTIGUOUS (gap-filled) run of table rows for that run to
+ * be confirmed as a full-width table band. A genuine class progression table is
+ * 20 rows and the Armor/Weapons equipment tables are a dozen-plus consecutive
+ * rows, whereas the only other pages whose rows pass the per-row left+right
+ * structural test — two-column monster stat blocks, where a left creature's
+ * attack line and a right creature's attack line coincidentally share aligned
+ * cells — produce only short, scattered clusters (≤4 rows separated by prose).
+ * Requiring a long contiguous run keeps those pages on the unchanged
+ * `partitionItemsByColumn` path. A page with no confirmed run is never banded.
+ */
+const MIN_CONTIGUOUS_TABLE_ROWS = 8;
+
+/**
+ * Maximum number of consecutive non-table rows that may sit between two table
+ * rows and still be absorbed into the table band. A progression table's
+ * interior continuation rows (a wrapped feature name "(d6)" / "Inspiration", a
+ * sub-header like "Medium Armor") are isolated 1–2 row gaps; genuine prose
+ * between two separate tables is many rows and stays its own band.
+ */
+const TABLE_GAP_FILL_MAX_ROWS = 2;
+
 export interface ExtractOptions {
   /**
    * Page range to extract (1-based, inclusive). If omitted, extracts all
@@ -417,7 +486,12 @@ function textContentToPage(content: PdfTextContent): {
   // Gold Dragon's "Speed" line begins in the right column at y=710.40)
   // must not share a row bucket — otherwise the joined line text becomes
   // "Breath Weapons … one Speed 40 ft., …" and the speed regex misses.
-  const itemsByColumn = partitionItemsByColumn(items);
+  // Band-aware: a page that stacks a full-width region (a progression table
+  // spanning both columns) above/below multi-column prose is first split into
+  // horizontal bands so each band partitions on its own gutter (see
+  // `partitionItemsIntoReadingOrder`); a uniform page collapses back to the
+  // single page-wide cut.
+  const itemsByColumn = partitionItemsIntoReadingOrder(items);
   const ordered: LineRecord[] = [];
   for (const columnItems of itemsByColumn) {
     const records = bucketItemsIntoRecords(columnItems);
@@ -522,6 +596,190 @@ function bucketItemsIntoRecords(items: readonly PdfTextItem[]): LineRecord[] {
  * 24–48 line-starts) is unmistakable next to a one-off justified word, while
  * gap width alone cannot tell the two apart on a justified page.
  */
+/**
+ * Reading-order partition for pages that stack a full-width band over (or under)
+ * multi-column prose. `partitionItemsByColumn` chooses a SINGLE page-wide column
+ * cut, which cannot represent the SRD 5.1 Classes-chapter layout: each class's
+ * level-progression table spans both columns in the middle of the page, with the
+ * class header above it and the first feature's prose below it, each in two
+ * columns. The widest page-wide gap is the table's internal gutter, so the
+ * single cut slices the table AND the prose along the table's narrower seam,
+ * emitting the right-column feature continuation AFTER the table's entire right
+ * half instead of immediately after the left-column prose. The Bard "Spellcasting"
+ * and Druid "Druidic" first features were split this way: their right-column
+ * remainder ("Your spells are part…", "(Perception) check… without magic.") was
+ * displaced past the table and the left-column header's proficiency setup block
+ * (Weapons:/Tools:/Saving Throws:/Skills:) bled into the feature body.
+ *
+ * The fix detects the table by STRUCTURE rather than by whitespace gaps:
+ *   1. Item start-x values are binned (`TABLE_COLUMN_BIN`); a bin that recurs
+ *      across at least `MIN_COLUMN_ROW_SUPPORT` rows is a structural cell column.
+ *   2. A row is a full-width table row when it occupies at least
+ *      `MIN_LEFT_CELL_COLUMNS` structural columns left of `TABLE_LEFT_REGION_MAX_X`
+ *      AND at least `MIN_RIGHT_CELL_COLUMNS` at or beyond `TABLE_RIGHT_REGION_MIN_X`
+ *      — cells on BOTH sides of the page, which two-column prose and
+ *      right-column-only in-spell tables never have.
+ *   3. Short non-table gaps between table rows (a wrapped feature-name "(d6)", a
+ *      sub-header) are filled (`TABLE_GAP_FILL_MAX_ROWS`), and only a CONTIGUOUS
+ *      run of at least `MIN_CONTIGUOUS_TABLE_ROWS` is confirmed as a table band —
+ *      so the short, scattered aligned clusters on a two-column monster page are
+ *      never banded.
+ *   4. The page is split into bands around the confirmed table band, and each
+ *      band is partitioned independently, so a prose band cuts on the real
+ *      x≈329 prose gutter while the table band keeps its own internal cut.
+ *   5. A SANDWICH GATE only diverges from the whole-page partition when a table
+ *      band sits between two-column prose bands (the class-page signature: header
+ *      above, first-feature prose below). The Equipment chapter's full-width
+ *      tables sit at the page top with no two-column prose above, so they fail
+ *      the gate and keep `parseEquipment`'s row form (e.g. the Shield row).
+ * A page with no confirmed, sandwiched table band goes straight through
+ * `partitionItemsByColumn` and round-trips unchanged.
+ */
+function partitionItemsIntoReadingOrder(
+  items: readonly PdfTextItem[],
+): readonly (readonly PdfTextItem[])[] {
+  if (items.length <= 1) return partitionItemsByColumn(items);
+  // Group items into y-buckets, top-of-page first.
+  const byY = new Map<number, PdfTextItem[]>();
+  for (const item of items) {
+    const y = round(item.transform[5], Y_GROUP_PRECISION);
+    const bucket = byY.get(y);
+    if (bucket === undefined) byY.set(y, [item]);
+    else bucket.push(item);
+  }
+  const ys = Array.from(byY.keys()).sort((a, b) => b - a);
+
+  // Detect a full-width table band by vertically-aligned cell columns. Each
+  // row's item start-x values are binned; a bin that recurs across many rows is
+  // a structural column. A FULL-WIDTH table row occupies cells on both sides of
+  // the page — ≥`MIN_LEFT_CELL_COLUMNS` structural columns in the left region
+  // and ≥`MIN_RIGHT_CELL_COLUMNS` in the right region — like an SRD class
+  // progression row (level/bonus/feature cells plus spell-slot columns). This
+  // excludes a right-column-only in-spell/in-item stat table (Animate Objects'
+  // Size/HP/AC table sits wholly at x≈329–545) and a two-column prose line that
+  // coincidentally shares a baseline (only the left and right margins, never two
+  // distinct left cell columns). A page with no such table (every prose page,
+  // the straggler/tiny-island fixtures) goes straight through
+  // `partitionItemsByColumn` unchanged.
+  const bin = (x: number): number => Math.round(x / TABLE_COLUMN_BIN);
+  const leftBinMax = TABLE_LEFT_REGION_MAX_X / TABLE_COLUMN_BIN;
+  const rightBinMin = TABLE_RIGHT_REGION_MIN_X / TABLE_COLUMN_BIN;
+  const rowBins = ys.map((y) => {
+    const row = byY.get(y);
+    return new Set(
+      row === undefined ? [] : row.map((it) => bin(it.transform[4])),
+    );
+  });
+  const support = new Map<number, number>();
+  for (const bins of rowBins) {
+    for (const b of bins) support.set(b, (support.get(b) ?? 0) + 1);
+  }
+  const structural = new Set(
+    Array.from(support.entries())
+      .filter(([, count]) => count >= MIN_COLUMN_ROW_SUPPORT)
+      .map(([b]) => b),
+  );
+  const isTableRow = rowBins.map((bins) => {
+    let leftHits = 0;
+    let rightHits = 0;
+    for (const b of bins) {
+      if (!structural.has(b)) continue;
+      if (b < leftBinMax) leftHits++;
+      else if (b >= rightBinMin) rightHits++;
+    }
+    return (
+      leftHits >= MIN_LEFT_CELL_COLUMNS && rightHits >= MIN_RIGHT_CELL_COLUMNS
+    );
+  });
+  if (!isTableRow.some((t) => t)) return partitionItemsByColumn(items);
+
+  // Fill short non-table gaps that sit BETWEEN table rows so an interior
+  // continuation row (a feature-name wrap "(d6)" / "Inspiration", a sub-header
+  // "Medium Armor") stays inside its table band instead of splitting it. A gap
+  // wider than `TABLE_GAP_FILL_MAX_ROWS` (real prose between two separate
+  // tables) is left as its own band.
+  const inTable = isTableRow.slice();
+  let lastTable = -1;
+  for (let i = 0; i < ys.length; i++) {
+    if (!isTableRow[i]) continue;
+    if (lastTable >= 0 && i - lastTable - 1 <= TABLE_GAP_FILL_MAX_ROWS) {
+      for (let k = lastTable + 1; k < i; k++) inTable[k] = true;
+    }
+    lastTable = i;
+  }
+
+  // Confirm only CONTIGUOUS table runs of at least `MIN_CONTIGUOUS_TABLE_ROWS`.
+  // Short clusters (the coincidental aligned rows on a two-column monster page)
+  // are demoted back to prose; if nothing remains the page is never banded and
+  // takes the unchanged whole-page `partitionItemsByColumn` path.
+  const confirmed = new Array<boolean>(ys.length).fill(false);
+  for (let i = 0; i < ys.length; ) {
+    if (!inTable[i]) {
+      i++;
+      continue;
+    }
+    let j = i;
+    while (j < ys.length && inTable[j]) j++;
+    if (j - i >= MIN_CONTIGUOUS_TABLE_ROWS) {
+      for (let k = i; k < j; k++) confirmed[k] = true;
+    }
+    i = j;
+  }
+  if (!confirmed.some((t) => t)) return partitionItemsByColumn(items);
+
+  // Build contiguous bands of one class (table vs prose), top-to-bottom.
+  interface Band {
+    readonly table: boolean;
+    readonly items: PdfTextItem[];
+  }
+  const bands: Band[] = [];
+  for (let i = 0; i < ys.length; i++) {
+    const bucket = byY.get(ys[i]);
+    if (bucket === undefined) continue;
+    const last = bands[bands.length - 1];
+    if (last === undefined || last.table !== confirmed[i]) {
+      bands.push({ table: confirmed[i], items: [...bucket] });
+    } else {
+      last.items.push(...bucket);
+    }
+  }
+  if (bands.length <= 1) return partitionItemsByColumn(items);
+
+  // Partition every band independently. The ONLY behavioral change vs the
+  // whole-page partition is that each band cuts on its OWN gutter: the class
+  // first-feature prose band cuts on the real x≈193 prose gutter and re-joins
+  // its displaced right-column continuation ("Your spells are part…") directly
+  // after the left-column intro, instead of inheriting the table band's
+  // table-driven cut and emitting it after the table's right half. The table
+  // band itself still partitions exactly as before (the table dominates its own
+  // cut), so its emitted line form — which `parseFeatures` reads for grant-level
+  // anchors — is unchanged.
+  const partitioned = bands.map((band) => partitionItemsByColumn(band.items));
+
+  // Gate: only band a table that is SANDWICHED between two-column prose, the
+  // class-page signature (two-column class header above the progression table,
+  // two-column first-feature prose below it). The Equipment chapter's full-width
+  // Armor/Weapons tables sit at the TOP of their page with no two-column prose
+  // above, so they fail this gate and stay on the unchanged whole-page partition
+  // — preserving `parseEquipment`'s row form (e.g. the Shield row). A monster /
+  // spell page never reaches here (no confirmed table band).
+  const proseTwoColumn = bands.map(
+    (band, i) => !band.table && partitioned[i].length >= 2,
+  );
+  const sandwiched = bands.some(
+    (band, i) =>
+      band.table &&
+      proseTwoColumn.slice(0, i).some(Boolean) &&
+      proseTwoColumn.slice(i + 1).some(Boolean),
+  );
+  if (!sandwiched) return partitionItemsByColumn(items);
+
+  // Emit bands top-to-bottom, columns left-to-right within each band.
+  const out: (readonly PdfTextItem[])[] = [];
+  for (const cols of partitioned) out.push(...cols);
+  return out;
+}
+
 function partitionItemsByColumn(
   items: readonly PdfTextItem[],
 ): readonly (readonly PdfTextItem[])[] {

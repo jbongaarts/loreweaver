@@ -881,3 +881,151 @@ describe('extractPdfText — heading merge', () => {
     expect(page.lines[1]).toBe('Equipment');
   });
 });
+
+/**
+ * Band-aware reading order for the SRD 5.1 Classes chapter (eshyra-0m9.13).
+ *
+ * Each class page stacks a full-width level-progression table BETWEEN two
+ * two-column prose bands: the class header above and the first feature's prose
+ * below. pdfjs reads the page with a single page-wide column cut driven by the
+ * table's internal gutter, which slices the feature prose along the table's seam
+ * and emits the feature's right-column continuation AFTER the table's right half
+ * — so the first feature (Bard Spellcasting, Druid Druidic, Monk Martial Arts)
+ * was both truncated and contaminated with the header's proficiency setup block
+ * (Weapons:/Tools:/Saving Throws:/Skills:). The extractor now segments the page
+ * into horizontal bands around a confirmed full-width table band and partitions
+ * each prose band on its own gutter, restoring reading order.
+ *
+ * These tests run on the vendored, hash-pinned SRD 5.1 PDF (deterministic) and
+ * lock both the positive class-page fixes AND the false-positive protections
+ * that drove the detector's tuning: the band path must NOT fire on a two-column
+ * monster stat-block page, a spell page, or the Equipment chapter's full-width
+ * Armor table (which sits at the page top with no two-column prose above it).
+ */
+describe('extractPdfText — Classes table-band reading order (eshyra-0m9.13)', () => {
+  const VENDORED_PDF = 'packages/core/sources/dnd5e-srd-5.1/SRD_CC_v5.1.pdf';
+  // A class header's proficiency setup-block label at the START of a line.
+  const SETUP_LABEL = /^(?:Armor|Weapons|Tools|Saving Throws|Skills):/;
+
+  async function pageLines(page: number): Promise<readonly string[]> {
+    const pdf = readFileSync(VENDORED_PDF);
+    const pages = await extractPdfText(new Uint8Array(pdf), {
+      pageRange: { start: page, end: page },
+    });
+    return pages[0].lines;
+  }
+
+  it('rejoins the Bard Spellcasting right-column continuation and excludes the setup block', async () => {
+    const lines = await pageLines(11);
+    const intro = lines.indexOf(
+      'of reality in harmony with your wishes and music.',
+    );
+    const cont = lines.indexOf(
+      'Your spells are part of your vast repertoire, magic',
+    );
+    const heading = lines.indexOf('Spellcasting');
+    const weapons = lines.findIndex((l) =>
+      l.startsWith('Weapons: Simple weapons, hand crossbows'),
+    );
+    expect(intro).toBeGreaterThanOrEqual(0);
+    expect(heading).toBeGreaterThanOrEqual(0);
+    expect(weapons).toBeGreaterThanOrEqual(0);
+    // The displaced right-column continuation is rejoined immediately after the
+    // left-column intro — not emitted after the progression table.
+    expect(cont).toBe(intro + 1);
+    // The proficiency setup block reads in the class header band, BEFORE the
+    // feature heading, so it cannot bleed into the feature body.
+    expect(weapons).toBeLessThan(heading);
+    // No setup label appears from the heading through the rejoined continuation.
+    expect(
+      lines.slice(heading, cont + 1).some((l) => SETUP_LABEL.test(l)),
+    ).toBe(false);
+  });
+
+  it('rejoins the Druid Druidic continuation and excludes the setup block', async () => {
+    const lines = await pageLines(19);
+    const tail = lines.indexOf(
+      'message’s presence with a successful DC 15 Wisdom',
+    );
+    const cont = lines.indexOf(
+      '(Perception) check but can’t decipher it without',
+    );
+    const heading = lines.indexOf('Druidic');
+    const magic = lines.indexOf('magic.');
+    const weapons = lines.findIndex((l) =>
+      l.startsWith('Weapons: Clubs, daggers'),
+    );
+    expect(tail).toBeGreaterThanOrEqual(0);
+    expect(heading).toBeGreaterThanOrEqual(0);
+    expect(weapons).toBeGreaterThanOrEqual(0);
+    // The right-column continuation ("(Perception) check… magic.") rejoins the
+    // left-column body instead of being displaced past the table.
+    expect(cont).toBe(tail + 1);
+    expect(magic).toBe(cont + 1);
+    expect(weapons).toBeLessThan(heading);
+    expect(
+      lines.slice(heading, magic + 1).some((l) => SETUP_LABEL.test(l)),
+    ).toBe(false);
+  });
+
+  it('excludes the setup block from Monk Martial Arts', async () => {
+    const lines = await pageLines(26);
+    // The first standalone "Martial Arts" line is the feature heading (the
+    // earlier occurrences are the table column header and a progression cell).
+    const heading = lines.indexOf('Martial Arts');
+    const body = lines.indexOf(
+      'At 1st level, your practice of martial arts gives you',
+    );
+    const weapons = lines.findIndex((l) =>
+      l.startsWith('Weapons: Simple weapons, shortswords'),
+    );
+    expect(heading).toBeGreaterThanOrEqual(0);
+    expect(weapons).toBeGreaterThanOrEqual(0);
+    expect(body).toBe(heading + 1);
+    expect(weapons).toBeLessThan(heading);
+    // The feature body carries no proficiency setup label.
+    expect(
+      lines.slice(heading, heading + 12).some((l) => SETUP_LABEL.test(l)),
+    ).toBe(false);
+  });
+
+  it('does not band a two-column monster page — Frost Giant and Stone Giant stay separate', async () => {
+    const lines = await pageLines(313);
+    expect(lines).toContain('Frost Giant');
+    expect(lines).toContain('Stone Giant');
+    // The pre-fix false positive merged the two creature name headings (left and
+    // right column sharing a baseline) into one full-width line.
+    expect(lines.some((l) => l.includes('Frost Giant Stone Giant'))).toBe(
+      false,
+    );
+  });
+
+  it('does not band a spell page — Commune with Nature keeps its metadata in order', async () => {
+    const lines = await pageLines(126);
+    const heading = lines.indexOf('Commune with Nature');
+    expect(heading).toBeGreaterThanOrEqual(0);
+    // The pre-fix false positive banded the page and displaced "Duration:",
+    // failing the spell parse with only Casting Time/Range/Components.
+    expect(lines[heading + 2]).toBe('Casting Time: 1 minute');
+    expect(lines[heading + 3]).toBe('Range: Self');
+    expect(lines[heading + 4]).toBe('Components: V, S');
+    expect(lines[heading + 5]).toBe('Duration: Instantaneous');
+  });
+
+  it('does not band the Equipment Armor table — the Shield armor row survives intact', async () => {
+    const lines = await pageLines(64);
+    // The Armor table sits at the page top (no two-column prose above), so it
+    // fails the sandwich gate and stays on the unchanged whole-page partition.
+    // Banding it once dropped the trailing Shield row from `parseEquipment`.
+    expect(lines.some((l) => l.startsWith('Shield 10 gp +2'))).toBe(true);
+  });
+
+  it('keeps a right-column-only in-spell table intact — Animate Objects stat rows', async () => {
+    const lines = await pageLines(116);
+    // The Animate Objects Size/HP/AC table sits wholly in the right column
+    // (no left cells), so it is not a full-width table band and is not merged
+    // into the left column's prose.
+    expect(lines).toContain('Size HP AC Attack Str Dex');
+    expect(lines.some((l) => l.startsWith('Tiny 20 18 +8 to hit'))).toBe(true);
+  });
+});

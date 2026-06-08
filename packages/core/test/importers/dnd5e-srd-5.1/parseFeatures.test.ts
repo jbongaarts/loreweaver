@@ -626,3 +626,199 @@ describe('parseFeatures — fail closed / empty input', () => {
     expect(parseFeatures([])).toEqual([]);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Heading-boundary detection for subclass features whose headings the
+// feature-start detector previously missed, so the heading + body were
+// swallowed into the PRECEDING feature's record (eshyra-0m9.13). Three classes
+// of miss, each reproduced from the SRD 5.1 source shape:
+//   (1) a possessive heading printed with a curly apostrophe U+2019
+//       ("Superior Hunter’s Defense", "Land’s Stride", "Thief’s Reflexes");
+//   (2) a colon-qualified heading ("Channel Divinity: Preserve Life");
+//   (3) a grant lead-in the level detector did not recognize
+//       ("Also starting at 1st level …", "By 13th level …").
+// Each fixture asserts the swallowed heading becomes its OWN record at its
+// grant level AND that the preceding feature no longer absorbs its body.
+// ---------------------------------------------------------------------------
+
+const RANGER_HUNTER_CURLY_APOSTROPHE = page(36, [
+  'Ranger',
+  'Class Features',
+  'Hit Dice: 1d10 per ranger level',
+  'Armor: Light armor, medium armor, shields',
+  'Weapons: Simple weapons, martial weapons',
+  'Saving Throws: Strength, Dexterity',
+  'Ranger Archetypes',
+  'The ideal of the ranger archetype is realized in different ways.',
+  'Hunter',
+  'Emulating the Hunter archetype means accepting your place as a bulwark.',
+  'Multiattack',
+  'At 11th level, you gain one of the following features of your choice.',
+  'Superior Hunter’s Defense',
+  'At 15th level, you gain one of the following features of your choice.',
+]);
+
+describe('parseFeatures — curly-apostrophe subclass heading (Superior Hunter’s Defense)', () => {
+  const features = parseFeatures([RANGER_HUNTER_CURLY_APOSTROPHE]);
+
+  it('emits the curly-apostrophe heading as its own feature, not swallowed', () => {
+    const byName = new Map(features.map((f) => [f.name, f]));
+    expect(byName.has('Superior Hunter’s Defense')).toBe(true);
+    const superior = byName.get('Superior Hunter’s Defense');
+    expect(superior?.grantorKind).toBe('subclass');
+    expect(superior?.grantorName).toBe('Hunter');
+    expect(superior?.level).toBe(15);
+  });
+
+  it('does not absorb the swallowed heading into the preceding Multiattack body', () => {
+    const byName = new Map(features.map((f) => [f.name, f]));
+    expect(byName.get('Multiattack')?.description).not.toMatch(
+      /Superior Hunter|15th level/,
+    );
+  });
+});
+
+const CLERIC_LIFE_DOMAIN_COLON_AND_LEADIN = page(58, [
+  'Cleric',
+  'Class Features',
+  'Hit Dice: 1d8 per cleric level',
+  'Armor: Light armor, medium armor, shields',
+  'Weapons: Simple weapons',
+  'Saving Throws: Wisdom, Charisma',
+  'Divine Domains',
+  'Each deity governs a number of domains.',
+  'Life Domain',
+  'The Life domain focuses on the vibrant positive energy that sustains all life.',
+  'Bonus Proficiency',
+  'When you choose this domain at 1st level, you gain proficiency with heavy armor.',
+  'Disciple of Life',
+  'Also starting at 1st level, your healing spells are more effective.',
+  'Channel Divinity: Preserve Life',
+  'Starting at 2nd level, you can use your Channel Divinity to heal the badly injured.',
+]);
+
+describe('parseFeatures — colon heading and "Also starting at" lead-in (Life Domain)', () => {
+  const features = parseFeatures([CLERIC_LIFE_DOMAIN_COLON_AND_LEADIN]);
+  const byName = new Map(features.map((f) => [f.name, f]));
+
+  it('emits the "Also starting at" feature as its own record (Disciple of Life)', () => {
+    const disciple = byName.get('Disciple of Life');
+    expect(disciple).toBeDefined();
+    expect(disciple?.grantorKind).toBe('subclass');
+    expect(disciple?.grantorName).toBe('Life Domain');
+    expect(disciple?.level).toBe(1);
+  });
+
+  it('emits the colon-qualified Channel Divinity option as its own record', () => {
+    const preserve = byName.get('Channel Divinity: Preserve Life');
+    expect(preserve).toBeDefined();
+    expect(preserve?.grantorName).toBe('Life Domain');
+    expect(preserve?.level).toBe(2);
+  });
+
+  it('does not let Bonus Proficiency absorb the later features', () => {
+    expect(byName.get('Bonus Proficiency')?.description).not.toMatch(
+      /Disciple of Life|Preserve Life|Channel Divinity/,
+    );
+  });
+});
+
+const ROGUE_THIEF_BY_LEVEL_LEADIN = page(40, [
+  'Rogue',
+  'Class Features',
+  'Hit Dice: 1d8 per rogue level',
+  'Armor: Light armor',
+  'Weapons: Simple weapons, hand crossbows, longswords, rapiers, shortswords',
+  'Saving Throws: Dexterity, Intelligence',
+  'Roguish Archetypes',
+  'Rogues have many features in common.',
+  'Thief',
+  'You hone your skills in the larcenous arts of stealth and agility.',
+  'Supreme Sneak',
+  'Starting at 9th level, you have advantage on a Dexterity (Stealth) check.',
+  'Use Magic Device',
+  'By 13th level, you have learned enough about the workings of magic.',
+  'Thief’s Reflexes',
+  'When you reach 17th level, you have become adept at laying ambushes.',
+]);
+
+describe('parseFeatures — "By Nth level" lead-in and curly apostrophe (Thief)', () => {
+  const features = parseFeatures([ROGUE_THIEF_BY_LEVEL_LEADIN]);
+  const byName = new Map(features.map((f) => [f.name, f]));
+
+  it('emits the "By 13th level" feature as its own record (Use Magic Device)', () => {
+    const device = byName.get('Use Magic Device');
+    expect(device).toBeDefined();
+    expect(device?.grantorName).toBe('Thief');
+    expect(device?.level).toBe(13);
+  });
+
+  it('emits the curly-apostrophe Thief’s Reflexes as its own record', () => {
+    const reflexes = byName.get('Thief’s Reflexes');
+    expect(reflexes).toBeDefined();
+    expect(reflexes?.level).toBe(17);
+  });
+
+  it('does not let Supreme Sneak absorb the later features', () => {
+    expect(byName.get('Supreme Sneak')?.description).not.toMatch(
+      /Use Magic Device|Thief’s Reflexes|13th level|17th level/,
+    );
+  });
+});
+
+const DRUID_CIRCLE_OF_THE_LAND_LATER = page(20, [
+  'Druid',
+  'Class Features',
+  'Hit Dice: 1d8 per druid level',
+  'Armor: Light armor, medium armor, shields',
+  'Weapons: Clubs, daggers, darts, javelins, maces',
+  'Saving Throws: Intelligence, Wisdom',
+  'Druid Circles',
+  'Druids meet often to discuss the natural order.',
+  'Circle of the Land',
+  'The Circle of the Land is made up of mystics and sages.',
+  'Natural Recovery',
+  'Starting at 2nd level, you can regain some of your magical energy.',
+  'Circle Spells',
+  'Your mystical connection to the land infuses you with the ability to cast certain spells.',
+  'At 3rd, 5th, 7th, and 9th level you gain access to circle spells connected to the land.',
+  'Land’s Stride',
+  'Starting at 6th level, moving through nonmagical difficult terrain costs you no extra movement.',
+  'Nature’s Ward',
+  'When you reach 10th level, you can’t be charmed or frightened by elementals or fey.',
+  'Nature’s Sanctuary',
+  'When you reach 14th level, creatures of the natural world become hesitant to attack you.',
+]);
+
+describe('parseFeatures — later Circle of the Land features are not skipped', () => {
+  const features = parseFeatures([DRUID_CIRCLE_OF_THE_LAND_LATER]);
+  const byName = new Map(features.map((f) => [f.name, f]));
+
+  it('emits Circle Spells at its first grant level from a second-sentence enumeration', () => {
+    // The grant clause is the SECOND sentence and enumerates several levels
+    // ("At 3rd, 5th, 7th, and 9th level"); the grant level is the FIRST (3).
+    const circleSpells = byName.get('Circle Spells');
+    expect(circleSpells).toBeDefined();
+    expect(circleSpells?.grantorName).toBe('Circle of the Land');
+    expect(circleSpells?.level).toBe(3);
+  });
+
+  it('emits Land’s Stride, Nature’s Ward, and Nature’s Sanctuary at their grant levels', () => {
+    expect(byName.get('Land’s Stride')?.level).toBe(6);
+    expect(byName.get('Nature’s Ward')?.level).toBe(10);
+    expect(byName.get('Nature’s Sanctuary')?.level).toBe(14);
+    for (const name of [
+      'Land’s Stride',
+      'Nature’s Ward',
+      'Nature’s Sanctuary',
+    ]) {
+      expect(byName.get(name)?.grantorName).toBe('Circle of the Land');
+    }
+  });
+
+  it('does not let Natural Recovery absorb the later subclass features', () => {
+    expect(byName.get('Natural Recovery')?.description).not.toMatch(
+      /Land’s Stride|Nature’s Ward|Nature’s Sanctuary/,
+    );
+  });
+});
