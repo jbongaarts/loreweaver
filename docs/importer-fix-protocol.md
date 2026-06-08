@@ -82,6 +82,44 @@ Generated records must be changed by updating the importer, extractor, parser, o
 
 If generated records change outside the targeted failure class, explain why. If there is no clear explanation, treat the diff as suspicious.
 
+## Scope control and incidental fixes
+
+Scope control is meant to prevent uncontrolled exploration and unrelated implementation work. It must not be used to justify preserving known-bad generated output or adding extra parser complexity solely to avoid an incidental improvement.
+
+When a minimal, principled fix for the current bead naturally improves an adjacent record or exposes a previously swallowed or missing record, do not add gates, special cases, or suppression logic just to keep the generated diff inside the originally expected record list.
+
+Instead:
+
+1. Verify the incidental change against the source text and schema intent.
+2. Confirm it is a direct consequence of the same minimal fix, not a new root-cause investigation.
+3. Add or update focused regression coverage when the incidental change is meaningful and stable.
+4. Explain the additional generated diff in the PR summary.
+5. Update or create a follow-up bead only for remaining work that still requires a separate design decision or additional parser behavior.
+
+A generated diff is acceptable when it is:
+
+- source-confirmed;
+- produced by the same minimal fix;
+- an improvement over previously corrupted, swallowed, or missing output;
+- covered by tests or audit expectations where practical;
+- explicitly explained in the PR summary.
+
+A generated diff should trigger a stop-and-report when it:
+
+- requires a new parser or extractor strategy beyond the current root cause;
+- introduces unrelated kind or count churn;
+- changes records that cannot be source-confirmed quickly;
+- creates ambiguity with an existing documented design decision;
+- requires weakening tests or audit expectations.
+
+Do not suppress a correct incidental fix merely because it was previously tracked as follow-up. If the current minimal fix naturally resolves part of that follow-up, document that the follow-up scope was reduced and leave any remaining design-sensitive work tracked.
+
+Use this hard-stop wording in importer bead prompts:
+
+> If the failure map reveals a new root cause, requires a new parser or extractor strategy, or creates generated churn outside the direct consequences of the current minimal fix, stop and report instead of broadening the implementation.
+>
+> Do not add complexity solely to suppress source-confirmed incidental improvements caused by the correct fix. If the minimal fix naturally improves adjacent records, verify them, test or audit them when practical, explain them in the PR summary, and update any follow-up bead scope as needed.
+
 ## Follow-up scope
 
 If a fix reveals a larger boundary, coverage, or schema problem, either:
