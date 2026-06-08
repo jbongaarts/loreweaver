@@ -359,10 +359,14 @@ export function auditSrdStructure(pack: RulesPack): readonly SrdAuditFinding[] {
 // ---------------------------------------------------------------------------
 
 function slug(value: string): string {
+  // The first replace collapses every non-alphanumeric run to a single '-', so
+  // at most one leading and one trailing '-' can remain. A non-quantified
+  // `^-|-$` strips them in linear time (avoids the polynomial-ReDoS backtracking
+  // of `-+$` on long dash runs).
   return value
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+    .replace(/^-|-$/g, '');
 }
 
 /**
