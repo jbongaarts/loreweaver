@@ -30,6 +30,18 @@
  * or blank line (`collectValue`), so the list is not silently truncated at the
  * first physical line.
  *
+ * Table-boundary fail-safe: the SRD lays each class's level-progression table
+ * directly inside the Proficiencies block — between e.g. "Armor:" and
+ * "Weapons:" for spellcasters and the monk — with no blank line, label, or
+ * block heading to bound it (eshyra-0m9.12). Left unchecked, `collectValue`
+ * swallows the entire table ("The Bard Proficiency … 20th +6 Superior
+ * Inspiration") and the trailing feature prose into the preceding proficiency
+ * value. So a continuation run also stops at the start of that table: its
+ * title line "The <ClassName>" or any of its level-row cells ("1st +2 …").
+ * Classes whose table is printed after the proficiency block (Barbarian,
+ * Fighter, Rogue) are unaffected — their proficiency lines are already
+ * consecutive and the boundary never triggers.
+ *
  * Fail-closed: a confirmed class (one with a Hit Dice line) missing one of the
  * proficiency fields the `dnd5e-srd` class kindSchema requires
  * (`validateDnd5eClass`) is a genuine malformed entry, so the parser throws with
@@ -69,6 +81,28 @@ const PRIMARY_ABILITY_PATTERN = /^Primary Abilit(?:y|ies):\s*(.+)$/i;
 const FIELD_LABEL_PATTERN = /^[A-Za-z][A-Za-z ]*:/;
 const BLOCK_HEADING_PATTERN =
   /^(Hit Points|Proficiencies|Equipment|Quick Build|Class Features|Spellcasting)$/i;
+
+// A level-progression table row leads with a level ordinal cell ("1st +2 …",
+// "20th +6 …"); the table title is "The <ClassName>". Either starts the table
+// the SRD prints inside the Proficiencies block, so either ends a continuation
+// run (see the header note). A proficiency list never legitimately begins a
+// wrapped line with a level ordinal or with "The <ClassName>".
+const PROGRESSION_TABLE_ROW_PATTERN = /^\d{1,2}(?:st|nd|rd|th)\b/;
+
+/** Escape regex metacharacters in a captured class name before interpolation. */
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * True when `line` begins the class's level-progression table: its title line
+ * "The <className>" or a level-row cell. `className` is the name parsed from the
+ * Hit Dice signature line, which equals the SRD table title noun.
+ */
+function isProgressionTableStart(line: string, className: string): boolean {
+  if (PROGRESSION_TABLE_ROW_PATTERN.test(line)) return true;
+  return new RegExp(`^The\\s+${escapeRegExp(className)}\\b`, 'i').test(line);
+}
 
 interface FlatLine {
   readonly line: string;
@@ -120,13 +154,15 @@ function parseProficiencyList(value: string): string[] {
 /**
  * Collect a labeled field's value: the captured first-line text plus any
  * following unlabeled continuation lines (a wrapped list), stopping at the next
- * labeled line, block heading, or blank line. `body` lines are already
+ * labeled line, block heading, blank line, or the start of the class's
+ * level-progression table (`className`). `body` lines are already
  * whitespace-normalized.
  */
 function collectValue(
   body: readonly string[],
   startIdx: number,
   initial: string,
+  className: string,
 ): string {
   const parts = [initial.trim()];
   for (let j = startIdx + 1; j < body.length; j++) {
@@ -134,6 +170,7 @@ function collectValue(
     if (line.length === 0) break;
     if (FIELD_LABEL_PATTERN.test(line)) break;
     if (BLOCK_HEADING_PATTERN.test(line)) break;
+    if (isProgressionTableStart(line, className)) break;
     parts.push(line);
   }
   return parts.join(' ');
@@ -193,28 +230,30 @@ export function parseClasses(pages: readonly PageText[]): ClassExtraction[] {
       if (armor === undefined) {
         const m = ARMOR_PATTERN.exec(line);
         if (m !== null) {
-          armor = parseProficiencyList(collectValue(body, k, m[1]));
+          armor = parseProficiencyList(collectValue(body, k, m[1], start.name));
           continue;
         }
       }
       if (weapons === undefined) {
         const m = WEAPONS_PATTERN.exec(line);
         if (m !== null) {
-          weapons = parseProficiencyList(collectValue(body, k, m[1]));
+          weapons = parseProficiencyList(
+            collectValue(body, k, m[1], start.name),
+          );
           continue;
         }
       }
       if (savingThrows === undefined) {
         const m = SAVING_THROWS_PATTERN.exec(line);
         if (m !== null) {
-          savingThrows = splitList(collectValue(body, k, m[1]));
+          savingThrows = splitList(collectValue(body, k, m[1], start.name));
           continue;
         }
       }
       if (primaryAbilities === undefined) {
         const m = PRIMARY_ABILITY_PATTERN.exec(line);
         if (m !== null) {
-          primaryAbilities = splitList(collectValue(body, k, m[1]));
+          primaryAbilities = splitList(collectValue(body, k, m[1], start.name));
         }
       }
     }
