@@ -124,17 +124,55 @@ function flatten(pages: readonly PageText[]): readonly FlatLine[] {
   return out;
 }
 
+// Sticky list-delimiter pattern: a comma (with surrounding whitespace) or a
+// whitespace-bounded "and"/"or" conjunction. Applied only at parenthesis depth
+// 0 by `splitList` so a conjunction *inside* a parenthetical is never a split.
+const LIST_DELIMITER_PATTERN = /\s*,\s*|\s+and\s+|\s+or\s+/iy;
+
 /**
  * Split an SRD list value into its members. SRD list lines combine commas with
  * a trailing "and"/"or" conjunction ("Strength, Constitution",
  * "Strength or Dexterity", "Simple weapons, martial weapons"), so split on all
  * three and drop empties / a trailing period.
+ *
+ * Parenthesis-aware: a delimiter is honored only at parenthesis depth 0, so a
+ * parenthetical qualifier that itself contains a conjunction or comma stays a
+ * single intact token. The Druid's armor proficiency
+ * "shields (druids will not wear armor or use shields made of metal)" is one
+ * member, not split at the "or" inside the parentheses (eshyra-0m9.12 review).
  */
 function splitList(value: string): string[] {
-  return value
-    .trim()
-    .replace(/\.\s*$/, '')
-    .split(/\s*,\s*|\s+and\s+|\s+or\s+/i)
+  const text = value.trim().replace(/\.\s*$/, '');
+  const segments: string[] = [];
+  let depth = 0;
+  let segmentStart = 0;
+  let i = 0;
+  while (i < text.length) {
+    const ch = text[i];
+    if (ch === '(') {
+      depth++;
+      i++;
+      continue;
+    }
+    if (ch === ')') {
+      if (depth > 0) depth--;
+      i++;
+      continue;
+    }
+    if (depth === 0) {
+      LIST_DELIMITER_PATTERN.lastIndex = i;
+      const match = LIST_DELIMITER_PATTERN.exec(text);
+      if (match !== null) {
+        segments.push(text.slice(segmentStart, i));
+        i += match[0].length;
+        segmentStart = i;
+        continue;
+      }
+    }
+    i++;
+  }
+  segments.push(text.slice(segmentStart));
+  return segments
     .map((segment) => segment.trim())
     .filter((segment) => segment.length > 0);
 }

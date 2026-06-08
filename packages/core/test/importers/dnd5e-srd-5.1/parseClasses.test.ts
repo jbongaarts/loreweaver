@@ -260,12 +260,14 @@ const DRUID_TABLE_PAGE = page(19, [
 describe('parseClasses — table after a wrapped Armor parenthetical (Druid)', () => {
   const [druid] = parseClasses([DRUID_TABLE_PAGE]);
 
-  it('absorbs the legitimate wrapped parenthetical but stops at the table', () => {
+  it('absorbs the wrapped parenthetical as one intact token and stops at the table', () => {
+    // The "or" inside "(druids will not wear armor or use shields made of
+    // metal)" is parenthetical prose, not a list delimiter, so the shield
+    // qualifier stays a single coherent proficiency token (eshyra-0m9.12 review).
     expect(druid.armorProficiencies).toEqual([
       'Light armor',
       'medium armor',
-      'shields (druids will not wear armor',
-      'use shields made of metal)',
+      'shields (druids will not wear armor or use shields made of metal)',
     ]);
   });
 
