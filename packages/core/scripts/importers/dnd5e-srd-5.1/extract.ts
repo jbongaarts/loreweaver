@@ -293,15 +293,16 @@ const MIN_COLUMN_ROW_SUPPORT = 4;
  * the page bands the page.
  *
  * The right side requires ≥2 cell columns, not 1: every affected first-feature
- * class (Bard, Cleric, Druid, Monk, Paladin, Ranger, Warlock, Wizard — all
- * casters or half-casters) prints a progression table with multiple right-side
- * columns (spell-slot / ki / rage cells), whereas a two-column prose line or a
- * label:value metadata line ("Components: V, S, M …" at x≈58/120) reaches the
- * right side only through the single x≈329 prose margin of a coincidental
- * shared baseline. The classes whose table is printed AFTER the proficiency
- * block (Barbarian, Fighter, Rogue) are unaffected by the band path — their
- * first feature was never split — so a Fighter table with no right columns
- * simply stays on the unbanded `partitionItemsByColumn` path, unchanged.
+ * class (Bard, Cleric, Druid, Monk, Paladin, Ranger, Warlock, Wizard) prints a
+ * progression table with multiple right-side columns — the spellcasters' spell-
+ * slot / spells-known cells, or the Monk's Martial Arts / Ki Points / Unarmored
+ * Movement cells — whereas a two-column prose line or a label:value metadata
+ * line ("Components: V, S, M …" at x≈58/120) reaches the right side only through
+ * the single x≈329 prose margin of a coincidental shared baseline. The classes
+ * whose table is printed AFTER the proficiency block (Barbarian, Fighter, Rogue)
+ * are unaffected by the band path — their first feature was never split — so a
+ * Fighter table with no right columns simply stays on the unbanded
+ * `partitionItemsByColumn` path, unchanged.
  */
 const TABLE_LEFT_REGION_MAX_X = 200;
 const TABLE_RIGHT_REGION_MIN_X = 260;
@@ -610,16 +611,29 @@ function bucketItemsIntoRecords(items: readonly PdfTextItem[]): LineRecord[] {
  * displaced past the table and the left-column header's proficiency setup block
  * (Weapons:/Tools:/Saving Throws:/Skills:) bled into the feature body.
  *
- * The page is split into horizontal bands at full-width whitespace gaps
- * (`BAND_GAP_THRESHOLD`) — a gap between consecutive y-buckets is full-width
- * empty by construction — and each band is partitioned independently, so the
- * prose bands cut on the real x≈329 prose gutter while the table band keeps its
- * own internal cut. Adjacent bands whose column structure matches within
- * `BAND_CUT_SIGNATURE_TOLERANCE` are merged before partitioning, so a uniform
- * multi-column page (no structural band break, or only paragraph-sized gaps)
- * collapses back to exactly one page-wide cut and round-trips unchanged. A page
- * with one band (or no qualifying gap) goes straight through
- * `partitionItemsByColumn`.
+ * The fix detects the table by STRUCTURE rather than by whitespace gaps:
+ *   1. Item start-x values are binned (`TABLE_COLUMN_BIN`); a bin that recurs
+ *      across at least `MIN_COLUMN_ROW_SUPPORT` rows is a structural cell column.
+ *   2. A row is a full-width table row when it occupies at least
+ *      `MIN_LEFT_CELL_COLUMNS` structural columns left of `TABLE_LEFT_REGION_MAX_X`
+ *      AND at least `MIN_RIGHT_CELL_COLUMNS` at or beyond `TABLE_RIGHT_REGION_MIN_X`
+ *      — cells on BOTH sides of the page, which two-column prose and
+ *      right-column-only in-spell tables never have.
+ *   3. Short non-table gaps between table rows (a wrapped feature-name "(d6)", a
+ *      sub-header) are filled (`TABLE_GAP_FILL_MAX_ROWS`), and only a CONTIGUOUS
+ *      run of at least `MIN_CONTIGUOUS_TABLE_ROWS` is confirmed as a table band —
+ *      so the short, scattered aligned clusters on a two-column monster page are
+ *      never banded.
+ *   4. The page is split into bands around the confirmed table band, and each
+ *      band is partitioned independently, so a prose band cuts on the real
+ *      x≈329 prose gutter while the table band keeps its own internal cut.
+ *   5. A SANDWICH GATE only diverges from the whole-page partition when a table
+ *      band sits between two-column prose bands (the class-page signature: header
+ *      above, first-feature prose below). The Equipment chapter's full-width
+ *      tables sit at the page top with no two-column prose above, so they fail
+ *      the gate and keep `parseEquipment`'s row form (e.g. the Shield row).
+ * A page with no confirmed, sandwiched table band goes straight through
+ * `partitionItemsByColumn` and round-trips unchanged.
  */
 function partitionItemsIntoReadingOrder(
   items: readonly PdfTextItem[],
