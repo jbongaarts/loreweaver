@@ -47,11 +47,13 @@ import {
 import {
   EXPECTED_SRD_5_1_ANCESTRY_NAMES,
   EXPECTED_SRD_5_1_CREATURE_NAMES,
-  EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES,
   EXPECTED_SRD_5_1_NPC_NAMES,
-  EXPECTED_SRD_5_1_RULE_KEYS,
-  EXPECTED_SRD_5_1_TABLE_NAMES,
 } from '../importers/dnd5e-srd-5.1/index.js';
+import {
+  SOURCE_EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES,
+  SOURCE_EXPECTED_SRD_5_1_RULE_KEYS,
+  SOURCE_EXPECTED_SRD_5_1_TABLE_NAMES,
+} from '../importers/dnd5e-srd-5.1/sourceCoverage.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(HERE, '../../../..');
@@ -534,17 +536,22 @@ async function main(): Promise<void> {
   let srdAudit: ReturnType<typeof auditSrd> | null = null;
   try {
     const pack = loadRulesPackFromDirectory(COMMITTED_PACK_DIR);
+    // Magic items, tables, and rule sections use the SOURCE-coverage lists
+    // (emitted baseline + known source gaps) so an item the importer does not
+    // yet emit — e.g. Orb of Dragonkind — is still reported as missing. Creature
+    // and ancestry sets are already exact source name-sets in the importer's own
+    // coverage gates, so they keep the emitted EXPECTED_* lists.
     srdAudit = auditSrd(pack, {
       requiredNamesByKind: {
-        'magic-item': EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES,
+        'magic-item': SOURCE_EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES,
         ancestry: EXPECTED_SRD_5_1_ANCESTRY_NAMES,
-        table: EXPECTED_SRD_5_1_TABLE_NAMES,
+        table: SOURCE_EXPECTED_SRD_5_1_TABLE_NAMES,
         creature: [
           ...EXPECTED_SRD_5_1_CREATURE_NAMES,
           ...EXPECTED_SRD_5_1_NPC_NAMES,
         ],
       },
-      requiredKeys: EXPECTED_SRD_5_1_RULE_KEYS,
+      requiredKeys: SOURCE_EXPECTED_SRD_5_1_RULE_KEYS,
     });
     writeFileSync(
       join(outDir, 'reports/srd-structure-audit.json'),

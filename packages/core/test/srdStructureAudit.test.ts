@@ -10,6 +10,11 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES } from '../scripts/importers/dnd5e-srd-5.1/index.js';
+import {
+  SOURCE_EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES,
+  SRD_5_1_SOURCE_MAGIC_ITEM_GAPS,
+} from '../scripts/importers/dnd5e-srd-5.1/sourceCoverage.js';
 import type {
   RecordProvenance,
   RulesPack,
@@ -411,6 +416,141 @@ describe('coverage', () => {
       requiredKeys: ['magic-item:adamantine-armor'],
     });
     expect(findings).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Source-coverage expectation layer (the EXPECTED_* vs SOURCE_* distinction)
+// ---------------------------------------------------------------------------
+
+describe('source-coverage expectations', () => {
+  function magicItemKey(name: string): string {
+    return `magic-item:${name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')}`;
+  }
+
+  function magicItem(name: string): RulesRecord {
+    return record({
+      kind: 'magic-item',
+      key: magicItemKey(name),
+      name,
+      data: {
+        itemType: 'Wondrous item',
+        rarity: 'rare',
+        requiresAttunement: false,
+        description: 'Fixture magic item.',
+      },
+    });
+  }
+
+  it('source list adds Orb of Dragonkind that the importer expectations omit', () => {
+    // The bug this PR fixes: keying coverage on the importer's emitted list can
+    // never catch an item the importer does not emit.
+    expect(EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES).not.toContain(
+      'Orb of Dragonkind',
+    );
+    expect(SRD_5_1_SOURCE_MAGIC_ITEM_GAPS).toContain('Orb of Dragonkind');
+    expect(SOURCE_EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES).toContain(
+      'Orb of Dragonkind',
+    );
+    // The source list is a superset of the emitted baseline.
+    for (const name of EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES) {
+      expect(SOURCE_EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES).toContain(name);
+    }
+  });
+
+  it('reports Orb of Dragonkind missing when the pack has every emitted item but not the Orb', () => {
+    const everyEmittedItem = pack(
+      EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES.map(magicItem),
+    );
+    const findings = auditSrdCoverage(everyEmittedItem, {
+      requiredNamesByKind: {
+        'magic-item': SOURCE_EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES,
+      },
+    });
+    // The ONLY gap between the source list and a pack holding every emitted item
+    // is the Orb — so the finding set is exactly one, deterministic, and visible.
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatchObject({
+      category: 'missing-coverage',
+      kind: 'magic-item',
+      name: 'Orb of Dragonkind',
+      key: 'coverage:magic-item:orb-of-dragonkind',
+    });
+  });
+
+  it('keying coverage on the importer EXPECTED_* list cannot catch the Orb (the original defect)', () => {
+    const everyEmittedItem = pack(
+      EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES.map(magicItem),
+    );
+    const findings = auditSrdCoverage(everyEmittedItem, {
+      requiredNamesByKind: { 'magic-item': EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES },
+    });
+    expect(findings).toEqual([]);
+  });
+
+  it('the missing-coverage finding is deterministic across runs', () => {
+    const everyEmittedItem = pack(
+      EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES.map(magicItem),
+    );
+    const expectations = {
+      requiredNamesByKind: {
+        'magic-item': SOURCE_EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES,
+      },
+    };
+    expect(auditSrdCoverage(everyEmittedItem, expectations)).toEqual(
+      auditSrdCoverage(everyEmittedItem, expectations),
+    );
+  });
+
+  it('stops reporting the Orb once the pack contains it', () => {
+    const withOrb = pack([
+      ...EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES.map(magicItem),
+      magicItem('Orb of Dragonkind'),
+    ]);
+    const findings = auditSrdCoverage(withOrb, {
+      requiredNamesByKind: {
+        'magic-item': SOURCE_EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES,
+      },
+    });
+    expect(findings).toEqual([]);
+  });
+
+  it('surfaces structure findings and the Orb gap together via auditSrd', () => {
+    const contaminatedBard = record({
+      key: 'class:bard',
+      name: 'Bard',
+      data: {
+        hitDie: 8,
+        primaryAbilities: ['Charisma'],
+        savingThrowProficiencies: ['Dexterity', 'Charisma'],
+        armorProficiencies: ['Light armor 1st +2 Spellcasting'],
+        weaponProficiencies: ['Simple weapons'],
+      },
+    });
+    const audit = auditSrd(
+      pack([
+        contaminatedBard,
+        ...EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES.map(magicItem),
+      ]),
+      {
+        requiredNamesByKind: {
+          'magic-item': SOURCE_EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES,
+        },
+      },
+    );
+    expect(srdAuditHasFindings(audit)).toBe(true);
+    expect(
+      audit.findings.some((f) => f.category === 'class-proficiency-bleed'),
+    ).toBe(true);
+    expect(
+      audit.findings.some(
+        (f) =>
+          f.category === 'missing-coverage' && f.name === 'Orb of Dragonkind',
+      ),
+    ).toBe(true);
   });
 });
 
