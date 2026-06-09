@@ -59,6 +59,7 @@ import { parseMagicItems } from './parseMagicItems.js';
 import { parseMulticlassing } from './parseMulticlassing.js';
 import { parsePoisons } from './parsePoisons.js';
 import { parseRules } from './parseRules.js';
+import { parseSpellcastingServices } from './parseSpellcastingServices.js';
 import { parseSpellClassLists, parseSpells } from './parseSpells.js';
 import { parseSubclasses } from './parseSubclasses.js';
 import { parseTables } from './parseTables.js';
@@ -1045,6 +1046,9 @@ export const EXPECTED_SRD_5_1_RULE_KEYS: readonly string[] = [
   'rule:somatic-s',
   'rule:spell-level',
   'rule:spell-slots',
+  // Equipment-chapter Expenses region: the Spellcasting Services prose has no
+  // rate table, so it is emitted as a rule (eshyra-0m9.19).
+  'rule:spellcasting-services',
   'rule:sphere',
   'rule:targeting-yourself',
   'rule:targets',
@@ -1070,14 +1074,19 @@ export const EXPECTED_SRD_5_1_TABLE_NAMES: readonly string[] = [
   'Damage Severity by Level',
   'Difficulty Classes',
   'Exotic Languages',
+  'Food, Drink, and Lodging',
   'Indefinite Madness',
+  'Lifestyle Expenses',
   'Long-Term Madness',
   'Multiclassing Prerequisites',
   'Multiclassing Proficiencies',
   'Object Armor Class',
   'Object Hit Points',
+  'Services',
   'Short-Term Madness',
+  'Standard Exchange Rates',
   'Standard Languages',
+  'Trade Goods',
   'Trap Save DCs and Attack Bonuses',
 ];
 
@@ -1915,10 +1924,22 @@ export async function runImporter(
     reservedRuleKeySlugs,
   );
   const gamemasteringRules = parseGamemasteringRules(madnessPages, objectPages);
+  // SRD 5.1 "Expenses" region (p72-74): the Trade Goods / Lifestyle Expenses /
+  // Food/Drink/Lodging / Services cost tables plus the Spellcasting Services
+  // prose (eshyra-0m9.19). Best-effort start so a reduced fixture PDF without
+  // this region degrades to no expenses tables and no spellcasting-services
+  // rule. The Spellcasting Services subsection has no rate table (the SRD says
+  // no established rates exist), so it is emitted as a standalone `rule` record
+  // rather than lost prose.
+  const expensesPages = sliceSectionOrEmptyPages(pages, anchors.expenses);
+  const spellcastingServicesRule = parseSpellcastingServices(expensesPages);
   const nonClassRules = [
     ...coreRules,
     ...spellcastingRules,
     ...gamemasteringRules,
+    ...(spellcastingServicesRule === undefined
+      ? []
+      : [spellcastingServicesRule]),
   ];
   // The two trap reference tables live in the Traps slice (loreweaver-hvp); feed
   // it alongside the core-rules and treasure slices so parseTables reconstructs
@@ -1926,7 +1947,11 @@ export async function runImporter(
   // tables (Character Advancement, Multiclassing Prerequisites / Proficiencies,
   // Standard / Exotic Languages) live in their own chapter slice (eshyra-0m9.23);
   // it is best-effort on its start so reduced fixture PDFs without the chapter
-  // degrade to no Beyond-1st-Level tables.
+  // degrade to no Beyond-1st-Level tables. The Equipment chapter slice carries
+  // the Standard Exchange Rates coin matrix (p62) and the Expenses slice carries
+  // the Trade Goods / Lifestyle / Food/Drink/Lodging / Services cost tables
+  // (eshyra-0m9.19); both are fed alongside so parseTables reconstructs them by
+  // their unique column-header anchors.
   const beyondFirstLevelPages = sliceSectionOrEmptyPages(
     pages,
     anchors.beyondFirstLevel,
@@ -1938,6 +1963,8 @@ export async function runImporter(
     ...madnessPages,
     ...objectPages,
     ...beyondFirstLevelPages,
+    ...equipmentPages,
+    ...expensesPages,
   ]);
   validateTableCoverage(tables, input.expectedTableNames);
   // Sliced after the other sections so the existing fail-closed tests trip on

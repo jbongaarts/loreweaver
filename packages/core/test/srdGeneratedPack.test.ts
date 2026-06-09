@@ -179,18 +179,20 @@ const EXPECTED_COUNTS_BY_KIND: Readonly<Record<string, number>> = {
   'magic-item': 239,
   // Nesting-aware core-rules parse: one rule per heading across the Using
   // Ability Scores, Adventuring, and Combat chapters (loreweaver-yli, 127),
-  // plus 34 general Spellcasting rules, five Madness/Objects rules, and five
-  // Classes-chapter callout rules, validated exactly against
-  // EXPECTED_SRD_5_1_RULE_KEYS.
-  rule: 171,
+  // plus 34 general Spellcasting rules, five Madness/Objects rules, five
+  // Classes-chapter callout rules, and the Spellcasting Services prose rule
+  // (eshyra-0m9.19), validated exactly against EXPECTED_SRD_5_1_RULE_KEYS.
+  rule: 172,
   spell: 319,
   subclass: 12,
   // Difficulty Classes, two trap tables, three Madness tables, two Objects
-  // statistics tables (loreweaver-hvp, loreweaver-uuk), and the five "Beyond
-  // 1st Level" reference tables — Character Advancement, Multiclassing
-  // Prerequisites, Multiclassing Proficiencies, Standard Languages, Exotic
-  // Languages (eshyra-0m9.23).
-  table: 13,
+  // statistics tables (loreweaver-hvp, loreweaver-uuk), the five "Beyond 1st
+  // Level" reference tables (Character Advancement, Multiclassing Prerequisites,
+  // Multiclassing Proficiencies, Standard Languages, Exotic Languages;
+  // eshyra-0m9.23), and the five money/downtime tables — Standard Exchange
+  // Rates, Trade Goods, Lifestyle Expenses, Food/Drink/Lodging, Services
+  // (eshyra-0m9.19).
+  table: 18,
 };
 
 /**
@@ -238,6 +240,9 @@ const EXPECTED_STABLE_KEYS: readonly string[] = [
   'rule:casting-a-spell-range',
   'rule:curing-madness',
   'rule:objects',
+  // Equipment-chapter Expenses region: Spellcasting Services prose rule
+  // (eshyra-0m9.19).
+  'rule:spellcasting-services',
   'spell:fire-bolt',
   'spell:wish',
   'subclass:champion',
@@ -1858,14 +1863,19 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
         'table:damage-severity-by-level',
         'table:difficulty-classes',
         'table:exotic-languages',
+        'table:food-drink-and-lodging',
         'table:indefinite-madness',
+        'table:lifestyle-expenses',
         'table:long-term-madness',
         'table:multiclassing-prerequisites',
         'table:multiclassing-proficiencies',
         'table:object-armor-class',
         'table:object-hit-points',
+        'table:services',
         'table:short-term-madness',
+        'table:standard-exchange-rates',
         'table:standard-languages',
+        'table:trade-goods',
         'table:trap-save-dcs-and-attack-bonuses',
       ]);
     });
@@ -1997,6 +2007,89 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
       });
       expect((exotic?.data as { rows: unknown[] }).rows).toHaveLength(8);
       expect(exotic?.provenance.locator).toBe('p. 59');
+    });
+
+    it('pins money/downtime table data and source pages (eshyra-0m9.19)', () => {
+      const exchange = table('table:standard-exchange-rates');
+      expect(exchange?.data).toMatchObject({
+        columns: ['Coin', 'CP', 'SP', 'EP', 'GP', 'PP'],
+        // Fractional cross-rate cells are preserved verbatim as strings.
+        rows: expect.arrayContaining([
+          ['Copper (cp)', '1', '1/10', '1/50', '1/100', '1/1,000'],
+        ]),
+      });
+      expect((exchange?.data as { rows: unknown[] }).rows).toHaveLength(5);
+      expect(exchange?.provenance.locator).toBe('p. 62');
+
+      const trade = table('table:trade-goods');
+      expect(trade?.data).toMatchObject({
+        columns: ['Cost', 'Goods'],
+        rows: expect.arrayContaining([
+          ['1 cp', '1 lb. of wheat'],
+          ['500 gp', '1 lb. of platinum'],
+        ]),
+      });
+      expect((trade?.data as { rows: unknown[] }).rows).toHaveLength(13);
+      expect(trade?.provenance.locator).toBe('p. 72');
+
+      const lifestyle = table('table:lifestyle-expenses');
+      expect(lifestyle?.data).toMatchObject({
+        columns: ['Lifestyle', 'Price/Day'],
+        // The "—" (Wretched) and "10 gp minimum" (Aristocratic) cells are
+        // preserved verbatim.
+        rows: expect.arrayContaining([
+          ['Wretched', '—'],
+          ['Aristocratic', '10 gp minimum'],
+        ]),
+      });
+      expect((lifestyle?.data as { rows: unknown[] }).rows).toHaveLength(7);
+      expect(lifestyle?.provenance.locator).toBe('p. 72');
+
+      const food = table('table:food-drink-and-lodging');
+      expect(food?.data).toMatchObject({
+        columns: ['Item', 'Cost'],
+        // Grouped sub-items fold into qualified, query-friendly names; ungrouped
+        // top-level items keep their bare name.
+        rows: expect.arrayContaining([
+          ['Ale, gallon', '2 sp'],
+          ['Inn stay, squalid (per day)', '7 cp'],
+          ['Meat, chunk', '3 sp'],
+          ['Wine, fine (bottle)', '10 gp'],
+        ]),
+      });
+      expect((food?.data as { rows: unknown[] }).rows).toHaveLength(20);
+      expect(food?.provenance.locator).toBe('p. 73');
+
+      const services = table('table:services');
+      expect(services?.data).toMatchObject({
+        columns: ['Service', 'Pay'],
+        rows: expect.arrayContaining([
+          ['Coach cab, between towns', '3 cp per mile'],
+          ['Hireling, skilled', '2 gp per day'],
+          ['Messenger', '2 cp per mile'],
+        ]),
+      });
+      expect((services?.data as { rows: unknown[] }).rows).toHaveLength(7);
+      expect(services?.provenance.locator).toBe('p. 74');
+    });
+
+    it('emits Spellcasting Services as a rule rather than lost prose (eshyra-0m9.19)', () => {
+      const rule = pack.records.find(
+        (record) => record.key === 'rule:spellcasting-services',
+      );
+      expect(
+        rule,
+        'expected rule:spellcasting-services in the pack',
+      ).toBeDefined();
+      expect(rule?.kind).toBe('rule');
+      expect(rule?.name).toBe('Spellcasting Services');
+      const text = (rule?.data as { text: string }).text;
+      expect(text).toContain('no established pay rates exist');
+      expect(text).toContain('10 to 50 gold pieces');
+      // The body is one reflowed block bounded by the Feats chapter — no
+      // "Feats" heading should bleed in.
+      expect(text).not.toContain('Feats');
+      expect(rule?.provenance.locator).toBe('p. 74');
     });
   });
 

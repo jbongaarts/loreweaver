@@ -5,14 +5,16 @@
  * deliberately narrow: row-regex reconstruction for the simple reference
  * tables and column-block reconstruction for the treasure challenge tables.
  *
- * Thirteen tables are present in the vendored SRD 5.1 PDF: Difficulty Classes,
+ * Eighteen tables are present in the vendored SRD 5.1 PDF: Difficulty Classes,
  * two trap tables, three Madness effect tables, the Object Armor Class /
- * Object Hit Points tables, and the five "Beyond 1st Level" reference tables
+ * Object Hit Points tables, the five "Beyond 1st Level" reference tables
  * (Character Advancement, Multiclassing Prerequisites, Multiclassing
- * Proficiencies, Standard Languages, Exotic Languages; eshyra-0m9.23).
- * XP-threshold and treasure-table reconstruction rules match no section in this
- * source and remain fixture-only. See the importer README's "Reference-table
- * coverage" section.
+ * Proficiencies, Standard Languages, Exotic Languages; eshyra-0m9.23), and the
+ * five money/downtime tables (Standard Exchange Rates, Trade Goods, Lifestyle
+ * Expenses, Food/Drink/Lodging, Services; eshyra-0m9.19). XP-threshold and
+ * treasure-table reconstruction rules match no section in this source and
+ * remain fixture-only. See the importer README's "Reference-table coverage"
+ * section.
  */
 
 import type { PageText, TableExtraction } from './types.js';
@@ -736,6 +738,221 @@ function parseLanguageTable(
   };
 }
 
+// --- Equipment / Expenses cost tables (p62, p72-74, eshyra-0m9.19) -----------
+//
+// These money / downtime tables live in the Equipment chapter (Standard
+// Exchange Rates, p62) and the "Expenses" region after it (Trade Goods,
+// Lifestyle Expenses, Food/Drink/Lodging, Services; p72-74). They are anchored
+// on their unique COLUMN-HEADER line rather than their title, because each
+// title also appears as a section heading earlier in the same slice (e.g.
+// "Trade Goods" is both the section heading and the table title); the header
+// line is unique and immediately precedes the rows.
+
+// Standard Exchange Rates (p62): the coin cross-rate matrix. Each row is
+// "<Coin> (<abbr>) <CP> <SP> <EP> <GP> <PP>" with fractional cells ("1/10",
+// "1/1,000") preserved verbatim as strings.
+const STANDARD_EXCHANGE_RATES_HEADER = /^Coin CP SP EP GP PP$/i;
+const STANDARD_EXCHANGE_RATES_ROW =
+  /^((?:Copper|Silver|Electrum|Gold|Platinum) \((?:cp|sp|ep|gp|pp)\))\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)$/;
+
+function parseStandardExchangeRatesRow(
+  line: string,
+): readonly [string, string, string, string, string, string] | undefined {
+  const match = STANDARD_EXCHANGE_RATES_ROW.exec(line);
+  if (match === null) return undefined;
+  return [match[1], match[2], match[3], match[4], match[5], match[6]];
+}
+
+function parseStandardExchangeRates(
+  flat: readonly FlatLine[],
+): TableExtraction | undefined {
+  const anchor = findAnchor(flat, STANDARD_EXCHANGE_RATES_HEADER);
+  if (anchor === undefined) return undefined;
+  const rows = collectRows(flat, anchor.idx + 1, parseStandardExchangeRatesRow);
+  if (rows.length !== 5) return undefined;
+  return {
+    name: 'Standard Exchange Rates',
+    columns: ['Coin', 'CP', 'SP', 'EP', 'GP', 'PP'],
+    rows,
+    sourcePage: anchor.page,
+  };
+}
+
+// Trade Goods (p72): "<cost> <goods>" where the cost is a leading
+// number+denomination ("1 cp", "500 gp") and the goods description is the rest.
+const TRADE_GOODS_HEADER = /^Cost Goods$/i;
+const TRADE_GOODS_ROW = /^(\d+ (?:cp|sp|ep|gp|pp)) (.+)$/;
+
+function parseTradeGoodsRow(
+  line: string,
+): readonly [string, string] | undefined {
+  const match = TRADE_GOODS_ROW.exec(line);
+  if (match === null) return undefined;
+  return [match[1], normalizeWhitespace(match[2])];
+}
+
+function parseTradeGoods(
+  flat: readonly FlatLine[],
+): TableExtraction | undefined {
+  const anchor = findAnchor(flat, TRADE_GOODS_HEADER);
+  if (anchor === undefined) return undefined;
+  const rows = collectRows(flat, anchor.idx + 1, parseTradeGoodsRow);
+  if (rows.length !== 13) return undefined;
+  return {
+    name: 'Trade Goods',
+    columns: ['Cost', 'Goods'],
+    rows,
+    sourcePage: anchor.page,
+  };
+}
+
+// Lifestyle Expenses (p72-73): one row per named lifestyle; the value cell may
+// be "—" (Wretched) or carry a trailing qualifier ("10 gp minimum"), so the
+// row is anchored on the known lifestyle name and the remainder is the value.
+const LIFESTYLE_EXPENSES_HEADER = /^Lifestyle Price\/Day$/i;
+const LIFESTYLE_EXPENSES_ROW =
+  /^(Wretched|Squalid|Poor|Modest|Comfortable|Wealthy|Aristocratic)\s+(.+)$/;
+
+function parseLifestyleExpensesRow(
+  line: string,
+): readonly [string, string] | undefined {
+  const match = LIFESTYLE_EXPENSES_ROW.exec(line);
+  if (match === null) return undefined;
+  return [match[1], normalizeWhitespace(match[2])];
+}
+
+function parseLifestyleExpenses(
+  flat: readonly FlatLine[],
+): TableExtraction | undefined {
+  const anchor = findAnchor(flat, LIFESTYLE_EXPENSES_HEADER);
+  if (anchor === undefined) return undefined;
+  const rows = collectRows(flat, anchor.idx + 1, parseLifestyleExpensesRow);
+  if (rows.length !== 7) return undefined;
+  return {
+    name: 'Lifestyle Expenses',
+    columns: ['Lifestyle', 'Price/Day'],
+    rows,
+    sourcePage: anchor.page,
+  };
+}
+
+// Grouped cost tables (Food/Drink/Lodging p73-74, Services p74). The SRD prints
+// these with sub-heading rows ("Ale", "Coach cab") above indented sub-item rows
+// ("Gallon 2 sp"), plus some ungrouped top-level items ("Bread, loaf 2 cp").
+// PDF extraction loses the indentation, so the grouping is supplied as a
+// reviewed structure (eshyra-0m9.19): the group-header set and each group's
+// member-name set. Sub-items fold into a qualified, query-friendly item name —
+// "Inn stay (per day)" + "Squalid" -> "Inn stay, squalid (per day)" — so every
+// emitted row is a standalone purchasable line (no value-less heading rows). The
+// CELL VALUES still come from extraction; only the row classification is
+// reviewed. A value-less line that is NOT a known group header bounds the table
+// (the trailing prose paragraph after Services, or the "Services" heading after
+// Food/Drink/Lodging).
+const GROUPED_COST_VALUE =
+  /^(.*?)\s+(\d+\s+(?:cp|sp|ep|gp|pp)(?:\s+per\s+\w+)?)$/;
+
+interface GroupedCostTableSpec {
+  readonly headerAnchor: RegExp;
+  readonly name: string;
+  readonly columns: readonly [string, string];
+  /** Group header -> ordered member sub-item names (verbatim, pre-fold). */
+  readonly groups: ReadonlyMap<string, readonly string[]>;
+  readonly expectedRows: number;
+}
+
+// Fold "Inn stay (per day)" + "Squalid" -> "Inn stay, squalid (per day)":
+// the group header's trailing parenthetical (if any) moves to the end and the
+// sub-item is lower-cased, matching the reviewed naming convention.
+function foldGroupedItemName(header: string, subItem: string): string {
+  const parenMatch = /^(.*?)\s*(\([^)]*\))\s*$/.exec(header);
+  const base = parenMatch === null ? header : parenMatch[1].trim();
+  const parenthetical = parenMatch === null ? '' : parenMatch[2];
+  const lowered = subItem.charAt(0).toLowerCase() + subItem.slice(1);
+  return `${base}, ${lowered}${parenthetical === '' ? '' : ` ${parenthetical}`}`;
+}
+
+function parseGroupedCostTable(
+  flat: readonly FlatLine[],
+  spec: GroupedCostTableSpec,
+): TableExtraction | undefined {
+  const anchor = findAnchor(flat, spec.headerAnchor);
+  if (anchor === undefined) return undefined;
+
+  const memberOf = (header: string, name: string): boolean =>
+    spec.groups.get(header)?.includes(name) ?? false;
+
+  const rows: [string, string][] = [];
+  let currentHeader: string | undefined;
+  const end = Math.min(flat.length, anchor.idx + MAX_TABLE_SCAN_LINES);
+  for (let i = anchor.idx + 1; i < end; i++) {
+    const line = flat[i].line.trim();
+    if (line.length === 0) continue;
+    const priced = GROUPED_COST_VALUE.exec(line);
+    if (priced === null) {
+      // A value-less line is either a known group header or the table boundary.
+      if (spec.groups.has(line)) {
+        currentHeader = line;
+        continue;
+      }
+      break;
+    }
+    const name = normalizeWhitespace(priced[1]);
+    const value = normalizeWhitespace(priced[2]);
+    if (currentHeader !== undefined && memberOf(currentHeader, name)) {
+      rows.push([foldGroupedItemName(currentHeader, name), value]);
+    } else {
+      // Ungrouped top-level item — closes any open group.
+      currentHeader = undefined;
+      rows.push([name, value]);
+    }
+  }
+
+  if (rows.length !== spec.expectedRows) return undefined;
+  return {
+    name: spec.name,
+    columns: [spec.columns[0], spec.columns[1]],
+    rows,
+    sourcePage: anchor.page,
+  };
+}
+
+const LIFESTYLE_TIERS: readonly string[] = [
+  'Squalid',
+  'Poor',
+  'Modest',
+  'Comfortable',
+  'Wealthy',
+  'Aristocratic',
+];
+
+const FOOD_DRINK_LODGING_SPEC: GroupedCostTableSpec = {
+  headerAnchor: /^Item Cost$/i,
+  name: 'Food, Drink, and Lodging',
+  columns: ['Item', 'Cost'],
+  groups: new Map<string, readonly string[]>([
+    ['Ale', ['Gallon', 'Mug']],
+    ['Inn stay (per day)', LIFESTYLE_TIERS],
+    ['Meals (per day)', LIFESTYLE_TIERS],
+    ['Wine', ['Common (pitcher)', 'Fine (bottle)']],
+  ]),
+  // 8 grouped (Ale 2 + Wine 2) + 12 (Inn stay 6 + Meals 6) + 4 ungrouped
+  // (Banquet, Bread, Cheese, Meat) = 20 priced rows.
+  expectedRows: 20,
+};
+
+const SERVICES_SPEC: GroupedCostTableSpec = {
+  headerAnchor: /^Service Pay$/i,
+  name: 'Services',
+  columns: ['Service', 'Pay'],
+  groups: new Map<string, readonly string[]>([
+    ['Coach cab', ['Between towns', 'Within a city']],
+    ['Hireling', ['Skilled', 'Untrained']],
+  ]),
+  // 4 grouped (Coach cab 2 + Hireling 2) + 3 ungrouped (Messenger, Road or gate
+  // toll, Ship's passage) = 7 rows.
+  expectedRows: 7,
+};
+
 export function parseTables(pages: readonly PageText[]): TableExtraction[] {
   const flat = flatten(pages);
   const tables = [
@@ -776,6 +993,11 @@ export function parseTables(pages: readonly PageText[]): TableExtraction[] {
       name: 'Exotic Languages',
       languages: EXOTIC_LANGUAGE_NAMES,
     }),
+    parseStandardExchangeRates(flat),
+    parseTradeGoods(flat),
+    parseLifestyleExpenses(flat),
+    parseGroupedCostTable(flat, FOOD_DRINK_LODGING_SPEC),
+    parseGroupedCostTable(flat, SERVICES_SPEC),
     ...parseTreasureTables(flat),
   ].filter((table): table is TableExtraction => table !== undefined);
   tables.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));

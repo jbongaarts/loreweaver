@@ -43102,6 +43102,36 @@
   {
     "systemId": "dnd5e-srd",
     "kind": "rule",
+    "key": "rule:spellcasting-services",
+    "name": "Spellcasting Services",
+    "data": {
+      "text": "People who are able to cast spells don’t fall into the category of ordinary hirelings. It might be possible to find someone willing to cast a spell in exchange for coin or favors, but it is rarely easy and no established pay rates exist. As a rule, the higher the level of the desired spell, the harder it is to find someone who can cast it and the more it costs. Hiring someone to cast a relatively common spell of 1st or 2nd level, such as cure wounds or identify, is easy enough in a city or town, and might cost 10 to 50 gold pieces (plus the cost of any expensive material components). Finding someone able and willing to cast a higher-level spell might involve traveling to a large city, perhaps one with a university or prominent temple. Once found, the spellcaster might ask for a service instead of payment—the kind of service that only adventurers can provide, such as retrieving a rare item from a dangerous locale or traversing a monster-infested wilderness to deliver something important to a distant settlement."
+    },
+    "source": "SRD 5.1 p. 74",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 74"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "rule",
     "key": "rule:sphere",
     "name": "Sphere",
     "data": {
@@ -59160,6 +59190,121 @@
   {
     "systemId": "dnd5e-srd",
     "kind": "table",
+    "key": "table:food-drink-and-lodging",
+    "name": "Food, Drink, and Lodging",
+    "data": {
+      "columns": [
+        "Item",
+        "Cost"
+      ],
+      "rows": [
+        [
+          "Ale, gallon",
+          "2 sp"
+        ],
+        [
+          "Ale, mug",
+          "4 cp"
+        ],
+        [
+          "Banquet (per person)",
+          "10 gp"
+        ],
+        [
+          "Bread, loaf",
+          "2 cp"
+        ],
+        [
+          "Cheese, hunk",
+          "1 sp"
+        ],
+        [
+          "Inn stay, squalid (per day)",
+          "7 cp"
+        ],
+        [
+          "Inn stay, poor (per day)",
+          "1 sp"
+        ],
+        [
+          "Inn stay, modest (per day)",
+          "5 sp"
+        ],
+        [
+          "Inn stay, comfortable (per day)",
+          "8 sp"
+        ],
+        [
+          "Inn stay, wealthy (per day)",
+          "2 gp"
+        ],
+        [
+          "Inn stay, aristocratic (per day)",
+          "4 gp"
+        ],
+        [
+          "Meals, squalid (per day)",
+          "3 cp"
+        ],
+        [
+          "Meals, poor (per day)",
+          "6 cp"
+        ],
+        [
+          "Meals, modest (per day)",
+          "3 sp"
+        ],
+        [
+          "Meals, comfortable (per day)",
+          "5 sp"
+        ],
+        [
+          "Meals, wealthy (per day)",
+          "8 sp"
+        ],
+        [
+          "Meals, aristocratic (per day)",
+          "2 gp"
+        ],
+        [
+          "Meat, chunk",
+          "3 sp"
+        ],
+        [
+          "Wine, common (pitcher)",
+          "2 sp"
+        ],
+        [
+          "Wine, fine (bottle)",
+          "10 gp"
+        ]
+      ]
+    },
+    "source": "SRD 5.1 p. 73",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 73"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "table",
     "key": "table:indefinite-madness",
     "name": "Indefinite Madness",
     "data": {
@@ -59238,6 +59383,69 @@
     "provenance": {
       "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
       "locator": "p. 202"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "table",
+    "key": "table:lifestyle-expenses",
+    "name": "Lifestyle Expenses",
+    "data": {
+      "columns": [
+        "Lifestyle",
+        "Price/Day"
+      ],
+      "rows": [
+        [
+          "Wretched",
+          "—"
+        ],
+        [
+          "Squalid",
+          "1 sp"
+        ],
+        [
+          "Poor",
+          "2 sp"
+        ],
+        [
+          "Modest",
+          "1 gp"
+        ],
+        [
+          "Comfortable",
+          "2 gp"
+        ],
+        [
+          "Wealthy",
+          "4 gp"
+        ],
+        [
+          "Aristocratic",
+          "10 gp minimum"
+        ]
+      ]
+    },
+    "source": "SRD 5.1 p. 72",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 72"
     }
   },
   {
@@ -59611,6 +59819,69 @@
   {
     "systemId": "dnd5e-srd",
     "kind": "table",
+    "key": "table:services",
+    "name": "Services",
+    "data": {
+      "columns": [
+        "Service",
+        "Pay"
+      ],
+      "rows": [
+        [
+          "Coach cab, between towns",
+          "3 cp per mile"
+        ],
+        [
+          "Coach cab, within a city",
+          "1 cp"
+        ],
+        [
+          "Hireling, skilled",
+          "2 gp per day"
+        ],
+        [
+          "Hireling, untrained",
+          "2 sp per day"
+        ],
+        [
+          "Messenger",
+          "2 cp per mile"
+        ],
+        [
+          "Road or gate toll",
+          "1 cp"
+        ],
+        [
+          "Ship’s passage",
+          "1 sp per mile"
+        ]
+      ]
+    },
+    "source": "SRD 5.1 p. 74",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 74"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "table",
     "key": "table:short-term-madness",
     "name": "Short-Term Madness",
     "data": {
@@ -59681,6 +59952,85 @@
     "provenance": {
       "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
       "locator": "p. 201"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "table",
+    "key": "table:standard-exchange-rates",
+    "name": "Standard Exchange Rates",
+    "data": {
+      "columns": [
+        "Coin",
+        "CP",
+        "SP",
+        "EP",
+        "GP",
+        "PP"
+      ],
+      "rows": [
+        [
+          "Copper (cp)",
+          "1",
+          "1/10",
+          "1/50",
+          "1/100",
+          "1/1,000"
+        ],
+        [
+          "Silver (sp)",
+          "10",
+          "1",
+          "1/5",
+          "1/10",
+          "1/100"
+        ],
+        [
+          "Electrum (ep)",
+          "50",
+          "5",
+          "1",
+          "1/2",
+          "1/20"
+        ],
+        [
+          "Gold (gp)",
+          "100",
+          "10",
+          "2",
+          "1",
+          "1/10"
+        ],
+        [
+          "Platinum (pp)",
+          "1,000",
+          "100",
+          "20",
+          "10",
+          "1"
+        ]
+      ]
+    },
+    "source": "SRD 5.1 p. 62",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 62"
     }
   },
   {
@@ -59757,6 +60107,93 @@
     "provenance": {
       "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
       "locator": "p. 59"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "table",
+    "key": "table:trade-goods",
+    "name": "Trade Goods",
+    "data": {
+      "columns": [
+        "Cost",
+        "Goods"
+      ],
+      "rows": [
+        [
+          "1 cp",
+          "1 lb. of wheat"
+        ],
+        [
+          "2 cp",
+          "1 lb. of flour or one chicken"
+        ],
+        [
+          "5 cp",
+          "1 lb. of salt"
+        ],
+        [
+          "1 sp",
+          "1 lb. of iron or 1 sq. yd. of canvas"
+        ],
+        [
+          "5 sp",
+          "1 lb. of copper or 1 sq. yd. of cotton cloth"
+        ],
+        [
+          "1 gp",
+          "1 lb. of ginger or one goat"
+        ],
+        [
+          "2 gp",
+          "1 lb. of cinnamon or pepper, or one sheep"
+        ],
+        [
+          "3 gp",
+          "1 lb. of cloves or one pig"
+        ],
+        [
+          "5 gp",
+          "1 lb. of silver or 1 sq. yd. of linen"
+        ],
+        [
+          "10 gp",
+          "1 sq. yd. of silk or one cow"
+        ],
+        [
+          "15 gp",
+          "1 lb. of saffron or one ox"
+        ],
+        [
+          "50 gp",
+          "1 lb. of gold"
+        ],
+        [
+          "500 gp",
+          "1 lb. of platinum"
+        ]
+      ]
+    },
+    "source": "SRD 5.1 p. 72",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 72"
     }
   },
   {
