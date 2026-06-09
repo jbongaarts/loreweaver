@@ -5,11 +5,14 @@
  * deliberately narrow: row-regex reconstruction for the simple reference
  * tables and column-block reconstruction for the treasure challenge tables.
  *
- * Eight tables are present in the vendored SRD 5.1 PDF: Difficulty Classes,
- * two trap tables, three Madness effect tables, and the Object Armor Class /
- * Object Hit Points tables. XP-threshold and treasure-table reconstruction
- * rules match no section in this source and remain fixture-only. See the
- * importer README's "Reference-table coverage" section.
+ * Thirteen tables are present in the vendored SRD 5.1 PDF: Difficulty Classes,
+ * two trap tables, three Madness effect tables, the Object Armor Class /
+ * Object Hit Points tables, and the five "Beyond 1st Level" reference tables
+ * (Character Advancement, Multiclassing Prerequisites, Multiclassing
+ * Proficiencies, Standard Languages, Exotic Languages; eshyra-0m9.23).
+ * XP-threshold and treasure-table reconstruction rules match no section in this
+ * source and remain fixture-only. See the importer README's "Reference-table
+ * coverage" section.
  */
 
 import type { PageText, TableExtraction } from './types.js';
@@ -521,6 +524,218 @@ function normalizeWhitespace(line: string): string {
   return line.replace(/\s+/g, ' ').trim();
 }
 
+// --- "Beyond 1st Level" chapter reference tables (p56-59, eshyra-0m9.23) -----
+//
+// The Character Advancement, Multiclassing, and Languages tables all live in
+// the SRD 5.1 "Beyond 1st Level" chapter and survive PDF extraction as
+// space-separated per-row lines, the same shape as the simple reference tables
+// above. Each table title and column-header line is unique in the chapter
+// slice, so the per-table anchors below cannot collide with body prose (the
+// prose mentions wrap across two lines, e.g. "as shown in the Character /
+// Advancement table"). Cell text is preserved verbatim, including the em-dash
+// "—" used for the Sorcerer/Wizard "no proficiencies" and Deep Speech "no
+// script" cells.
+
+// Character Advancement: experience-point / level / proficiency-bonus rows.
+// XP values carry thousands separators ("2,700"), preserved as integers.
+const CHARACTER_ADVANCEMENT_ANCHOR = /^Character Advancement$/i;
+const CHARACTER_ADVANCEMENT_ROW = /^([\d,]+)\s+(\d+)\s+(\+\d+)$/;
+
+function parseCharacterAdvancementRow(
+  line: string,
+): readonly [number, number, string] | undefined {
+  const match = CHARACTER_ADVANCEMENT_ROW.exec(line);
+  if (match === null) return undefined;
+  return [parseIntegerCell(match[1]), Number.parseInt(match[2], 10), match[3]];
+}
+
+function parseCharacterAdvancement(
+  flat: readonly FlatLine[],
+): TableExtraction | undefined {
+  const anchor = findAnchor(flat, CHARACTER_ADVANCEMENT_ANCHOR);
+  if (anchor === undefined) return undefined;
+  const rows = collectRows(flat, anchor.idx + 1, parseCharacterAdvancementRow);
+  // The SRD advancement track is exactly 20 levels; a short parse means the
+  // extraction drifted, so fail this table rather than emit a partial track.
+  if (rows.length !== 20) return undefined;
+  return {
+    name: 'Character Advancement',
+    columns: ['Experience Points', 'Level', 'Proficiency Bonus'],
+    rows,
+    sourcePage: anchor.page,
+  };
+}
+
+// The twelve SRD base-class names, used to anchor the Multiclassing and
+// (indirectly) language rows. Case-sensitive so a lowercase continuation line
+// ("class’s skill list") can never be mistaken for a new row.
+const MULTICLASS_CLASS_NAME =
+  'Barbarian|Bard|Cleric|Druid|Fighter|Monk|Paladin|Ranger|Rogue|Sorcerer|Warlock|Wizard';
+
+// Multiclassing Prerequisites: one single-line row per class, the ability-score
+// minimum (which itself may contain spaces, e.g. "Strength 13 or Dexterity 13")
+// as the remainder.
+const MULTICLASS_PREREQUISITES_ANCHOR = /^Multiclassing Prerequisites$/i;
+const MULTICLASS_PREREQUISITES_ROW = new RegExp(
+  `^(${MULTICLASS_CLASS_NAME})\\s+(.+)$`,
+);
+
+function parseMulticlassPrerequisiteRow(
+  line: string,
+): readonly [string, string] | undefined {
+  const match = MULTICLASS_PREREQUISITES_ROW.exec(line);
+  if (match === null) return undefined;
+  return [match[1], normalizeWhitespace(match[2])];
+}
+
+function parseMulticlassPrerequisites(
+  flat: readonly FlatLine[],
+): TableExtraction | undefined {
+  const anchor = findAnchor(flat, MULTICLASS_PREREQUISITES_ANCHOR);
+  if (anchor === undefined) return undefined;
+  const rows = collectRows(
+    flat,
+    anchor.idx + 1,
+    parseMulticlassPrerequisiteRow,
+  );
+  if (rows.length !== 12) return undefined;
+  return {
+    name: 'Multiclassing Prerequisites',
+    columns: ['Class', 'Ability Score Minimum'],
+    rows,
+    sourcePage: anchor.page,
+  };
+}
+
+// Multiclassing Proficiencies: one row per class, but the proficiency cell
+// wraps across multiple extracted lines (the same shape as the Madness tables).
+// A row starts at a class-name prefix; every following line that does not start
+// with a class name continues the current cell. The "—" cells (Sorcerer,
+// Wizard) are single-line rows. The table ends at the "Class Features" heading.
+const MULTICLASS_PROFICIENCIES_ANCHOR = /^Multiclassing Proficiencies$/i;
+const MULTICLASS_PROFICIENCIES_HEADER = /^Class Proficiencies Gained$/i;
+const MULTICLASS_PROFICIENCIES_END = /^Class Features$/i;
+const MULTICLASS_PROFICIENCIES_ROW_START = new RegExp(
+  `^(${MULTICLASS_CLASS_NAME})\\s+(.+)$`,
+);
+
+function parseMulticlassProficiencies(
+  flat: readonly FlatLine[],
+): TableExtraction | undefined {
+  const anchor = findAnchor(flat, MULTICLASS_PROFICIENCIES_ANCHOR);
+  if (anchor === undefined) return undefined;
+
+  const rows: [string, string][] = [];
+  let currentClass: string | undefined;
+  let currentText: string[] = [];
+  const flush = (): void => {
+    if (currentClass === undefined) return;
+    rows.push([currentClass, joinWrappedCell(currentText)]);
+    currentClass = undefined;
+    currentText = [];
+  };
+
+  const end = Math.min(flat.length, anchor.idx + MAX_TABLE_SCAN_LINES);
+  for (let i = anchor.idx + 1; i < end; i++) {
+    const line = flat[i].line.trim();
+    if (line.length === 0 || MULTICLASS_PROFICIENCIES_HEADER.test(line)) {
+      continue;
+    }
+    if (MULTICLASS_PROFICIENCIES_END.test(line)) {
+      break;
+    }
+    const rowStart = MULTICLASS_PROFICIENCIES_ROW_START.exec(line);
+    if (rowStart !== null) {
+      flush();
+      currentClass = rowStart[1];
+      currentText = [rowStart[2]];
+      continue;
+    }
+    if (currentClass !== undefined) {
+      currentText.push(line);
+    }
+  }
+  flush();
+
+  if (rows.length !== 12) return undefined;
+  return {
+    name: 'Multiclassing Proficiencies',
+    columns: ['Class', 'Proficiencies Gained'],
+    rows,
+    sourcePage: anchor.page,
+  };
+}
+
+// Standard / Exotic Languages: three-column language / speakers / script rows.
+// The middle "Typical Speakers" cell can contain spaces ("Dragons, dragonborn",
+// "Underworld traders") and the language name itself can be two words ("Deep
+// Speech"), so neither boundary can be found by token position alone. Each
+// table's language names are a fixed reviewed set; the row is split by matching
+// the longest known language prefix, taking the final token as the single-word
+// script, and treating everything between as the speakers cell.
+const LANGUAGE_TABLE_HEADER = /^Language Typical Speakers Script$/i;
+const STANDARD_LANGUAGE_NAMES: readonly string[] = [
+  'Common',
+  'Dwarvish',
+  'Elvish',
+  'Giant',
+  'Gnomish',
+  'Goblin',
+  'Halfling',
+  'Orc',
+];
+const EXOTIC_LANGUAGE_NAMES: readonly string[] = [
+  'Abyssal',
+  'Celestial',
+  'Draconic',
+  'Deep Speech',
+  'Infernal',
+  'Primordial',
+  'Sylvan',
+  'Undercommon',
+];
+
+function parseLanguageTable(
+  flat: readonly FlatLine[],
+  input: {
+    readonly anchorPattern: RegExp;
+    readonly name: string;
+    readonly languages: readonly string[];
+  },
+): TableExtraction | undefined {
+  const anchor = findAnchor(flat, input.anchorPattern);
+  if (anchor === undefined) return undefined;
+  // Longest names first so "Deep Speech" wins over any shorter prefix.
+  const sorted = [...input.languages].sort((a, b) => b.length - a.length);
+  const rows: [string, string, string][] = [];
+  const end = Math.min(flat.length, anchor.idx + MAX_TABLE_SCAN_LINES);
+  for (let i = anchor.idx + 1; i < end; i++) {
+    const line = flat[i].line.trim();
+    if (line.length === 0 || LANGUAGE_TABLE_HEADER.test(line)) {
+      continue;
+    }
+    const language = sorted.find(
+      (name) => line === name || line.startsWith(`${name} `),
+    );
+    if (language === undefined) {
+      if (rows.length > 0) break;
+      continue;
+    }
+    const rest = normalizeWhitespace(line.slice(language.length));
+    const tokens = rest.split(' ');
+    const script = tokens[tokens.length - 1] ?? '';
+    const speakers = tokens.slice(0, -1).join(' ');
+    rows.push([language, speakers, script]);
+  }
+  if (rows.length !== input.languages.length) return undefined;
+  return {
+    name: input.name,
+    columns: ['Language', 'Typical Speakers', 'Script'],
+    rows,
+    sourcePage: anchor.page,
+  };
+}
+
 export function parseTables(pages: readonly PageText[]): TableExtraction[] {
   const flat = flatten(pages);
   const tables = [
@@ -548,6 +763,19 @@ export function parseTables(pages: readonly PageText[]): TableExtraction[] {
     parseObjectArmorClass(flat),
     parseObjectHitPoints(flat),
     parseXpThresholds(flat),
+    parseCharacterAdvancement(flat),
+    parseMulticlassPrerequisites(flat),
+    parseMulticlassProficiencies(flat),
+    parseLanguageTable(flat, {
+      anchorPattern: /^Standard Languages$/i,
+      name: 'Standard Languages',
+      languages: STANDARD_LANGUAGE_NAMES,
+    }),
+    parseLanguageTable(flat, {
+      anchorPattern: /^Exotic Languages$/i,
+      name: 'Exotic Languages',
+      languages: EXOTIC_LANGUAGE_NAMES,
+    }),
     ...parseTreasureTables(flat),
   ].filter((table): table is TableExtraction => table !== undefined);
   tables.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));

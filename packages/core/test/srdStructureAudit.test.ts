@@ -10,10 +10,15 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES } from '../scripts/importers/dnd5e-srd-5.1/index.js';
+import {
+  EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES,
+  EXPECTED_SRD_5_1_TABLE_NAMES,
+} from '../scripts/importers/dnd5e-srd-5.1/index.js';
 import {
   SOURCE_EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES,
+  SOURCE_EXPECTED_SRD_5_1_TABLE_NAMES,
   SRD_5_1_SOURCE_MAGIC_ITEM_GAPS,
+  SRD_5_1_SOURCE_TABLE_GAPS,
 } from '../scripts/importers/dnd5e-srd-5.1/sourceCoverage.js';
 import type {
   RecordProvenance,
@@ -564,6 +569,65 @@ describe('source-coverage expectations', () => {
           f.category === 'missing-coverage' && f.name === 'Orb of Dragonkind',
       ),
     ).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Source-coverage table gaps (eshyra-0m9.23)
+// ---------------------------------------------------------------------------
+
+describe('source-coverage table gaps (eshyra-0m9.23)', () => {
+  function tableKey(name: string): string {
+    return `table:${name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')}`;
+  }
+
+  function tableRecord(name: string): RulesRecord {
+    return record({
+      kind: 'table',
+      key: tableKey(name),
+      name,
+      data: { columns: ['A', 'B'], rows: [['x', 'y']] },
+    });
+  }
+
+  it('keeps the source table set a gap-extended superset of the emitted baseline', () => {
+    for (const name of EXPECTED_SRD_5_1_TABLE_NAMES) {
+      expect(SOURCE_EXPECTED_SRD_5_1_TABLE_NAMES).toContain(name);
+    }
+    for (const name of SRD_5_1_SOURCE_TABLE_GAPS) {
+      expect(SOURCE_EXPECTED_SRD_5_1_TABLE_NAMES).toContain(name);
+    }
+    // No duplicate slipped in via the overlapping dedupe.
+    expect(new Set(SOURCE_EXPECTED_SRD_5_1_TABLE_NAMES).size).toBe(
+      SOURCE_EXPECTED_SRD_5_1_TABLE_NAMES.length,
+    );
+  });
+
+  it('reports each deferred source table as a missing-coverage finding', () => {
+    // A pack that has every emitted table but none of the known source gaps —
+    // the audit must surface exactly the gap tables (eshyra-0m9.19 follow-up).
+    const emittedOnly = pack(EXPECTED_SRD_5_1_TABLE_NAMES.map(tableRecord));
+    const findings = auditSrdCoverage(emittedOnly, {
+      requiredNamesByKind: { table: SOURCE_EXPECTED_SRD_5_1_TABLE_NAMES },
+    });
+    expect(findings.map((f) => f.name).sort()).toEqual(
+      [...SRD_5_1_SOURCE_TABLE_GAPS].sort(),
+    );
+    for (const finding of findings) {
+      expect(finding.category).toBe('missing-coverage');
+      expect(finding.kind).toBe('table');
+    }
+  });
+
+  it('is silent once a pack also contains the source-gap tables', () => {
+    const withGaps = pack(SOURCE_EXPECTED_SRD_5_1_TABLE_NAMES.map(tableRecord));
+    const findings = auditSrdCoverage(withGaps, {
+      requiredNamesByKind: { table: SOURCE_EXPECTED_SRD_5_1_TABLE_NAMES },
+    });
+    expect(findings).toEqual([]);
   });
 });
 

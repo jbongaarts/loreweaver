@@ -560,6 +560,28 @@ export const SRD_5_1_DEFAULT_SECTION_ANCHORS = {
       /^(Proficiencies|Class Features|Alignment|Using Ability Scores|Beyond 1st Level|Adventuring|Combat|Spell Lists?|Spellcasting|Monsters|Magic Items|Equipment|Languages|Inspiration|Backgrounds|Appendix\b)/i,
     matchHeadings: true,
   },
+  // SRD 5.1 "Beyond 1st Level" chapter (p56-59). It immediately follows the
+  // last base class (Wizard) — it is the `classes` anchor's end boundary — and
+  // carries the five reference tables this slice feeds to `parseTables`:
+  // Character Advancement, Multiclassing Prerequisites, Multiclassing
+  // Proficiencies, Standard Languages, and Exotic Languages (eshyra-0m9.23).
+  // The chapter also holds the Multiclassing prose and the Inspiration
+  // subsection (DM-facing prose, not tabular), and ends at the "Backgrounds"
+  // chapter title. requireEndHeading is true so a missing "Backgrounds"
+  // boundary fails closed rather than letting Backgrounds / Equipment / Feats
+  // content run into the table slice; the later headings stay in the
+  // alternation as defense-in-depth. matchHeadings keeps the anchors on real
+  // chapter titles (the strings "Backgrounds"/"Equipment" also occur at body
+  // font in this and other chapters). The orchestrator slices this best-effort
+  // on its START, so a reduced fixture PDF without the chapter degrades to no
+  // Beyond-1st-Level tables.
+  beyondFirstLevel: {
+    startHeading: /^Beyond 1st Level$/,
+    endHeading:
+      /^(Backgrounds|Equipment|Feats|Using Ability Scores|Adventuring|Combat|Monsters|Magic Items|Appendix)\b/,
+    requireEndHeading: true,
+    matchHeadings: true,
+  },
 } as const satisfies Record<string, SectionAnchorOptions>;
 
 export type Srd51SectionAnchors = {
@@ -587,4 +609,5 @@ export type Srd51SectionAnchors = {
   readonly equipment: SectionAnchorOptions;
   readonly treasureTables: SectionAnchorOptions;
   readonly multiclassing: SectionAnchorOptions;
+  readonly beyondFirstLevel: SectionAnchorOptions;
 };
