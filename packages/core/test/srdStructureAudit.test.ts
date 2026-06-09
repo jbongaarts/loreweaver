@@ -464,33 +464,45 @@ describe('source-coverage expectations', () => {
     });
   }
 
-  it('source list adds Orb of Dragonkind that the importer expectations omit', () => {
-    // The bug this PR fixes: keying coverage on the importer's emitted list can
-    // never catch an item the importer does not emit.
-    expect(EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES).not.toContain(
-      'Orb of Dragonkind',
-    );
+  // Every emitted magic item except the Orb. After eshyra-0m9.16 the importer
+  // emits Orb of Dragonkind, so it is in `EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES`;
+  // this set models a pack that has every other emitted item but has dropped
+  // (regressed) the Orb.
+  const EMITTED_WITHOUT_ORB = EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES.filter(
+    (name) => name !== 'Orb of Dragonkind',
+  );
+
+  it('retains the Orb in the source gap list as durable source truth after the importer emits it', () => {
+    // Lifecycle (see sourceCoverage.ts): eshyra-0m9.16 added Orb of Dragonkind to
+    // the emitted baseline, so it is now in BOTH the emitted list and the source
+    // gap list. The gap entry is kept on purpose — it is the durable source-truth
+    // assertion that the Orb must appear in any conformant pack, so a future
+    // regression that drops it from the importer is still caught by the
+    // SOURCE-keyed coverage audit. `dedupe` keeps the source list duplicate-free.
+    expect(EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES).toContain('Orb of Dragonkind');
     expect(SRD_5_1_SOURCE_MAGIC_ITEM_GAPS).toContain('Orb of Dragonkind');
     expect(SOURCE_EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES).toContain(
       'Orb of Dragonkind',
     );
-    // The source list is a superset of the emitted baseline.
+    // The source list stays a superset of the emitted baseline, with no
+    // duplicate Orb entry introduced by the now-overlapping gap list.
     for (const name of EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES) {
       expect(SOURCE_EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES).toContain(name);
     }
+    expect(new Set(SOURCE_EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES).size).toBe(
+      SOURCE_EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES.length,
+    );
   });
 
-  it('reports Orb of Dragonkind missing when the pack has every emitted item but not the Orb', () => {
-    const everyEmittedItem = pack(
-      EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES.map(magicItem),
-    );
-    const findings = auditSrdCoverage(everyEmittedItem, {
+  it('reports Orb of Dragonkind missing when a pack drops it but keeps every other emitted item', () => {
+    const packMissingOrb = pack(EMITTED_WITHOUT_ORB.map(magicItem));
+    const findings = auditSrdCoverage(packMissingOrb, {
       requiredNamesByKind: {
         'magic-item': SOURCE_EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES,
       },
     });
     // The ONLY gap between the source list and a pack holding every emitted item
-    // is the Orb — so the finding set is exactly one, deterministic, and visible.
+    // except the Orb is the Orb — exactly one, deterministic, and visible.
     expect(findings).toHaveLength(1);
     expect(findings[0]).toMatchObject({
       category: 'missing-coverage',
@@ -500,35 +512,20 @@ describe('source-coverage expectations', () => {
     });
   });
 
-  it('keying coverage on the importer EXPECTED_* list cannot catch the Orb (the original defect)', () => {
-    const everyEmittedItem = pack(
-      EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES.map(magicItem),
-    );
-    const findings = auditSrdCoverage(everyEmittedItem, {
-      requiredNamesByKind: { 'magic-item': EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES },
-    });
-    expect(findings).toEqual([]);
-  });
-
   it('the missing-coverage finding is deterministic across runs', () => {
-    const everyEmittedItem = pack(
-      EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES.map(magicItem),
-    );
+    const packMissingOrb = pack(EMITTED_WITHOUT_ORB.map(magicItem));
     const expectations = {
       requiredNamesByKind: {
         'magic-item': SOURCE_EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES,
       },
     };
-    expect(auditSrdCoverage(everyEmittedItem, expectations)).toEqual(
-      auditSrdCoverage(everyEmittedItem, expectations),
+    expect(auditSrdCoverage(packMissingOrb, expectations)).toEqual(
+      auditSrdCoverage(packMissingOrb, expectations),
     );
   });
 
-  it('stops reporting the Orb once the pack contains it', () => {
-    const withOrb = pack([
-      ...EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES.map(magicItem),
-      magicItem('Orb of Dragonkind'),
-    ]);
+  it('is silent once the pack contains the Orb (the post-fix steady state)', () => {
+    const withOrb = pack(EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES.map(magicItem));
     const findings = auditSrdCoverage(withOrb, {
       requiredNamesByKind: {
         'magic-item': SOURCE_EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES,
@@ -537,7 +534,7 @@ describe('source-coverage expectations', () => {
     expect(findings).toEqual([]);
   });
 
-  it('surfaces structure findings and the Orb gap together via auditSrd', () => {
+  it('surfaces structure findings and a dropped-Orb gap together via auditSrd', () => {
     const contaminatedBard = record({
       key: 'class:bard',
       name: 'Bard',
@@ -550,10 +547,7 @@ describe('source-coverage expectations', () => {
       },
     });
     const audit = auditSrd(
-      pack([
-        contaminatedBard,
-        ...EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES.map(magicItem),
-      ]),
+      pack([contaminatedBard, ...EMITTED_WITHOUT_ORB.map(magicItem)]),
       {
         requiredNamesByKind: {
           'magic-item': SOURCE_EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES,

@@ -456,12 +456,34 @@ export const SRD_5_1_DEFAULT_SECTION_ANCHORS = {
   },
   // SRD 5.1 "Magic Items A-Z" (p207-p251) carries lookupable magic-item
   // entries. The introductory "Magic Items" chapter before it is general
-  // usage guidance; the following "Sentient Magic Items" / "Artifacts"
-  // headings are DM-facing construction guidance, so the implemented item
-  // parser is bounded to the A-Z run and fails closed if the end is missing.
+  // usage guidance; the following "Sentient Magic Items" heading is DM-facing
+  // construction guidance, so the implemented item parser is bounded to the
+  // A-Z run and fails closed if the end is missing. The "Artifacts" subsection
+  // that follows IS parsed — but as its own slice (see `artifacts` below),
+  // because the lone artifact entry (Orb of Dragonkind) sits after the Sentient
+  // Magic Items guidance, not inside the A-Z run.
   magicItems: {
     startHeading: /^Magic Items A-Z$/,
     endHeading: /^(Sentient Magic Items|Artifacts|Monsters|Appendix)\b/i,
+    requireEndHeading: true,
+    matchHeadings: true,
+  },
+  // SRD 5.1 "Artifacts" subsection (p252-p253). Unlike "Sentient Magic Items"
+  // (pure DM construction guidance), the Artifacts subsection contains one real,
+  // lookupable magic-item entry — Orb of Dragonkind — in the same
+  // name/category/rarity/body shape as the A-Z items (its category line is
+  // "Wondrous item, artifact (requires attunement)"). It was previously dropped
+  // because the A-Z slice ends at the preceding "Sentient Magic Items" heading
+  // (eshyra-0m9.16). The orchestrator parses this slice with the same
+  // `parseMagicItems` and concatenates the result with the A-Z items. The slice
+  // ends at the "Monsters" chapter that follows. requireEndHeading is true
+  // because magic-item is an implemented kind, so a missing end boundary must
+  // fail closed rather than run the parser into the Monsters chapter.
+  // matchHeadings keeps `^Artifacts$` on the real heading rather than a
+  // body-prose mention.
+  artifacts: {
+    startHeading: /^Artifacts$/,
+    endHeading: /^(Monsters|Appendix)\b/i,
     requireEndHeading: true,
     matchHeadings: true,
   },
@@ -553,6 +575,7 @@ export type Srd51SectionAnchors = {
   readonly nonplayerCharacters: SectionAnchorOptions;
   readonly mountsAndVehicles: SectionAnchorOptions;
   readonly magicItems: SectionAnchorOptions;
+  readonly artifacts: SectionAnchorOptions;
   readonly conditions: SectionAnchorOptions;
   readonly feats: SectionAnchorOptions;
   readonly traps: SectionAnchorOptions;
