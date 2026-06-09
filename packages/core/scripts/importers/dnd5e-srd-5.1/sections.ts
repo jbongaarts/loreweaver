@@ -582,6 +582,24 @@ export const SRD_5_1_DEFAULT_SECTION_ANCHORS = {
     requireEndHeading: true,
     matchHeadings: true,
   },
+  // SRD 5.1 "Expenses" region (p72-74), the tail of the Equipment chapter after
+  // the Mounts and Vehicles tables. It starts at the "Trade Goods" section
+  // heading (matchHeadings keeps the anchor on the h-level heading, not the
+  // lower-font "Trade Goods" table caption that follows it, nor the body-prose
+  // mentions) and runs to the "Feats" chapter heading. The slice carries the
+  // Trade Goods, Lifestyle Expenses, Food/Drink/Lodging, and Services cost
+  // tables plus the Spellcasting Services prose (eshyra-0m9.19); the
+  // orchestrator feeds it to `parseTables` and `parseSpellcastingServices`.
+  // Best-effort start so a reduced fixture PDF without this region degrades to
+  // no expenses tables; requireEndHeading is true so a missing "Feats" boundary
+  // fails closed rather than running the table/rule parsers into later chapters.
+  expenses: {
+    startHeading: /^Trade Goods$/,
+    endHeading:
+      /^(Feats?|Using Ability Scores|Adventuring|Combat|Monsters|Magic Items|Appendix)\b/,
+    requireEndHeading: true,
+    matchHeadings: true,
+  },
 } as const satisfies Record<string, SectionAnchorOptions>;
 
 export type Srd51SectionAnchors = {
@@ -610,4 +628,5 @@ export type Srd51SectionAnchors = {
   readonly treasureTables: SectionAnchorOptions;
   readonly multiclassing: SectionAnchorOptions;
   readonly beyondFirstLevel: SectionAnchorOptions;
+  readonly expenses: SectionAnchorOptions;
 };

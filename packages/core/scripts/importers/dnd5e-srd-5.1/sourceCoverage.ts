@@ -53,22 +53,21 @@ export const SRD_5_1_SOURCE_MAGIC_ITEM_GAPS: readonly string[] = [
 export const SRD_5_1_SOURCE_RULE_KEY_GAPS: readonly string[] = [];
 
 /**
- * SRD 5.1 tables confirmed present in the source but not yet emitted as
- * standalone `table` records. The audit reports each as `missing-coverage` so a
- * source table that has never been imported (or regressed out) stays visible —
- * this is the "make new omissions visible" half of eshyra-0m9.23.
+ * SRD 5.1 tables tracked as durable SOURCE truth. The audit reports each as
+ * `missing-coverage` if it is absent from the pack — whether never-yet-emitted
+ * or regressed out — which is the "make new omissions visible" mechanism from
+ * eshyra-0m9.23.
  *
- * eshyra-0m9.23 imported the five "Beyond 1st Level" reference tables (Character
- * Advancement, Multiclassing Prerequisites / Proficiencies, Standard / Exotic
- * Languages). The remaining money / downtime tables below are deferred to the
- * Equipment-and-expenses table work (eshyra-0m9.19). Two of them — Food, Drink,
- * and Lodging and Services — are nested grouped tables (group-header rows like
- * "Ale" / "Coach cab" with indented sub-item rows), so faithfully representing
- * them as flat `[name, value]` rows needs a column/sub-row decision that is out
- * of scope here; they are tracked as gaps rather than parsed with an invented
- * flattening. Standard Exchange Rates, Trade Goods, and Lifestyle Expenses are
- * clean two/six-column tables deferred only to keep this PR scoped to the
- * Beyond-1st-Level chapter slice.
+ * Lifecycle (same as the Orb of Dragonkind magic-item gap): an entry is added
+ * here when the source table is confirmed present but unemitted, and is RETAINED
+ * after the importer learns to emit it so a future regression that drops it is
+ * still caught. The five money / downtime tables below were added by
+ * eshyra-0m9.23 (audit-only) and are now emitted by eshyra-0m9.19 — Standard
+ * Exchange Rates / Trade Goods / Lifestyle Expenses as clean reference tables,
+ * and Food/Drink/Lodging / Services as grouped tables whose sub-items fold into
+ * qualified item names. They stay listed as durable source truth, so `dedupe`
+ * keeps the SOURCE list a stable superset of the emitted baseline and the audit
+ * simply stops reporting them now that the pack contains them.
  */
 export const SRD_5_1_SOURCE_TABLE_GAPS: readonly string[] = [
   'Standard Exchange Rates',

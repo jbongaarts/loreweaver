@@ -801,4 +801,190 @@ describe('parseTables', () => {
       expect(proficiencies.rows[11]).toEqual(['Wizard', '—']);
     });
   });
+
+  // The five money / downtime cost tables (eshyra-0m9.19). Fixture lines
+  // reproduce the real SRD 5.1 extraction shape (verified against the vendored
+  // source), including the trailing boundary line for each table.
+  describe('Equipment / Expenses cost tables (eshyra-0m9.19)', () => {
+    const EXCHANGE_RATES_PAGE = page(62, [
+      'Standard Exchange Rates',
+      'Coin CP SP EP GP PP',
+      'Copper (cp) 1 1/10 1/50 1/100 1/1,000',
+      'Silver (sp) 10 1 1/5 1/10 1/100',
+      'Electrum (ep) 50 5 1 1/2 1/20',
+      'Gold (gp) 100 10 2 1 1/10',
+      'Platinum (pp) 1,000 100 20 10 1',
+      'Selling Treasure',
+      'Opportunities abound to find treasure.',
+    ]);
+
+    const TRADE_GOODS_PAGE = page(72, [
+      'Trade Goods',
+      'Cost Goods',
+      '1 cp 1 lb. of wheat',
+      '2 cp 1 lb. of flour or one chicken',
+      '5 cp 1 lb. of salt',
+      '1 sp 1 lb. of iron or 1 sq. yd. of canvas',
+      '5 sp 1 lb. of copper or 1 sq. yd. of cotton cloth',
+      '1 gp 1 lb. of ginger or one goat',
+      '2 gp 1 lb. of cinnamon or pepper, or one sheep',
+      '3 gp 1 lb. of cloves or one pig',
+      '5 gp 1 lb. of silver or 1 sq. yd. of linen',
+      '10 gp 1 sq. yd. of silk or one cow',
+      '15 gp 1 lb. of saffron or one ox',
+      '50 gp 1 lb. of gold',
+      '500 gp 1 lb. of platinum',
+      'Expenses',
+      'When not descending into the depths of the earth,',
+    ]);
+
+    const LIFESTYLE_PAGE = page(72, [
+      'Lifestyle Expenses',
+      'Lifestyle Price/Day',
+      'Wretched —',
+      'Squalid 1 sp',
+      'Poor 2 sp',
+      'Modest 1 gp',
+      'Comfortable 2 gp',
+      'Wealthy 4 gp',
+      'Aristocratic 10 gp minimum',
+      'Wretched. You live in inhumane conditions.',
+    ]);
+
+    const FOOD_PAGE = page(73, [
+      'Food, Drink, and Lodging',
+      'Item Cost',
+      'Ale',
+      'Gallon 2 sp',
+      'Mug 4 cp',
+      'Banquet (per person) 10 gp',
+      'Bread, loaf 2 cp',
+      'Cheese, hunk 1 sp',
+      'Inn stay (per day)',
+      'Squalid 7 cp',
+      'Poor 1 sp',
+      'Modest 5 sp',
+      'Comfortable 8 sp',
+      'Wealthy 2 gp',
+      'Aristocratic 4 gp',
+      'Meals (per day)',
+      'Squalid 3 cp',
+      'Poor 6 cp',
+      'Modest 3 sp',
+      'Comfortable 5 sp',
+      'Wealthy 8 sp',
+      'Aristocratic 2 gp',
+      'Meat, chunk 3 sp',
+      'Wine',
+      'Common (pitcher) 2 sp',
+      'Fine (bottle) 10 gp',
+      'Services',
+    ]);
+
+    const SERVICES_PAGE = page(74, [
+      'Services',
+      'Service Pay',
+      'Coach cab',
+      'Between towns 3 cp per mile',
+      'Within a city 1 cp',
+      'Hireling',
+      'Skilled 2 gp per day',
+      'Untrained 2 sp per day',
+      'Messenger 2 cp per mile',
+      'Road or gate toll 1 cp',
+      'Ship’s passage 1 sp per mile',
+      'Skilled hirelings include anyone hired to perform a',
+      'service that involves a proficiency.',
+    ]);
+
+    it('reconstructs the Standard Exchange Rates coin matrix', () => {
+      const [table] = parseTables([EXCHANGE_RATES_PAGE]);
+      expect(table.name).toBe('Standard Exchange Rates');
+      expect(table.columns).toEqual(['Coin', 'CP', 'SP', 'EP', 'GP', 'PP']);
+      expect(table.rows).toHaveLength(5);
+      expect(table.rows[0]).toEqual([
+        'Copper (cp)',
+        '1',
+        '1/10',
+        '1/50',
+        '1/100',
+        '1/1,000',
+      ]);
+      expect(table.rows[4]).toEqual([
+        'Platinum (pp)',
+        '1,000',
+        '100',
+        '20',
+        '10',
+        '1',
+      ]);
+      expect(table.sourcePage).toBe(62);
+    });
+
+    it('reconstructs the Trade Goods cost/goods rows', () => {
+      const [table] = parseTables([TRADE_GOODS_PAGE]);
+      expect(table.name).toBe('Trade Goods');
+      expect(table.columns).toEqual(['Cost', 'Goods']);
+      expect(table.rows).toHaveLength(13);
+      expect(table.rows[0]).toEqual(['1 cp', '1 lb. of wheat']);
+      expect(table.rows[12]).toEqual(['500 gp', '1 lb. of platinum']);
+    });
+
+    it('reconstructs Lifestyle Expenses including "—" and qualifier cells', () => {
+      const [table] = parseTables([LIFESTYLE_PAGE]);
+      expect(table.name).toBe('Lifestyle Expenses');
+      expect(table.columns).toEqual(['Lifestyle', 'Price/Day']);
+      expect(table.rows).toHaveLength(7);
+      expect(table.rows[0]).toEqual(['Wretched', '—']);
+      expect(table.rows[6]).toEqual(['Aristocratic', '10 gp minimum']);
+    });
+
+    it('folds grouped Food/Drink/Lodging sub-items into qualified item names', () => {
+      const [table] = parseTables([FOOD_PAGE]);
+      expect(table.name).toBe('Food, Drink, and Lodging');
+      expect(table.columns).toEqual(['Item', 'Cost']);
+      expect(table.rows).toHaveLength(20);
+      // Group headers ("Ale", "Inn stay (per day)", "Wine") are folded, not
+      // emitted as bare rows; the parenthetical moves to the qualified tail.
+      expect(table.rows).toEqual([
+        ['Ale, gallon', '2 sp'],
+        ['Ale, mug', '4 cp'],
+        ['Banquet (per person)', '10 gp'],
+        ['Bread, loaf', '2 cp'],
+        ['Cheese, hunk', '1 sp'],
+        ['Inn stay, squalid (per day)', '7 cp'],
+        ['Inn stay, poor (per day)', '1 sp'],
+        ['Inn stay, modest (per day)', '5 sp'],
+        ['Inn stay, comfortable (per day)', '8 sp'],
+        ['Inn stay, wealthy (per day)', '2 gp'],
+        ['Inn stay, aristocratic (per day)', '4 gp'],
+        ['Meals, squalid (per day)', '3 cp'],
+        ['Meals, poor (per day)', '6 cp'],
+        ['Meals, modest (per day)', '3 sp'],
+        ['Meals, comfortable (per day)', '5 sp'],
+        ['Meals, wealthy (per day)', '8 sp'],
+        ['Meals, aristocratic (per day)', '2 gp'],
+        ['Meat, chunk', '3 sp'],
+        ['Wine, common (pitcher)', '2 sp'],
+        ['Wine, fine (bottle)', '10 gp'],
+      ]);
+    });
+
+    it('reconstructs Services and stops at the trailing prose paragraph', () => {
+      const [table] = parseTables([SERVICES_PAGE]);
+      expect(table.name).toBe('Services');
+      expect(table.columns).toEqual(['Service', 'Pay']);
+      expect(table.rows).toEqual([
+        ['Coach cab, between towns', '3 cp per mile'],
+        ['Coach cab, within a city', '1 cp'],
+        ['Hireling, skilled', '2 gp per day'],
+        ['Hireling, untrained', '2 sp per day'],
+        ['Messenger', '2 cp per mile'],
+        ['Road or gate toll', '1 cp'],
+        ['Ship’s passage', '1 sp per mile'],
+      ]);
+      // The "Skilled hirelings include..." prose must not become an 8th row.
+      expect(table.rows).toHaveLength(7);
+    });
+  });
 });

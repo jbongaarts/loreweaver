@@ -573,10 +573,10 @@ describe('source-coverage expectations', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Source-coverage table gaps (eshyra-0m9.23)
+// Source-coverage table gaps (eshyra-0m9.23 audit-only -> eshyra-0m9.19 emitted)
 // ---------------------------------------------------------------------------
 
-describe('source-coverage table gaps (eshyra-0m9.23)', () => {
+describe('source-coverage table gaps (eshyra-0m9.23, eshyra-0m9.19)', () => {
   function tableKey(name: string): string {
     return `table:${name
       .toLowerCase()
@@ -606,25 +606,38 @@ describe('source-coverage table gaps (eshyra-0m9.23)', () => {
     );
   });
 
-  it('reports each deferred source table as a missing-coverage finding', () => {
-    // A pack that has every emitted table but none of the known source gaps —
-    // the audit must surface exactly the gap tables (eshyra-0m9.19 follow-up).
-    const emittedOnly = pack(EXPECTED_SRD_5_1_TABLE_NAMES.map(tableRecord));
-    const findings = auditSrdCoverage(emittedOnly, {
-      requiredNamesByKind: { table: SOURCE_EXPECTED_SRD_5_1_TABLE_NAMES },
-    });
-    expect(findings.map((f) => f.name).sort()).toEqual(
-      [...SRD_5_1_SOURCE_TABLE_GAPS].sort(),
-    );
-    for (const finding of findings) {
-      expect(finding.category).toBe('missing-coverage');
-      expect(finding.kind).toBe('table');
+  it('retains the now-emitted money/downtime tables as durable source truth', () => {
+    // eshyra-0m9.19 made the importer emit all five former gaps, so each is now
+    // in BOTH the emitted baseline and the retained source-gap list (the Orb of
+    // Dragonkind lifecycle). The gap entries stay so a regression that drops one
+    // is still caught by the SOURCE-keyed audit.
+    for (const name of SRD_5_1_SOURCE_TABLE_GAPS) {
+      expect(EXPECTED_SRD_5_1_TABLE_NAMES).toContain(name);
     }
   });
 
-  it('is silent once a pack also contains the source-gap tables', () => {
-    const withGaps = pack(SOURCE_EXPECTED_SRD_5_1_TABLE_NAMES.map(tableRecord));
-    const findings = auditSrdCoverage(withGaps, {
+  it('reports a regressed source table that dropped out of the pack', () => {
+    // A pack holding every emitted table except one former gap (Services) must
+    // surface exactly that one as a missing-coverage finding.
+    const withoutServices = pack(
+      EXPECTED_SRD_5_1_TABLE_NAMES.filter((n) => n !== 'Services').map(
+        tableRecord,
+      ),
+    );
+    const findings = auditSrdCoverage(withoutServices, {
+      requiredNamesByKind: { table: SOURCE_EXPECTED_SRD_5_1_TABLE_NAMES },
+    });
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatchObject({
+      category: 'missing-coverage',
+      kind: 'table',
+      name: 'Services',
+    });
+  });
+
+  it('is silent once the pack contains the full emitted table set (steady state)', () => {
+    const full = pack(SOURCE_EXPECTED_SRD_5_1_TABLE_NAMES.map(tableRecord));
+    const findings = auditSrdCoverage(full, {
       requiredNamesByKind: { table: SOURCE_EXPECTED_SRD_5_1_TABLE_NAMES },
     });
     expect(findings).toEqual([]);
