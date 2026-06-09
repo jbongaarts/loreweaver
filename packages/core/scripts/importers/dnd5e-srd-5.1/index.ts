@@ -1066,13 +1066,18 @@ export const EXPECTED_SRD_5_1_RULE_KEYS: readonly string[] = [
 ];
 
 export const EXPECTED_SRD_5_1_TABLE_NAMES: readonly string[] = [
+  'Character Advancement',
   'Damage Severity by Level',
   'Difficulty Classes',
+  'Exotic Languages',
   'Indefinite Madness',
   'Long-Term Madness',
+  'Multiclassing Prerequisites',
+  'Multiclassing Proficiencies',
   'Object Armor Class',
   'Object Hit Points',
   'Short-Term Madness',
+  'Standard Languages',
   'Trap Save DCs and Attack Bonuses',
 ];
 
@@ -1917,13 +1922,22 @@ export async function runImporter(
   ];
   // The two trap reference tables live in the Traps slice (loreweaver-hvp); feed
   // it alongside the core-rules and treasure slices so parseTables reconstructs
-  // them with the same anchored row rules.
+  // them with the same anchored row rules. The five "Beyond 1st Level" reference
+  // tables (Character Advancement, Multiclassing Prerequisites / Proficiencies,
+  // Standard / Exotic Languages) live in their own chapter slice (eshyra-0m9.23);
+  // it is best-effort on its start so reduced fixture PDFs without the chapter
+  // degrade to no Beyond-1st-Level tables.
+  const beyondFirstLevelPages = sliceSectionOrEmptyPages(
+    pages,
+    anchors.beyondFirstLevel,
+  );
   const tables = parseTables([
     ...coreRulePages,
     ...treasureTablePages,
     ...trapPages,
     ...madnessPages,
     ...objectPages,
+    ...beyondFirstLevelPages,
   ]);
   validateTableCoverage(tables, input.expectedTableNames);
   // Sliced after the other sections so the existing fail-closed tests trip on

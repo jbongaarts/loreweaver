@@ -52,8 +52,31 @@ export const SRD_5_1_SOURCE_MAGIC_ITEM_GAPS: readonly string[] = [
 /** SRD 5.1 rule sections present in the source but not yet emitted. */
 export const SRD_5_1_SOURCE_RULE_KEY_GAPS: readonly string[] = [];
 
-/** SRD 5.1 tables present in the source but not yet emitted. */
-export const SRD_5_1_SOURCE_TABLE_GAPS: readonly string[] = [];
+/**
+ * SRD 5.1 tables confirmed present in the source but not yet emitted as
+ * standalone `table` records. The audit reports each as `missing-coverage` so a
+ * source table that has never been imported (or regressed out) stays visible —
+ * this is the "make new omissions visible" half of eshyra-0m9.23.
+ *
+ * eshyra-0m9.23 imported the five "Beyond 1st Level" reference tables (Character
+ * Advancement, Multiclassing Prerequisites / Proficiencies, Standard / Exotic
+ * Languages). The remaining money / downtime tables below are deferred to the
+ * Equipment-and-expenses table work (eshyra-0m9.19). Two of them — Food, Drink,
+ * and Lodging and Services — are nested grouped tables (group-header rows like
+ * "Ale" / "Coach cab" with indented sub-item rows), so faithfully representing
+ * them as flat `[name, value]` rows needs a column/sub-row decision that is out
+ * of scope here; they are tracked as gaps rather than parsed with an invented
+ * flattening. Standard Exchange Rates, Trade Goods, and Lifestyle Expenses are
+ * clean two/six-column tables deferred only to keep this PR scoped to the
+ * Beyond-1st-Level chapter slice.
+ */
+export const SRD_5_1_SOURCE_TABLE_GAPS: readonly string[] = [
+  'Standard Exchange Rates',
+  'Trade Goods',
+  'Lifestyle Expenses',
+  'Food, Drink, and Lodging',
+  'Services',
+];
 
 /**
  * Source-coverage magic-item name set: every magic item the SRD 5.1 source

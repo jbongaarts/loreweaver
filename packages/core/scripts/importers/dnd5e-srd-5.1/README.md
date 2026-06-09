@@ -25,7 +25,7 @@ tracked as child issues).
 | `feat`      | Implemented. Parser extracts feat entries (SRD 5.1: Grappler) with optional prerequisites and description text in `data.description`. Section anchor: `feats` (`startHeading: /^Feats?$\|^Feat Descriptions?$/`, `requireEndHeading: true`). |
 | `condition` | Implemented. Parser extracts all 15 SRD conditions (blinded, charmed, deafened, exhaustion, frightened, grappled, incapacitated, invisible, paralyzed, petrified, poisoned, prone, restrained, stunned, unconscious). Exhaustion carries a structured `levels` array (6 entries). Section anchor: `conditions` (`startHeading: /^Appendix A: Conditions$\|^Conditions$/`). |
 | `hazard`    | Implemented. The canonical SRD 5.1 pack carries **25** `hazard` records from three gamemastering sub-families: **8 sample traps** (loreweaver-hvp: Collapsing Roof, Falling Net, Fire-Breathing Statue, Pits, Poison Darts, Poison Needle, Rolling Sphere, Sphere of Annihilation), **3 sample diseases** (loreweaver-6ra: Cackle Fever, Sewer Plague, Sight Rot), and **14 sample poisons** (loreweaver-6ra: Assassin's Blood … Wyvern Poison). All emit under the `hazard` kind (decision below); the SRD groups Traps with Diseases/Madness/Poisons and each is a description-only danger with a save DC and effects, so they share the `hazard` kindSchema (only `description` is required). They are discriminated within the kind: **traps** carry `data.trapType` (`"mechanical"` \| `"magic"`, the SRD subtitle); **diseases** carry `data.category: "disease"`; **poisons** carry `data.category: "poison"` plus `data.poisonType` (`contact`\|`ingested`\|`inhaled`\|`injury`) and `data.price` (per-dose, from the Poisons reference table). Each carries a re-flowed `data.description` (for poisons, the save DC and damage stay inside the description rather than being parsed out); "Pits" is one trap record describing its four inlined variants. Parsers: `parseTraps` keys each entry off its name line + standalone `Mechanical trap` / `Magic trap` subtitle; `parseDiseases` keys off the exact disease name lines (like `parseHazards`); `parsePoisons` keys off the inline `Name (Type). …` bold lead-in and cross-references the price table by normalized name. The leading guidance prose of each section (trap-running procedure, the disease/poison framing, the four poison-type definitions) is **not** emitted — DM-facing prose, not a lookupable entity. Section anchors: `traps` (end at `Diseases`), `diseases` (`/^Diseases$/`, end at `Madness`), `poisons` (`/^Poisons$/`, end at `Magic Items`), all `requireEndHeading: true`, best-effort start. The real import fails closed against `EXPECTED_SRD_5_1_TRAP_NAMES` / `_DISEASE_NAMES` / `_POISON_NAMES` (a missing/renamed/spurious entry throws `TrapCoverageError` / `DiseaseCoverageError` / `PoisonCoverageError`). The two trap reference tables emit as `table` records (see Reference-table coverage); the Poisons price table is folded into the poison records, not emitted separately. **No `trap` / `disease` / `poison` record kinds:** all three fit the `hazard` kindSchema exactly, and new kinds would force changes across the exhaustive `Record<RulesRecordKind, …>` validators/indexes for no schema benefit. SRD 5.1 has no environmental-hazard chapter (Brown Mold / Green Slime / Webs / Yellow Mold are absent), but the environmental-hazard parser (`parseHazards`, exact-name match, best-effort `hazards` anchor `/^Dungeon Hazards$\|^Hazards$/`) is retained for fixtures and future editions; it emits zero records here. **Extractor note (loreweaver-6ra):** the p205 "Sample Poisons" page is a single column whose entries open with a short indented bold lead-in followed by the justified remainder of the first line on the same baseline; that pattern opened a phantom column gutter that scrambled each poison's first sentence, so `partitionItemsByColumn` now merges such a page back to one column (it straddles ≥2 contiguous baselines with no real gutter, the widest cut is also the most balanced, and the right side owns no standalone line). |
-| `table`     | Implemented (**8 records**). The canonical pack contains Difficulty Classes (p77), two trap tables (p196), three Madness effect tables (pp201-202), and Object Armor Class / Object Hit Points (p203). `EXPECTED_SRD_5_1_TABLE_NAMES` is an exact fail-closed baseline. The parser also retains fixture-only reconstruction rules for XP thresholds and treasure challenge tables, which are absent from this SRD PDF. See "Reference-table coverage" below (`loreweaver-46m`, `loreweaver-hvp`, `loreweaver-uuk`). |
+| `table`     | Implemented (**13 records**). The canonical pack contains Difficulty Classes (p77), two trap tables (p196), three Madness effect tables (pp201-202), Object Armor Class / Object Hit Points (p203), and the five "Beyond 1st Level" reference tables (pp56-59): Character Advancement, Multiclassing Prerequisites, Multiclassing Proficiencies, Standard Languages, and Exotic Languages (eshyra-0m9.23). `EXPECTED_SRD_5_1_TABLE_NAMES` is an exact fail-closed baseline. The parser also retains fixture-only reconstruction rules for XP thresholds and treasure challenge tables, which are absent from this SRD PDF. The Beyond-1st-Level tables come from a dedicated `beyondFirstLevel` section slice (best-effort start); the money/downtime tables (Standard Exchange Rates, Trade Goods, Lifestyle Expenses, Food/Drink/Lodging, Services) remain unemitted and are tracked as `SRD_5_1_SOURCE_TABLE_GAPS` so the source-coverage audit flags them (eshyra-0m9.19 follow-up). See "Reference-table coverage" below (`loreweaver-46m`, `loreweaver-hvp`, `loreweaver-uuk`, `eshyra-0m9.23`). |
 | `rule`      | Implemented (**171 records**): 127 core rules, 34 spellcasting rules, five focused gamemastering rules (`Madness`, `Going Mad`, `Madness Effects`, `Curing Madness`, and `Objects`), and five Classes callouts. `parseRules` remains heading-hierarchy-aware for core/spellcasting chapters, `parseGamemasteringRules` handles the source-shaped Madness root intro and consolidates Objects prose while excluding its two structured tables, and `parseClassCallouts` imports every structurally detected Classes gray box as a standalone rule. Class-callout keys are parent-qualified as `rule:<class-slug>-<callout-slug>`. Semantic filtering is intentionally not performed: procedural, illustrative, and lore boxes are all retained because source structure is the stable inclusion criterion. The real import fails closed against the exact combined `EXPECTED_SRD_5_1_RULE_KEYS` set. Madness and Objects use exact heading anchors with required end headings; their starts are best-effort only so reduced fixtures can omit those sections. Full body text is stored in `data.text`. Diseases and Poisons emit as structured `hazard` records under `loreweaver-6ra`. |
 
 The importer does **not** emit empty stubs for unimplemented kinds. Per the
@@ -287,11 +287,23 @@ below). The exact canonical name set is guarded by
 | Indefinite Madness | `table:indefinite-madness` | Twelve wrapped d100/flaw rows reconstruct from the Madness slice (p202). |
 | Object Armor Class | `table:object-armor-class` | Seven substance/AC rows reconstruct from line text (p203). |
 | Object Hit Points | `table:object-hit-points` | Four size/fragile/resilient rows support both inline and split-column extraction layouts (p203). |
+| Character Advancement | `table:character-advancement` | Twenty XP/level/proficiency-bonus rows reconstruct from line text; XP thousands separators are stripped to integers (p56; eshyra-0m9.23). |
+| Multiclassing Prerequisites | `table:multiclassing-prerequisites` | Twelve class/ability-minimum rows; the value cell keeps its spaces ("Strength 13 or Dexterity 13") because the leading token is a known base-class name (p56; eshyra-0m9.23). |
+| Multiclassing Proficiencies | `table:multiclassing-proficiencies` | Twelve class/proficiencies rows whose proficiency cell wraps across extracted lines (the same shape as the Madness tables); rejoined by class-name row starts and bounded by the "Class Features" heading. The Sorcerer/Wizard "—" cells are preserved verbatim (p57; eshyra-0m9.23). |
+| Standard Languages | `table:standard-languages` | Eight language/speakers/script rows split by known language prefix + last-token script, so a multi-word speakers cell ("Ogres, giants") stays intact (p59; eshyra-0m9.23). |
+| Exotic Languages | `table:exotic-languages` | Eight rows split the same way; the two-word "Deep Speech" language and its "—" script cell are handled by the known-name prefix match (p59; eshyra-0m9.23). |
 
-The committed pack holds exactly these eight `table` records.
+The committed pack holds exactly these thirteen `table` records.
 `srdGeneratedPack.test.ts` pins the table key/name set (and the per-kind
-`table: 8` count) so coverage cannot silently collapse or grow without a
+`table: 13` count) so coverage cannot silently collapse or grow without a
 reviewed baseline update.
+
+The Beyond-1st-Level tables (Character Advancement, Multiclassing Prerequisites,
+Multiclassing Proficiencies, Standard Languages, Exotic Languages) are
+reconstructed from the dedicated `beyondFirstLevel` section slice; each table
+title and column-header line is unique within that chapter, so the per-table
+anchors cannot collide with the wrapped body-prose mentions ("as shown in the
+Character / Advancement table").
 
 ### Reconstruction-capable but absent from SRD 5.1
 
@@ -312,6 +324,7 @@ Tables not covered by the current parser at all:
 
 | Table family | Reason deferred | Follow-up |
 |--------------|-----------------|-----------|
+| Money / downtime tables (Standard Exchange Rates, Trade Goods, Lifestyle Expenses, Food/Drink/Lodging, Services) | Present in the source but unemitted. Standard Exchange Rates / Trade Goods / Lifestyle Expenses are clean two/six-column tables deferred only to keep eshyra-0m9.23 scoped to the Beyond-1st-Level chapter. Food/Drink/Lodging and Services are **nested grouped** tables (group-header rows like "Ale"/"Coach cab" with indented sub-item rows) that need a column/sub-row representation decision before a faithful flat-row import. | Tracked as `SRD_5_1_SOURCE_TABLE_GAPS` (the source-coverage audit reports each as `missing-coverage`); implement under eshyra-0m9.19. |
 | Other wide/nested DM reference tables | `loreweaver-0m9.5.13` does not claim all SRD tables. Add a dedicated anchor and reconstruction rule before emitting each additional table family; tables whose text wraps within cells may need raw pdfjs x/y positions rather than `PageText.lines` alone. | Create a follow-up from the full-PDF coverage audit with the exact table fixture. |
 
 ## Section-anchor table
@@ -330,8 +343,10 @@ dispatch. Each entry is a `SectionAnchorOptions` value:
 
 `SRD_5_1_DEFAULT_SECTION_ANCHORS` is the live table consumed by the
 orchestrator. Freestanding `table` records use the `coreRules` slice for the
-Difficulty Classes table, the `traps` slice for the two trap tables, and the
-`treasureTables` slice for treasure challenge tables. The `traps` anchor is
+Difficulty Classes table, the `traps` slice for the two trap tables, the
+`treasureTables` slice for treasure challenge tables, and the `beyondFirstLevel`
+slice (p56-59, best-effort start, end-bounded at "Backgrounds") for the five
+Beyond-1st-Level reference tables (eshyra-0m9.23). The `traps` anchor is
 best-effort on its START (a fixture without a Traps section degrades to no
 traps) but `requireEndHeading: true`, so a Traps section that begins without
 its `Diseases` boundary fails closed rather than letting the last trap's body
@@ -371,6 +386,7 @@ logical line by the extractor's heading-merge pass before slicing.
 | `artifacts`          | `/^Artifacts$/`                                | `/^(Monsters\|Appendix)\b/i`                            | `true` (best-effort start) | `true`     |
 | `treasureTables`     | `/^Treasure$/`                                 | `/^Using (a )?Magic Items?$/i`                          | `true` (best-effort) | false          |
 | `multiclassing`      | `/^Multiclassing$/`                            | `/^(Proficiencies\|...)/i`                                  | false (best-effort) | `true`         |
+| `beyondFirstLevel`   | `/^Beyond 1st Level$/`                         | `/^(Backgrounds\|Equipment\|Feats\|...\|Appendix)\b/`        | `true` (best-effort start) | `true`     |
 
 Anchors are deliberately tight (`^...$`) so a body-prose mention of a chapter
 title can't false-positive. Tests in `test/importers/dnd5e-srd-5.1/sections.test.ts`

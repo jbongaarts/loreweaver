@@ -619,4 +619,186 @@ describe('parseTables', () => {
       parseTables([page(1, ['Cover', 'Walls can provide cover.'])]),
     ).toEqual([]);
   });
+
+  // The five "Beyond 1st Level" reference tables (eshyra-0m9.23). The fixture
+  // lines reproduce the real SRD 5.1 PDF extraction shape (verified against the
+  // vendored source), including the trailing heading that bounds each table.
+  describe('Beyond 1st Level reference tables (eshyra-0m9.23)', () => {
+    const CHARACTER_ADVANCEMENT_PAGE = page(56, [
+      'Character Advancement',
+      'Experience Points Level Proficiency Bonus',
+      '0 1 +2',
+      '300 2 +2',
+      '900 3 +2',
+      '2,700 4 +2',
+      '6,500 5 +3',
+      '14,000 6 +3',
+      '23,000 7 +3',
+      '34,000 8 +3',
+      '48,000 9 +4',
+      '64,000 10 +4',
+      '85,000 11 +4',
+      '100,000 12 +4',
+      '120,000 13 +5',
+      '140,000 14 +5',
+      '165,000 15 +5',
+      '195,000 16 +5',
+      '225,000 17 +6',
+      '265,000 18 +6',
+      '305,000 19 +6',
+      '355,000 20 +6',
+      'Multiclassing',
+      'Multiclassing allows you to gain levels in multiple classes.',
+    ]);
+
+    const MULTICLASS_PREREQUISITES_PAGE = page(56, [
+      'Multiclassing Prerequisites',
+      'Class Ability Score Minimum',
+      'Barbarian Strength 13',
+      'Bard Charisma 13',
+      'Cleric Wisdom 13',
+      'Druid Wisdom 13',
+      'Fighter Strength 13 or Dexterity 13',
+      'Monk Dexterity 13 and Wisdom 13',
+      'Paladin Strength 13 and Charisma 13',
+      'Ranger Dexterity 13 and Wisdom 13',
+      'Rogue Dexterity 13',
+      'Sorcerer Charisma 13',
+      'Warlock Charisma 13',
+      'Wizard Intelligence 13',
+      'Experience Points',
+      'The experience point cost to gain a level is always',
+    ]);
+
+    const MULTICLASS_PROFICIENCIES_PAGE = page(57, [
+      'Multiclassing Proficiencies',
+      'Class Proficiencies Gained',
+      'Barbarian Shields, simple weapons, martial weapons',
+      'Bard Light armor, one skill of your choice, one musical',
+      'instrument of your choice',
+      'Cleric Light armor, medium armor, shields',
+      'Druid Light armor, medium armor, shields (druids will',
+      'not wear armor or use shields made of metal)',
+      'Fighter Light armor, medium armor, shields, simple',
+      'weapons, martial weapons',
+      'Monk Simple weapons, shortswords',
+      'Paladin Light armor, medium armor, shields, simple',
+      'weapons, martial weapons',
+      'Ranger Light armor, medium armor, shields, simple',
+      'weapons, martial weapons, one skill from the',
+      'class’s skill list',
+      'Rogue Light armor, one skill from the class’s skill list,',
+      'thieves’ tools',
+      'Sorcerer —',
+      'Warlock Light armor, simple weapons',
+      'Wizard —',
+      'Class Features',
+      'When you gain a new level in a class, you get its features.',
+    ]);
+
+    const LANGUAGES_PAGE = page(59, [
+      'Standard Languages',
+      'Language Typical Speakers Script',
+      'Common Humans Common',
+      'Dwarvish Dwarves Dwarvish',
+      'Elvish Elves Elvish',
+      'Giant Ogres, giants Dwarvish',
+      'Gnomish Gnomes Dwarvish',
+      'Goblin Goblinoids Dwarvish',
+      'Halfling Halflings Common',
+      'Orc Orcs Dwarvish',
+      'Exotic Languages',
+      'Language Typical Speakers Script',
+      'Abyssal Demons Infernal',
+      'Celestial Celestials Celestial',
+      'Draconic Dragons, dragonborn Draconic',
+      'Deep Speech Aboleths, cloakers —',
+      'Infernal Devils Infernal',
+      'Primordial Elementals Dwarvish',
+      'Sylvan Fey creatures Elvish',
+      'Undercommon Underworld traders Elvish',
+      'Inspiration',
+      'Inspiration is a rule the game master can use.',
+    ]);
+
+    it('reconstructs the Character Advancement track (20 levels)', () => {
+      const [table] = parseTables([CHARACTER_ADVANCEMENT_PAGE]);
+      expect(table.name).toBe('Character Advancement');
+      expect(table.columns).toEqual([
+        'Experience Points',
+        'Level',
+        'Proficiency Bonus',
+      ]);
+      expect(table.rows).toHaveLength(20);
+      // Numeric XP (thousands separators stripped) and level; bonus verbatim.
+      expect(table.rows[0]).toEqual([0, 1, '+2']);
+      expect(table.rows[3]).toEqual([2700, 4, '+2']);
+      expect(table.rows[19]).toEqual([355000, 20, '+6']);
+      expect(table.sourcePage).toBe(56);
+    });
+
+    it('reconstructs Multiclassing Prerequisites (spaces in the value cell)', () => {
+      const [table] = parseTables([MULTICLASS_PREREQUISITES_PAGE]);
+      expect(table.name).toBe('Multiclassing Prerequisites');
+      expect(table.columns).toEqual(['Class', 'Ability Score Minimum']);
+      expect(table.rows).toHaveLength(12);
+      expect(table.rows[0]).toEqual(['Barbarian', 'Strength 13']);
+      expect(table.rows[4]).toEqual(['Fighter', 'Strength 13 or Dexterity 13']);
+      expect(table.rows[11]).toEqual(['Wizard', 'Intelligence 13']);
+    });
+
+    it('rejoins wrapped Multiclassing Proficiencies cells and keeps "—" rows', () => {
+      const [table] = parseTables([MULTICLASS_PROFICIENCIES_PAGE]);
+      expect(table.name).toBe('Multiclassing Proficiencies');
+      expect(table.columns).toEqual(['Class', 'Proficiencies Gained']);
+      expect(table.rows).toHaveLength(12);
+      expect(table.rows[1]).toEqual([
+        'Bard',
+        'Light armor, one skill of your choice, one musical instrument of your choice',
+      ]);
+      expect(table.rows[7]).toEqual([
+        'Ranger',
+        'Light armor, medium armor, shields, simple weapons, martial weapons, one skill from the class’s skill list',
+      ]);
+      expect(table.rows[9]).toEqual(['Sorcerer', '—']);
+      expect(table.rows[11]).toEqual(['Wizard', '—']);
+    });
+
+    it('splits the Standard and Exotic Languages three-column rows', () => {
+      const tables = parseTables([LANGUAGES_PAGE]);
+      const standard = tables.find((t) => t.name === 'Standard Languages');
+      const exotic = tables.find((t) => t.name === 'Exotic Languages');
+      expect(standard?.columns).toEqual([
+        'Language',
+        'Typical Speakers',
+        'Script',
+      ]);
+      expect(standard?.rows).toHaveLength(8);
+      // Multi-word speakers cell, single-word script.
+      expect(standard?.rows[3]).toEqual(['Giant', 'Ogres, giants', 'Dwarvish']);
+
+      expect(exotic?.rows).toHaveLength(8);
+      // Two-word language name and an em-dash script cell.
+      expect(exotic?.rows[3]).toEqual([
+        'Deep Speech',
+        'Aboleths, cloakers',
+        '—',
+      ]);
+      expect(exotic?.rows[7]).toEqual([
+        'Undercommon',
+        'Underworld traders',
+        'Elvish',
+      ]);
+    });
+
+    it('does not over-capture rows past each table boundary heading', () => {
+      const advancement = parseTables([CHARACTER_ADVANCEMENT_PAGE])[0];
+      // "Multiclassing" and its prose must not be captured as advancement rows.
+      expect(advancement.rows).toHaveLength(20);
+
+      const proficiencies = parseTables([MULTICLASS_PROFICIENCIES_PAGE])[0];
+      // "Class Features" and its prose must not bleed into the Wizard cell.
+      expect(proficiencies.rows[11]).toEqual(['Wizard', '—']);
+    });
+  });
 });

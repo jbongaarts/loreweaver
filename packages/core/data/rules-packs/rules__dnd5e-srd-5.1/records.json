@@ -58828,6 +58828,142 @@
   {
     "systemId": "dnd5e-srd",
     "kind": "table",
+    "key": "table:character-advancement",
+    "name": "Character Advancement",
+    "data": {
+      "columns": [
+        "Experience Points",
+        "Level",
+        "Proficiency Bonus"
+      ],
+      "rows": [
+        [
+          0,
+          1,
+          "+2"
+        ],
+        [
+          300,
+          2,
+          "+2"
+        ],
+        [
+          900,
+          3,
+          "+2"
+        ],
+        [
+          2700,
+          4,
+          "+2"
+        ],
+        [
+          6500,
+          5,
+          "+3"
+        ],
+        [
+          14000,
+          6,
+          "+3"
+        ],
+        [
+          23000,
+          7,
+          "+3"
+        ],
+        [
+          34000,
+          8,
+          "+3"
+        ],
+        [
+          48000,
+          9,
+          "+4"
+        ],
+        [
+          64000,
+          10,
+          "+4"
+        ],
+        [
+          85000,
+          11,
+          "+4"
+        ],
+        [
+          100000,
+          12,
+          "+4"
+        ],
+        [
+          120000,
+          13,
+          "+5"
+        ],
+        [
+          140000,
+          14,
+          "+5"
+        ],
+        [
+          165000,
+          15,
+          "+5"
+        ],
+        [
+          195000,
+          16,
+          "+5"
+        ],
+        [
+          225000,
+          17,
+          "+6"
+        ],
+        [
+          265000,
+          18,
+          "+6"
+        ],
+        [
+          305000,
+          19,
+          "+6"
+        ],
+        [
+          355000,
+          20,
+          "+6"
+        ]
+      ]
+    },
+    "source": "SRD 5.1 p. 56",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 56"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "table",
     "key": "table:damage-severity-by-level",
     "name": "Damage Severity by Level",
     "data": {
@@ -58943,6 +59079,82 @@
     "provenance": {
       "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
       "locator": "p. 77"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "table",
+    "key": "table:exotic-languages",
+    "name": "Exotic Languages",
+    "data": {
+      "columns": [
+        "Language",
+        "Typical Speakers",
+        "Script"
+      ],
+      "rows": [
+        [
+          "Abyssal",
+          "Demons",
+          "Infernal"
+        ],
+        [
+          "Celestial",
+          "Celestials",
+          "Celestial"
+        ],
+        [
+          "Draconic",
+          "Dragons, dragonborn",
+          "Draconic"
+        ],
+        [
+          "Deep Speech",
+          "Aboleths, cloakers",
+          "—"
+        ],
+        [
+          "Infernal",
+          "Devils",
+          "Infernal"
+        ],
+        [
+          "Primordial",
+          "Elementals",
+          "Dwarvish"
+        ],
+        [
+          "Sylvan",
+          "Fey creatures",
+          "Elvish"
+        ],
+        [
+          "Undercommon",
+          "Underworld traders",
+          "Elvish"
+        ]
+      ]
+    },
+    "source": "SRD 5.1 p. 59",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 59"
     }
   },
   {
@@ -59109,6 +59321,172 @@
     "provenance": {
       "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
       "locator": "p. 201"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "table",
+    "key": "table:multiclassing-prerequisites",
+    "name": "Multiclassing Prerequisites",
+    "data": {
+      "columns": [
+        "Class",
+        "Ability Score Minimum"
+      ],
+      "rows": [
+        [
+          "Barbarian",
+          "Strength 13"
+        ],
+        [
+          "Bard",
+          "Charisma 13"
+        ],
+        [
+          "Cleric",
+          "Wisdom 13"
+        ],
+        [
+          "Druid",
+          "Wisdom 13"
+        ],
+        [
+          "Fighter",
+          "Strength 13 or Dexterity 13"
+        ],
+        [
+          "Monk",
+          "Dexterity 13 and Wisdom 13"
+        ],
+        [
+          "Paladin",
+          "Strength 13 and Charisma 13"
+        ],
+        [
+          "Ranger",
+          "Dexterity 13 and Wisdom 13"
+        ],
+        [
+          "Rogue",
+          "Dexterity 13"
+        ],
+        [
+          "Sorcerer",
+          "Charisma 13"
+        ],
+        [
+          "Warlock",
+          "Charisma 13"
+        ],
+        [
+          "Wizard",
+          "Intelligence 13"
+        ]
+      ]
+    },
+    "source": "SRD 5.1 p. 56",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 56"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "table",
+    "key": "table:multiclassing-proficiencies",
+    "name": "Multiclassing Proficiencies",
+    "data": {
+      "columns": [
+        "Class",
+        "Proficiencies Gained"
+      ],
+      "rows": [
+        [
+          "Barbarian",
+          "Shields, simple weapons, martial weapons"
+        ],
+        [
+          "Bard",
+          "Light armor, one skill of your choice, one musical instrument of your choice"
+        ],
+        [
+          "Cleric",
+          "Light armor, medium armor, shields"
+        ],
+        [
+          "Druid",
+          "Light armor, medium armor, shields (druids will not wear armor or use shields made of metal)"
+        ],
+        [
+          "Fighter",
+          "Light armor, medium armor, shields, simple weapons, martial weapons"
+        ],
+        [
+          "Monk",
+          "Simple weapons, shortswords"
+        ],
+        [
+          "Paladin",
+          "Light armor, medium armor, shields, simple weapons, martial weapons"
+        ],
+        [
+          "Ranger",
+          "Light armor, medium armor, shields, simple weapons, martial weapons, one skill from the class’s skill list"
+        ],
+        [
+          "Rogue",
+          "Light armor, one skill from the class’s skill list, thieves’ tools"
+        ],
+        [
+          "Sorcerer",
+          "—"
+        ],
+        [
+          "Warlock",
+          "Light armor, simple weapons"
+        ],
+        [
+          "Wizard",
+          "—"
+        ]
+      ]
+    },
+    "source": "SRD 5.1 p. 57",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 57"
     }
   },
   {
@@ -59303,6 +59681,82 @@
     "provenance": {
       "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
       "locator": "p. 201"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "table",
+    "key": "table:standard-languages",
+    "name": "Standard Languages",
+    "data": {
+      "columns": [
+        "Language",
+        "Typical Speakers",
+        "Script"
+      ],
+      "rows": [
+        [
+          "Common",
+          "Humans",
+          "Common"
+        ],
+        [
+          "Dwarvish",
+          "Dwarves",
+          "Dwarvish"
+        ],
+        [
+          "Elvish",
+          "Elves",
+          "Elvish"
+        ],
+        [
+          "Giant",
+          "Ogres, giants",
+          "Dwarvish"
+        ],
+        [
+          "Gnomish",
+          "Gnomes",
+          "Dwarvish"
+        ],
+        [
+          "Goblin",
+          "Goblinoids",
+          "Dwarvish"
+        ],
+        [
+          "Halfling",
+          "Halflings",
+          "Common"
+        ],
+        [
+          "Orc",
+          "Orcs",
+          "Dwarvish"
+        ]
+      ]
+    },
+    "source": "SRD 5.1 p. 59",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 59"
     }
   },
   {

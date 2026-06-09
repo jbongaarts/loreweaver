@@ -185,9 +185,12 @@ const EXPECTED_COUNTS_BY_KIND: Readonly<Record<string, number>> = {
   rule: 171,
   spell: 319,
   subclass: 12,
-  // Difficulty Classes, two trap tables, three Madness tables, and two Objects
-  // statistics tables (loreweaver-hvp, loreweaver-uuk).
-  table: 8,
+  // Difficulty Classes, two trap tables, three Madness tables, two Objects
+  // statistics tables (loreweaver-hvp, loreweaver-uuk), and the five "Beyond
+  // 1st Level" reference tables — Character Advancement, Multiclassing
+  // Prerequisites, Multiclassing Proficiencies, Standard Languages, Exotic
+  // Languages (eshyra-0m9.23).
+  table: 13,
 };
 
 /**
@@ -1851,13 +1854,18 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
 
     it('contains exactly the reviewed table key set', () => {
       expect(tables.map((record) => record.key).sort()).toEqual([
+        'table:character-advancement',
         'table:damage-severity-by-level',
         'table:difficulty-classes',
+        'table:exotic-languages',
         'table:indefinite-madness',
         'table:long-term-madness',
+        'table:multiclassing-prerequisites',
+        'table:multiclassing-proficiencies',
         'table:object-armor-class',
         'table:object-hit-points',
         'table:short-term-madness',
+        'table:standard-languages',
         'table:trap-save-dcs-and-attack-bonuses',
       ]);
     });
@@ -1925,6 +1933,70 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
       });
       expect((hitPoints?.data as { rows: unknown[] }).rows).toHaveLength(4);
       expect(hitPoints?.provenance.locator).toBe('p. 203');
+    });
+
+    it('pins Beyond-1st-Level table data and source pages (eshyra-0m9.23)', () => {
+      const advancement = table('table:character-advancement');
+      expect(advancement?.data).toMatchObject({
+        columns: ['Experience Points', 'Level', 'Proficiency Bonus'],
+        rows: expect.arrayContaining([
+          [0, 1, '+2'],
+          [2700, 4, '+2'],
+          [355000, 20, '+6'],
+        ]),
+      });
+      expect((advancement?.data as { rows: unknown[] }).rows).toHaveLength(20);
+      expect(advancement?.provenance.locator).toBe('p. 56');
+
+      const prerequisites = table('table:multiclassing-prerequisites');
+      expect(prerequisites?.data).toMatchObject({
+        columns: ['Class', 'Ability Score Minimum'],
+        rows: expect.arrayContaining([
+          ['Fighter', 'Strength 13 or Dexterity 13'],
+          ['Monk', 'Dexterity 13 and Wisdom 13'],
+        ]),
+      });
+      expect((prerequisites?.data as { rows: unknown[] }).rows).toHaveLength(
+        12,
+      );
+      expect(prerequisites?.provenance.locator).toBe('p. 56');
+
+      const proficiencies = table('table:multiclassing-proficiencies');
+      expect(proficiencies?.data).toMatchObject({
+        columns: ['Class', 'Proficiencies Gained'],
+        // The Bard cell wraps across two extracted lines and must rejoin; the
+        // Sorcerer cell is the verbatim "—" (no proficiencies).
+        rows: expect.arrayContaining([
+          [
+            'Bard',
+            'Light armor, one skill of your choice, one musical instrument of your choice',
+          ],
+          ['Sorcerer', '—'],
+        ]),
+      });
+      expect((proficiencies?.data as { rows: unknown[] }).rows).toHaveLength(
+        12,
+      );
+      expect(proficiencies?.provenance.locator).toBe('p. 57');
+
+      const standard = table('table:standard-languages');
+      expect(standard?.data).toMatchObject({
+        columns: ['Language', 'Typical Speakers', 'Script'],
+        rows: expect.arrayContaining([['Giant', 'Ogres, giants', 'Dwarvish']]),
+      });
+      expect((standard?.data as { rows: unknown[] }).rows).toHaveLength(8);
+      expect(standard?.provenance.locator).toBe('p. 59');
+
+      const exotic = table('table:exotic-languages');
+      expect(exotic?.data).toMatchObject({
+        columns: ['Language', 'Typical Speakers', 'Script'],
+        // "Deep Speech" is a two-word language name and its script cell is "—".
+        rows: expect.arrayContaining([
+          ['Deep Speech', 'Aboleths, cloakers', '—'],
+        ]),
+      });
+      expect((exotic?.data as { rows: unknown[] }).rows).toHaveLength(8);
+      expect(exotic?.provenance.locator).toBe('p. 59');
     });
   });
 
