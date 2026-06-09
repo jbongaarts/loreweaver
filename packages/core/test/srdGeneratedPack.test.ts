@@ -174,7 +174,9 @@ const EXPECTED_COUNTS_BY_KIND: Readonly<Record<string, number>> = {
   // environmental hazards. Traps carry a `trapType` discriminator; diseases and
   // poisons carry `data.category` ('disease' / 'poison').
   hazard: 25,
-  'magic-item': 238,
+  // 238 Magic Items A-Z entries plus Orb of Dragonkind from the Artifacts
+  // subsection (eshyra-0m9.16).
+  'magic-item': 239,
   // Nesting-aware core-rules parse: one rule per heading across the Using
   // Ability Scores, Adventuring, and Combat chapters (loreweaver-yli, 127),
   // plus 34 general Spellcasting rules, five Madness/Objects rules, and five
@@ -222,6 +224,9 @@ const EXPECTED_STABLE_KEYS: readonly string[] = [
   'magic-item:adamantine-armor',
   'magic-item:ammunition-1-2-or-3',
   'magic-item:amulet-of-health',
+  // Lone "Artifacts"-subsection magic item, parsed from its own slice
+  // (eshyra-0m9.16).
+  'magic-item:orb-of-dragonkind',
   'rule:cover',
   'rule:death-saving-throws',
   // Spellcasting-rules chapter (loreweaver-3hp): a bare landmark plus one of the
@@ -278,7 +283,7 @@ const EXPECTED_STABLE_KEYS: readonly string[] = [
  *     still carries the required `description`.
  *   - magic-item.attunementRequirement: only the 26 items whose category line
  *     restricts attunement by class, ancestry, alignment, or spellcasting carry
- *     this text; all 238 records still carry the boolean `requiresAttunement`.
+ *     this text; all 239 records still carry the boolean `requiresAttunement`.
  *   - spell.componentMaterials: only spells with a material (M) component.
  *   - spell.higherLevels: only spells with an "At Higher Levels" entry.
  *   - spell.ritual: only spells tagged as rituals.
@@ -363,8 +368,8 @@ const EXPECTED_PARTIAL_FIELDS: ReadonlyArray<{
   {
     kind: 'magic-item',
     field: 'attunementRequirement',
-    missingCount: 212,
-    totalInKind: 238,
+    missingCount: 213,
+    totalInKind: 239,
   },
   {
     kind: 'spell',
@@ -998,6 +1003,30 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
       });
       expect(armorOfResistance.description).toContain('d10 Damage Type');
       expect(armorOfResistance.description).toContain('1 Acid 6 Necrotic');
+    });
+
+    it('imports Orb of Dragonkind from the Artifacts subsection (eshyra-0m9.16)', () => {
+      // The lone artifact magic item (SRD 5.1 p252-253) sits after the "Sentient
+      // Magic Items" guidance that ends the A-Z slice, so it is parsed from its
+      // own "Artifacts" slice and concatenated. Its category line is "Wondrous
+      // item, artifact (requires attunement)".
+      const orb = magicItemData('magic-item:orb-of-dragonkind');
+      expect(orb).toMatchObject({
+        itemType: 'Wondrous item',
+        rarity: 'artifact',
+        requiresAttunement: true,
+      });
+      const description = magicItemDescription('magic-item:orb-of-dragonkind');
+      expect(description).toMatch(/^Ages past, elves and humans waged/);
+      // Whole body captured, including the trailing sub-sections.
+      expect(description).toContain('Call Dragons.');
+      expect(description).toContain('sufficient to destroy an orb, however.');
+      // The Monsters chapter that bounds the slice must not bleed in.
+      expect(description).not.toContain('stat block');
+      const orbRecord = magicItems.find(
+        (record) => record.key === 'magic-item:orb-of-dragonkind',
+      );
+      expect(orbRecord?.source).toBe('SRD 5.1 p. 252');
     });
 
     it('keeps page 226 magic-item bodies in source column order', () => {

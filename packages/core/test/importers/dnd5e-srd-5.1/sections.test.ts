@@ -306,6 +306,19 @@ describe('SRD_5_1_DEFAULT_SECTION_ANCHORS — sanity', () => {
     expect(anchor.matchHeadings).toBe(true);
   });
 
+  it('artifacts anchor matches "Artifacts", bounds at "Monsters", and fails closed on a missing end (eshyra-0m9.16)', () => {
+    const anchor = SRD_5_1_DEFAULT_SECTION_ANCHORS.artifacts;
+    expect(anchor.startHeading.test('Artifacts')).toBe(true);
+    // Body prose mentioning the word should not false-positive.
+    expect(anchor.startHeading.test('These are artifacts')).toBe(false);
+    expect(anchor.endHeading?.test('Monsters')).toBe(true);
+    expect(
+      anchor.endHeading?.test('Appendix MM-A: Miscellaneous Creatures'),
+    ).toBe(true);
+    expect(anchor.requireEndHeading).toBe(true);
+    expect(anchor.matchHeadings).toBe(true);
+  });
+
   // Real-PDF chapter mapping (loreweaver-0m9.5.20). The SRD 5.1 PDF has no
   // aggregate "Classes" chapter heading — the races chapter closes at the
   // first per-class chapter title ("Barbarian"), and the classes section
@@ -394,6 +407,7 @@ describe('SRD_5_1_DEFAULT_SECTION_ANCHORS — sanity', () => {
     expect(a.hazards.matchHeadings).toBe(true);
     expect(a.equipment.matchHeadings).toBe(true);
     expect(a.magicItems.matchHeadings).toBe(true);
+    expect(a.artifacts.matchHeadings).toBe(true);
     expect(a.multiclassing.matchHeadings).toBe(true);
   });
 });

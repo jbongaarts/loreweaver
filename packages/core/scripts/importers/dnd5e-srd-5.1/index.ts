@@ -585,14 +585,15 @@ export const EXPECTED_SRD_5_1_POISON_NAMES: readonly string[] = [
 ];
 
 /**
- * Reviewed count for the vendored SRD 5.1 Magic Items A-Z section. The real
- * import is gated on the stronger exact name set below
- * (`EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES`), whose length a test cross-checks
- * against this constant so the two cannot drift. It remains a coarse opt-in
- * floor (`minMagicItemCount`) for fixture pipelines that exercise a reduced
- * Magic Items A-Z section without the full name set.
+ * Reviewed count for the vendored SRD 5.1 magic items: the 238 entries in the
+ * "Magic Items A-Z" section plus the lone "Artifacts"-subsection entry, Orb of
+ * Dragonkind (eshyra-0m9.16), for 239 total. The real import is gated on the
+ * stronger exact name set below (`EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES`), whose
+ * length a test cross-checks against this constant so the two cannot drift. It
+ * remains a coarse opt-in floor (`minMagicItemCount`) for fixture pipelines that
+ * exercise a reduced Magic Items section without the full name set.
  */
-export const MIN_EXPECTED_SRD_5_1_MAGIC_ITEMS = 238;
+export const MIN_EXPECTED_SRD_5_1_MAGIC_ITEMS = 239;
 
 /**
  * Reviewed, checked-in SRD 5.1 Magic Items A-Z name-set baseline
@@ -728,6 +729,7 @@ export const EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES: readonly string[] = [
   'Oil of Etherealness',
   'Oil of Sharpness',
   'Oil of Slipperiness',
+  'Orb of Dragonkind',
   'Pearl of Power',
   'Periapt of Health',
   'Periapt of Proof against Poison',
@@ -1856,8 +1858,23 @@ export async function runImporter(
       parseMountsAndVehicles,
     ),
   ];
+  // Magic Items A-Z (p207-p251) plus the "Artifacts" subsection (p252-p253),
+  // which carries the lone artifact magic item — Orb of Dragonkind — in the
+  // same name/category/rarity/body shape as the A-Z items (eshyra-0m9.16). The
+  // A-Z slice deliberately ends at the preceding "Sentient Magic Items" heading
+  // (DM construction guidance), so the Artifacts subsection is sliced and parsed
+  // separately by the same `parseMagicItems` and concatenated — mirroring how
+  // Appendix MM-A / MM-B creatures concatenate with the Monsters chapter. The
+  // Artifacts slice is best-effort on its START so a reduced fixture PDF without
+  // an Artifacts subsection degrades to no artifact items; the anchor's
+  // requireEndHeading bound still fails closed if the subsection starts but its
+  // "Monsters" boundary is missing.
   const magicItemPages = sliceSection(pages, anchors.magicItems);
-  const magicItems = parseMagicItems(magicItemPages);
+  const artifactPages = sliceSectionOrEmptyPages(pages, anchors.artifacts);
+  const magicItems = [
+    ...parseMagicItems(magicItemPages),
+    ...parseMagicItems(artifactPages),
+  ];
   validateMagicItemCoverage(
     magicItems,
     input.minMagicItemCount,

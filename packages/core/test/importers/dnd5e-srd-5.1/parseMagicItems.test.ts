@@ -400,6 +400,39 @@ describe('parseMagicItems', () => {
     );
   });
 
+  it('parses an artifact-rarity item from an Artifacts-subsection slice (eshyra-0m9.16)', () => {
+    // SRD 5.1 p252-253: Orb of Dragonkind is the lone "Artifacts" entry. Its
+    // category line is "Wondrous item, artifact (requires attunement)"; the
+    // importer feeds the Artifacts slice (heading excluded) to this same parser
+    // and concatenates the result with the A-Z items.
+    const parsed = parseMagicItems([
+      page(252, [
+        'Orb of Dragonkind',
+        'Wondrous item, artifact (requires attunement)',
+        'Ages past, elves and humans waged a terrible war',
+        'against evil dragons.',
+        'Random Properties. An Orb of Dragonkind has the',
+        'following random properties:',
+        '• 2 minor beneficial properties',
+        'Destroying an Orb. An Orb of Dragonkind appears',
+        'fragile but is impervious to most damage.',
+      ]),
+    ]);
+    expect(parsed.map((item) => item.name)).toEqual(['Orb of Dragonkind']);
+    const orb = parsed[0];
+    expect(orb).toMatchObject({
+      name: 'Orb of Dragonkind',
+      itemType: 'Wondrous item',
+      rarity: 'artifact',
+      requiresAttunement: true,
+      sourcePage: 252,
+    });
+    expect(orb.attunementRequirement).toBeUndefined();
+    expect(orb.description).toMatch(/^Ages past, elves and humans waged/);
+    expect(orb.description).toContain('Random Properties.');
+    expect(orb.description).toContain('Destroying an Orb.');
+  });
+
   it('keeps wrapped attunement parentheticals in category metadata', () => {
     const parsed = parseMagicItems([
       page(237, [

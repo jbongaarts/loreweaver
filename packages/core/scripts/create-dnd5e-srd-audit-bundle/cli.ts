@@ -537,10 +537,13 @@ async function main(): Promise<void> {
   try {
     const pack = loadRulesPackFromDirectory(COMMITTED_PACK_DIR);
     // Magic items, tables, and rule sections use the SOURCE-coverage lists
-    // (emitted baseline + known source gaps) so an item the importer does not
-    // yet emit — e.g. Orb of Dragonkind — is still reported as missing. Creature
-    // and ancestry sets are already exact source name-sets in the importer's own
-    // coverage gates, so they keep the emitted EXPECTED_* lists.
+    // (emitted baseline + known source gaps) so any item present in the SRD
+    // source is reported as missing if it ever drops out of the pack. Orb of
+    // Dragonkind is now emitted (eshyra-0m9.16) but is retained in the source
+    // gap list as durable source truth, so a regression that dropped it would
+    // be caught here. Creature and ancestry sets are already exact source
+    // name-sets in the importer's own coverage gates, so they keep the emitted
+    // EXPECTED_* lists.
     srdAudit = auditSrd(pack, {
       requiredNamesByKind: {
         'magic-item': SOURCE_EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES,
