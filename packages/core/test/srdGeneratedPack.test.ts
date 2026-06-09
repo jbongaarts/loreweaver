@@ -800,6 +800,70 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
     });
   });
 
+  // eshyra-0m9.15: ancestry trait line-wrapping and table bleed. The SRD PDF
+  // wraps the Languages line so "Common and <Language>. <prose>" lands on its
+  // own line, and interleaves the Dragonborn Draconic Ancestry breath-weapon
+  // table between the Speed and Draconic Ancestry traits. Pre-fix this promoted
+  // wrapped continuations to bogus traits ("Common and Dwarvish", "Ancestry
+  // table") and bled the table into the Speed trait body. These assertions pin
+  // the committed pack so the corruption cannot return.
+  describe('ancestry trait wrapping + table bleed regression (eshyra-0m9.15)', () => {
+    const ancestries = pack.records.filter(
+      (record) => record.kind === 'ancestry',
+    );
+    const traitsOf = (
+      record: (typeof ancestries)[number],
+    ): ReadonlyArray<{ name: string; text: string }> =>
+      ((record.data as { traits?: unknown }).traits ?? []) as ReadonlyArray<{
+        name: string;
+        text: string;
+      }>;
+
+    it('the structure audit reports zero ancestry-bogus-trait findings', () => {
+      const bogus = auditSrdStructure(pack).filter(
+        (finding) => finding.category === 'ancestry-bogus-trait',
+      );
+      expect(bogus).toEqual([]);
+    });
+
+    it('no ancestry trait name is a wrapped Languages/table line fragment', () => {
+      for (const record of ancestries) {
+        for (const trait of traitsOf(record)) {
+          expect(
+            /\b(?:and|or|the|of|table)\b/.test(trait.name),
+            `${record.key} trait "${trait.name}" is a wrapped fragment`,
+          ).toBe(false);
+        }
+      }
+    });
+
+    it('every Languages trait body is complete (carries its languages + prose)', () => {
+      for (const record of ancestries) {
+        const languages = traitsOf(record).filter(
+          (t) => t.name === 'Languages',
+        );
+        // Each ancestry has exactly one Languages trait, not a truncated stub
+        // plus a bogus "Common and …" continuation.
+        expect(languages).toHaveLength(1);
+        expect(languages[0].text).toMatch(/You can speak, read, and write \w/);
+        // A truncated body ended exactly at "…and write"; a complete one names
+        // Common and ends with sentence punctuation.
+        expect(languages[0].text).toMatch(/Common/);
+        expect(languages[0].text.trim()).toMatch(/[.!?]$/);
+      }
+    });
+
+    it('the Dragonborn Speed trait is free of the breath-weapon table', () => {
+      const dragonborn = ancestries.find((r) => r.name === 'Dragonborn');
+      const speed = traitsOf(dragonborn as (typeof ancestries)[number]).find(
+        (t) => t.name === 'Speed',
+      );
+      expect(speed?.text).toBe('Your base walking speed is 30 feet.');
+      expect(speed?.text).not.toMatch(/save\)/);
+      expect(speed?.text).not.toMatch(/Damage Type/);
+    });
+  });
+
   // `EXPECTED_SRD_5_1_CREATURE_NAMES` (loreweaver-0m9.5.14) is a reviewed,
   // checked-in baseline — a candidate generated from the vendored PDF, reviewed
   // against the SRD source, then committed (see its doc comment and

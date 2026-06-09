@@ -150,6 +150,57 @@ function matchTraitLabel(line: string): { label: string; body: string } | null {
   return { label, body: m[2].trim() };
 }
 
+// Sentence-terminal punctuation. A real trait paragraph ends with one of these,
+// and the SRD always breaks to a fresh line before the next "Label." heading.
+// So a "Label. body"-shaped line is only a new trait when the open trait's
+// prose has actually ended; following an *unterminated* body line it is a
+// wrapped continuation of that body, not a heading. The SRD Languages line
+// wraps this way ("…read, and write" / "Common and Dwarvish. Dwarvish is full
+// of…"), as does the Dragonborn Draconic Ancestry trait ("…from the Draconic" /
+// "Ancestry table. Your breath weapon…"); both continuation lines look like
+// "Label." headings and were promoted to bogus traits before this guard.
+const TERMINAL_PUNCTUATION = /[.!?:)”"']$/;
+
+/** True when the open trait body's last non-blank line ends a sentence. */
+function bodyIsSentenceComplete(body: readonly string[]): boolean {
+  for (let i = body.length - 1; i >= 0; i--) {
+    const trimmed = body[i].trim();
+    if (trimmed.length === 0) continue;
+    return TERMINAL_PUNCTUATION.test(trimmed);
+  }
+  return true;
+}
+
+// The races section contains exactly one table: the Dragonborn "Draconic
+// Ancestry" breath-weapon table, which the PDF interleaves between the Speed
+// trait and the Draconic Ancestry trait. Its caption, column header, and rows
+// ("Black Acid 5 by 30 ft. line (Dex. save)" …) are not "Label. body" trait
+// lines, so they would otherwise be appended to the open Speed trait body.
+// Drop the whole table so it never bleeds into a trait.
+const BREATH_WEAPON_TABLE_CAPTION = 'Draconic Ancestry';
+const BREATH_WEAPON_TABLE_HEADER = 'Dragon Damage Type Breath Weapon';
+const BREATH_WEAPON_TABLE_ROW = /\((?:Str|Dex|Con|Int|Wis|Cha)\.\s*save\)/;
+
+function stripBreathWeaponTable(lines: readonly string[]): string[] {
+  const kept: string[] = [];
+  for (const raw of lines) {
+    const trimmed = raw.trim();
+    if (
+      trimmed === BREATH_WEAPON_TABLE_HEADER ||
+      BREATH_WEAPON_TABLE_ROW.test(trimmed)
+    ) {
+      // Remove the bare table caption kept just before the header line.
+      const last = kept[kept.length - 1];
+      if (last !== undefined && last.trim() === BREATH_WEAPON_TABLE_CAPTION) {
+        kept.pop();
+      }
+      continue;
+    }
+    kept.push(raw);
+  }
+  return kept;
+}
+
 /** Re-flow wrapped lines into paragraph-separated prose (blank line = break). */
 function joinParagraphs(lines: readonly string[]): string {
   const paragraphs: string[] = [];
@@ -191,9 +242,12 @@ function parseBlock(
   bodyLines: readonly string[],
   sourcePage: number,
 ): RawBlock {
-  // Drop a leading "<Name> Traits" sub-header line if present.
-  const lines = bodyLines.filter(
-    (l) => l.trim() !== `${name} Traits` && l.trim() !== `${name} Traits.`,
+  // Drop a leading "<Name> Traits" sub-header line if present, then strip the
+  // interleaved Draconic Ancestry breath-weapon table (Dragonborn only).
+  const lines = stripBreathWeaponTable(
+    bodyLines.filter(
+      (l) => l.trim() !== `${name} Traits` && l.trim() !== `${name} Traits.`,
+    ),
   );
 
   // Find the first trait-label line; everything before it is flavor/description.
@@ -222,7 +276,12 @@ function parseBlock(
   };
   for (let i = firstTraitIdx; i < lines.length; i++) {
     const match = matchTraitLabel(lines[i]);
-    if (match !== null) {
+    // A "Label." line only opens a new trait when the current one is sentence-
+    // complete; otherwise it is a wrapped continuation of the open trait body.
+    if (
+      match !== null &&
+      (currentLabel === null || bodyIsSentenceComplete(currentBody))
+    ) {
       flushTrait();
       currentLabel = match.label;
       currentBody = [match.body];
