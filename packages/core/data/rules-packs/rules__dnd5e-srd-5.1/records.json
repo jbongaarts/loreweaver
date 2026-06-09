@@ -328,15 +328,11 @@
         },
         {
           "name": "Speed",
-          "text": "Your base walking speed is 30 feet. Draconic Ancestry Dragon Damage Type Breath Weapon Black Acid 5 by 30 ft. line (Dex. save) Blue Lightning 5 by 30 ft. line (Dex. save) Brass Fire 5 by 30 ft. line (Dex. save) Bronze Lightning 5 by 30 ft. line (Dex. save) Copper Acid 5 by 30 ft. line (Dex. save) Gold Fire 15 ft. cone (Dex. save) Green Poison 15 ft. cone (Con. save) Red Fire 15 ft. cone (Dex. save) Silver Cold 15 ft. cone (Con. save) White Cold 15 ft. cone (Con. save)"
+          "text": "Your base walking speed is 30 feet."
         },
         {
           "name": "Draconic Ancestry",
-          "text": "You have draconic ancestry. Choose one type of dragon from the Draconic"
-        },
-        {
-          "name": "Ancestry table",
-          "text": "Your breath weapon and damage resistance are determined by the dragon type, as shown in the table."
+          "text": "You have draconic ancestry. Choose one type of dragon from the Draconic Ancestry table. Your breath weapon and damage resistance are determined by the dragon type, as shown in the table."
         },
         {
           "name": "Breath Weapon",
@@ -348,11 +344,7 @@
         },
         {
           "name": "Languages",
-          "text": "You can speak, read, and write"
-        },
-        {
-          "name": "Common and Draconic",
-          "text": "Draconic is thought to be one of the oldest languages and is often used in the study of magic. The language sounds harsh to most other creatures and includes numerous hard consonants and sibilants."
+          "text": "You can speak, read, and write Common and Draconic. Draconic is thought to be one of the oldest languages and is often used in the study of magic. The language sounds harsh to most other creatures and includes numerous hard consonants and sibilants."
         }
       ]
     },
@@ -431,11 +423,7 @@
         },
         {
           "name": "Languages",
-          "text": "You can speak, read, and write"
-        },
-        {
-          "name": "Common and Dwarvish",
-          "text": "Dwarvish is full of hard consonants and guttural sounds, and those characteristics spill over into whatever other language a dwarf might speak."
+          "text": "You can speak, read, and write Common and Dwarvish. Dwarvish is full of hard consonants and guttural sounds, and those characteristics spill over into whatever other language a dwarf might speak."
         }
       ],
       "subraces": [
@@ -513,11 +501,7 @@
         },
         {
           "name": "Languages",
-          "text": "You can speak, read, and write"
-        },
-        {
-          "name": "Common and Elvish",
-          "text": "Elvish is fluid, with subtle intonations and intricate grammar. Elven literature is rich and varied, and their songs and poems are famous among other races. Many bards learn their language so they can add Elvish ballads to their repertoires."
+          "text": "You can speak, read, and write Common and Elvish. Elvish is fluid, with subtle intonations and intricate grammar. Elven literature is rich and varied, and their songs and poems are famous among other races. Many bards learn their language so they can add Elvish ballads to their repertoires."
         }
       ],
       "subraces": [
@@ -587,11 +571,7 @@
         },
         {
           "name": "Languages",
-          "text": "You can speak, read, and write"
-        },
-        {
-          "name": "Common and Gnomish",
-          "text": "The Gnomish language, which uses the Dwarvish script, is renowned for its technical treatises and its catalogs of knowledge about the natural world."
+          "text": "You can speak, read, and write Common and Gnomish. The Gnomish language, which uses the Dwarvish script, is renowned for its technical treatises and its catalogs of knowledge about the natural world."
         }
       ],
       "subraces": [
@@ -740,11 +720,7 @@
         },
         {
           "name": "Languages",
-          "text": "You can speak, read, and write"
-        },
-        {
-          "name": "Common and Orc",
-          "text": "Orc is a harsh, grating language with hard consonants. It has no script of its own but is written in the Dwarvish script."
+          "text": "You can speak, read, and write Common and Orc. Orc is a harsh, grating language with hard consonants. It has no script of its own but is written in the Dwarvish script."
         }
       ]
     },
@@ -815,11 +791,7 @@
         },
         {
           "name": "Languages",
-          "text": "You can speak, read, and write"
-        },
-        {
-          "name": "Common and Halfling",
-          "text": "The Halfling language isn’t secret, but halflings are loath to share it with others. They write very little, so they don’t have a rich body of literature. Their oral tradition, however, is very strong. Almost all halflings speak Common to converse with the people in whose lands they dwell or through which they are traveling."
+          "text": "You can speak, read, and write Common and Halfling. The Halfling language isn’t secret, but halflings are loath to share it with others. They write very little, so they don’t have a rich body of literature. Their oral tradition, however, is very strong. Almost all halflings speak Common to converse with the people in whose lands they dwell or through which they are traveling."
         }
       ],
       "subraces": [
@@ -897,11 +869,7 @@
         },
         {
           "name": "Languages",
-          "text": "You can speak, read, and write"
-        },
-        {
-          "name": "Common and Elvish",
-          "text": "Elvish is fluid, with subtle intonations and intricate grammar. Elven literature is rich and varied, and their songs and poems are famous among other races. Many bards learn their language so they can add Elvish ballads to their repertoires."
+          "text": "You can speak, read, and write Common and Elvish. Elvish is fluid, with subtle intonations and intricate grammar. Elven literature is rich and varied, and their songs and poems are famous among other races. Many bards learn their language so they can add Elvish ballads to their repertoires."
         },
         {
           "name": "Elf Weapon Training",
@@ -993,11 +961,7 @@
         },
         {
           "name": "Languages",
-          "text": "You can speak, read, and write"
-        },
-        {
-          "name": "Common and Dwarvish",
-          "text": "Dwarvish is full of hard consonants and guttural sounds, and those characteristics spill over into whatever other language a dwarf might speak."
+          "text": "You can speak, read, and write Common and Dwarvish. Dwarvish is full of hard consonants and guttural sounds, and those characteristics spill over into whatever other language a dwarf might speak."
         },
         {
           "name": "Dwarven Toughness",
@@ -1132,11 +1096,7 @@
         },
         {
           "name": "Languages",
-          "text": "You can speak, read, and write"
-        },
-        {
-          "name": "Common and Halfling",
-          "text": "The Halfling language isn’t secret, but halflings are loath to share it with others. They write very little, so they don’t have a rich body of literature. Their oral tradition, however, is very strong. Almost all halflings speak Common to converse with the people in whose lands they dwell or through which they are traveling."
+          "text": "You can speak, read, and write Common and Halfling. The Halfling language isn’t secret, but halflings are loath to share it with others. They write very little, so they don’t have a rich body of literature. Their oral tradition, however, is very strong. Almost all halflings speak Common to converse with the people in whose lands they dwell or through which they are traveling."
         },
         {
           "name": "Naturally Stealthy",
@@ -1208,11 +1168,7 @@
         },
         {
           "name": "Languages",
-          "text": "You can speak, read, and write"
-        },
-        {
-          "name": "Common and Gnomish",
-          "text": "The Gnomish language, which uses the Dwarvish script, is renowned for its technical treatises and its catalogs of knowledge about the natural world."
+          "text": "You can speak, read, and write Common and Gnomish. The Gnomish language, which uses the Dwarvish script, is renowned for its technical treatises and its catalogs of knowledge about the natural world."
         },
         {
           "name": "Tinker",

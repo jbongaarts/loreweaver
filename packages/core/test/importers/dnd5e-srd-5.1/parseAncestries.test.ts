@@ -248,6 +248,116 @@ describe('parseAncestries — Dwarf with subraces + Human without', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Line-wrap fragments and interleaved table bleed (eshyra-0m9.15).
+//
+// In the real SRD PDF, trait prose wraps across extracted lines. The Languages
+// trait wraps so that "Common and <Language>. <more prose>" lands on its own
+// line, and the Dragonborn block interleaves the Draconic Ancestry breath-weapon
+// table between the Speed and Draconic Ancestry traits. Both produced bogus
+// trait records pre-fix: a continuation line shaped like "Label. body" was
+// promoted to a trait, and the table rows bled into the Speed trait body. These
+// fixtures reproduce that wrap/interleave shape line-for-line.
+// ---------------------------------------------------------------------------
+
+describe('parseAncestries — wrapped Languages line does not split into a bogus trait', () => {
+  // The Languages prose wraps exactly as the SRD PDF extracts it: the label
+  // line ends with "…read, and write", and "Common and Dwarvish. <prose>"
+  // continues on the next line.
+  const results = parseAncestries([
+    page(18, [
+      'Dwarf',
+      'Bold and hardy, dwarves are known as skilled warriors.',
+      'Dwarf Traits',
+      'Your dwarf character has an assortment of inborn abilities.',
+      'Ability Score Increase. Your Constitution score increases by 2.',
+      'Speed. Your base walking speed is 25 feet.',
+      'Languages. You can speak, read, and write',
+      'Common and Dwarvish. Dwarvish is full of hard consonants and',
+      'guttural sounds, and those characteristics spill over into',
+      'whatever other language a dwarf might speak.',
+    ]),
+  ]);
+  const dwarf = results.find((r) => r.name === 'Dwarf');
+
+  it('keeps a single Languages trait with the wrapped body reflowed in', () => {
+    const languages = dwarf?.traits.filter((t) => t.name === 'Languages');
+    expect(languages).toHaveLength(1);
+    expect(languages?.[0].text).toBe(
+      'You can speak, read, and write Common and Dwarvish. Dwarvish is full ' +
+        'of hard consonants and guttural sounds, and those characteristics ' +
+        'spill over into whatever other language a dwarf might speak.',
+    );
+  });
+
+  it('does not promote the "Common and Dwarvish" continuation to a trait', () => {
+    const names = dwarf?.traits.map((t) => t.name) ?? [];
+    expect(names).not.toContain('Common and Dwarvish');
+  });
+});
+
+describe('parseAncestries — Dragonborn breath-weapon table does not bleed', () => {
+  // The Draconic Ancestry table is interleaved between Speed and the Draconic
+  // Ancestry trait, and the Draconic Ancestry body wraps so "Ancestry table.
+  // <prose>" continues on its own line (the source phrase "the Draconic /
+  // Ancestry table").
+  const results = parseAncestries([
+    page(31, [
+      'Dragonborn',
+      'Your draconic heritage manifests in a variety of traits.',
+      'Dragonborn Traits',
+      'Your draconic heritage manifests in a variety of traits you share.',
+      'Ability Score Increase. Your Strength score increases by 2.',
+      'Speed. Your base walking speed is 30 feet.',
+      'Draconic Ancestry',
+      'Dragon Damage Type Breath Weapon',
+      'Black Acid 5 by 30 ft. line (Dex. save)',
+      'Blue Lightning 5 by 30 ft. line (Dex. save)',
+      'Gold Fire 15 ft. cone (Dex. save)',
+      'Green Poison 15 ft. cone (Con. save)',
+      'White Cold 15 ft. cone (Con. save)',
+      'Draconic Ancestry. You have draconic ancestry.',
+      'Choose one type of dragon from the Draconic',
+      'Ancestry table. Your breath weapon and damage',
+      'resistance are determined by the dragon type, as',
+      'shown in the table.',
+      'Languages. You can speak, read, and write',
+      'Common and Draconic. Draconic is thought to be one of the oldest.',
+    ]),
+  ]);
+  const dragonborn = results.find((r) => r.name === 'Dragonborn');
+
+  it('keeps the Speed trait free of the interleaved breath-weapon table', () => {
+    const speed = dragonborn?.traits.find((t) => t.name === 'Speed');
+    expect(speed?.text).toBe('Your base walking speed is 30 feet.');
+    expect(speed?.text).not.toMatch(/save\)/);
+    expect(speed?.text).not.toMatch(/Damage Type/);
+  });
+
+  it('does not emit a bogus "Ancestry table" trait and reflows the wrapped body', () => {
+    const names = dragonborn?.traits.map((t) => t.name) ?? [];
+    expect(names).not.toContain('Ancestry table');
+    const draconic = dragonborn?.traits.find(
+      (t) => t.name === 'Draconic Ancestry',
+    );
+    expect(draconic?.text).toBe(
+      'You have draconic ancestry. Choose one type of dragon from the ' +
+        'Draconic Ancestry table. Your breath weapon and damage resistance ' +
+        'are determined by the dragon type, as shown in the table.',
+    );
+  });
+
+  it('does not promote the "Common and Draconic" Languages continuation', () => {
+    const names = dragonborn?.traits.map((t) => t.name) ?? [];
+    expect(names).not.toContain('Common and Draconic');
+    const languages = dragonborn?.traits.find((t) => t.name === 'Languages');
+    expect(languages?.text).toBe(
+      'You can speak, read, and write Common and Draconic. Draconic is ' +
+        'thought to be one of the oldest.',
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Empty / no-match input.
 // ---------------------------------------------------------------------------
 
