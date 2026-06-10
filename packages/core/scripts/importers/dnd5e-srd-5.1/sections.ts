@@ -454,14 +454,36 @@ export const SRD_5_1_DEFAULT_SECTION_ANCHORS = {
       /^(Trade Goods|Expenses|Selling Treasure|Spellcasting|Using Ability Scores|Adventuring|Combat|Monsters|Magic Items|Feats)$/i,
     matchHeadings: true,
   },
+  // SRD 5.1 "Magic Items" chapter intro (pp206-207, eshyra-0m9.21): the
+  // general usage rules that precede the A-Z item entries — Attunement,
+  // Wearing and Wielding Items (Multiple Items of the Same Kind, Paired
+  // Items), and Activating an Item (Command Word, Consumables, Spells,
+  // Charges). The orchestrator feeds this slice to the nesting-aware
+  // `parseRules` (the chapter-intro paragraph emits via the `chapterIntro`
+  // option, like Beyond 1st Level). matchHeadings is essential: "Magic Items"
+  // occurs constantly as body prose, but the only heading-flagged exact
+  // occurrence is the h≈25.9 chapter title on p206 (the preceding Poisons
+  // section's end anchor stops just before it). The slice ends at the "Magic
+  // Items A-Z" heading that the item parser owns; requireEndHeading is true
+  // because the emitted rules are gated by `EXPECTED_SRD_5_1_RULE_KEYS`, so a
+  // missing boundary that let item entries bleed into the rules must fail
+  // closed. Best-effort on its START so reduced fixture PDFs without the
+  // chapter degrade to no magic-item rules.
+  magicItemRules: {
+    startHeading: /^Magic Items$/,
+    endHeading: /^Magic Items A-Z$/,
+    requireEndHeading: true,
+    matchHeadings: true,
+  },
   // SRD 5.1 "Magic Items A-Z" (p207-p251) carries lookupable magic-item
-  // entries. The introductory "Magic Items" chapter before it is general
-  // usage guidance; the following "Sentient Magic Items" heading is DM-facing
-  // construction guidance, so the implemented item parser is bounded to the
-  // A-Z run and fails closed if the end is missing. The "Artifacts" subsection
-  // that follows IS parsed — but as its own slice (see `artifacts` below),
-  // because the lone artifact entry (Orb of Dragonkind) sits after the Sentient
-  // Magic Items guidance, not inside the A-Z run.
+  // entries. The introductory "Magic Items" chapter before it carries the
+  // general usage rules (imported as `rule` records via the `magicItemRules`
+  // slice above; eshyra-0m9.21); the following "Sentient Magic Items" heading
+  // is DM-facing construction guidance, so the implemented item parser is
+  // bounded to the A-Z run and fails closed if the end is missing. The
+  // "Artifacts" subsection that follows IS parsed — but as its own slice (see
+  // `artifacts` below), because the lone artifact entry (Orb of Dragonkind)
+  // sits after the Sentient Magic Items guidance, not inside the A-Z run.
   magicItems: {
     startHeading: /^Magic Items A-Z$/,
     endHeading: /^(Sentient Magic Items|Artifacts|Monsters|Appendix)\b/i,
@@ -614,6 +636,7 @@ export type Srd51SectionAnchors = {
   readonly miscellaneousCreatures: SectionAnchorOptions;
   readonly nonplayerCharacters: SectionAnchorOptions;
   readonly mountsAndVehicles: SectionAnchorOptions;
+  readonly magicItemRules: SectionAnchorOptions;
   readonly magicItems: SectionAnchorOptions;
   readonly artifacts: SectionAnchorOptions;
   readonly conditions: SectionAnchorOptions;

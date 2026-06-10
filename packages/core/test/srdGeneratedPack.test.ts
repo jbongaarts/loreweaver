@@ -181,11 +181,13 @@ const EXPECTED_COUNTS_BY_KIND: Readonly<Record<string, number>> = {
   // Ability Scores, Adventuring, and Combat chapters (loreweaver-yli, 127),
   // plus 34 general Spellcasting rules, five Madness/Objects rules, five
   // Classes-chapter callout rules, the Spellcasting Services prose rule
-  // (eshyra-0m9.19), and the 18 "Beyond 1st Level" chapter rules — the
+  // (eshyra-0m9.19), the 18 "Beyond 1st Level" chapter rules — the
   // chapter-intro advancement prose plus the Multiclassing / Alignment /
-  // Languages / Inspiration sections (eshyra-0m9.18) — validated exactly
-  // against EXPECTED_SRD_5_1_RULE_KEYS.
-  rule: 190,
+  // Languages / Inspiration sections (eshyra-0m9.18) — and the 10 "Magic
+  // Items" chapter-intro usage rules (the intro paragraph, Attunement,
+  // Wearing and Wielding Items, Activating an Item, and their leaves;
+  // eshyra-0m9.21), validated exactly against EXPECTED_SRD_5_1_RULE_KEYS.
+  rule: 200,
   spell: 319,
   subclass: 12,
   // Difficulty Classes, two trap tables, three Madness tables, two Objects
@@ -2246,6 +2248,86 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
           false,
         );
       }
+    });
+  });
+
+  describe('Magic Items usage rules (eshyra-0m9.21)', () => {
+    function ruleRecord(key: string) {
+      const record = pack.records.find(
+        (candidate) => candidate.kind === 'rule' && candidate.key === key,
+      );
+      expect(record, `expected ${key} in the committed pack`).toBeDefined();
+      return record;
+    }
+
+    function ruleText(key: string): string {
+      return (ruleRecord(key)?.data as { text: string }).text;
+    }
+
+    it('emits the chapter intro as rule:magic-items with p206 provenance', () => {
+      const record = ruleRecord('rule:magic-items');
+      expect(record?.name).toBe('Magic Items');
+      expect(record?.provenance.locator).toBe('p. 206');
+      const text = ruleText('rule:magic-items');
+      expect(text).toContain('gleaned from the hoards of conquered monsters');
+      // The intro is bounded at the first heading; the Attunement body must
+      // not bleed in.
+      expect(text).not.toContain('attunement');
+    });
+
+    it('keeps the complete Attunement rule as one record', () => {
+      const text = ruleText('rule:attunement');
+      // The four pillars of the SRD attunement rules, in one body: the bond
+      // and its prerequisites, the short-rest procedure, the three-item
+      // limit, and how attunement ends.
+      expect(text).toContain('This bond is called attunement');
+      expect(text).toContain(
+        'requires a creature to spend a short rest focused on only that item',
+      );
+      expect(text).toContain('no more than three magic items at a time');
+      expect(text).toContain('more than 100 feet away for at least 24 hours');
+      // Bounded at the next section heading.
+      expect(text).not.toContain('Wearing and Wielding');
+      expect(ruleRecord('rule:attunement')?.provenance.locator).toBe('p. 206');
+    });
+
+    it('emits the wearing/wielding tree with its leaves as separate records', () => {
+      const wearing = ruleText('rule:wearing-and-wielding-items');
+      expect(wearing).toContain('must be donned in the intended fashion');
+      // The two h≈13.9 leaves are their own records, not part of the parent.
+      expect(wearing).not.toContain('more than one pair of footwear');
+      expect(ruleText('rule:multiple-items-of-the-same-kind')).toContain(
+        'more than one pair of footwear',
+      );
+      expect(ruleText('rule:paired-items')).toContain(
+        'impart their benefits only if both items of the pair are worn',
+      );
+    });
+
+    it('emits the activation tree with its four leaves as separate records', () => {
+      const activating = ruleText('rule:activating-an-item');
+      expect(activating).toContain(
+        'rogue’s Fast Hands can’t be used to activate the item',
+      );
+      expect(ruleText('rule:command-word')).toContain(
+        'can’t be activated in an area where sound is prevented',
+      );
+      expect(ruleText('rule:consumables')).toContain(
+        'Once used, a consumable item loses its magic',
+      );
+      // rule:spells is the "Activating an Item > Spells" leaf: casting a
+      // spell FROM an item.
+      const spells = ruleText('rule:spells');
+      expect(spells).toContain('cast at the lowest possible spell level');
+      expect(spells).toContain(
+        'your spellcasting ability modifier is +0 for the item',
+      );
+      const charges = ruleText('rule:charges');
+      expect(charges).toContain('revealed when an identify spell is cast');
+      // Charges is the chapter's last rule; the A-Z slice owns everything
+      // after the "Magic Items A-Z" boundary, so no item entry bleeds in.
+      expect(charges).not.toContain('Adamantine');
+      expect(ruleRecord('rule:charges')?.provenance.locator).toBe('p. 207');
     });
   });
 
