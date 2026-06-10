@@ -880,13 +880,14 @@ export const EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES: readonly string[] = [
  * Difficulty Classes, Travel Pace, Size Categories).
  *
  * The full baseline is 127 core-rules keys, 34 general Spellcasting keys, five
- * gamemastering Madness/Objects keys, and five Classes-chapter callout keys.
- * Spellcasting is a separate slice (`spellcastingRules`, "Spellcasting" →
- * "Spell Lists") parsed by the same nesting-aware `parseRules`; the four titles
- * it shares with the core-rules chapters ("Attack Rolls", "Range", "Reactions",
- * "Saving Throws") parent-qualify to `rule:casting-a-spell-*` /
- * `rule:casting-time-reactions` so the core keys stay untouched and no `rule:`
- * key is duplicated across slices.
+ * gamemastering Madness/Objects keys, five Classes-chapter callout keys, and six
+ * gamemastering Traps keys (eshyra-0m9.20). Spellcasting is a separate slice
+ * (`spellcastingRules`, "Spellcasting" → "Spell Lists") parsed by the same
+ * nesting-aware `parseRules`; the four titles it shares with the core-rules
+ * chapters ("Attack Rolls", "Range", "Reactions", "Saving Throws")
+ * parent-qualify to `rule:casting-a-spell-*` / `rule:casting-time-reactions`
+ * so the core keys stay untouched and no `rule:` key is duplicated across
+ * slices.
  */
 export const EXPECTED_SRD_5_1_RULE_KEYS: readonly string[] = [
   'rule:ability-checks',
@@ -1120,6 +1121,19 @@ export const EXPECTED_SRD_5_1_RULE_KEYS: readonly string[] = [
   'rule:paired-items',
   'rule:spells',
   'rule:wearing-and-wielding-items',
+  // Gamemastering "Traps" section general rules (eshyra-0m9.20): the
+  // chapter-intro paragraph (emitted via parseRules's chapterIntro option
+  // because it precedes any heading) plus the five h≈13.9/h≈12 subsections
+  // that precede "Sample Traps". The two trap reference table captions
+  // ("Trap Save DCs and Attack Bonuses", "Damage Severity by Level") are
+  // excluded by TABLE_CAPTION_LEAF_TITLES — the `table` kind owns those.
+  // Sample traps stay hazard records only.
+  'rule:traps',
+  'rule:traps-in-play',
+  'rule:triggering-a-trap',
+  'rule:detecting-and-disabling-a-trap',
+  'rule:trap-effects',
+  'rule:complex-traps',
 ];
 
 export const EXPECTED_SRD_5_1_TABLE_NAMES: readonly string[] = [
@@ -2047,10 +2061,41 @@ export async function runImporter(
     ),
     { name: 'Magic Items', keySlug: 'magic-items' },
   );
+  // SRD 5.1 gamemastering "Traps" section general-rules prose (eshyra-0m9.20):
+  // the five heading-level sections that precede the alphabetic "Sample Traps"
+  // run (Traps in Play; Triggering a Trap; Detecting and Disabling a Trap;
+  // Trap Effects; Complex Traps) plus the chapter-intro paragraph. The heading
+  // "Sample Traps" is at h≈13.9, which is below the extractor's heading-flag
+  // threshold (h < 14) and therefore not in `headingLineIndexes` — so it
+  // cannot serve as a `matchHeadings` end anchor against the full PDF pages.
+  // Instead, `truncateBeforeFirst` carves the rules sub-slice from the
+  // already-correctly-bounded `trapPages` slice; since `trapPages` excludes
+  // the table-of-contents portion of the PDF, "Sample Traps" as a line pattern
+  // is safe to use without the heading-flag guard. `trapPages` being empty
+  // (fixture PDFs without a Traps section) degrades cleanly to no trap rules.
+  // The two trap reference table captions ("Trap Save DCs and Attack Bonuses"
+  // and "Damage Severity by Level", both h≈12) are excluded from rule emission
+  // via `TABLE_CAPTION_LEAF_TITLES` in `parseRules.ts`; the `table` kind owns
+  // those records from the same slice.
+  const trapRulePages = truncateBeforeFirst(trapPages, /^Sample Traps$/);
+  const trapRules = parseRules(
+    trapRulePages,
+    new Set(
+      [
+        ...rulesBeforeBeyondFirstLevel,
+        ...beyondFirstLevelRules,
+        ...magicItemRules,
+      ]
+        .map((rule) => rule.keySlug)
+        .filter((slug): slug is string => slug !== undefined),
+    ),
+    { name: 'Traps', keySlug: 'traps' },
+  );
   const nonClassRules = [
     ...rulesBeforeBeyondFirstLevel,
     ...beyondFirstLevelRules,
     ...magicItemRules,
+    ...trapRules,
   ];
   // The two trap reference tables live in the Traps slice (loreweaver-hvp); feed
   // it alongside the core-rules and treasure slices so parseTables reconstructs
@@ -2228,4 +2273,49 @@ function sliceSectionOrEmptyPages(
     }
     throw error;
   }
+}
+
+/**
+ * Truncate `pages` just before the first line matching `pattern`. Used for
+ * sections whose end heading is below the extractor's heading-flag threshold
+ * (h < 14) — specifically the "Sample Traps" heading at h≈13.9, which is not
+ * in `headingLineIndexes` and therefore cannot be used as a `matchHeadings`
+ * end anchor on the full PDF pages (eshyra-0m9.20). The caller must already
+ * have narrowed `pages` to a correctly-bounded slice (e.g. via
+ * `sliceSectionOrEmptyPages`) so the pattern cannot match an unrelated
+ * earlier occurrence of the same text (e.g. a table-of-contents entry).
+ * Throws `SectionNotFoundError('end', pattern)` when `pages` is non-empty
+ * and the pattern is not found — a non-empty slice with no recognizable
+ * boundary is treated as a hard error, not a silent over-extraction.
+ */
+function truncateBeforeFirst(
+  pages: readonly import('./types.js').PageText[],
+  pattern: RegExp,
+): readonly import('./types.js').PageText[] {
+  if (pages.length === 0) return pages;
+  const out: import('./types.js').PageText[] = [];
+  for (const page of pages) {
+    let matchLine = -1;
+    for (let l = 0; l < page.lines.length; l++) {
+      if (pattern.test(page.lines[l].trim())) {
+        matchLine = l;
+        break;
+      }
+    }
+    if (matchLine === -1) {
+      out.push(page);
+    } else {
+      if (matchLine > 0) {
+        const lines = page.lines.slice(0, matchLine);
+        const lineHeights = page.lineHeights?.slice(0, matchLine);
+        out.push({
+          pageNumber: page.pageNumber,
+          lines,
+          ...(lineHeights !== undefined ? { lineHeights } : {}),
+        });
+      }
+      return out;
+    }
+  }
+  throw new SectionNotFoundError('end', pattern);
 }

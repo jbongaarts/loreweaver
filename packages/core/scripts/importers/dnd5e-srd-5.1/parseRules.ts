@@ -274,6 +274,11 @@ const TABLE_CAPTION_LEAF_TITLES = new Set([
   'Spell Slots per Spell Level',
   'Standard Languages',
   'Exotic Languages',
+  // Gamemastering Traps section (eshyra-0m9.20): the two h≈12 trap reference
+  // table captions. The `table` kind owns these records; the `rule` kind must
+  // not also emit them as prose rules.
+  'Trap Save DCs and Attack Bonuses',
+  'Damage Severity by Level',
 ]);
 
 function isExcludedHeading(
