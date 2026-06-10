@@ -183,11 +183,14 @@ const EXPECTED_COUNTS_BY_KIND: Readonly<Record<string, number>> = {
   // Classes-chapter callout rules, the Spellcasting Services prose rule
   // (eshyra-0m9.19), the 18 "Beyond 1st Level" chapter rules — the
   // chapter-intro advancement prose plus the Multiclassing / Alignment /
-  // Languages / Inspiration sections (eshyra-0m9.18) — and the 10 "Magic
+  // Languages / Inspiration sections (eshyra-0m9.18) — the 10 "Magic
   // Items" chapter-intro usage rules (the intro paragraph, Attunement,
   // Wearing and Wielding Items, Activating an Item, and their leaves;
-  // eshyra-0m9.21), validated exactly against EXPECTED_SRD_5_1_RULE_KEYS.
-  rule: 200,
+  // eshyra-0m9.21), and the 6 general gamemastering "Traps" rules (the
+  // chapter-intro prose, Traps in Play, Triggering a Trap, Detecting and
+  // Disabling a Trap, Trap Effects, Complex Traps; eshyra-0m9.20).
+  // Validated exactly against EXPECTED_SRD_5_1_RULE_KEYS.
+  rule: 206,
   spell: 319,
   subclass: 12,
   // Difficulty Classes, two trap tables, three Madness tables, two Objects
@@ -249,6 +252,9 @@ const EXPECTED_STABLE_KEYS: readonly string[] = [
   // Equipment-chapter Expenses region: Spellcasting Services prose rule
   // (eshyra-0m9.19).
   'rule:spellcasting-services',
+  // Gamemastering Traps section general rules (eshyra-0m9.20).
+  'rule:traps',
+  'rule:complex-traps',
   'spell:fire-bolt',
   'spell:wish',
   'subclass:champion',
@@ -2328,6 +2334,84 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
       // after the "Magic Items A-Z" boundary, so no item entry bleeds in.
       expect(charges).not.toContain('Adamantine');
       expect(ruleRecord('rule:charges')?.provenance.locator).toBe('p. 207');
+    });
+  });
+
+  describe('Traps general rules (eshyra-0m9.20)', () => {
+    function ruleRecord(key: string) {
+      const record = pack.records.find(
+        (candidate) => candidate.kind === 'rule' && candidate.key === key,
+      );
+      expect(record, `expected ${key} in the committed pack`).toBeDefined();
+      return record;
+    }
+
+    function ruleText(key: string): string {
+      return (ruleRecord(key)?.data as { text: string }).text;
+    }
+
+    it('emits the chapter intro as rule:traps with p195 provenance', () => {
+      const record = ruleRecord('rule:traps');
+      expect(record?.name).toBe('Traps');
+      expect(record?.provenance.locator).toBe('p. 195');
+      const text = ruleText('rule:traps');
+      // The intro describes what traps are; bounded at the first heading.
+      expect(text).toContain('trap');
+      expect(text).not.toContain('Traps in Play');
+    });
+
+    it('emits rule:traps-in-play with body bounded at next heading', () => {
+      const text = ruleText('rule:traps-in-play');
+      expect(text.length).toBeGreaterThan(0);
+      // Must not bleed into Triggering a Trap.
+      expect(text).not.toContain('Triggering a Trap');
+    });
+
+    it('emits rule:triggering-a-trap and rule:detecting-and-disabling-a-trap', () => {
+      expect(ruleText('rule:triggering-a-trap').length).toBeGreaterThan(0);
+      expect(
+        ruleText('rule:detecting-and-disabling-a-trap').length,
+      ).toBeGreaterThan(0);
+    });
+
+    it('emits rule:trap-effects without emitting the two table captions as rules', () => {
+      const text = ruleText('rule:trap-effects');
+      expect(text.length).toBeGreaterThan(0);
+      // TABLE_CAPTION_LEAF_TITLES prevents the two h≈12 table caption headings
+      // from being emitted as standalone rule records — the `table` kind owns
+      // those. The caption names DO appear in the "Trap Effects" body prose as
+      // SRD cross-references; checking keys rather than body text is correct.
+      const ruleKeys = pack.records
+        .filter((r) => r.kind === 'rule')
+        .map((r) => r.key);
+      expect(ruleKeys).not.toContain('rule:trap-save-dcs-and-attack-bonuses');
+      expect(ruleKeys).not.toContain('rule:damage-severity-by-level');
+    });
+
+    it('emits rule:complex-traps without leaking sample-trap entries', () => {
+      const text = ruleText('rule:complex-traps');
+      expect(text.length).toBeGreaterThan(0);
+      // The slice is truncated before "Sample Traps"; no sample trap name
+      // should appear in the complex-traps rule body.
+      expect(text).not.toContain('Collapsing Roof');
+    });
+
+    it('keeps sample traps as hazard records only', () => {
+      // The slice is bounded before "Sample Traps", so no sample trap name
+      // appears as a rule key.
+      const ruleKeys = pack.records
+        .filter((r) => r.kind === 'rule')
+        .map((r) => r.key);
+      expect(ruleKeys).not.toContain('rule:collapsing-roof');
+      expect(ruleKeys).not.toContain('rule:sphere-of-annihilation');
+      expect(ruleKeys).not.toContain('rule:sample-traps');
+      // All 8 sample traps remain as hazard records.
+      expect(
+        pack.records.find((r) => r.key === 'hazard:collapsing-roof'),
+      ).toBeDefined();
+      expect(
+        pack.records.find((r) => r.key === 'hazard:sphere-of-annihilation'),
+      ).toBeDefined();
     });
   });
 
