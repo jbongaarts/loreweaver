@@ -188,9 +188,12 @@ const EXPECTED_COUNTS_BY_KIND: Readonly<Record<string, number>> = {
   // Wearing and Wielding Items, Activating an Item, and their leaves;
   // eshyra-0m9.21), and the 6 general gamemastering "Traps" rules (the
   // chapter-intro prose, Traps in Play, Triggering a Trap, Detecting and
-  // Disabling a Trap, Trap Effects, Complex Traps; eshyra-0m9.20).
+  // Disabling a Trap, Trap Effects, Complex Traps; eshyra-0m9.20), and the
+  // 44 Monsters-chapter stat-block interpretation rules (the chapter-intro
+  // paragraph, the pp254-260 sections and their leaves, the Legendary
+  // Creatures tree, and the three gray callout boxes; eshyra-0m9.22).
   // Validated exactly against EXPECTED_SRD_5_1_RULE_KEYS.
-  rule: 206,
+  rule: 250,
   spell: 319,
   subclass: 12,
   // Difficulty Classes, two trap tables, three Madness tables, two Objects
@@ -198,10 +201,13 @@ const EXPECTED_COUNTS_BY_KIND: Readonly<Record<string, number>> = {
   // Level" reference tables (Character Advancement, Multiclassing
   // Prerequisites, Multiclassing Proficiencies, Standard Languages, Exotic
   // Languages — eshyra-0m9.23 — and Multiclass Spellcaster: Spell Slots per
-  // Spell Level — eshyra-0m9.18), and the five money/downtime tables —
+  // Spell Level — eshyra-0m9.18), the five money/downtime tables —
   // Standard Exchange Rates, Trade Goods, Lifestyle Expenses,
-  // Food/Drink/Lodging, Services (eshyra-0m9.19).
-  table: 19,
+  // Food/Drink/Lodging, Services (eshyra-0m9.19) — and the four
+  // Monsters-chapter reference tables — Size Categories, Hit Dice by Size,
+  // Proficiency Bonus by Challenge Rating, Experience Points by Challenge
+  // Rating (eshyra-0m9.22).
+  table: 23,
 };
 
 /**
@@ -255,6 +261,13 @@ const EXPECTED_STABLE_KEYS: readonly string[] = [
   // Gamemastering Traps section general rules (eshyra-0m9.20).
   'rule:traps',
   'rule:complex-traps',
+  // Monsters-chapter stat-block interpretation rules (eshyra-0m9.22): the
+  // chapter intro, a bare landmark, a chapter-qualified key, and a
+  // section-qualified leaf.
+  'rule:monsters',
+  'rule:legendary-creatures',
+  'rule:monsters-alignment',
+  'rule:senses-blindsight',
   'spell:fire-bolt',
   'spell:wish',
   'subclass:champion',
@@ -262,6 +275,9 @@ const EXPECTED_STABLE_KEYS: readonly string[] = [
   'table:object-hit-points',
   'table:short-term-madness',
   'table:trap-save-dcs-and-attack-bonuses',
+  // Monsters-chapter reference tables (eshyra-0m9.22).
+  'table:experience-points-by-challenge-rating',
+  'table:size-categories',
 ];
 
 /**
@@ -1875,7 +1891,9 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
         'table:damage-severity-by-level',
         'table:difficulty-classes',
         'table:exotic-languages',
+        'table:experience-points-by-challenge-rating',
         'table:food-drink-and-lodging',
+        'table:hit-dice-by-size',
         'table:indefinite-madness',
         'table:lifestyle-expenses',
         'table:long-term-madness',
@@ -1884,8 +1902,10 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
         'table:multiclassing-proficiencies',
         'table:object-armor-class',
         'table:object-hit-points',
+        'table:proficiency-bonus-by-challenge-rating',
         'table:services',
         'table:short-term-madness',
+        'table:size-categories',
         'table:standard-exchange-rates',
         'table:standard-languages',
         'table:trade-goods',
@@ -2116,6 +2136,76 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
       });
       expect((services?.data as { rows: unknown[] }).rows).toHaveLength(7);
       expect(services?.provenance.locator).toBe('p. 74');
+    });
+
+    it('pins the four Monsters-chapter reference tables (eshyra-0m9.22)', () => {
+      // The Monsters-chapter Size Categories table (p254) carries the
+      // Examples column; the same-captioned core-rules Combat table (p92,
+      // Size/Space only) is NOT emitted — the parser anchors on the
+      // three-column header so the core occurrence cannot shadow it.
+      const sizes = table('table:size-categories');
+      expect(sizes?.data).toMatchObject({
+        columns: ['Size', 'Space', 'Examples'],
+        rows: expect.arrayContaining([
+          ['Tiny', '2½ by 2½ ft.', 'Imp, sprite'],
+          ['Gargantuan', '20 by 20 ft. or larger', 'Kraken, purple worm'],
+        ]),
+      });
+      expect((sizes?.data as { rows: unknown[] }).rows).toHaveLength(6);
+      expect(sizes?.provenance.locator).toBe('p. 254');
+
+      const hitDice = table('table:hit-dice-by-size');
+      expect(hitDice?.data).toMatchObject({
+        columns: ['Monster Size', 'Hit Die', 'Average HP per Die'],
+        // Half-point averages are preserved verbatim.
+        rows: expect.arrayContaining([
+          ['Tiny', 'd4', '2½'],
+          ['Gargantuan', 'd20', '10½'],
+        ]),
+      });
+      expect((hitDice?.data as { rows: unknown[] }).rows).toHaveLength(6);
+      expect(hitDice?.provenance.locator).toBe('p. 256');
+
+      // The two paired-column tables print two logical rows per physical
+      // line; reconstruction must order them CR 0 → 30 top to bottom.
+      const proficiency = table('table:proficiency-bonus-by-challenge-rating');
+      expect(proficiency?.data).toMatchObject({
+        columns: ['Challenge', 'Proficiency Bonus'],
+        rows: expect.arrayContaining([
+          ['0', '+2'],
+          ['1/8', '+2'],
+          ['13', '+5'],
+          ['14', '+5'],
+          ['30', '+9'],
+        ]),
+      });
+      const proficiencyRows = (proficiency?.data as { rows: unknown[][] }).rows;
+      expect(proficiencyRows).toHaveLength(34);
+      // Left pair (CR 0-13) precedes right pair (CR 14-30) in order.
+      expect(proficiencyRows[0]).toEqual(['0', '+2']);
+      expect(proficiencyRows[17]).toEqual(['14', '+5']);
+      expect(proficiencyRows[33]).toEqual(['30', '+9']);
+      expect(proficiency?.provenance.locator).toBe('p. 256');
+
+      const xp = table('table:experience-points-by-challenge-rating');
+      expect(xp?.data).toMatchObject({
+        columns: ['Challenge', 'XP'],
+        rows: expect.arrayContaining([
+          // The CR 0 special case is preserved verbatim.
+          ['0', '0 or 10'],
+          ['1/8', '25'],
+          ['13', '10,000'],
+          ['14', '11,500'],
+          ['21', '33,000'],
+          ['30', '155,000'],
+        ]),
+      });
+      const xpRows = (xp?.data as { rows: unknown[][] }).rows;
+      expect(xpRows).toHaveLength(34);
+      expect(xpRows[0]).toEqual(['0', '0 or 10']);
+      expect(xpRows[17]).toEqual(['14', '11,500']);
+      expect(xpRows[33]).toEqual(['30', '155,000']);
+      expect(xp?.provenance.locator).toBe('p. 258');
     });
 
     it('emits Spellcasting Services as a rule rather than lost prose (eshyra-0m9.19)', () => {
@@ -2411,6 +2501,199 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
       ).toBeDefined();
       expect(
         pack.records.find((r) => r.key === 'hazard:sphere-of-annihilation'),
+      ).toBeDefined();
+    });
+  });
+
+  describe('Monster stat-block interpretation rules (eshyra-0m9.22)', () => {
+    function ruleRecord(key: string) {
+      const record = pack.records.find(
+        (candidate) => candidate.kind === 'rule' && candidate.key === key,
+      );
+      expect(record, `expected ${key} in the committed pack`).toBeDefined();
+      return record;
+    }
+
+    function ruleText(key: string): string {
+      return (ruleRecord(key)?.data as { text: string }).text;
+    }
+
+    it('emits the chapter intro as rule:monsters with p254 provenance', () => {
+      const record = ruleRecord('rule:monsters');
+      expect(record?.name).toBe('Monsters');
+      expect(record?.provenance.locator).toBe('p. 254');
+      const text = ruleText('rule:monsters');
+      expect(text).toContain(
+        'statistics, sometimes referred to as its stat block',
+      );
+      // Bounded at the first heading ("Size").
+      expect(text).not.toContain('Tiny, Small, Medium');
+    });
+
+    it('parent-qualifies the seven section titles other slices already own', () => {
+      // The chapterIntro option seeds "Monsters" as the tier-0 ancestor, so
+      // these qualify against the existing core / Beyond-1st-Level keys
+      // instead of degrading to numeric suffixes. The record NAME stays the
+      // bare SRD title.
+      const qualified: readonly (readonly [string, string, string])[] = [
+        ['rule:monsters-alignment', 'Alignment', 'alignment specified in'],
+        ['rule:monsters-armor-class', 'Armor Class', 'natural armor'],
+        ['rule:monsters-speed', 'Speed', 'how far it can move on its turn'],
+        [
+          'rule:monsters-saving-throws',
+          'Saving Throws',
+          'adept at resisting certain kinds of effects',
+        ],
+        ['rule:monsters-skills', 'Skills', 'proficient in one or more skills'],
+        [
+          'rule:monsters-languages',
+          'Languages',
+          'can speak are listed in alphabetical order',
+        ],
+        [
+          'rule:monsters-reactions',
+          'Reactions',
+          'something special with its reaction',
+        ],
+      ];
+      const ruleKeys = new Set(
+        pack.records.filter((r) => r.kind === 'rule').map((r) => r.key),
+      );
+      for (const [key, name, snippet] of qualified) {
+        expect(ruleRecord(key)?.name).toBe(name);
+        expect(ruleText(key)).toContain(snippet);
+        // No degenerate numeric-suffix fallback for any of them.
+        const bare = key.replace('rule:monsters-', 'rule:');
+        expect(ruleKeys.has(`${bare}-2`), `no ${bare}-2`).toBe(false);
+      }
+    });
+
+    it('qualifies colliding leaves with their section parent', () => {
+      // Blindsight / Darkvision / Truesight collide with the core Vision and
+      // Light leaves; Experience Points and Spellcasting collide with
+      // Beyond-1st-Level keys. Each qualifies with its nearest parent.
+      expect(ruleText('rule:senses-blindsight')).toContain(
+        'perceive its surroundings without relying on sight',
+      );
+      expect(ruleText('rule:senses-darkvision')).toContain(
+        'see in the dark within a specific radius',
+      );
+      expect(ruleText('rule:senses-truesight')).toContain(
+        'see in normal and magical darkness',
+      );
+      // Tremorsense has no core counterpart and keeps its bare slug.
+      expect(ruleText('rule:tremorsense')).toContain(
+        'detect and pinpoint the origin of vibrations',
+      );
+      expect(ruleRecord('rule:challenge-experience-points')?.name).toBe(
+        'Experience Points',
+      );
+      expect(ruleText('rule:special-traits-spellcasting')).toContain(
+        'spellcaster level and spell slots',
+      );
+    });
+
+    it('emits each movement mode as its own bounded record', () => {
+      expect(ruleText('rule:burrow')).toContain(
+        'move through sand, earth, mud, or ice',
+      );
+      expect(ruleText('rule:climb')).toContain('vertical surfaces');
+      expect(ruleText('rule:fly')).toContain('ability to hover');
+      expect(ruleText('rule:swim')).toContain(
+        'doesn’t need to spend extra movement to swim',
+      );
+      // The parent Speed section keeps only its intro prose.
+      expect(ruleText('rule:monsters-speed')).not.toContain(
+        'vertical surfaces',
+      );
+    });
+
+    it('merges the wrapped Vulnerabilities heading into one record', () => {
+      const record = ruleRecord(
+        'rule:vulnerabilities-resistances-and-immunities',
+      );
+      expect(record?.name).toBe('Vulnerabilities, Resistances, and Immunities');
+      expect(
+        ruleText('rule:vulnerabilities-resistances-and-immunities'),
+      ).toContain('vulnerability, resistance, or immunity');
+    });
+
+    it('emits the three gray callout boxes as standalone rules', () => {
+      expect(ruleText('rule:modifying-creatures')).toContain(
+        'might change its challenge rating',
+      );
+      expect(ruleText('rule:armor-weapon-and-tool-proficiencies')).toContain(
+        'proficient with its armor, weapons, and tools',
+      );
+      expect(ruleText('rule:grapple-rules-for-monsters')).toContain(
+        'DC is 10 + the monster’s Strength (Athletics)',
+      );
+    });
+
+    it('keeps the section prose that resumes below a printed table', () => {
+      // The Hit Points section continues after the Hit Dice by Size table
+      // with the Constitution-modifier paragraph; excluding the caption must
+      // drop only the table rows, not that resuming prose.
+      const text = ruleText('rule:hit-points');
+      expect(text).toContain('as shown in the Hit Dice by Size table');
+      expect(text).toContain(
+        'Constitution modifier also affects the number of hit points',
+      );
+      // The table rows themselves stay out of the rule body.
+      expect(text).not.toContain('Gargantuan d20');
+    });
+
+    it('recovers the same resuming prose in the pre-existing core captions', () => {
+      // Incidental, source-confirmed recoveries produced by the same fix
+      // (eshyra-0m9.22): prose that resumes below the Ability Scores and
+      // Modifiers, Typical Difficulty Classes, and Travel Pace tables was
+      // previously swallowed with the excluded captions.
+      expect(ruleText('rule:ability-scores-and-modifiers')).toContain(
+        'subtract 10 from the ability score and then divide the total by 2',
+      );
+      expect(ruleText('rule:ability-checks')).toContain(
+        'To make an ability check, roll a d20 and add the relevant ability',
+      );
+      const speed = ruleText('rule:speed');
+      expect(speed).toContain('move at a normal, fast, or slow pace');
+      expect(speed).toContain('Forced March.');
+      // Table rows stay out: the Travel Pace table's distance cells do not
+      // leak into the rule body.
+      expect(speed).not.toContain('Fast 400 feet');
+    });
+
+    it('keeps the chapter table captions out of the rule kind', () => {
+      const ruleNames = new Set(
+        pack.records
+          .filter((record) => record.kind === 'rule')
+          .map((record) => record.name),
+      );
+      for (const caption of [
+        'Size Categories',
+        'Hit Dice by Size',
+        'Proficiency Bonus by Challenge Rating',
+        'Experience Points by Challenge Rating',
+      ]) {
+        expect(ruleNames.has(caption), `no rule named "${caption}"`).toBe(
+          false,
+        );
+      }
+    });
+
+    it('does not leak stat-block entries into the rule kind', () => {
+      // The rules sub-slice is truncated before "Monsters (A)", so no
+      // alphabetic stat-block content can emit as a rule.
+      const ruleKeys = pack.records
+        .filter((r) => r.kind === 'rule')
+        .map((r) => r.key);
+      expect(ruleKeys).not.toContain('rule:aboleth');
+      expect(ruleKeys).not.toContain('rule:monsters-a');
+      // Regional Effects is the chapter's last rules section; the Aboleth
+      // stat block that follows the boundary must not bleed into it.
+      expect(ruleText('rule:regional-effects')).not.toContain('Aboleth');
+      // Creature records are unaffected.
+      expect(
+        pack.records.find((r) => r.key === 'creature:aboleth'),
       ).toBeDefined();
     });
   });

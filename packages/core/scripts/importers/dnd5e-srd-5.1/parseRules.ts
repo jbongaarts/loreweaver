@@ -279,6 +279,13 @@ const TABLE_CAPTION_LEAF_TITLES = new Set([
   // not also emit them as prose rules.
   'Trap Save DCs and Attack Bonuses',
   'Damage Severity by Level',
+  // Monsters-chapter stat-block rules (eshyra-0m9.22): the chapter's three
+  // remaining h≈12 reference-table captions ("Size Categories" is shared with
+  // the core-rules Combat chapter and already listed above). The `table` kind
+  // owns these records.
+  'Hit Dice by Size',
+  'Proficiency Bonus by Challenge Rating',
+  'Experience Points by Challenge Rating',
 ]);
 
 function isExcludedHeading(
@@ -288,14 +295,44 @@ function isExcludedHeading(
 ): boolean {
   const trimmed = name.trim();
   if (/^Variant\b/i.test(trimmed)) return true;
-  if (tier === 3 && TABLE_CAPTION_LEAF_TITLES.has(trimmed)) return true;
+  if (isTableCaptionHeading(name, tier)) return true;
   if (bodyLeadsWithBullet(bodyLines)) return true;
   return false;
 }
 
-function collectHeadingEntries(merged: readonly TieredLine[]): HeadingEntry[] {
+function isTableCaptionHeading(name: string, tier: number): boolean {
+  return tier === 3 && TABLE_CAPTION_LEAF_TITLES.has(name.trim());
+}
+
+/**
+ * Minimum font height for a line inside an excluded table caption's body to
+ * count as SECTION PROSE rather than a table row. SRD 5.1 table rows and
+ * column headers render at h≈8.9 while main-flow body prose renders at h≈9.8,
+ * so the cut sits in the gap. Several captioned tables are printed in the
+ * MIDDLE of their section's prose — the section text resumes below the table
+ * (e.g. the Hit Points monster section's Constitution-modifier paragraph after
+ * the Hit Dice by Size table, the Ability Checks intro after Typical
+ * Difficulty Classes, the travel rules after Travel Pace). Excluding the
+ * caption must drop only the table rows the `table` kind owns, not swallow
+ * that resuming prose (eshyra-0m9.22).
+ */
+const BODY_PROSE_MIN_H = 9.3;
+
+function collectHeadingEntries(
+  merged: readonly TieredLine[],
+  chapterName?: string,
+): HeadingEntry[] {
   const entries: HeadingEntry[] = [];
-  const stack: { name: string; tier: number }[] = [];
+  // Section slices exclude their own chapter title line (it is the slice's
+  // start anchor), so a chapter parsed with `chapterIntro` restores that title
+  // as a synthetic tier-0 ancestor (eshyra-0m9.22). Without it, a top-tier
+  // heading that collides with a key another slice already owns has no
+  // ancestor to qualify with and would degrade to a numeric suffix — e.g. the
+  // Monsters chapter's "Alignment" vs the Beyond-1st-Level `alignment` key
+  // must become `monsters-alignment`, not `alignment-2`. Tier 0 is only ever
+  // popped by another chapter heading, so the seed parents the whole slice.
+  const stack: { name: string; tier: number }[] =
+    chapterName === undefined ? [] : [{ name: chapterName, tier: 0 }];
   for (let i = 0; i < merged.length; i++) {
     const cur = merged[i];
     if (cur.tier < 0) continue; // body prose
@@ -308,13 +345,35 @@ function collectHeadingEntries(merged: readonly TieredLine[]): HeadingEntry[] {
       stack.push({ name: cur.line.trim(), tier: cur.tier });
       continue;
     }
-    const bodyLines: string[] = [];
+    const body: TieredLine[] = [];
     for (let j = i + 1; j < merged.length && merged[j].tier < 0; j++) {
-      bodyLines.push(merged[j].line);
+      body.push(merged[j]);
     }
+    const bodyLines = body.map((b) => b.line);
     const ancestors = stack.map((s) => s.name);
     stack.push({ name: cur.line.trim(), tier: cur.tier });
-    if (isExcludedHeading(cur.line, cur.tier, bodyLines)) continue;
+    if (isExcludedHeading(cur.line, cur.tier, bodyLines)) {
+      // An excluded TABLE CAPTION owns only its table rows (h≈8.9, dropped
+      // here; the `table` kind reconstructs them). Any prose-height lines
+      // after the rows are the enclosing section's text resuming below the
+      // printed table, so they re-flow into the most recent emitted rule as a
+      // fresh paragraph instead of being swallowed with the caption
+      // (eshyra-0m9.22). Other exclusion classes (Variant boxes, bullet
+      // scaffolding) keep their drop-everything behavior.
+      if (isTableCaptionHeading(cur.line, cur.tier) && entries.length > 0) {
+        const resumingProse = body
+          .filter((b) => (b.height ?? 0) >= BODY_PROSE_MIN_H)
+          .map((b) => b.line);
+        if (resumingProse.length > 0) {
+          const prev = entries[entries.length - 1];
+          entries[entries.length - 1] = {
+            ...prev,
+            bodyLines: [...prev.bodyLines, '', ...resumingProse],
+          };
+        }
+      }
+      continue;
+    }
     entries.push({
       name: cur.line.trim(),
       tier: cur.tier,
@@ -437,7 +496,7 @@ function parseRulesByHeadings(
   chapterIntro: ChapterIntroOptions | undefined,
 ): RuleExtraction[] {
   const merged = mergeWrappedHeadings(flat);
-  const entries = collectHeadingEntries(merged);
+  const entries = collectHeadingEntries(merged, chapterIntro?.name);
   const intro =
     chapterIntro === undefined
       ? undefined
@@ -550,8 +609,12 @@ function parseRulesByHeuristic(flat: readonly FlatLine[]): RuleExtraction[] {
  * Chapter-intro emission request for `parseRules` (eshyra-0m9.18). When set,
  * the heading-hierarchy path emits the body prose that precedes the slice's
  * first heading as a rule named `name` with the fixed key slug `keySlug`. See
- * `buildChapterIntroRule`. The legacy fixture heuristic ignores it (it has no
- * font tiers and treats heading-cased lines as boundaries instead).
+ * `buildChapterIntroRule`. `name` additionally seeds the heading stack as a
+ * synthetic tier-0 chapter ancestor (eshyra-0m9.22), so a top-tier heading
+ * that collides with a reserved sibling-slice key can parent-qualify with the
+ * chapter title instead of degrading to a numeric suffix. The legacy fixture
+ * heuristic ignores it (it has no font tiers and treats heading-cased lines as
+ * boundaries instead).
  */
 export interface ChapterIntroOptions {
   readonly name: string;
