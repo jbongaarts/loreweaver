@@ -250,17 +250,30 @@ function bodyLeadsWithBullet(bodyLines: readonly string[]): boolean {
 
 /**
  * Leaf (h=12) heading titles whose body the importer reconstructs as a `table`
- * record (parseTables owns the same core-rules slice), so they must not also be
- * emitted as prose `rule` records: the Ability Scores and Modifiers score table,
- * the Typical Difficulty Classes DC table, the Travel Pace table, and the
- * creature Size Categories table. Gated to the leaf tier so the same-named
- * "Ability Scores and Modifiers" h=18 subsection (a real prose rule) is kept.
+ * record (parseTables owns the same slices), so they must not also be emitted
+ * as prose `rule` records: the core-rules captions (the Ability Scores and
+ * Modifiers score table, the Typical Difficulty Classes DC table, the Travel
+ * Pace table, and the creature Size Categories table) and the Beyond-1st-Level
+ * chapter captions (Character Advancement, Multiclassing Prerequisites /
+ * Proficiencies, Standard / Exotic Languages, and the two-line "Multiclass
+ * Spellcaster:" / "Spell Slots per Spell Level" caption; eshyra-0m9.18 — the
+ * caption renders as two consecutive h=12 lines that do not merge because the
+ * first does not end with a connector word, so both lines are excluded). Gated
+ * to the leaf tier so the same-named "Ability Scores and Modifiers" h=18
+ * subsection (a real prose rule) is kept.
  */
 const TABLE_CAPTION_LEAF_TITLES = new Set([
   'Ability Scores and Modifiers',
   'Typical Difficulty Classes',
   'Travel Pace',
   'Size Categories',
+  'Character Advancement',
+  'Multiclassing Prerequisites',
+  'Multiclassing Proficiencies',
+  'Multiclass Spellcaster:',
+  'Spell Slots per Spell Level',
+  'Standard Languages',
+  'Exotic Languages',
 ]);
 
 function isExcludedHeading(
@@ -382,14 +395,56 @@ function assignKeySlugs(
   });
 }
 
+/**
+ * Build the chapter-intro rule from the body prose that precedes the FIRST
+ * heading-tier line of the slice. Section slices exclude their own chapter
+ * title line (it is the slice's start anchor), so a chapter whose opening
+ * prose carries real rules — e.g. "Beyond 1st Level", whose intro IS the SRD's
+ * character-advancement rules (gaining levels, hit-point increases, the
+ * ability-score cap; eshyra-0m9.18) — would otherwise silently drop that prose:
+ * `collectHeadingEntries` only collects body lines that FOLLOW a heading.
+ * Callers that want the intro pass `chapterIntro` with the chapter's name and
+ * a fixed key slug. Returns undefined when the slice opens directly with a
+ * heading or the leading prose is empty.
+ */
+function buildChapterIntroRule(
+  merged: readonly TieredLine[],
+  chapterIntro: ChapterIntroOptions,
+): RuleExtraction | undefined {
+  const introLines: string[] = [];
+  for (const line of merged) {
+    if (line.tier >= 0) break;
+    introLines.push(line.line);
+  }
+  const text = joinParagraphs(introLines);
+  if (text.length === 0) return undefined;
+  return {
+    name: chapterIntro.name,
+    keySlug: chapterIntro.keySlug,
+    text,
+    sourcePage: merged[0].page,
+  };
+}
+
 function parseRulesByHeadings(
   flat: readonly FlatLine[],
   reserved: ReadonlySet<string>,
+  chapterIntro: ChapterIntroOptions | undefined,
 ): RuleExtraction[] {
   const merged = mergeWrappedHeadings(flat);
   const entries = collectHeadingEntries(merged);
-  if (entries.length === 0) return [];
-  const keySlugs = assignKeySlugs(entries, reserved);
+  const intro =
+    chapterIntro === undefined
+      ? undefined
+      : buildChapterIntroRule(merged, chapterIntro);
+  if (entries.length === 0) return intro === undefined ? [] : [intro];
+  // The intro's fixed slug occupies its slot up front so a same-named heading
+  // inside the chapter parent-qualifies away from it instead of colliding.
+  const reservedWithIntro =
+    intro === undefined || chapterIntro === undefined
+      ? reserved
+      : new Set<string>([...reserved, chapterIntro.keySlug]);
+  const keySlugs = assignKeySlugs(entries, reservedWithIntro);
   const out: RuleExtraction[] = entries.map((entry, i) => {
     const text = joinParagraphs(entry.bodyLines);
     return {
@@ -399,6 +454,7 @@ function parseRulesByHeadings(
       sourcePage: entry.page,
     };
   });
+  if (intro !== undefined) out.push(intro);
   out.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
   return out;
 }
@@ -486,6 +542,18 @@ function parseRulesByHeuristic(flat: readonly FlatLine[]): RuleExtraction[] {
 }
 
 /**
+ * Chapter-intro emission request for `parseRules` (eshyra-0m9.18). When set,
+ * the heading-hierarchy path emits the body prose that precedes the slice's
+ * first heading as a rule named `name` with the fixed key slug `keySlug`. See
+ * `buildChapterIntroRule`. The legacy fixture heuristic ignores it (it has no
+ * font tiers and treats heading-cased lines as boundaries instead).
+ */
+export interface ChapterIntroOptions {
+  readonly name: string;
+  readonly keySlug: string;
+}
+
+/**
  * Parse a core-rules-style slice into `rule` records.
  *
  * `reservedKeySlugs` (loreweaver-3hp) lets a second slice be parsed against the
@@ -495,10 +563,16 @@ function parseRulesByHeuristic(flat: readonly FlatLine[]): RuleExtraction[] {
  * the separate Spellcasting-rules chapter with those core keys reserved. Only
  * the heading-hierarchy path honors it; the legacy fixture heuristic does not
  * assign key slugs.
+ *
+ * `chapterIntro` (eshyra-0m9.18) requests that the prose BEFORE the slice's
+ * first heading be emitted as a named rule — used for the "Beyond 1st Level"
+ * chapter, whose intro paragraphs are the SRD's character-advancement rules.
+ * Heading-hierarchy path only.
  */
 export function parseRules(
   pages: readonly PageText[],
   reservedKeySlugs: ReadonlySet<string> = new Set(),
+  chapterIntro?: ChapterIntroOptions,
 ): RuleExtraction[] {
   const flat = flatten(pages);
   if (flat.length === 0) return [];
@@ -516,6 +590,6 @@ export function parseRules(
   const hasHeadingTiers =
     distinctHeights.size > 1 && definedHeights.some((h) => h >= LEAF_MIN_H);
   return hasHeadingTiers
-    ? parseRulesByHeadings(flat, reservedKeySlugs)
+    ? parseRulesByHeadings(flat, reservedKeySlugs, chapterIntro)
     : parseRulesByHeuristic(flat);
 }

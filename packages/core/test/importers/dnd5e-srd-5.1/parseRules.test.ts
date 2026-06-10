@@ -290,4 +290,87 @@ describe('parseRules (heading-hierarchy path)', () => {
     expect(rules[0].name).toBe('Ability Scores and Modifiers');
     expect(rules[0].text).toMatch(/Each ability has a score/);
   });
+
+  it('emits prose before the first heading as the requested chapter-intro rule (eshyra-0m9.18)', () => {
+    // The "Beyond 1st Level" chapter title is the slice's start anchor (so it
+    // is excluded from the slice), and its opening prose — the SRD's
+    // character-advancement rules — precedes any heading. Without the
+    // chapterIntro option that prose is silently dropped.
+    const rules = parseRules(
+      [
+        pageH(56, [
+          ['As your character goes on adventures and', BODY_H],
+          ['overcomes challenges, he or she gains experience,', BODY_H],
+          ['represented by experience points.', BODY_H],
+          ['Multiclassing', SUB_H],
+          ['Multiclassing allows you to gain levels in multiple', BODY_H],
+          ['classes.', BODY_H],
+        ]),
+      ],
+      new Set(),
+      { name: 'Beyond 1st Level', keySlug: 'beyond-1st-level' },
+    );
+    expect(rules.map((r) => r.name)).toEqual([
+      'Beyond 1st Level',
+      'Multiclassing',
+    ]);
+    const intro = rules.find((r) => r.name === 'Beyond 1st Level');
+    expect(intro?.keySlug).toBe('beyond-1st-level');
+    expect(intro?.sourcePage).toBe(56);
+    expect(intro?.text).toMatch(/gains experience/);
+    expect(intro?.text).not.toMatch(/Multiclassing allows/);
+    const multiclassing = rules.find((r) => r.name === 'Multiclassing');
+    expect(multiclassing?.text).toMatch(/levels in multiple/);
+    expect(multiclassing?.text).not.toMatch(/gains experience/);
+  });
+
+  it('emits no chapter-intro rule when the slice opens directly with a heading', () => {
+    const rules = parseRules(
+      [
+        pageH(58, [
+          ['Alignment', SUB_H],
+          ['A typical creature in the game world has an alignment.', BODY_H],
+        ]),
+      ],
+      new Set(),
+      { name: 'Beyond 1st Level', keySlug: 'beyond-1st-level' },
+    );
+    expect(rules.map((r) => r.name)).toEqual(['Alignment']);
+  });
+
+  it('excludes the Beyond-1st-Level table captions, including the two-line Multiclass Spellcaster caption', () => {
+    // The chapter's reference tables are owned by the `table` kind
+    // (eshyra-0m9.23 / eshyra-0m9.18), so their h=12 caption lines must not
+    // also emit prose rules over the squashed row text. The Multiclass
+    // Spellcaster caption renders as TWO consecutive h=12 lines that do not
+    // merge (the first does not end with a connector word), so both are
+    // excluded individually.
+    const rules = parseRules(
+      [
+        pageH(56, [
+          ['Multiclassing', SUB_H],
+          [
+            'Multiclassing allows you to gain levels in multiple classes.',
+            BODY_H,
+          ],
+          ['Character Advancement', LEAF_H],
+          ['Experience Points Level Proficiency Bonus', 8.9],
+          ['0 1 +2', 8.9],
+          ['Spellcasting', LEAF_H],
+          ['Your capacity for spellcasting depends partly on', BODY_H],
+          ['your combined levels in all your spellcasting classes.', BODY_H],
+          ['Multiclass Spellcaster:', LEAF_H],
+          ['Spell Slots per Spell Level', LEAF_H],
+          ['Lvl. 1st 2nd 3rd 4th 5th 6th 7th 8th 9th', 8.9],
+          ['1st 2 — — — — — — — —', 8.9],
+        ]),
+      ],
+      new Set(),
+    );
+    expect(rules.map((r) => r.name)).toEqual(['Multiclassing', 'Spellcasting']);
+    const spellcasting = rules.find((r) => r.name === 'Spellcasting');
+    expect(spellcasting?.keySlug).toBe('spellcasting');
+    expect(spellcasting?.text).toMatch(/combined levels/);
+    expect(spellcasting?.text).not.toMatch(/Lvl\./);
+  });
 });

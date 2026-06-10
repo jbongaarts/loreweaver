@@ -1067,6 +1067,39 @@ export const EXPECTED_SRD_5_1_RULE_KEYS: readonly string[] = [
   'rule:paladin-breaking-your-oath',
   'rule:warlock-your-pact-boon',
   'rule:wizard-your-spellbook',
+  // "Beyond 1st Level" chapter (eshyra-0m9.18): the chapter intro (the SRD's
+  // character-advancement prose — gaining levels, hit-point increases, the
+  // ability-score cap — emitted via parseRules's chapterIntro option because
+  // it precedes any heading), the Multiclassing subsection tree, and the
+  // Alignment / Languages / Inspiration sections. The chapter's "Proficiency
+  // Bonus" leaf parent-qualifies to `rule:multiclassing-proficiency-bonus`
+  // because the core-rules chapter already owns `rule:proficiency-bonus`. The
+  // `rule:spellcasting` key is the Multiclassing "Class Features" leaf of that
+  // title (multiclass spellcasting); the GENERAL spellcasting rules live under
+  // the Spellcasting-chapter keys above (`rule:what-is-a-spell`,
+  // `rule:casting-a-spell`, …) — the chapter title itself is a structural
+  // wrapper that never emits, so the bare slug is unique. The chapter's six
+  // table captions (Character Advancement, Multiclassing Prerequisites /
+  // Proficiencies, Multiclass Spellcaster, Standard / Exotic Languages) are
+  // excluded — the `table` kind owns those records.
+  'rule:alignment',
+  'rule:alignment-in-the-multiverse',
+  'rule:beyond-1st-level',
+  'rule:channel-divinity',
+  'rule:class-features',
+  'rule:experience-points',
+  'rule:extra-attack',
+  'rule:gaining-inspiration',
+  'rule:hit-points-and-hit-dice',
+  'rule:inspiration',
+  'rule:languages',
+  'rule:multiclassing',
+  'rule:multiclassing-proficiency-bonus',
+  'rule:prerequisites',
+  'rule:proficiencies',
+  'rule:spellcasting',
+  'rule:unarmored-defense',
+  'rule:using-inspiration',
 ];
 
 export const EXPECTED_SRD_5_1_TABLE_NAMES: readonly string[] = [
@@ -1078,6 +1111,7 @@ export const EXPECTED_SRD_5_1_TABLE_NAMES: readonly string[] = [
   'Indefinite Madness',
   'Lifestyle Expenses',
   'Long-Term Madness',
+  'Multiclass Spellcaster: Spell Slots per Spell Level',
   'Multiclassing Prerequisites',
   'Multiclassing Proficiencies',
   'Object Armor Class',
@@ -1933,7 +1967,7 @@ export async function runImporter(
   // rather than lost prose.
   const expensesPages = sliceSectionOrEmptyPages(pages, anchors.expenses);
   const spellcastingServicesRule = parseSpellcastingServices(expensesPages);
-  const nonClassRules = [
+  const rulesBeforeBeyondFirstLevel = [
     ...coreRules,
     ...spellcastingRules,
     ...gamemasteringRules,
@@ -1941,21 +1975,51 @@ export async function runImporter(
       ? []
       : [spellcastingServicesRule]),
   ];
-  // The two trap reference tables live in the Traps slice (loreweaver-hvp); feed
-  // it alongside the core-rules and treasure slices so parseTables reconstructs
-  // them with the same anchored row rules. The five "Beyond 1st Level" reference
-  // tables (Character Advancement, Multiclassing Prerequisites / Proficiencies,
-  // Standard / Exotic Languages) live in their own chapter slice (eshyra-0m9.23);
-  // it is best-effort on its start so reduced fixture PDFs without the chapter
-  // degrade to no Beyond-1st-Level tables. The Equipment chapter slice carries
-  // the Standard Exchange Rates coin matrix (p62) and the Expenses slice carries
-  // the Trade Goods / Lifestyle / Food/Drink/Lodging / Services cost tables
-  // (eshyra-0m9.19); both are fed alongside so parseTables reconstructs them by
-  // their unique column-header anchors.
+  // The "Beyond 1st Level" chapter (p56-60) also carries character-rules PROSE
+  // (eshyra-0m9.18): the Multiclassing subsection tree (Prerequisites,
+  // Experience Points, Hit Points and Hit Dice, Proficiency Bonus,
+  // Proficiencies, Class Features and its four leaves) plus the Alignment,
+  // Languages, and Inspiration sections. It is parsed by the same
+  // nesting-aware `parseRules` with two chapter-specific behaviors: (1) the
+  // chapter INTRO — the SRD's character-advancement rules (gaining levels,
+  // hit-point increases, the ability-score cap) — precedes any heading, so
+  // the `chapterIntro` option emits it as `rule:beyond-1st-level`; (2) the
+  // chapter's table captions are excluded by the parser's table-caption list
+  // because the `table` kind owns those records. Every previously emitted key
+  // slug is reserved so cross-slice title repeats (the chapter's "Proficiency
+  // Bonus" vs the core-rules `rule:proficiency-bonus`) parent-qualify instead
+  // of colliding. Best-effort start: a reduced fixture PDF without the
+  // chapter degrades to no Beyond-1st-Level rules.
   const beyondFirstLevelPages = sliceSectionOrEmptyPages(
     pages,
     anchors.beyondFirstLevel,
   );
+  const beyondFirstLevelRules = parseRules(
+    beyondFirstLevelPages,
+    new Set(
+      rulesBeforeBeyondFirstLevel
+        .map((rule) => rule.keySlug)
+        .filter((slug): slug is string => slug !== undefined),
+    ),
+    { name: 'Beyond 1st Level', keySlug: 'beyond-1st-level' },
+  );
+  const nonClassRules = [
+    ...rulesBeforeBeyondFirstLevel,
+    ...beyondFirstLevelRules,
+  ];
+  // The two trap reference tables live in the Traps slice (loreweaver-hvp); feed
+  // it alongside the core-rules and treasure slices so parseTables reconstructs
+  // them with the same anchored row rules. The six "Beyond 1st Level" reference
+  // tables (Character Advancement, Multiclassing Prerequisites / Proficiencies,
+  // Standard / Exotic Languages — eshyra-0m9.23 — and Multiclass Spellcaster:
+  // Spell Slots per Spell Level — eshyra-0m9.18) live in the chapter slice
+  // already cut above for the chapter's prose rules; it is best-effort on its
+  // start so reduced fixture PDFs without the chapter degrade to no
+  // Beyond-1st-Level tables. The Equipment chapter slice carries
+  // the Standard Exchange Rates coin matrix (p62) and the Expenses slice carries
+  // the Trade Goods / Lifestyle / Food/Drink/Lodging / Services cost tables
+  // (eshyra-0m9.19); both are fed alongside so parseTables reconstructs them by
+  // their unique column-header anchors.
   const tables = parseTables([
     ...coreRulePages,
     ...treasureTablePages,

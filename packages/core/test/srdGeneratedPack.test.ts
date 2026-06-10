@@ -180,19 +180,23 @@ const EXPECTED_COUNTS_BY_KIND: Readonly<Record<string, number>> = {
   // Nesting-aware core-rules parse: one rule per heading across the Using
   // Ability Scores, Adventuring, and Combat chapters (loreweaver-yli, 127),
   // plus 34 general Spellcasting rules, five Madness/Objects rules, five
-  // Classes-chapter callout rules, and the Spellcasting Services prose rule
-  // (eshyra-0m9.19), validated exactly against EXPECTED_SRD_5_1_RULE_KEYS.
-  rule: 172,
+  // Classes-chapter callout rules, the Spellcasting Services prose rule
+  // (eshyra-0m9.19), and the 18 "Beyond 1st Level" chapter rules — the
+  // chapter-intro advancement prose plus the Multiclassing / Alignment /
+  // Languages / Inspiration sections (eshyra-0m9.18) — validated exactly
+  // against EXPECTED_SRD_5_1_RULE_KEYS.
+  rule: 190,
   spell: 319,
   subclass: 12,
   // Difficulty Classes, two trap tables, three Madness tables, two Objects
-  // statistics tables (loreweaver-hvp, loreweaver-uuk), the five "Beyond 1st
-  // Level" reference tables (Character Advancement, Multiclassing Prerequisites,
-  // Multiclassing Proficiencies, Standard Languages, Exotic Languages;
-  // eshyra-0m9.23), and the five money/downtime tables — Standard Exchange
-  // Rates, Trade Goods, Lifestyle Expenses, Food/Drink/Lodging, Services
-  // (eshyra-0m9.19).
-  table: 18,
+  // statistics tables (loreweaver-hvp, loreweaver-uuk), the six "Beyond 1st
+  // Level" reference tables (Character Advancement, Multiclassing
+  // Prerequisites, Multiclassing Proficiencies, Standard Languages, Exotic
+  // Languages — eshyra-0m9.23 — and Multiclass Spellcaster: Spell Slots per
+  // Spell Level — eshyra-0m9.18), and the five money/downtime tables —
+  // Standard Exchange Rates, Trade Goods, Lifestyle Expenses,
+  // Food/Drink/Lodging, Services (eshyra-0m9.19).
+  table: 19,
 };
 
 /**
@@ -1867,6 +1871,7 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
         'table:indefinite-madness',
         'table:lifestyle-expenses',
         'table:long-term-madness',
+        'table:multiclass-spellcaster-spell-slots-per-spell-level',
         'table:multiclassing-prerequisites',
         'table:multiclassing-proficiencies',
         'table:object-armor-class',
@@ -2009,6 +2014,38 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
       expect(exotic?.provenance.locator).toBe('p. 59');
     });
 
+    it('pins the Multiclass Spellcaster spell-slot progression (eshyra-0m9.18)', () => {
+      const slots = table(
+        'table:multiclass-spellcaster-spell-slots-per-spell-level',
+      );
+      expect(slots?.name).toBe(
+        'Multiclass Spellcaster: Spell Slots per Spell Level',
+      );
+      expect(slots?.data).toMatchObject({
+        columns: [
+          'Lvl.',
+          '1st',
+          '2nd',
+          '3rd',
+          '4th',
+          '5th',
+          '6th',
+          '7th',
+          '8th',
+          '9th',
+        ],
+        // Slot counts are integers; "no slots at this level" em-dash cells
+        // are preserved verbatim.
+        rows: expect.arrayContaining([
+          ['1st', 2, '—', '—', '—', '—', '—', '—', '—', '—'],
+          ['9th', 4, 3, 3, 3, 1, '—', '—', '—', '—'],
+          ['20th', 4, 3, 3, 3, 3, 2, 2, 1, 1],
+        ]),
+      });
+      expect((slots?.data as { rows: unknown[] }).rows).toHaveLength(20);
+      expect(slots?.provenance.locator).toBe('p. 58');
+    });
+
     it('pins money/downtime table data and source pages (eshyra-0m9.19)', () => {
       const exchange = table('table:standard-exchange-rates');
       expect(exchange?.data).toMatchObject({
@@ -2090,6 +2127,125 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
       // "Feats" heading should bleed in.
       expect(text).not.toContain('Feats');
       expect(rule?.provenance.locator).toBe('p. 74');
+    });
+  });
+
+  describe('Beyond 1st Level character rules (eshyra-0m9.18)', () => {
+    function ruleText(key: string): string {
+      const record = pack.records.find(
+        (candidate) => candidate.kind === 'rule' && candidate.key === key,
+      );
+      expect(record, `expected ${key} in the committed pack`).toBeDefined();
+      return (record?.data as { text: string }).text;
+    }
+
+    it('emits the chapter intro as the character-advancement rule', () => {
+      // The "Beyond 1st Level" chapter intro precedes any heading in the
+      // slice, so it is emitted via parseRules's chapterIntro option. It IS
+      // the SRD's advancement prose: gaining levels, the ability-score cap,
+      // and per-level hit-point increases.
+      const text = ruleText('rule:beyond-1st-level');
+      expect(text).toContain('This advancement is called gaining a level.');
+      expect(text).toContain('can’t increase an ability score above 20');
+      expect(text).toContain('you gain 1 additional Hit Die');
+      // The Character Advancement table that follows the intro is its own
+      // `table` record; its rows must not bleed into the intro body.
+      expect(text).not.toContain('305,000');
+      const record = pack.records.find(
+        (candidate) => candidate.key === 'rule:beyond-1st-level',
+      );
+      expect(record?.name).toBe('Beyond 1st Level');
+      expect(record?.provenance.locator).toBe('p. 56');
+    });
+
+    it('emits the multiclassing rule tree with parent-qualified collisions', () => {
+      expect(ruleText('rule:multiclassing')).toContain(
+        'gain levels in multiple classes',
+      );
+      expect(ruleText('rule:prerequisites')).toContain(
+        'ability score prerequisites for both your current class',
+      );
+      expect(ruleText('rule:experience-points')).toContain(
+        'cleric 6/fighter 1',
+      );
+      expect(ruleText('rule:hit-points-and-hit-dice')).toContain(
+        'pool of Hit Dice',
+      );
+      expect(ruleText('rule:proficiencies')).toContain(
+        'only some of new class’s starting proficiencies',
+      );
+      expect(ruleText('rule:class-features')).toContain(
+        'Channel Divinity, Extra Attack, Unarmored Defense, and Spellcasting',
+      );
+      // The chapter's "Proficiency Bonus" title collides with the core-rules
+      // rule:proficiency-bonus, so it parent-qualifies; both records coexist
+      // with distinct bodies.
+      const multiclassPb = ruleText('rule:multiclassing-proficiency-bonus');
+      expect(multiclassPb).toContain('fighter 3/rogue 2');
+      const corePb = ruleText('rule:proficiency-bonus');
+      expect(corePb).not.toContain('fighter 3/rogue 2');
+    });
+
+    it('keeps the multiclass Spellcasting rule complete and free of the slot table', () => {
+      const text = ruleText('rule:spellcasting');
+      // The run-in bold leads ("Spells Known and Prepared.", "Spell Slots.",
+      // "Pact Magic.") are body paragraphs, not headings — they stay in this
+      // record.
+      expect(text).toContain('Spells Known and Prepared.');
+      expect(text).toContain('Spell Slots.');
+      expect(text).toContain('Pact Magic.');
+      // The Multiclass Spellcaster table that follows is its own `table`
+      // record; neither its caption nor its rows bleed in.
+      expect(text).not.toContain('Lvl.');
+      expect(text).not.toContain('Spell Slots per Spell Level');
+    });
+
+    it('emits the Alignment, Languages, and Inspiration sections', () => {
+      const alignment = ruleText('rule:alignment');
+      expect(alignment).toContain('nine distinct alignments');
+      expect(alignment).toContain('Chaotic evil (CE)');
+      // The "Alignment in the Multiverse" leaf is its own record, not part of
+      // the parent body.
+      expect(alignment).not.toContain('unaligned');
+      expect(ruleText('rule:alignment-in-the-multiverse')).toContain(
+        'unaligned',
+      );
+
+      const languages = ruleText('rule:languages');
+      expect(languages).toContain('thieves’ cant');
+      // The Standard/Exotic Languages tables are table records; no row text.
+      expect(languages).not.toContain('Dwarvish Dwarves');
+
+      expect(ruleText('rule:inspiration')).toContain(
+        'reward you for playing your character',
+      );
+      expect(ruleText('rule:gaining-inspiration')).toContain(
+        'can’t stockpile multiple “inspirations”',
+      );
+      expect(ruleText('rule:using-inspiration')).toContain(
+        'gives you advantage on that roll',
+      );
+    });
+
+    it('keeps the chapter table captions out of the rule kind', () => {
+      const ruleNames = new Set(
+        pack.records
+          .filter((record) => record.kind === 'rule')
+          .map((record) => record.name),
+      );
+      for (const caption of [
+        'Character Advancement',
+        'Multiclassing Prerequisites',
+        'Multiclassing Proficiencies',
+        'Multiclass Spellcaster:',
+        'Spell Slots per Spell Level',
+        'Standard Languages',
+        'Exotic Languages',
+      ]) {
+        expect(ruleNames.has(caption), `no rule named "${caption}"`).toBe(
+          false,
+        );
+      }
     });
   });
 

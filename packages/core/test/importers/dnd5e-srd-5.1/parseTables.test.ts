@@ -800,6 +800,86 @@ describe('parseTables', () => {
       // "Class Features" and its prose must not bleed into the Wizard cell.
       expect(proficiencies.rows[11]).toEqual(['Wizard', '—']);
     });
+
+    // Multiclass Spellcaster: Spell Slots per Spell Level (p58,
+    // eshyra-0m9.18). Fixture lines reproduce the real SRD 5.1 extraction
+    // shape: the caption wraps across two lines, then the column header, then
+    // the 20 single-line rows, then the "Alignment" section heading.
+    const MULTICLASS_SPELL_SLOTS_PAGE = page(58, [
+      'from the Spellcasting class feature to cast warlock',
+      'spells you know.',
+      'Multiclass Spellcaster:',
+      'Spell Slots per Spell Level',
+      'Lvl. 1st 2nd 3rd 4th 5th 6th 7th 8th 9th',
+      '1st 2 — — — — — — — —',
+      '2nd 3 — — — — — — — —',
+      '3rd 4 2 — — — — — — —',
+      '4th 4 3 — — — — — — —',
+      '5th 4 3 2 — — — — — —',
+      '6th 4 3 3 — — — — — —',
+      '7th 4 3 3 1 — — — — —',
+      '8th 4 3 3 2 — — — — —',
+      '9th 4 3 3 3 1 — — — —',
+      '10th 4 3 3 3 2 — — — —',
+      '11th 4 3 3 3 2 1 — — —',
+      '12th 4 3 3 3 2 1 — — —',
+      '13th 4 3 3 3 2 1 1 — —',
+      '14th 4 3 3 3 2 1 1 — —',
+      '15th 4 3 3 3 2 1 1 1 —',
+      '16th 4 3 3 3 2 1 1 1 —',
+      '17th 4 3 3 3 2 1 1 1 1',
+      '18th 4 3 3 3 3 1 1 1 1',
+      '19th 4 3 3 3 3 2 1 1 1',
+      '20th 4 3 3 3 3 2 2 1 1',
+      'Alignment',
+      'A typical creature in the game world has an',
+    ]);
+
+    it('reconstructs the Multiclass Spellcaster spell-slot progression (eshyra-0m9.18)', () => {
+      const [table] = parseTables([MULTICLASS_SPELL_SLOTS_PAGE]);
+      expect(table.name).toBe(
+        'Multiclass Spellcaster: Spell Slots per Spell Level',
+      );
+      expect(table.columns).toEqual([
+        'Lvl.',
+        '1st',
+        '2nd',
+        '3rd',
+        '4th',
+        '5th',
+        '6th',
+        '7th',
+        '8th',
+        '9th',
+      ]);
+      expect(table.rows).toHaveLength(20);
+      // Slot counts emit as integers; "no slots" em-dash cells stay verbatim.
+      expect(table.rows[0]).toEqual([
+        '1st',
+        2,
+        '—',
+        '—',
+        '—',
+        '—',
+        '—',
+        '—',
+        '—',
+        '—',
+      ]);
+      expect(table.rows[8]).toEqual(['9th', 4, 3, 3, 3, 1, '—', '—', '—', '—']);
+      expect(table.rows[19]).toEqual(['20th', 4, 3, 3, 3, 3, 2, 2, 1, 1]);
+      expect(table.sourcePage).toBe(58);
+    });
+
+    it('fails the Multiclass Spellcaster table closed on a truncated progression', () => {
+      // Drop one row (index 10 = "5th ..."): the parser must emit no table
+      // rather than a partial 19-level track.
+      const truncated = page(
+        58,
+        MULTICLASS_SPELL_SLOTS_PAGE.lines.filter((_, i) => i !== 10),
+      );
+      expect(parseTables([truncated])).toHaveLength(0);
+    });
   });
 
   // The five money / downtime cost tables (eshyra-0m9.19). Fixture lines

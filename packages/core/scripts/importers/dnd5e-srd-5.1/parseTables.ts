@@ -5,16 +5,17 @@
  * deliberately narrow: row-regex reconstruction for the simple reference
  * tables and column-block reconstruction for the treasure challenge tables.
  *
- * Eighteen tables are present in the vendored SRD 5.1 PDF: Difficulty Classes,
+ * Nineteen tables are present in the vendored SRD 5.1 PDF: Difficulty Classes,
  * two trap tables, three Madness effect tables, the Object Armor Class /
- * Object Hit Points tables, the five "Beyond 1st Level" reference tables
+ * Object Hit Points tables, the six "Beyond 1st Level" reference tables
  * (Character Advancement, Multiclassing Prerequisites, Multiclassing
- * Proficiencies, Standard Languages, Exotic Languages; eshyra-0m9.23), and the
- * five money/downtime tables (Standard Exchange Rates, Trade Goods, Lifestyle
- * Expenses, Food/Drink/Lodging, Services; eshyra-0m9.19). XP-threshold and
- * treasure-table reconstruction rules match no section in this source and
- * remain fixture-only. See the importer README's "Reference-table coverage"
- * section.
+ * Proficiencies, Standard Languages, Exotic Languages — eshyra-0m9.23 — and
+ * Multiclass Spellcaster: Spell Slots per Spell Level — eshyra-0m9.18), and
+ * the five money/downtime tables (Standard Exchange Rates, Trade Goods,
+ * Lifestyle Expenses, Food/Drink/Lodging, Services; eshyra-0m9.19).
+ * XP-threshold and treasure-table reconstruction rules match no section in
+ * this source and remain fixture-only. See the importer README's
+ * "Reference-table coverage" section.
  */
 
 import type { PageText, TableExtraction } from './types.js';
@@ -738,6 +739,60 @@ function parseLanguageTable(
   };
 }
 
+// Multiclass Spellcaster: Spell Slots per Spell Level (p58, eshyra-0m9.18):
+// the combined spell-slot progression for multiclassed spellcasters. The
+// caption renders as two lines ("Multiclass Spellcaster:" then "Spell Slots
+// per Spell Level"); the first line — with its trailing colon — is unique in
+// the fed slices, so it anchors the table (the body-prose mention "consulting
+// the Multiclass Spellcaster table." cannot match the `:$` anchor). Each of
+// the 20 rows survives extraction as one space-separated line: an ordinal
+// caster-level cell ("1st" … "20th") followed by exactly nine slot cells.
+// Numeric slot counts emit as integers; the "no slots at this level" em-dash
+// cells are preserved verbatim, like the Sorcerer/Wizard "—" proficiency
+// cells above.
+const MULTICLASS_SPELL_SLOTS_ANCHOR = /^Multiclass Spellcaster:$/;
+const MULTICLASS_SPELL_SLOTS_ROW =
+  /^(\d{1,2}(?:st|nd|rd|th))((?:\s+(?:\d+|[—–-])){9})$/;
+
+function parseMulticlassSpellSlotRow(
+  line: string,
+): readonly (string | number)[] | undefined {
+  const match = MULTICLASS_SPELL_SLOTS_ROW.exec(line);
+  if (match === null) return undefined;
+  const slots = normalizeWhitespace(match[2])
+    .split(' ')
+    .map((cell) => (/^\d+$/.test(cell) ? Number.parseInt(cell, 10) : cell));
+  return [match[1], ...slots];
+}
+
+function parseMulticlassSpellSlots(
+  flat: readonly FlatLine[],
+): TableExtraction | undefined {
+  const anchor = findAnchor(flat, MULTICLASS_SPELL_SLOTS_ANCHOR);
+  if (anchor === undefined) return undefined;
+  const rows = collectRows(flat, anchor.idx + 1, parseMulticlassSpellSlotRow);
+  // The progression is exactly 20 caster levels; a short parse means the
+  // extraction drifted, so fail this table rather than emit a partial track.
+  if (rows.length !== 20) return undefined;
+  return {
+    name: 'Multiclass Spellcaster: Spell Slots per Spell Level',
+    columns: [
+      'Lvl.',
+      '1st',
+      '2nd',
+      '3rd',
+      '4th',
+      '5th',
+      '6th',
+      '7th',
+      '8th',
+      '9th',
+    ],
+    rows,
+    sourcePage: anchor.page,
+  };
+}
+
 // --- Equipment / Expenses cost tables (p62, p72-74, eshyra-0m9.19) -----------
 //
 // These money / downtime tables live in the Equipment chapter (Standard
@@ -993,6 +1048,7 @@ export function parseTables(pages: readonly PageText[]): TableExtraction[] {
       name: 'Exotic Languages',
       languages: EXOTIC_LANGUAGE_NAMES,
     }),
+    parseMulticlassSpellSlots(flat),
     parseStandardExchangeRates(flat),
     parseTradeGoods(flat),
     parseLifestyleExpenses(flat),
