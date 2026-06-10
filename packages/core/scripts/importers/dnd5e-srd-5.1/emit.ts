@@ -27,6 +27,7 @@ import { validateRulesPack } from '../../../src/rules/validate.js';
 import type {
   ActionExtraction,
   AncestryExtraction,
+  BackgroundExtraction,
   ClassExtraction,
   ClassPrimaryAbilityIndex,
   ConditionExtraction,
@@ -831,6 +832,66 @@ export function ancestryExtractionsToRecords(
   return out;
 }
 
+function backgroundKey(name: string): string {
+  return `background:${slug(name)}`;
+}
+
+/**
+ * Build the `data` payload for one background record (eshyra-0m9.17). Field
+ * insertion order is fixed (so emitted JSON is byte-stable) and matches the
+ * `dnd5e-srd` background kindSchema (`validateDnd5eBackground`): description,
+ * skillProficiencies, and the nested feature are required; toolProficiencies,
+ * languages, equipment, and suggestedCharacteristics are present only when the
+ * background grants them. The feature is a NESTED `{ name, text }` field, not
+ * a top-level `feature` record — `validateDnd5eFeature` requires a
+ * class/subclass grantor and grant level a background feature does not have.
+ */
+function buildBackgroundData(
+  background: BackgroundExtraction,
+): Record<string, unknown> {
+  const data: Record<string, unknown> = {
+    description: background.description,
+    skillProficiencies: [...background.skillProficiencies],
+  };
+  if (background.toolProficiencies !== undefined) {
+    data.toolProficiencies = [...background.toolProficiencies];
+  }
+  if (background.languages !== undefined) {
+    data.languages = background.languages;
+  }
+  if (background.equipment !== undefined) {
+    data.equipment = background.equipment;
+  }
+  data.feature = {
+    name: background.feature.name,
+    text: background.feature.text,
+  };
+  if (background.suggestedCharacteristics !== undefined) {
+    data.suggestedCharacteristics = background.suggestedCharacteristics;
+  }
+  return data;
+}
+
+export function backgroundExtractionsToRecords(
+  backgrounds: readonly BackgroundExtraction[],
+): RulesRecord[] {
+  const out: RulesRecord[] = backgrounds.map((background) => {
+    const record: RulesRecord = {
+      systemId: SYSTEM_ID,
+      kind: 'background',
+      key: backgroundKey(background.name),
+      name: background.name,
+      data: buildBackgroundData(background),
+      source: sourceLabelFor(background.sourcePage),
+      license: SRD_5_1_LICENSE,
+      provenance: provenanceFor(background.sourcePage),
+    };
+    return record;
+  });
+  out.sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+  return out;
+}
+
 export interface BuildPackInput {
   readonly spells: readonly SpellExtraction[];
   readonly classIndex: SpellClassIndex;
@@ -856,6 +917,7 @@ export interface BuildPackInput {
   readonly equipment?: readonly EquipmentExtraction[];
   readonly magicItems?: readonly MagicItemExtraction[];
   readonly ancestries?: readonly AncestryExtraction[];
+  readonly backgrounds?: readonly BackgroundExtraction[];
   readonly sourceHash: string;
 }
 
@@ -897,6 +959,9 @@ export function buildPack(input: BuildPackInput): RulesPack {
     input.magicItems ?? [],
   );
   const ancestryRecords = ancestryExtractionsToRecords(input.ancestries ?? []);
+  const backgroundRecords = backgroundExtractionsToRecords(
+    input.backgrounds ?? [],
+  );
   const records = [
     ...spellRecords,
     ...creatureRecords,
@@ -912,6 +977,7 @@ export function buildPack(input: BuildPackInput): RulesPack {
     ...equipmentRecords,
     ...magicItemRecords,
     ...ancestryRecords,
+    ...backgroundRecords,
   ].sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
   const includedKinds = uniqueKindsOf(records);
   const pack: RulesPack = {

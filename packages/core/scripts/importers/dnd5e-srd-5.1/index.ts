@@ -30,8 +30,9 @@
  *
  * Scope today: spells, creatures, base classes, subclasses, features,
  * conditions, feats, hazards, traps (emitted under the `hazard` kind), actions,
- * rules, tables, equipment, magic items, and ancestries
- * (races + subraces). Subclasses (Champion, Life domain, …) and class /
+ * rules, tables, equipment, magic items, ancestries (races + subraces), and
+ * backgrounds (the Acolyte entry plus its suggested-characteristics roll
+ * tables; eshyra-0m9.17). Subclasses (Champion, Life domain, …) and class /
  * subclass features parse from the same Classes-chapter slice as base classes.
  * Other SRD record kinds are tracked under `loreweaver-0m9.5` child issues;
  * until those parsers ship the importer deliberately omits them so the
@@ -45,6 +46,7 @@ import { buildPack, writePackToDirectory } from './emit.js';
 import { extractPdfText } from './extract.js';
 import { parseActions } from './parseActions.js';
 import { parseAncestries } from './parseAncestries.js';
+import { parseBackgrounds } from './parseBackgrounds.js';
 import { parseClassCallouts } from './parseClassCallouts.js';
 import { parseClasses } from './parseClasses.js';
 import { parseConditions } from './parseConditions.js';
@@ -73,6 +75,7 @@ import {
 } from './sections.js';
 import type {
   AncestryExtraction,
+  BackgroundExtraction,
   ClassPrimaryAbilityIndex,
   CreatureExtraction,
   DiseaseExtraction,
@@ -525,6 +528,17 @@ export const EXPECTED_SRD_5_1_ANCESTRY_NAMES: readonly string[] = [
   'Lightfoot Halfling',
   'Rock Gnome',
 ];
+
+/**
+ * Backgrounds the SRD 5.1 "Backgrounds" chapter publishes (eshyra-0m9.17):
+ * Acolyte is the chapter's only entry. The real import validates the parsed
+ * background names against this exact set (like ancestries/traps), so a
+ * dropped or renamed background — or chapter-intro prose spuriously promoted
+ * to an entry — fails closed by name. Each background's four
+ * suggested-characteristics roll tables emit under the `table` kind and are
+ * gated by `EXPECTED_SRD_5_1_TABLE_NAMES`.
+ */
+export const EXPECTED_SRD_5_1_BACKGROUND_NAMES: readonly string[] = ['Acolyte'];
 
 /**
  * Sample traps the SRD 5.1 "Traps" section publishes (loreweaver-hvp). The SRD
@@ -1196,9 +1210,35 @@ export const EXPECTED_SRD_5_1_RULE_KEYS: readonly string[] = [
   'rule:a-legendary-creatures-lair',
   'rule:lair-actions',
   'rule:regional-effects',
+  // "Backgrounds" chapter intro rules (p60, eshyra-0m9.17): the chapter-intro
+  // paragraph (`rule:backgrounds`, emitted via parseRules's chapterIntro
+  // option because it precedes any heading) plus the chapter's five h≈12 intro
+  // leaves. Three of those leaf titles are already owned by other slices —
+  // Proficiencies / Languages (Beyond 1st Level) and Equipment (the Monsters
+  // chapter's stat-block Equipment leaf) — and parent-qualify with the chapter
+  // title restored by the chapterIntro ancestor seed
+  // (`rule:backgrounds-proficiencies`, …). The Acolyte background entry itself
+  // is carved off before rule parsing (it is the `background` kind's record);
+  // its entry-level "Suggested Characteristics" heading therefore cannot
+  // collide with the chapter-intro `rule:suggested-characteristics` leaf.
+  'rule:backgrounds',
+  'rule:backgrounds-proficiencies',
+  'rule:backgrounds-languages',
+  'rule:backgrounds-equipment',
+  'rule:suggested-characteristics',
+  'rule:customizing-a-background',
 ];
 
 export const EXPECTED_SRD_5_1_TABLE_NAMES: readonly string[] = [
+  // The four Acolyte suggested-characteristics roll tables (eshyra-0m9.17).
+  // The SRD prints them caption-less (the die header "d8 Personality Trait" is
+  // the only title text), so the names are synthesized as "<Background>
+  // <Label>s" by parseBackgrounds; the emitted column headers keep the
+  // verbatim source text.
+  'Acolyte Personality Traits',
+  'Acolyte Ideals',
+  'Acolyte Bonds',
+  'Acolyte Flaws',
   'Character Advancement',
   'Damage Severity by Level',
   'Difficulty Classes',
@@ -1300,6 +1340,21 @@ export class AncestryCoverageError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'AncestryCoverageError';
+  }
+}
+
+/**
+ * Thrown when the parsed background set fails exact SRD 5.1 name-set coverage
+ * (eshyra-0m9.17). Like the trap and NPC sets, the background name set is
+ * small and stable enough to validate exactly. Distinct from
+ * `SectionNotFoundError` so callers can tell "the Backgrounds chapter was
+ * found but produced the wrong backgrounds" apart from "the section anchor
+ * didn't match".
+ */
+export class BackgroundCoverageError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'BackgroundCoverageError';
   }
 }
 
@@ -1511,6 +1566,18 @@ export interface RunImporterInput {
    * passes `EXPECTED_SRD_5_1_TABLE_NAMES`; reduced fixtures may omit the check.
    */
   readonly expectedTableNames?: readonly string[];
+  /**
+   * Exact set of background names the Backgrounds chapter must yield for the
+   * run to be accepted (eshyra-0m9.17). When provided and the parsed names
+   * don't match it exactly, the importer throws `BackgroundCoverageError`
+   * naming the missing and/or unexpected backgrounds, and writes nothing. The
+   * real-import CLI passes `EXPECTED_SRD_5_1_BACKGROUND_NAMES`; fixture
+   * pipelines that lack a Backgrounds chapter omit this (the best-effort slice
+   * degrades to no backgrounds and no check runs). Like the NPC guard, an
+   * empty background result is NOT rejected on its own — most fixtures
+   * legitimately carry no Backgrounds chapter.
+   */
+  readonly expectedBackgroundNames?: readonly string[];
 }
 
 /**
@@ -1679,6 +1746,42 @@ function validateAncestryCoverage(
 
   throw new AncestryCoverageError(
     `SRD 5.1 ancestry coverage check failed: parsed ${ancestries.length} ancestry record(s), expected ${EXPECTED_SRD_5_1_ANCESTRY_NAMES.length}. Missing expected ancestry record(s): ${missing.join(', ')}. The Races section may have been truncated or its headings changed. Refusing to write a pack with incomplete ancestries.`,
+  );
+}
+
+/**
+ * Fail closed on a background result that can't be a faithful SRD 5.1 import
+ * (eshyra-0m9.17). When the exact `expectedBackgroundNames` set is supplied
+ * (the real import via the CLI), the parsed background names must match it
+ * exactly — any missing or unexpected background is rejected, naming the
+ * specific offenders so a dropped/renamed background or spuriously promoted
+ * chapter-intro prose trips by name. Fixture pipelines that lack a Backgrounds
+ * chapter omit the set, in which case no check runs (the best-effort slice
+ * already degrades to empty). Runs after parsing and before any output is
+ * written.
+ */
+function validateBackgroundCoverage(
+  backgrounds: readonly BackgroundExtraction[],
+  expectedBackgroundNames: readonly string[] | undefined,
+): void {
+  if (expectedBackgroundNames === undefined) return;
+  const parsedNames = new Set(backgrounds.map((background) => background.name));
+  const expectedSet = new Set(expectedBackgroundNames);
+  const missing = expectedBackgroundNames.filter(
+    (name) => !parsedNames.has(name),
+  );
+  const unexpected = [...parsedNames].filter((name) => !expectedSet.has(name));
+  if (missing.length === 0 && unexpected.length === 0) return;
+
+  const parts: string[] = [];
+  if (missing.length > 0) {
+    parts.push(`missing expected background(s): ${missing.join(', ')}`);
+  }
+  if (unexpected.length > 0) {
+    parts.push(`unexpected background(s): ${unexpected.join(', ')}`);
+  }
+  throw new BackgroundCoverageError(
+    `SRD 5.1 background coverage check failed: parsed ${backgrounds.length} background(s), expected exactly ${expectedBackgroundNames.length}. ${parts.join('; ')}. The Backgrounds chapter may have been truncated, a background renamed, or chapter-intro prose promoted to an entry. Refusing to write a pack with a drifted background set.`,
   );
 }
 
@@ -2202,12 +2305,52 @@ export async function runImporter(
     ),
     { name: 'Monsters', keySlug: 'monsters' },
   );
+  // SRD 5.1 "Backgrounds" chapter (p60-61, eshyra-0m9.17): the chapter-intro
+  // sections plus the lone Acolyte entry. The entry parses into a `background`
+  // record (plus its four suggested-characteristics roll tables, emitted under
+  // the `table` kind); the intro region is carved off with
+  // `truncateBeforeFirst(/^Acolyte$/)` — the entry heading is h≈13.9, below
+  // the heading-flag threshold, so it cannot serve as a matchHeadings boundary
+  // (same pattern as the Traps "Sample Traps" cut) — and fed to the
+  // nesting-aware `parseRules`. The chapter's opening paragraph precedes any
+  // heading, so the `chapterIntro` option emits it as `rule:backgrounds` and
+  // seeds "Backgrounds" as the tier-0 ancestor: the three intro leaves whose
+  // titles other slices already own (Proficiencies / Languages — Beyond 1st
+  // Level — and Equipment — the Monsters chapter) parent-qualify to
+  // `rule:backgrounds-*`. `missingBoundary: 'empty'` degrades fixture PDFs
+  // without an Acolyte entry to no background rules; the real import stays
+  // fail-closed via `expectedRuleKeys` and `expectedBackgroundNames`.
+  const backgroundPages = sliceSectionOrEmptyPages(pages, anchors.backgrounds);
+  const { backgrounds, characteristicTables } =
+    parseBackgrounds(backgroundPages);
+  validateBackgroundCoverage(backgrounds, input.expectedBackgroundNames);
+  const backgroundRulePages = truncateBeforeFirst(
+    backgroundPages,
+    /^Acolyte$/,
+    'empty',
+  );
+  const backgroundRules = parseRules(
+    backgroundRulePages,
+    new Set(
+      [
+        ...rulesBeforeBeyondFirstLevel,
+        ...beyondFirstLevelRules,
+        ...magicItemRules,
+        ...trapRules,
+        ...monsterRules,
+      ]
+        .map((rule) => rule.keySlug)
+        .filter((slug): slug is string => slug !== undefined),
+    ),
+    { name: 'Backgrounds', keySlug: 'backgrounds' },
+  );
   const nonClassRules = [
     ...rulesBeforeBeyondFirstLevel,
     ...beyondFirstLevelRules,
     ...magicItemRules,
     ...trapRules,
     ...monsterRules,
+    ...backgroundRules,
   ];
   // The two trap reference tables live in the Traps slice (loreweaver-hvp); feed
   // it alongside the core-rules and treasure slices so parseTables reconstructs
@@ -2227,17 +2370,24 @@ export async function runImporter(
   // "Size Space Examples" header row — Hit Dice by Size, Proficiency Bonus by
   // Challenge Rating, and Experience Points by Challenge Rating;
   // eshyra-0m9.22).
-  const tables = parseTables([
-    ...coreRulePages,
-    ...treasureTablePages,
-    ...trapPages,
-    ...madnessPages,
-    ...objectPages,
-    ...beyondFirstLevelPages,
-    ...equipmentPages,
-    ...expensesPages,
-    ...monsterRulePages,
-  ]);
+  // The background suggested-characteristics roll tables come from
+  // parseBackgrounds (the SRD prints them caption-less, so parseTables'
+  // caption-anchored reconstruction cannot own them); concatenate before the
+  // coverage gate so the table baseline covers them too (eshyra-0m9.17).
+  const tables = [
+    ...parseTables([
+      ...coreRulePages,
+      ...treasureTablePages,
+      ...trapPages,
+      ...madnessPages,
+      ...objectPages,
+      ...beyondFirstLevelPages,
+      ...equipmentPages,
+      ...expensesPages,
+      ...monsterRulePages,
+    ]),
+    ...characteristicTables,
+  ];
   validateTableCoverage(tables, input.expectedTableNames);
   // Sliced after the other sections so the existing fail-closed tests trip on
   // their own anchor first. Throws SectionNotFoundError if the races anchor
@@ -2310,6 +2460,7 @@ export async function runImporter(
     equipment,
     magicItems,
     ancestries,
+    backgrounds,
     sourceHash,
   });
   writePackToDirectory(pack, { outDir: input.outDir });
@@ -2335,6 +2486,7 @@ export async function runImporter(
       equipment: equipment.length,
       magicItems: magicItems.length,
       ancestries: ancestries.length,
+      backgrounds: backgrounds.length,
     },
   };
 }

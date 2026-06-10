@@ -604,6 +604,33 @@ export const SRD_5_1_DEFAULT_SECTION_ANCHORS = {
     requireEndHeading: true,
     matchHeadings: true,
   },
+  // SRD 5.1 "Backgrounds" chapter (p60-61, eshyra-0m9.17): the chapter intro
+  // sections (Proficiencies, Languages, Equipment, Suggested Characteristics,
+  // Customizing a Background — all h≈12 leaves) followed by the lone Acolyte
+  // background entry (an h≈13.9 sub-subsection heading). It sits between
+  // "Beyond 1st Level" (whose anchor ends here) and the "Equipment" chapter.
+  // matchHeadings is essential for the END anchor: the chapter's own intro has
+  // an h≈12 "Equipment" leaf that is below the heading-flag threshold, so only
+  // the real h≈25.9 "Equipment" chapter title can close the slice. Best-effort
+  // on its START so reduced fixture PDFs without the chapter degrade to no
+  // background records; requireEndHeading is true so a missing "Equipment"
+  // boundary fails closed rather than running the background parser into the
+  // Equipment chapter's tables. The orchestrator carves the chapter-intro
+  // rules region from this slice with `truncateBeforeFirst(/^Acolyte$/)` (the
+  // entry heading is h≈13.9, below the heading-flag threshold, so it cannot be
+  // a matchHeadings boundary — same pattern as the Traps "Sample Traps" cut).
+  // The end alternation is EXACT-line ($-anchored) rather than the prefix
+  // (\b) form other anchors use: every background entry carries a body-font
+  // "Equipment: <package>" labeled line, and on uniform-font fixture PDFs
+  // (where matchHeadings falls back to line matching) a prefix "^Equipment\b"
+  // would close the slice at that label, truncating the entry.
+  backgrounds: {
+    startHeading: /^Backgrounds$/,
+    endHeading:
+      /^(Equipment|Feats|Using Ability Scores|Adventuring|Combat|Monsters|Magic Items)$|^Appendix\b/,
+    requireEndHeading: true,
+    matchHeadings: true,
+  },
   // SRD 5.1 "Expenses" region (p72-74), the tail of the Equipment chapter after
   // the Mounts and Vehicles tables. It starts at the "Trade Goods" section
   // heading (matchHeadings keeps the anchor on the h-level heading, not the
@@ -651,5 +678,6 @@ export type Srd51SectionAnchors = {
   readonly treasureTables: SectionAnchorOptions;
   readonly multiclassing: SectionAnchorOptions;
   readonly beyondFirstLevel: SectionAnchorOptions;
+  readonly backgrounds: SectionAnchorOptions;
   readonly expenses: SectionAnchorOptions;
 };

@@ -272,6 +272,27 @@ function validateDnd5eSubclass(record: RulesRecord, path: string): void {
   optStrArray(data, 'features', `${path}.data`);
 }
 
+// A `background` (Acolyte, ...) grants skill proficiencies, optionally tool
+// proficiencies / languages / an equipment package, and exactly one background
+// feature. The feature is a NESTED `{ name, text }` object on the background
+// record, not a top-level `feature` record — `validateDnd5eFeature` requires a
+// class/subclass grantor key and an integer grant level, neither of which a
+// background feature has (eshyra-0m9.17 decision; mirrors how ancestry traits
+// nest in their ancestry record). The background's suggested-characteristics
+// roll tables are separate `table` records; only their intro prose rides here.
+function validateDnd5eBackground(record: RulesRecord, path: string): void {
+  const data = dataObj(record, path);
+  reqStr(data, 'description', `${path}.data`);
+  reqStrArray(data, 'skillProficiencies', `${path}.data`);
+  optStrArray(data, 'toolProficiencies', `${path}.data`);
+  optStr(data, 'languages', `${path}.data`);
+  optStr(data, 'equipment', `${path}.data`);
+  const feature = reqObj(data, 'feature', `${path}.data`);
+  reqStr(feature, 'name', `${path}.data.feature`);
+  reqStr(feature, 'text', `${path}.data.feature`);
+  optStr(data, 'suggestedCharacteristics', `${path}.data`);
+}
+
 function validateDnd5eHazard(record: RulesRecord, path: string): void {
   const data = dataObj(record, path);
   reqStr(data, 'description', `${path}.data`);
@@ -374,6 +395,7 @@ const SYSTEM_KIND_VALIDATORS: Record<
   'dnd5e-srd': {
     spell: validateDnd5eSpell,
     creature: validateDnd5eCreature,
+    background: validateDnd5eBackground,
     class: validateDnd5eClass,
     condition: validateDnd5eCondition,
     feat: validateDnd5eFeat,

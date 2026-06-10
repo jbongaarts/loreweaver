@@ -18,6 +18,7 @@ import { join } from 'node:path';
 import PDFDocument from 'pdfkit';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
+  BackgroundCoverageError,
   ClassCoverageError,
   CreatureCoverageError,
   FeatureCoverageError,
@@ -588,6 +589,54 @@ const MULTICLASSING_PAGE: FixturePage = {
   ],
 };
 
+// Backgrounds fixture (eshyra-0m9.17): mirrors the SRD "Backgrounds" chapter —
+// chapter-intro prose, one intro section ("Customizing a Background", which
+// must emit as a rule and never as a background entry), and the Acolyte entry
+// with its labeled grant lines, nested feature, Suggested Characteristics
+// prose, and the four caption-less roll tables. Placed after MULTICLASSING_PAGE
+// and before CONDITIONS_PAGE in the implemented-kinds fixture, so the
+// backgrounds anchor's end boundary is the "Appendix A: Conditions" heading.
+// The intro deliberately carries NO bare "Equipment" line: fixture PDFs have no
+// heading flags, so the anchors fall back to line matching and an exact
+// "Equipment" line here would close the backgrounds slice early (the real SRD's
+// h≈12 intro "Equipment" leaf is excluded by matchHeadings instead). The
+// "Customizing a Background" heading sits at the slice start (immediately after
+// the chapter title): PDF extraction drops blank lines, so the legacy rule
+// heuristic only recognizes a heading at a slice/page boundary.
+const BACKGROUNDS_PAGE: FixturePage = {
+  lines: [
+    'Backgrounds',
+    'Customizing a Background',
+    'You might want to tweak some of the features of a background so it better fits your character.',
+    'Acolyte',
+    'You have spent your life in the service of a temple to a specific god or pantheon of gods.',
+    'Skill Proficiencies: Insight, Religion',
+    'Languages: Two of your choice',
+    'Equipment: A holy symbol (a gift to you when you',
+    'entered the priesthood), a prayer book or prayer',
+    'wheel, 5 sticks of incense, vestments, a set of',
+    'common clothes, and a pouch containing 15 gp',
+    'Feature: Shelter of the Faithful',
+    'As an acolyte, you command the respect of those who share your faith.',
+    'Suggested Characteristics',
+    'Acolytes are shaped by their experience in temples or other religious communities.',
+    'd8 Personality Trait',
+    '1 I idolize a particular hero of my faith, and constantly',
+    'refer to that person’s deeds and example.',
+    '2 Nothing can shake my optimistic attitude.',
+    'd6 Ideal',
+    '1 Tradition. The ancient traditions of worship and',
+    'sacrifice must be preserved and upheld. (Lawful)',
+    '2 Charity. I always try to help those in need. (Good)',
+    'd6 Bond',
+    '1 I would die to recover an ancient relic of my faith.',
+    '2 Everything I do is for the common people.',
+    'd6 Flaw',
+    '1 I judge others harshly, and myself even more severely.',
+    '2 I am inflexible in my thinking.',
+  ],
+};
+
 // Equipment fixture without the chapter subsection that ends the section. With
 // requireEndHeading: true on the equipment anchor, the importer must fail
 // closed rather than slice to EOF.
@@ -892,12 +941,19 @@ const IMPLEMENTED_KINDS_FIXTURE_PAGES = [
   FEATS_PAGE,
   EQUIPMENT_PAGE,
   MULTICLASSING_PAGE,
+  BACKGROUNDS_PAGE,
   CONDITIONS_PAGE,
 ] as const;
 
 const IMPLEMENTED_KINDS_FIXTURE_RULE_KEYS = [
   'rule:cover',
   'rule:curing-madness',
+  // The Backgrounds chapter-intro section (eshyra-0m9.17). Uniform-font
+  // fixtures take parseRules' legacy text-heuristic path, which emits the
+  // intro heading by bare slug (no chapterIntro rule, no parent-qualified
+  // keys — those are heading-hierarchy-path behaviors the real-PDF baseline
+  // covers).
+  'rule:customizing-a-background',
   'rule:going-mad',
   'rule:madness',
   'rule:madness-effects',
@@ -917,6 +973,12 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
       outDir,
       expectedRuleKeys: IMPLEMENTED_KINDS_FIXTURE_RULE_KEYS,
       expectedTableNames: [
+        // The four Acolyte suggested-characteristics roll tables come from
+        // parseBackgrounds with synthesized names (eshyra-0m9.17).
+        'Acolyte Bonds',
+        'Acolyte Flaws',
+        'Acolyte Ideals',
+        'Acolyte Personality Traits',
         'Damage Severity by Level',
         'Difficulty Classes',
         'Indefinite Madness',
@@ -929,6 +991,7 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
         'Treasure Hoard: Challenge 0-4',
         'XP Thresholds by Character Level',
       ],
+      expectedBackgroundNames: ['Acolyte'],
     });
     expect(result.counts.spells).toBe(2);
     expect(result.counts.creatures).toBe(1);
@@ -943,17 +1006,22 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(result.counts.hazards).toBe(1);
     expect(result.counts.traps).toBe(2);
     expect(result.counts.actions).toBe(10);
-    expect(result.counts.rules).toBe(7);
-    // 4 prior tables + 2 trap tables + 3 madness tables + 2 object tables.
-    expect(result.counts.tables).toBe(11);
+    // 7 prior rules + the Backgrounds-chapter "Customizing a Background" intro
+    // section (eshyra-0m9.17).
+    expect(result.counts.rules).toBe(8);
+    // 4 prior tables + 2 trap tables + 3 madness tables + 2 object tables
+    // + 4 Acolyte suggested-characteristics roll tables (eshyra-0m9.17).
+    expect(result.counts.tables).toBe(15);
     expect(result.counts.equipment).toBe(4);
     expect(result.counts.magicItems).toBe(2);
     expect(result.counts.ancestries).toBe(18);
+    expect(result.counts.backgrounds).toBe(1);
     expect(result.sourceHash).toMatch(/^[0-9a-f]{64}$/);
 
     const pack = loadRulesPackFromDirectory(outDir);
-    // 48 prior records + 2 sample traps + 7 new tables + 5 rules + 2 magic items.
-    expect(pack.records).toHaveLength(64);
+    // 64 prior records + 1 background + 4 roll tables + 1 backgrounds-intro
+    // rule (eshyra-0m9.17).
+    expect(pack.records).toHaveLength(70);
     const keys = pack.records.map((r) => r.key).sort();
     expect(keys).toContain('class:fighter');
     expect(keys).toContain('subclass:champion');
@@ -985,6 +1053,7 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(keys).toContain('ancestry:lightfoot-halfling');
     expect(keys).toContain('ancestry:stout-halfling');
     expect(keys).toContain('ancestry:human');
+    expect(keys).toContain('background:acolyte');
     // Assert the feat set is exactly Grappler — no bogus chapter headings
     // promoted as feat names by the heuristic.
     const featKeys = keys.filter((k) => k.startsWith('feat:'));
@@ -1015,6 +1084,7 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(ruleKeys).toEqual([
       'rule:cover',
       'rule:curing-madness',
+      'rule:customizing-a-background',
       'rule:going-mad',
       'rule:madness',
       'rule:madness-effects',
@@ -1023,6 +1093,10 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     ]);
     const tableKeys = keys.filter((k) => k.startsWith('table:'));
     expect(tableKeys).toEqual([
+      'table:acolyte-bonds',
+      'table:acolyte-flaws',
+      'table:acolyte-ideals',
+      'table:acolyte-personality-traits',
       'table:damage-severity-by-level',
       'table:difficulty-classes',
       'table:indefinite-madness',
@@ -1128,6 +1202,46 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     expect(humanData.subraces).toBeUndefined();
     expect(humanData.subraceOf).toBeUndefined();
     expect(humanData.speed).toBe(30);
+
+    // Background (eshyra-0m9.17): structured grant fields, the NESTED feature
+    // (no top-level `feature` record for Shelter of the Faithful), and the
+    // chapter-intro section staying a rule rather than a background entry.
+    expect(pack.meta.description).toMatch(
+      /Included record kinds:[^.]*background/,
+    );
+    const acolyte = pack.records.find((r) => r.key === 'background:acolyte');
+    expect(acolyte?.kind).toBe('background');
+    expect(acolyte?.name).toBe('Acolyte');
+    const acolyteData = acolyte?.data as Record<string, unknown>;
+    expect(acolyteData.skillProficiencies).toEqual(['Insight', 'Religion']);
+    expect(acolyteData.languages).toBe('Two of your choice');
+    expect(acolyteData.equipment).toBe(
+      'A holy symbol (a gift to you when you entered the priesthood), a prayer book or prayer wheel, 5 sticks of incense, vestments, a set of common clothes, and a pouch containing 15 gp',
+    );
+    expect(acolyteData.feature).toEqual({
+      name: 'Shelter of the Faithful',
+      text: 'As an acolyte, you command the respect of those who share your faith.',
+    });
+    expect(
+      keys.filter((k) => k.startsWith('feature:') && k.includes('shelter')),
+    ).toEqual([]);
+    expect(keys.filter((k) => k.startsWith('background:'))).toEqual([
+      'background:acolyte',
+    ]);
+    const acolyteIdeals = pack.records.find(
+      (r) => r.key === 'table:acolyte-ideals',
+    );
+    expect((acolyteIdeals?.data as Record<string, unknown>).columns).toEqual([
+      'd6',
+      'Ideal',
+    ]);
+    expect((acolyteIdeals?.data as Record<string, unknown>).rows).toEqual([
+      [
+        1,
+        'Tradition. The ancient traditions of worship and sacrifice must be preserved and upheld. (Lawful)',
+      ],
+      [2, 'Charity. I always try to help those in need. (Good)'],
+    ]);
 
     const acid = pack.records.find((r) => r.key === 'spell:acid-splash');
     expect(acid?.name).toBe('Acid Splash');
@@ -1509,6 +1623,25 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
         expectedTableNames: ['Difficulty Classes'],
       }),
     ).rejects.toThrow(TableCoverageError);
+  });
+
+  it('fails closed when the expected background-name set drifts', async () => {
+    const workDir = makeTmpDir();
+    const pdfPath = join(workDir, 'fixture.pdf');
+    const outDir = join(workDir, 'pack');
+    await writeFixturePdf(pdfPath, IMPLEMENTED_KINDS_FIXTURE_PAGES);
+
+    const importPromise = runImporter({
+      pdfPath,
+      outDir,
+      expectedBackgroundNames: ['Acolyte', 'Soldier'],
+    });
+
+    await expect(importPromise).rejects.toThrow(BackgroundCoverageError);
+    await expect(importPromise).rejects.toThrow(
+      /missing expected background\(s\): Soldier/,
+    );
+    expect(() => readFileSync(join(outDir, 'records.json'), 'utf8')).toThrow();
   });
 
   it('produces a byte-identical pack across two runs over the same PDF', async () => {
