@@ -49,6 +49,7 @@ import {
   RulesPackError,
 } from '../../src/internal.js';
 import {
+  EXPECTED_SRD_5_1_BACKGROUND_NAMES,
   EXPECTED_SRD_5_1_CREATURE_NAMES,
   EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES,
   EXPECTED_SRD_5_1_NPC_NAMES,
@@ -92,6 +93,7 @@ async function main(): Promise<void> {
         expectedMagicItemNames: EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES,
         expectedRuleKeys: EXPECTED_SRD_5_1_RULE_KEYS,
         expectedTableNames: EXPECTED_SRD_5_1_TABLE_NAMES,
+        expectedBackgroundNames: EXPECTED_SRD_5_1_BACKGROUND_NAMES,
         minClassCount: MIN_EXPECTED_SRD_5_1_CLASSES,
         minSubclassCount: MIN_EXPECTED_SRD_5_1_SUBCLASSES,
         minFeatureCount: MIN_EXPECTED_SRD_5_1_FEATURES,
@@ -105,7 +107,7 @@ async function main(): Promise<void> {
     const c = result.counts;
     console.log(`Source PDF SHA-256: ${result.sourceHash}`);
     console.log(
-      `Importer counts: ${c.spells} spells, ${c.creatures} creatures, ${c.npcs} NPCs, ${c.classes} classes, ${c.subclasses} subclasses, ${c.features} features, ${c.conditions} conditions, ${c.feats} feats, ${c.hazards} hazards, ${c.traps} traps, ${c.actions} actions, ${c.rules} rules, ${c.tables} tables, ${c.equipment} equipment, ${c.magicItems} magic items, ${c.ancestries} ancestries`,
+      `Importer counts: ${c.spells} spells, ${c.creatures} creatures, ${c.npcs} NPCs, ${c.classes} classes, ${c.subclasses} subclasses, ${c.features} features, ${c.conditions} conditions, ${c.feats} feats, ${c.hazards} hazards, ${c.traps} traps, ${c.actions} actions, ${c.rules} rules, ${c.tables} tables, ${c.equipment} equipment, ${c.magicItems} magic items, ${c.ancestries} ancestries, ${c.backgrounds} backgrounds`,
     );
     console.log('');
 

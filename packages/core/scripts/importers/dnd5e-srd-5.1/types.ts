@@ -537,6 +537,51 @@ export interface FeatureExtraction {
   readonly sourcePage: number;
 }
 
+/**
+ * The feature a background grants ("Feature: Shelter of the Faithful"), kept
+ * as a NESTED field of the background record rather than a top-level `feature`
+ * record (eshyra-0m9.17 decision): `validateDnd5eFeature` requires a
+ * class/subclass grantor key and an integer grant level, neither of which a
+ * background feature has — and the background's primary lookup use is the
+ * proficiencies + feature text together, mirroring how ancestry traits nest
+ * in their ancestry record.
+ */
+export interface BackgroundFeatureExtraction {
+  readonly name: string;
+  /** Feature body prose, re-flowed into paragraphs. */
+  readonly text: string;
+}
+
+/**
+ * A background entry as extracted from the SRD 5.1 "Backgrounds" chapter
+ * (eshyra-0m9.17), before conversion to a `kind=background` `RulesRecord`.
+ * Mirrors the fields the `dnd5e-srd` background kindSchema requires (see
+ * `validateDnd5eBackground` in `kindSchemas.ts`): a description, the
+ * skill-proficiency grant list, and the nested feature. The tool-proficiency,
+ * language, equipment, and suggested-characteristics fields are optional
+ * because not every background grants them (SRD 5.1 publishes only Acolyte,
+ * which has no tool proficiencies). The entry's suggested-characteristics
+ * roll tables emit separately under the `table` kind (see `parseBackgrounds`).
+ */
+export interface BackgroundExtraction {
+  readonly name: string;
+  /** Intro/flavor prose for the background, re-flowed into paragraphs. */
+  readonly description: string;
+  /** Parsed "Skill Proficiencies:" list (e.g. ["Insight", "Religion"]). */
+  readonly skillProficiencies: readonly string[];
+  /** Parsed "Tool Proficiencies:" list, when the background grants any. */
+  readonly toolProficiencies?: readonly string[];
+  /** Verbatim "Languages:" grant text (e.g. "Two of your choice"). */
+  readonly languages?: string;
+  /** Verbatim "Equipment:" package text, re-joined across wrapped lines. */
+  readonly equipment?: string;
+  readonly feature: BackgroundFeatureExtraction;
+  /** Suggested Characteristics intro prose (the roll tables emit separately). */
+  readonly suggestedCharacteristics?: string;
+  /** 1-based page in the source PDF where the background entry begins. */
+  readonly sourcePage: number;
+}
+
 export interface ImporterCounts {
   readonly spells: number;
   readonly creatures: number;
@@ -563,6 +608,7 @@ export interface ImporterCounts {
   readonly equipment: number;
   readonly magicItems: number;
   readonly ancestries: number;
+  readonly backgrounds: number;
 }
 
 export interface ImporterRunResult {

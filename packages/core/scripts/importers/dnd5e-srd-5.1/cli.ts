@@ -22,6 +22,7 @@
 import { dirname, isAbsolute, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  EXPECTED_SRD_5_1_BACKGROUND_NAMES,
   EXPECTED_SRD_5_1_CREATURE_NAMES,
   EXPECTED_SRD_5_1_DISEASE_NAMES,
   EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES,
@@ -113,6 +114,7 @@ async function main(): Promise<void> {
     expectedMagicItemNames: EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES,
     expectedRuleKeys: EXPECTED_SRD_5_1_RULE_KEYS,
     expectedTableNames: EXPECTED_SRD_5_1_TABLE_NAMES,
+    expectedBackgroundNames: EXPECTED_SRD_5_1_BACKGROUND_NAMES,
     minClassCount: MIN_EXPECTED_SRD_5_1_CLASSES,
     minSubclassCount: MIN_EXPECTED_SRD_5_1_SUBCLASSES,
     minFeatureCount: MIN_EXPECTED_SRD_5_1_FEATURES,
@@ -120,7 +122,7 @@ async function main(): Promise<void> {
   });
   const c = result.counts;
   console.log(
-    `Imported ${c.spells} spells, ${c.creatures} creatures, ${c.npcs} NPCs, ${c.classes} classes, ${c.subclasses} subclasses, ${c.features} features, ${c.conditions} conditions, ${c.feats} feats, ${c.hazards} hazards, ${c.traps} traps, ${c.diseases} diseases, ${c.poisons} poisons, ${c.actions} actions, ${c.rules} rules, ${c.tables} tables, ${c.equipment} equipment, ${c.magicItems} magic items, and ${c.ancestries} ancestries.`,
+    `Imported ${c.spells} spells, ${c.creatures} creatures, ${c.npcs} NPCs, ${c.classes} classes, ${c.subclasses} subclasses, ${c.features} features, ${c.conditions} conditions, ${c.feats} feats, ${c.hazards} hazards, ${c.traps} traps, ${c.diseases} diseases, ${c.poisons} poisons, ${c.actions} actions, ${c.rules} rules, ${c.tables} tables, ${c.equipment} equipment, ${c.magicItems} magic items, ${c.ancestries} ancestries, and ${c.backgrounds} backgrounds.`,
   );
   console.log(`Source PDF SHA-256: ${result.sourceHash}`);
   console.log(`Output written to: ${result.outDir}`);

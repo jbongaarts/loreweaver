@@ -96,6 +96,11 @@ function readSourceManifest(): SrdSourceManifest {
 const EXPECTED_COUNTS_BY_KIND: Readonly<Record<string, number>> = {
   action: 10,
   ancestry: 13,
+  // The lone SRD 5.1 Backgrounds-chapter entry, Acolyte (eshyra-0m9.17), with
+  // structured grant fields and the nested Shelter of the Faithful feature.
+  // Its four suggested-characteristics roll tables are `table` records and the
+  // chapter-intro sections are `rule` records (counted below).
+  background: 1,
   class: 12,
   condition: 15,
   // 296 Monsters/Appendix MM-A creatures + 21 Appendix MM-B NPC stat blocks,
@@ -191,9 +196,12 @@ const EXPECTED_COUNTS_BY_KIND: Readonly<Record<string, number>> = {
   // Disabling a Trap, Trap Effects, Complex Traps; eshyra-0m9.20), and the
   // 44 Monsters-chapter stat-block interpretation rules (the chapter-intro
   // paragraph, the pp254-260 sections and their leaves, the Legendary
-  // Creatures tree, and the three gray callout boxes; eshyra-0m9.22).
-  // Validated exactly against EXPECTED_SRD_5_1_RULE_KEYS.
-  rule: 250,
+  // Creatures tree, and the three gray callout boxes; eshyra-0m9.22), and the
+  // 6 Backgrounds-chapter intro rules (the chapter-intro paragraph plus the
+  // five h≈12 intro leaves, three of them parent-qualified to
+  // `rule:backgrounds-*` because other slices own their bare titles;
+  // eshyra-0m9.17). Validated exactly against EXPECTED_SRD_5_1_RULE_KEYS.
+  rule: 256,
   spell: 319,
   subclass: 12,
   // Difficulty Classes, two trap tables, three Madness tables, two Objects
@@ -206,8 +214,11 @@ const EXPECTED_COUNTS_BY_KIND: Readonly<Record<string, number>> = {
   // Food/Drink/Lodging, Services (eshyra-0m9.19) — and the four
   // Monsters-chapter reference tables — Size Categories, Hit Dice by Size,
   // Proficiency Bonus by Challenge Rating, Experience Points by Challenge
-  // Rating (eshyra-0m9.22).
-  table: 23,
+  // Rating (eshyra-0m9.22) — and the four Acolyte suggested-characteristics
+  // roll tables (Personality Traits / Ideals / Bonds / Flaws), which
+  // parseBackgrounds emits with synthesized "<Background> <Label>s" names
+  // because the SRD prints them caption-less (eshyra-0m9.17).
+  table: 27,
 };
 
 /**
@@ -220,6 +231,8 @@ const EXPECTED_STABLE_KEYS: readonly string[] = [
   'action:dodge',
   'ancestry:elf',
   'ancestry:hill-dwarf',
+  // The SRD 5.1 Backgrounds chapter's lone entry (eshyra-0m9.17).
+  'background:acolyte',
   'class:wizard',
   'condition:blinded',
   'condition:exhaustion',
@@ -268,6 +281,11 @@ const EXPECTED_STABLE_KEYS: readonly string[] = [
   'rule:legendary-creatures',
   'rule:monsters-alignment',
   'rule:senses-blindsight',
+  // Backgrounds-chapter intro rules (eshyra-0m9.17): the chapter intro, a
+  // unique-titled leaf, and one of the parent-qualified cross-slice keys.
+  'rule:backgrounds',
+  'rule:customizing-a-background',
+  'rule:backgrounds-proficiencies',
   'spell:fire-bolt',
   'spell:wish',
   'subclass:champion',
@@ -278,6 +296,9 @@ const EXPECTED_STABLE_KEYS: readonly string[] = [
   // Monsters-chapter reference tables (eshyra-0m9.22).
   'table:experience-points-by-challenge-rating',
   'table:size-categories',
+  // Acolyte suggested-characteristics roll tables (eshyra-0m9.17).
+  'table:acolyte-personality-traits',
+  'table:acolyte-flaws',
 ];
 
 /**
@@ -1887,6 +1908,13 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
 
     it('contains exactly the reviewed table key set', () => {
       expect(tables.map((record) => record.key).sort()).toEqual([
+        // The four Acolyte suggested-characteristics roll tables
+        // (eshyra-0m9.17), named "<Background> <Label>s" by parseBackgrounds
+        // because the SRD prints them caption-less.
+        'table:acolyte-bonds',
+        'table:acolyte-flaws',
+        'table:acolyte-ideals',
+        'table:acolyte-personality-traits',
         'table:character-advancement',
         'table:damage-severity-by-level',
         'table:difficulty-classes',
@@ -2695,6 +2723,158 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
       expect(
         pack.records.find((r) => r.key === 'creature:aboleth'),
       ).toBeDefined();
+    });
+  });
+
+  // eshyra-0m9.17: the SRD 5.1 Backgrounds chapter. The lone Acolyte entry is
+  // a `background` record with structured grant fields and a NESTED feature
+  // (`data.feature`, not a top-level `feature` record — the dnd5e feature
+  // schema requires a class/subclass grantor and grant level a background
+  // feature does not have). The chapter-intro sections emit as `rule` records
+  // (cross-slice title repeats parent-qualified to `rule:backgrounds-*`), and
+  // the entry's four caption-less roll tables emit as `table` records with
+  // synthesized "<Background> <Label>s" names.
+  describe('Backgrounds chapter (eshyra-0m9.17)', () => {
+    const acolyte = pack.records.find(
+      (record) => record.key === 'background:acolyte',
+    );
+    const acolyteData = acolyte?.data as Record<string, unknown>;
+
+    function ruleText(key: string): string {
+      const record = pack.records.find(
+        (candidate) => candidate.kind === 'rule' && candidate.key === key,
+      );
+      expect(record, `expected ${key} in the committed pack`).toBeDefined();
+      return (record?.data as { text: string }).text;
+    }
+
+    it('emits Acolyte as the only background record with p60 provenance', () => {
+      expect(acolyte?.kind).toBe('background');
+      expect(acolyte?.name).toBe('Acolyte');
+      expect(acolyte?.provenance.locator).toBe('p. 60');
+      expect(
+        pack.records.filter((record) => record.kind === 'background'),
+      ).toHaveLength(1);
+    });
+
+    it('carries the structured grant fields verbatim from the source', () => {
+      expect(acolyteData.skillProficiencies).toEqual(['Insight', 'Religion']);
+      expect(acolyteData.languages).toBe('Two of your choice');
+      expect(acolyteData.equipment).toBe(
+        'A holy symbol (a gift to you when you entered the priesthood), a prayer book or prayer wheel, 5 sticks of incense, vestments, a set of common clothes, and a pouch containing 15 gp',
+      );
+      // Acolyte grants no tool proficiencies; the field must be absent.
+      expect(acolyteData.toolProficiencies).toBeUndefined();
+      expect(acolyteData.description).toMatch(
+        /^You have spent your life in the service of a temple/,
+      );
+      // The description is the entry's own prose: neither the chapter intro
+      // before the entry nor the grant block after it may bleed in.
+      expect(acolyteData.description).not.toContain('Every story has a');
+      expect(acolyteData.description).not.toContain('Skill Proficiencies');
+    });
+
+    it('nests Shelter of the Faithful and emits no top-level feature record for it', () => {
+      const feature = acolyteData.feature as { name: string; text: string };
+      expect(feature.name).toBe('Shelter of the Faithful');
+      expect(feature.text).toMatch(
+        /^As an acolyte, you command the respect of those who share your faith/,
+      );
+      expect(feature.text).toContain('call upon the priests for assistance');
+      // The Suggested Characteristics section must not bleed into the feature.
+      expect(feature.text).not.toContain('shaped by their experience');
+      expect(
+        pack.records.filter(
+          (record) =>
+            record.kind === 'feature' &&
+            record.name === 'Shelter of the Faithful',
+        ),
+      ).toEqual([]);
+    });
+
+    it('keeps the Suggested Characteristics prose without roll-table rows', () => {
+      expect(acolyteData.suggestedCharacteristics).toMatch(
+        /^Acolytes are shaped by their experience in temples/,
+      );
+      expect(acolyteData.suggestedCharacteristics).not.toContain('I idolize');
+    });
+
+    it('emits the four roll tables with source columns and full row sets', () => {
+      const expected: ReadonlyArray<
+        readonly [key: string, columns: readonly string[], rowCount: number]
+      > = [
+        ['table:acolyte-personality-traits', ['d8', 'Personality Trait'], 8],
+        ['table:acolyte-ideals', ['d6', 'Ideal'], 6],
+        ['table:acolyte-bonds', ['d6', 'Bond'], 6],
+        ['table:acolyte-flaws', ['d6', 'Flaw'], 6],
+      ];
+      for (const [key, columns, rowCount] of expected) {
+        const record = pack.records.find((candidate) => candidate.key === key);
+        expect(record, `expected ${key} in the committed pack`).toBeDefined();
+        expect(record?.provenance.locator).toBe('p. 61');
+        const data = record?.data as {
+          columns: readonly string[];
+          rows: readonly (readonly unknown[])[];
+        };
+        expect(data.columns).toEqual(columns);
+        expect(data.rows).toHaveLength(rowCount);
+        // Rows are the die faces in order, with wrapped text re-joined.
+        data.rows.forEach((row, index) => {
+          expect(row[0]).toBe(index + 1);
+          expect(typeof row[1]).toBe('string');
+        });
+      }
+    });
+
+    it('re-joins wrapped roll-table rows onto their numbered row', () => {
+      const personality = pack.records.find(
+        (record) => record.key === 'table:acolyte-personality-traits',
+      );
+      const rows = (personality?.data as { rows: readonly unknown[][] }).rows;
+      expect(rows[0][1]).toBe(
+        'I idolize a particular hero of my faith, and constantly refer to that person’s deeds and example.',
+      );
+      expect(rows[7][1]).toBe(
+        'I’ve spent so long in the temple that I have little practical experience dealing with people in the outside world.',
+      );
+    });
+
+    it('emits the chapter intro as rule:backgrounds with p60 provenance', () => {
+      const text = ruleText('rule:backgrounds');
+      expect(text).toMatch(/^Every story has a beginning/);
+      expect(text).toContain('what changed?');
+      // Bounded at the first intro heading ("Proficiencies").
+      expect(text).not.toContain('Each background gives a character');
+    });
+
+    it('parent-qualifies the three intro leaves other slices already own', () => {
+      expect(ruleText('rule:backgrounds-proficiencies')).toContain(
+        'proficiency in two skills',
+      );
+      expect(ruleText('rule:backgrounds-languages')).toContain(
+        'additional languages beyond those given by race',
+      );
+      expect(ruleText('rule:backgrounds-equipment')).toContain(
+        'package of starting equipment',
+      );
+    });
+
+    it('emits the unique-titled intro leaves on bare slugs', () => {
+      expect(ruleText('rule:suggested-characteristics')).toContain(
+        'suggested personal characteristics',
+      );
+      expect(ruleText('rule:customizing-a-background')).toContain(
+        'replace one feature with any other one',
+      );
+      // The intro rules region is truncated before the Acolyte entry, so no
+      // entry content can emit as a rule.
+      const ruleKeys = pack.records
+        .filter((record) => record.kind === 'rule')
+        .map((record) => record.key);
+      expect(ruleKeys).not.toContain('rule:acolyte');
+      expect(ruleText('rule:customizing-a-background')).not.toContain(
+        'You have spent your life',
+      );
     });
   });
 
