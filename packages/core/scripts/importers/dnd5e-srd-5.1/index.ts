@@ -1100,6 +1100,26 @@ export const EXPECTED_SRD_5_1_RULE_KEYS: readonly string[] = [
   'rule:spellcasting',
   'rule:unarmored-defense',
   'rule:using-inspiration',
+  // "Magic Items" chapter intro (pp206-207, eshyra-0m9.21): the general
+  // magic-item usage rules that precede the A-Z item entries — kept separate
+  // from the per-item `magic-item` records. `rule:magic-items` is the chapter
+  // intro paragraph (emitted via parseRules's chapterIntro option because it
+  // precedes any heading); the rest are the chapter's h≈18 sections
+  // (Attunement; Wearing and Wielding Items; Activating an Item) and their
+  // h≈13.9 leaves. `rule:spells` is the "Activating an Item > Spells" leaf
+  // (casting a spell FROM an item); the bare slug is unique in the rule
+  // keyspace — spell data lives under the `spell` kind, and the general
+  // casting rules keep their Spellcasting-chapter keys above.
+  'rule:activating-an-item',
+  'rule:attunement',
+  'rule:charges',
+  'rule:command-word',
+  'rule:consumables',
+  'rule:magic-items',
+  'rule:multiple-items-of-the-same-kind',
+  'rule:paired-items',
+  'rule:spells',
+  'rule:wearing-and-wielding-items',
 ];
 
 export const EXPECTED_SRD_5_1_TABLE_NAMES: readonly string[] = [
@@ -2003,9 +2023,34 @@ export async function runImporter(
     ),
     { name: 'Beyond 1st Level', keySlug: 'beyond-1st-level' },
   );
+  // The "Magic Items" chapter intro (pp206-207) carries the general
+  // magic-item usage rules (eshyra-0m9.21): Attunement, Wearing and Wielding
+  // Items (Multiple Items of the Same Kind, Paired Items), and Activating an
+  // Item (Command Word, Consumables, Spells, Charges). It is parsed by the
+  // same nesting-aware `parseRules`; the chapter's opening paragraph precedes
+  // any heading, so the `chapterIntro` option emits it as `rule:magic-items`.
+  // These general rules stay separate from the per-item `magic-item` records
+  // the A-Z slice owns. Every previously emitted key slug is reserved so a
+  // cross-slice title repeat would parent-qualify instead of colliding.
+  // Best-effort start: a reduced fixture PDF without the chapter intro
+  // degrades to no magic-item rules.
+  const magicItemRulePages = sliceSectionOrEmptyPages(
+    pages,
+    anchors.magicItemRules,
+  );
+  const magicItemRules = parseRules(
+    magicItemRulePages,
+    new Set(
+      [...rulesBeforeBeyondFirstLevel, ...beyondFirstLevelRules]
+        .map((rule) => rule.keySlug)
+        .filter((slug): slug is string => slug !== undefined),
+    ),
+    { name: 'Magic Items', keySlug: 'magic-items' },
+  );
   const nonClassRules = [
     ...rulesBeforeBeyondFirstLevel,
     ...beyondFirstLevelRules,
+    ...magicItemRules,
   ];
   // The two trap reference tables live in the Traps slice (loreweaver-hvp); feed
   // it alongside the core-rules and treasure slices so parseTables reconstructs
