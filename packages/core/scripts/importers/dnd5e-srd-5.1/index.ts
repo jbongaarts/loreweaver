@@ -1134,6 +1134,68 @@ export const EXPECTED_SRD_5_1_RULE_KEYS: readonly string[] = [
   'rule:detecting-and-disabling-a-trap',
   'rule:trap-effects',
   'rule:complex-traps',
+  // Monsters-chapter stat-block interpretation rules (eshyra-0m9.22,
+  // pp254-260): the chapter-intro paragraph (`rule:monsters`, emitted via
+  // parseRules's chapterIntro option because it precedes any heading), the
+  // chapter's h≈13.9 sections and their h≈12 leaves, the h≈18 "Legendary
+  // Creatures" tree, and the three h≈10.8 gray callout boxes (Modifying
+  // Creatures; Armor, Weapon, and Tool Proficiencies; Grapple Rules for
+  // Monsters). Seven section titles are already owned by other slices —
+  // Alignment / Languages (Beyond 1st Level) and Armor Class / Speed /
+  // Saving Throws / Skills / Reactions (core rules) — and parent-qualify
+  // with the chapter title restored by the chapterIntro ancestor seed
+  // (`rule:monsters-alignment`, …). Four leaf titles are likewise owned —
+  // Blindsight / Darkvision / Truesight (core Vision and Light) and
+  // Experience Points / Spellcasting (Beyond 1st Level) — and qualify with
+  // their nearest section parent (`rule:senses-blindsight`,
+  // `rule:challenge-experience-points`, `rule:special-traits-spellcasting`).
+  // The chapter's four reference-table captions (Size Categories, Hit Dice
+  // by Size, Proficiency Bonus by Challenge Rating, Experience Points by
+  // Challenge Rating) are excluded — the `table` kind owns those records.
+  'rule:monsters',
+  'rule:size',
+  'rule:modifying-creatures',
+  'rule:type',
+  'rule:tags',
+  'rule:monsters-alignment',
+  'rule:monsters-armor-class',
+  'rule:hit-points',
+  'rule:monsters-speed',
+  'rule:burrow',
+  'rule:climb',
+  'rule:fly',
+  'rule:swim',
+  'rule:ability-scores',
+  'rule:monsters-saving-throws',
+  'rule:monsters-skills',
+  'rule:vulnerabilities-resistances-and-immunities',
+  'rule:senses',
+  'rule:senses-blindsight',
+  'rule:senses-darkvision',
+  'rule:armor-weapon-and-tool-proficiencies',
+  'rule:tremorsense',
+  'rule:senses-truesight',
+  'rule:monsters-languages',
+  'rule:telepathy',
+  'rule:challenge',
+  'rule:challenge-experience-points',
+  'rule:special-traits',
+  'rule:innate-spellcasting',
+  'rule:special-traits-spellcasting',
+  'rule:psionics',
+  'rule:actions',
+  'rule:melee-and-ranged-attacks',
+  'rule:multiattack',
+  'rule:ammunition',
+  'rule:monsters-reactions',
+  'rule:limited-usage',
+  'rule:grapple-rules-for-monsters',
+  'rule:equipment',
+  'rule:legendary-creatures',
+  'rule:legendary-actions',
+  'rule:a-legendary-creatures-lair',
+  'rule:lair-actions',
+  'rule:regional-effects',
 ];
 
 export const EXPECTED_SRD_5_1_TABLE_NAMES: readonly string[] = [
@@ -1141,7 +1203,9 @@ export const EXPECTED_SRD_5_1_TABLE_NAMES: readonly string[] = [
   'Damage Severity by Level',
   'Difficulty Classes',
   'Exotic Languages',
+  'Experience Points by Challenge Rating',
   'Food, Drink, and Lodging',
+  'Hit Dice by Size',
   'Indefinite Madness',
   'Lifestyle Expenses',
   'Long-Term Madness',
@@ -1150,8 +1214,10 @@ export const EXPECTED_SRD_5_1_TABLE_NAMES: readonly string[] = [
   'Multiclassing Proficiencies',
   'Object Armor Class',
   'Object Hit Points',
+  'Proficiency Bonus by Challenge Rating',
   'Services',
   'Short-Term Madness',
+  'Size Categories',
   'Standard Exchange Rates',
   'Standard Languages',
   'Trade Goods',
@@ -2091,11 +2157,57 @@ export async function runImporter(
     ),
     { name: 'Traps', keySlug: 'traps' },
   );
+  // Monsters-chapter stat-block interpretation rules (eshyra-0m9.22): the
+  // pp254-260 prose that explains how to READ a stat block (Size, Type,
+  // Alignment, Armor Class, Hit Points, Speed and its movement modes, Ability
+  // Scores, Saving Throws, Skills, Vulnerabilities/Resistances/Immunities,
+  // Senses and the four special senses, Languages/Telepathy, Challenge/XP,
+  // Special Traits and its three leaves, Actions and its three leaves,
+  // Reactions, Limited Usage, Equipment, and the Legendary Creatures tree)
+  // plus the chapter's three h≈10.8 gray callout boxes (Modifying Creatures;
+  // Armor, Weapon, and Tool Proficiencies; Grapple Rules for Monsters), which
+  // the heading parser emits via its sidebar tier. The rules region is carved
+  // from the already-bounded `monsterPages` slice by truncating before the
+  // first alphabetic group heading "Monsters (A)" (h≈18 — the same
+  // truncate-a-bounded-slice pattern as `trapRulePages`). `missingBoundary:
+  // 'empty'` degrades reduced fixture PDFs (stat blocks only, no group
+  // heading) to no monster rules; the real import stays fail-closed via
+  // `expectedRuleKeys`. The chapter's "Monsters" title line is consumed by
+  // the section anchor, so the `chapterIntro` option both emits the opening
+  // stat-block paragraph as `rule:monsters` and seeds "Monsters" as the
+  // tier-0 ancestor — the seven headings whose titles other slices already
+  // own (Alignment, Armor Class, Speed, Saving Throws, Skills, Languages,
+  // Reactions) parent-qualify to `rule:monsters-*` instead of degrading to
+  // numeric suffixes. The chapter's four h≈12 reference-table captions (Size
+  // Categories; Hit Dice by Size; Proficiency Bonus by Challenge Rating;
+  // Experience Points by Challenge Rating) are excluded from rule emission
+  // via `TABLE_CAPTION_LEAF_TITLES`; the `table` kind owns those records
+  // from the same slice.
+  const monsterRulePages = truncateBeforeFirst(
+    monsterPages,
+    /^Monsters \(A\)$/,
+    'empty',
+  );
+  const monsterRules = parseRules(
+    monsterRulePages,
+    new Set(
+      [
+        ...rulesBeforeBeyondFirstLevel,
+        ...beyondFirstLevelRules,
+        ...magicItemRules,
+        ...trapRules,
+      ]
+        .map((rule) => rule.keySlug)
+        .filter((slug): slug is string => slug !== undefined),
+    ),
+    { name: 'Monsters', keySlug: 'monsters' },
+  );
   const nonClassRules = [
     ...rulesBeforeBeyondFirstLevel,
     ...beyondFirstLevelRules,
     ...magicItemRules,
     ...trapRules,
+    ...monsterRules,
   ];
   // The two trap reference tables live in the Traps slice (loreweaver-hvp); feed
   // it alongside the core-rules and treasure slices so parseTables reconstructs
@@ -2109,7 +2221,12 @@ export async function runImporter(
   // the Standard Exchange Rates coin matrix (p62) and the Expenses slice carries
   // the Trade Goods / Lifestyle / Food/Drink/Lodging / Services cost tables
   // (eshyra-0m9.19); both are fed alongside so parseTables reconstructs them by
-  // their unique column-header anchors.
+  // their unique column-header anchors. The Monsters-chapter rules sub-slice
+  // carries the four monster reference tables (Size Categories — disambiguated
+  // from the core-rules Combat table of the same caption by its
+  // "Size Space Examples" header row — Hit Dice by Size, Proficiency Bonus by
+  // Challenge Rating, and Experience Points by Challenge Rating;
+  // eshyra-0m9.22).
   const tables = parseTables([
     ...coreRulePages,
     ...treasureTablePages,
@@ -2119,6 +2236,7 @@ export async function runImporter(
     ...beyondFirstLevelPages,
     ...equipmentPages,
     ...expensesPages,
+    ...monsterRulePages,
   ]);
   validateTableCoverage(tables, input.expectedTableNames);
   // Sliced after the other sections so the existing fail-closed tests trip on
@@ -2287,10 +2405,22 @@ function sliceSectionOrEmptyPages(
  * Throws `SectionNotFoundError('end', pattern)` when `pages` is non-empty
  * and the pattern is not found — a non-empty slice with no recognizable
  * boundary is treated as a hard error, not a silent over-extraction.
+ *
+ * `missingBoundary: 'empty'` (eshyra-0m9.22) instead degrades a missing
+ * boundary to an EMPTY result. The Monsters chapter needs this: fixture PDFs
+ * carry a reduced Monsters section (stat blocks only, no "Monsters (A)" group
+ * heading and no interpretation-rules prose), so a missing boundary there
+ * means "this source has no monster-rules region", not over-extraction —
+ * returning all pages would feed stat blocks to the rule parser, and throwing
+ * would break every reduced-fixture pipeline. The real import stays
+ * fail-closed through `expectedRuleKeys`: if the real PDF's boundary ever
+ * drifts, the silently-empty monster-rules slice yields missing rule keys and
+ * `RuleCoverageError` refuses to write the pack.
  */
 function truncateBeforeFirst(
   pages: readonly import('./types.js').PageText[],
   pattern: RegExp,
+  missingBoundary: 'throw' | 'empty' = 'throw',
 ): readonly import('./types.js').PageText[] {
   if (pages.length === 0) return pages;
   const out: import('./types.js').PageText[] = [];
@@ -2317,5 +2447,6 @@ function truncateBeforeFirst(
       return out;
     }
   }
+  if (missingBoundary === 'empty') return [];
   throw new SectionNotFoundError('end', pattern);
 }

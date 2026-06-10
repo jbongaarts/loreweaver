@@ -5,17 +5,19 @@
  * deliberately narrow: row-regex reconstruction for the simple reference
  * tables and column-block reconstruction for the treasure challenge tables.
  *
- * Nineteen tables are present in the vendored SRD 5.1 PDF: Difficulty Classes,
- * two trap tables, three Madness effect tables, the Object Armor Class /
- * Object Hit Points tables, the six "Beyond 1st Level" reference tables
- * (Character Advancement, Multiclassing Prerequisites, Multiclassing
+ * Twenty-three tables are present in the vendored SRD 5.1 PDF: Difficulty
+ * Classes, two trap tables, three Madness effect tables, the Object Armor
+ * Class / Object Hit Points tables, the six "Beyond 1st Level" reference
+ * tables (Character Advancement, Multiclassing Prerequisites, Multiclassing
  * Proficiencies, Standard Languages, Exotic Languages — eshyra-0m9.23 — and
- * Multiclass Spellcaster: Spell Slots per Spell Level — eshyra-0m9.18), and
- * the five money/downtime tables (Standard Exchange Rates, Trade Goods,
- * Lifestyle Expenses, Food/Drink/Lodging, Services; eshyra-0m9.19).
- * XP-threshold and treasure-table reconstruction rules match no section in
- * this source and remain fixture-only. See the importer README's
- * "Reference-table coverage" section.
+ * Multiclass Spellcaster: Spell Slots per Spell Level — eshyra-0m9.18), the
+ * five money/downtime tables (Standard Exchange Rates, Trade Goods, Lifestyle
+ * Expenses, Food/Drink/Lodging, Services; eshyra-0m9.19), and the four
+ * Monsters-chapter reference tables (Size Categories, Hit Dice by Size,
+ * Proficiency Bonus by Challenge Rating, Experience Points by Challenge
+ * Rating; eshyra-0m9.22). XP-threshold and treasure-table reconstruction
+ * rules match no section in this source and remain fixture-only. See the
+ * importer README's "Reference-table coverage" section.
  */
 
 import type { PageText, TableExtraction } from './types.js';
@@ -1008,6 +1010,132 @@ const SERVICES_SPEC: GroupedCostTableSpec = {
   expectedRows: 7,
 };
 
+// The four Monsters-chapter reference tables live in the chapter's
+// stat-block-rules region (pp254-258), fed into `parseTables` via the
+// `monsterRulePages` sub-slice (eshyra-0m9.22).
+//
+// Size Categories (p254) shares its caption with the core-rules Combat
+// chapter's two-column Size/Space table (p92), and both captions are present
+// in the concatenated input, so this parser anchors on the Monsters version's
+// unique header row ("Size Space Examples") rather than on the ambiguous
+// caption. Each row carries a size word, a space cell ("2½ by 2½ ft.", with
+// the Gargantuan "or larger" suffix), and a verbatim examples cell.
+const SIZE_CATEGORIES_HEADER = /^Size Space Examples$/i;
+const SIZE_CATEGORIES_ROW =
+  /^(Tiny|Small|Medium|Large|Huge|Gargantuan)\s+(.+?\bft\.(?: or larger)?)\s+(.+)$/;
+
+function parseSizeCategoriesRow(
+  line: string,
+): readonly [string, string, string] | undefined {
+  const match = SIZE_CATEGORIES_ROW.exec(line);
+  if (match === null) return undefined;
+  return [match[1], match[2], match[3]];
+}
+
+function parseSizeCategories(
+  flat: readonly FlatLine[],
+): TableExtraction | undefined {
+  const anchor = findAnchor(flat, SIZE_CATEGORIES_HEADER);
+  if (anchor === undefined) return undefined;
+  const rows = collectRows(flat, anchor.idx + 1, parseSizeCategoriesRow);
+  if (rows.length === 0) return undefined;
+  return {
+    name: 'Size Categories',
+    columns: ['Size', 'Space', 'Examples'],
+    rows,
+    sourcePage: anchor.page,
+  };
+}
+
+// Hit Dice by Size (p256): size word, hit die, and the verbatim half-point
+// average ("2½" … "10½").
+const HIT_DICE_BY_SIZE_ANCHOR = /^Hit Dice by Size$/i;
+const HIT_DICE_BY_SIZE_ROW =
+  /^(Tiny|Small|Medium|Large|Huge|Gargantuan)\s+(d\d+)\s+(\d+½)$/;
+
+function parseHitDiceBySizeRow(
+  line: string,
+): readonly [string, string, string] | undefined {
+  const match = HIT_DICE_BY_SIZE_ROW.exec(line);
+  if (match === null) return undefined;
+  return [match[1], match[2], match[3]];
+}
+
+function parseHitDiceBySize(
+  flat: readonly FlatLine[],
+): TableExtraction | undefined {
+  const anchor = findAnchor(flat, HIT_DICE_BY_SIZE_ANCHOR);
+  if (anchor === undefined) return undefined;
+  const rows = collectRows(flat, anchor.idx + 1, parseHitDiceBySizeRow);
+  if (rows.length === 0) return undefined;
+  return {
+    name: 'Hit Dice by Size',
+    columns: ['Monster Size', 'Hit Die', 'Average HP per Die'],
+    rows,
+    sourcePage: anchor.page,
+  };
+}
+
+// Proficiency Bonus by Challenge Rating (p256) and Experience Points by
+// Challenge Rating (p258) print as PAIRED columns: each physical line carries
+// two logical rows side by side ("1/8 +2 15 +5"; "1/8 25 15 13,000"), with the
+// low challenge ratings in the left pair and the high ones in the right pair.
+// A four-group row regex splits each physical line; the table is rebuilt by
+// emitting every left pair in document order followed by every right pair, so
+// the logical rows run CR 0 → 30 top to bottom. Challenge ratings ("1/8") and
+// XP values ("11,500", and the CR 0 special case "0 or 10") are preserved as
+// verbatim cell text.
+interface PairedColumnSpec {
+  readonly anchorPattern: RegExp;
+  readonly name: string;
+  readonly columns: readonly [string, string];
+  readonly rowPattern: RegExp;
+}
+
+const PROFICIENCY_BONUS_BY_CR_SPEC: PairedColumnSpec = {
+  anchorPattern: /^Proficiency Bonus by Challenge Rating$/i,
+  name: 'Proficiency Bonus by Challenge Rating',
+  columns: ['Challenge', 'Proficiency Bonus'],
+  rowPattern: /^(\d+(?:\/\d+)?)\s+(\+\d+)\s+(\d+)\s+(\+\d+)$/,
+};
+
+const XP_BY_CR_SPEC: PairedColumnSpec = {
+  anchorPattern: /^Experience Points by Challenge Rating$/i,
+  name: 'Experience Points by Challenge Rating',
+  columns: ['Challenge', 'XP'],
+  // The CR 0 row's left XP cell is the prose "0 or 10" (0 XP without
+  // effective attacks, 10 XP with); the alternation must try it before the
+  // generic numeric cell so the right pair still anchors correctly.
+  rowPattern: /^(\d+(?:\/\d+)?)\s+(0 or 10|[\d,]+)\s+(\d+)\s+([\d,]+)$/,
+};
+
+function parsePairedColumnTable(
+  flat: readonly FlatLine[],
+  spec: PairedColumnSpec,
+): TableExtraction | undefined {
+  const anchor = findAnchor(flat, spec.anchorPattern);
+  if (anchor === undefined) return undefined;
+  const parseRow = (
+    line: string,
+  ): readonly [string, string, string, string] | undefined => {
+    const match = spec.rowPattern.exec(line);
+    if (match === null) return undefined;
+    return [match[1], match[2], match[3], match[4]];
+  };
+  const paired = collectRows(flat, anchor.idx + 1, parseRow);
+  if (paired.length === 0) return undefined;
+  const rows = [
+    ...paired.map((pair) => [pair[0], pair[1]]),
+    ...paired.map((pair) => [pair[2], pair[3]]),
+  ];
+  return {
+    name: spec.name,
+    columns: spec.columns,
+    rows,
+    sourcePage: anchor.page,
+  };
+}
+
 export function parseTables(pages: readonly PageText[]): TableExtraction[] {
   const flat = flatten(pages);
   const tables = [
@@ -1054,6 +1182,10 @@ export function parseTables(pages: readonly PageText[]): TableExtraction[] {
     parseLifestyleExpenses(flat),
     parseGroupedCostTable(flat, FOOD_DRINK_LODGING_SPEC),
     parseGroupedCostTable(flat, SERVICES_SPEC),
+    parseSizeCategories(flat),
+    parseHitDiceBySize(flat),
+    parsePairedColumnTable(flat, PROFICIENCY_BONUS_BY_CR_SPEC),
+    parsePairedColumnTable(flat, XP_BY_CR_SPEC),
     ...parseTreasureTables(flat),
   ].filter((table): table is TableExtraction => table !== undefined);
   tables.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
