@@ -115,6 +115,37 @@ describe('committed SRD source-coverage artifacts — integrity', () => {
       expect(beadId).toMatch(/^eshyra-/);
     }
   });
+
+  it('pins the exact coverage baseline so silent reclassification fails loudly', () => {
+    // A tight baseline: regenerating the artifacts can keep `unaccounted === 0`
+    // while quietly moving a covered structure into a broad known-gap rule
+    // (notably the class-chapter fallback `known-gap:eshyra-4a7.6`). The
+    // integrity checks above would miss that; these exact counts will not.
+    // When an eshyra-4a7.* gap bead lands and regenerates the artifacts, update
+    // these numbers in the same change that removes the matching curation rule.
+    expect(inventory).toHaveLength(2258);
+    expect(coverage.summary.record).toBe(1849);
+    expect(coverage.summary.childOf).toBe(12);
+    expect(coverage.summary.unaccounted).toBe(0);
+    expect(coverage.summary.ignored).toEqual({
+      'document-structure': 41,
+      'equipment-category-heading': 3,
+      'front-matter': 2,
+      'record-group-heading': 3,
+      'spell-list-header': 78,
+      'table-rows-emitted-as-records': 18,
+      'variant-rule-excluded': 2,
+    });
+    expect(coverage.summary.knownGap).toEqual({
+      'eshyra-4a7.3': 53,
+      'eshyra-4a7.4': 2,
+      'eshyra-4a7.5': 2,
+      'eshyra-4a7.6': 128,
+      'eshyra-4a7.7': 2,
+      'eshyra-4a7.8': 1,
+      'eshyra-4a7.10': 62,
+    });
+  });
 });
 
 describe('committed SRD source-coverage artifacts — known-gap sentinels', () => {
