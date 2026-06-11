@@ -3,7 +3,13 @@
  *
  * Runs the 0m9.5 importer against the vendored SRD 5.1 PDF into a temp
  * directory, then diffs the regenerated pack against the committed canonical
- * pack at `packages/core/data/rules-packs/rules__dnd5e-srd-5.1/`.
+ * pack at `packages/core/data/rules-packs/rules__dnd5e-srd-5.1/`. The run
+ * passes `SRD_5_1_COVERAGE_RULES`, so the source-structure coverage gate
+ * (eshyra-4a7.1) is enforced — an unaccounted source structure makes the
+ * importer throw (exit 2) — and the regenerated `source-inventory.json` +
+ * `source-coverage.json` artifacts are byte-diffed against the committed
+ * copies under the same exact-match contract as `records.json` (exit 1 on
+ * drift).
  *
  * Per the 0m9.6 design, the importer is treated as a one-shot construction
  * tool, not as a generator that runs on every PR. This command is the
@@ -37,7 +43,7 @@
  * `packages/core/scripts/importers/dnd5e-srd-5.1/README.md`).
  */
 
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -62,6 +68,7 @@ import {
   MIN_EXPECTED_SRD_5_1_SUBCLASSES,
   runImporter,
 } from '../importers/dnd5e-srd-5.1/index.js';
+import { SRD_5_1_COVERAGE_RULES } from '../importers/dnd5e-srd-5.1/sourceInventoryCoverage.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(HERE, '../../../..');
@@ -98,6 +105,7 @@ async function main(): Promise<void> {
         minSubclassCount: MIN_EXPECTED_SRD_5_1_SUBCLASSES,
         minFeatureCount: MIN_EXPECTED_SRD_5_1_FEATURES,
         minMagicItemCount: MIN_EXPECTED_SRD_5_1_MAGIC_ITEMS,
+        sourceCoverageRules: SRD_5_1_COVERAGE_RULES,
       });
     } catch (cause) {
       console.error(`importer failed: ${(cause as Error).message}`);
@@ -132,6 +140,43 @@ async function main(): Promise<void> {
       console.log('');
       console.log(
         'verify:dnd5e-srd-pack: committed pack differs from importer output.',
+      );
+      process.exit(1);
+    }
+
+    // Source-coverage artifacts (eshyra-4a7.1): the regenerated
+    // source-inventory.json + source-coverage.json must match the committed
+    // copies byte-for-byte — the same exact-match contract records.json has.
+    // Drift means an importer/extractor/rule change altered the source
+    // accounting without a matching artifact regeneration.
+    let artifactsDrifted = false;
+    for (const artifact of ['source-inventory.json', 'source-coverage.json']) {
+      let committedText: string;
+      try {
+        committedText = readFileSync(
+          join(COMMITTED_PACK_DIR, artifact),
+          'utf8',
+        );
+      } catch (cause) {
+        console.error(
+          `committed ${artifact} could not be read: ${(cause as Error).message}`,
+        );
+        process.exit(2);
+      }
+      const regeneratedText = readFileSync(join(tmpDir, artifact), 'utf8');
+      if (committedText === regeneratedText) {
+        console.log(`${artifact}: matches regenerated output exactly.`);
+      } else {
+        console.log(
+          `${artifact}: DIFFERS from regenerated output. Regenerate the canonical pack (npm run import:dnd5e-srd -- --out ${COMMITTED_PACK_DIR}), review the artifact diff, and commit it alongside the change that caused it.`,
+        );
+        artifactsDrifted = true;
+      }
+    }
+    if (artifactsDrifted) {
+      console.log('');
+      console.log(
+        'verify:dnd5e-srd-pack: committed source-coverage artifacts differ from importer output.',
       );
       process.exit(1);
     }

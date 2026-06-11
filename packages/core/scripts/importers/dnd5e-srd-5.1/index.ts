@@ -42,7 +42,11 @@
 
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { buildPack, writePackToDirectory } from './emit.js';
+import {
+  buildPack,
+  writePackToDirectory,
+  writeSourceCoverageArtifacts,
+} from './emit.js';
 import { extractPdfText } from './extract.js';
 import { parseActions } from './parseActions.js';
 import { parseAncestries } from './parseAncestries.js';
@@ -73,6 +77,13 @@ import {
   type Srd51SectionAnchors,
   sliceSection,
 } from './sections.js';
+import { buildSourceInventory } from './sourceInventory.js';
+import {
+  assertSourceCoverage,
+  buildSourceCoverageReport,
+  type CoverageRule,
+  evaluateSourceCoverage,
+} from './sourceInventoryCoverage.js';
 import type {
   AncestryExtraction,
   BackgroundExtraction,
@@ -1583,6 +1594,20 @@ export interface RunImporterInput {
    * legitimately carry no Backgrounds chapter.
    */
   readonly expectedBackgroundNames?: readonly string[];
+  /**
+   * Source-structure coverage gate (eshyra-4a7.1). When provided, the
+   * importer builds the typography-derived source inventory
+   * (`buildSourceInventory`) from the extracted pages, evaluates it against
+   * the emitted records with these rules, throws
+   * `SourceInventoryCoverageError` on any unaccounted source structure
+   * (before any output is written), and writes `source-inventory.json` +
+   * `source-coverage.json` review artifacts next to the pack files. The
+   * real-import CLI passes `SRD_5_1_COVERAGE_RULES`. Fixture pipelines omit
+   * this: fixture PDFs render at a uniform body font size that lands every
+   * line in the inventory's leaf band, so the typography tiers carry no
+   * signal there and the gate would reject fixture body text.
+   */
+  readonly sourceCoverageRules?: readonly CoverageRule[];
 }
 
 /**
@@ -2472,7 +2497,38 @@ export async function runImporter(
     backgrounds,
     sourceHash,
   });
+  // Source-structure coverage gate (eshyra-4a7.1): every typography-derived
+  // source structure must be an emitted record, structured child data,
+  // intentionally ignored with a reason, or a tracked known gap. Evaluated
+  // against the FINAL emitted records and asserted before any output is
+  // written, so an unaccounted source structure fails the run closed.
+  let sourceCoverageArtifacts:
+    | {
+        readonly inventory: ReturnType<typeof buildSourceInventory>;
+        readonly report: ReturnType<typeof buildSourceCoverageReport>;
+      }
+    | undefined;
+  if (input.sourceCoverageRules !== undefined) {
+    const inventory = buildSourceInventory(pages);
+    const coverageEntries = evaluateSourceCoverage(
+      inventory,
+      pack.records,
+      input.sourceCoverageRules,
+    );
+    assertSourceCoverage(coverageEntries);
+    sourceCoverageArtifacts = {
+      inventory,
+      report: buildSourceCoverageReport(coverageEntries),
+    };
+  }
   writePackToDirectory(pack, { outDir: input.outDir });
+  if (sourceCoverageArtifacts !== undefined) {
+    writeSourceCoverageArtifacts(
+      sourceCoverageArtifacts.inventory,
+      sourceCoverageArtifacts.report,
+      { outDir: input.outDir },
+    );
+  }
   return {
     outDir: input.outDir,
     sourceHash,

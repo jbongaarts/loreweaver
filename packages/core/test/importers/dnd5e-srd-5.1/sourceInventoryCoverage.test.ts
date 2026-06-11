@@ -1,0 +1,301 @@
+/**
+ * Tests for the SRD source-coverage evaluator (eshyra-4a7.1.2).
+ *
+ * The evaluator is the gate half of the source-coverage pair: it takes the
+ * typography-derived inventory (sourceInventory.ts) plus the emitted records
+ * and decides, for every source item, exactly one accounting status. Anything
+ * left `unaccounted` must fail the import — that fail-closed posture is the
+ * whole point (eshyra-4a7.1).
+ */
+
+import { describe, expect, it } from 'vitest';
+import type { SourceInventoryItem } from '../../../scripts/importers/dnd5e-srd-5.1/sourceInventory.js';
+import {
+  assertSourceCoverage,
+  buildSourceCoverageReport,
+  childOfRule,
+  evaluateSourceCoverage,
+  formatCoverageStatus,
+  ignoreRule,
+  knownGapRule,
+  recordRule,
+  SourceInventoryCoverageError,
+} from '../../../scripts/importers/dnd5e-srd-5.1/sourceInventoryCoverage.js';
+
+function item(overrides: Partial<SourceInventoryItem>): SourceInventoryItem {
+  return {
+    page: 1,
+    lineIndex: 0,
+    text: 'Placeholder',
+    tier: 'leaf',
+    structure: 'heading',
+    section: null,
+    context: null,
+    ...overrides,
+  };
+}
+
+const records = [
+  { kind: 'creature', key: 'creature:aboleth', name: 'Aboleth' },
+  {
+    kind: 'feature',
+    key: 'feature:fighter:improved-critical',
+    name: 'Improved Critical',
+  },
+  {
+    kind: 'feature',
+    key: 'feature:paladin:improved-critical',
+    name: 'Improved Critical',
+  },
+] as const;
+
+describe('evaluateSourceCoverage — name auto-match', () => {
+  it('matches an item to a record by normalized name', () => {
+    const entries = evaluateSourceCoverage(
+      [item({ text: 'Aboleth', structure: 'stat-block' })],
+      records,
+      [],
+    );
+    expect(entries).toEqual([
+      expect.objectContaining({
+        status: { kind: 'record', key: 'creature:aboleth' },
+      }),
+    ]);
+  });
+
+  it('matches case-insensitively and normalizes curly quotes', () => {
+    const entries = evaluateSourceCoverage(
+      [item({ text: 'ABOLETH' })],
+      [{ kind: 'creature', key: 'creature:aboleth', name: 'Aboleth' }],
+      [],
+    );
+    expect(entries[0].status).toEqual({
+      kind: 'record',
+      key: 'creature:aboleth',
+    });
+    const curly = evaluateSourceCoverage(
+      [item({ text: 'Hunter’s Prey' })],
+      [
+        {
+          kind: 'feature',
+          key: 'feature:ranger:hunters-prey',
+          name: "Hunter's Prey",
+        },
+      ],
+      [],
+    );
+    expect(curly[0].status).toEqual({
+      kind: 'record',
+      key: 'feature:ranger:hunters-prey',
+    });
+  });
+
+  it('resolves duplicate record names to the lexicographically first key', () => {
+    const entries = evaluateSourceCoverage(
+      [item({ text: 'Improved Critical' })],
+      records,
+      [],
+    );
+    expect(entries[0].status).toEqual({
+      kind: 'record',
+      key: 'feature:fighter:improved-critical',
+    });
+  });
+});
+
+describe('evaluateSourceCoverage — rules and defaults', () => {
+  it('applies ignore, known-gap, and child-of rules in order after auto-match', () => {
+    const inventory = [
+      item({ text: 'Aboleth' }), // auto-match wins even though a rule would also match
+      item({ text: 'Wizard Spells', lineIndex: 1 }),
+      item({ text: 'Figurine of Wondrous Power', lineIndex: 2 }),
+      item({
+        text: 'd10 Damage Type Gem',
+        lineIndex: 3,
+        structure: 'table-shape',
+        tier: null,
+      }),
+    ];
+    const entries = evaluateSourceCoverage(inventory, records, [
+      ignoreRule('spell-list-header', (i) => / Spells$/.test(i.text)),
+      knownGapRule(
+        'eshyra-4a7.8',
+        (i) => i.text === 'Figurine of Wondrous Power',
+      ),
+      childOfRule(
+        'magic-item:ring-of-resistance',
+        (i) => i.structure === 'table-shape',
+      ),
+      // A later rule matching an already-matched item must not override.
+      ignoreRule('too-late', (i) => i.text === 'Aboleth'),
+    ]);
+    expect(entries.map((e) => e.status)).toEqual([
+      { kind: 'record', key: 'creature:aboleth' },
+      { kind: 'ignored', reason: 'spell-list-header' },
+      { kind: 'known-gap', beadId: 'eshyra-4a7.8' },
+      { kind: 'child-of', key: 'magic-item:ring-of-resistance' },
+    ]);
+  });
+
+  it('auto-ignores chapter and section tiers as document structure when unmatched', () => {
+    const entries = evaluateSourceCoverage(
+      [
+        item({ text: 'Races', tier: 'chapter' }),
+        item({ text: 'Class Features', tier: 'section', lineIndex: 1 }),
+      ],
+      [],
+      [],
+    );
+    expect(entries.map((e) => e.status)).toEqual([
+      { kind: 'ignored', reason: 'document-structure' },
+      { kind: 'ignored', reason: 'document-structure' },
+    ]);
+  });
+
+  it('maps a renamed heading to its record via recordRule', () => {
+    // The SRD prints "Lightfoot" while the emitted record is named
+    // "Lightfoot Halfling" — auto-match misses, the rule claims it.
+    const entries = evaluateSourceCoverage(
+      [item({ text: 'Lightfoot' })],
+      [
+        {
+          kind: 'ancestry',
+          key: 'ancestry:lightfoot-halfling',
+          name: 'Lightfoot Halfling',
+        },
+      ],
+      [
+        recordRule(
+          'ancestry:lightfoot-halfling',
+          (i) => i.text === 'Lightfoot',
+        ),
+      ],
+    );
+    expect(entries[0].status).toEqual({
+      kind: 'record',
+      key: 'ancestry:lightfoot-halfling',
+    });
+  });
+
+  it('leaves unmatched leaf/sidebar/table items unaccounted', () => {
+    const entries = evaluateSourceCoverage(
+      [item({ text: 'Mystery Heading' })],
+      records,
+      [],
+    );
+    expect(entries[0].status).toEqual({ kind: 'unaccounted' });
+  });
+
+  it('sorts entries by page then lineIndex regardless of input order', () => {
+    const entries = evaluateSourceCoverage(
+      [
+        item({ text: 'B', page: 2, lineIndex: 0 }),
+        item({ text: 'A', page: 1, lineIndex: 5 }),
+        item({ text: 'C', page: 1, lineIndex: 2 }),
+      ],
+      [],
+      [ignoreRule('test', () => true)],
+    );
+    expect(entries.map((e) => e.item.text)).toEqual(['C', 'A', 'B']);
+  });
+});
+
+describe('assertSourceCoverage', () => {
+  it('throws SourceInventoryCoverageError naming every unaccounted item with provenance', () => {
+    const entries = evaluateSourceCoverage(
+      [
+        item({
+          text: 'Mystery Heading',
+          page: 42,
+          lineIndex: 7,
+          section: 'Magic Items',
+        }),
+        item({ text: 'Aboleth', page: 261 }),
+      ],
+      records,
+      [],
+    );
+    expect(() => assertSourceCoverage(entries)).toThrow(
+      SourceInventoryCoverageError,
+    );
+    try {
+      assertSourceCoverage(entries);
+      expect.unreachable();
+    } catch (error) {
+      const message = (error as Error).message;
+      expect(message).toContain('Mystery Heading');
+      expect(message).toContain('p42');
+      expect(message).toContain('Magic Items');
+      expect(message).not.toContain('Aboleth');
+    }
+  });
+
+  it('passes silently when every item is accounted for', () => {
+    const entries = evaluateSourceCoverage(
+      [item({ text: 'Aboleth' })],
+      records,
+      [],
+    );
+    expect(() => assertSourceCoverage(entries)).not.toThrow();
+  });
+});
+
+describe('coverage report serialization', () => {
+  it('formats every status kind as a stable one-line string', () => {
+    expect(
+      formatCoverageStatus({ kind: 'record', key: 'creature:aboleth' }),
+    ).toBe('record:creature:aboleth');
+    expect(
+      formatCoverageStatus({ kind: 'child-of', key: 'background:acolyte' }),
+    ).toBe('child-of:background:acolyte');
+    expect(
+      formatCoverageStatus({ kind: 'ignored', reason: 'front-matter' }),
+    ).toBe('ignored:front-matter');
+    expect(
+      formatCoverageStatus({ kind: 'known-gap', beadId: 'eshyra-4a7.3' }),
+    ).toBe('known-gap:eshyra-4a7.3');
+    expect(formatCoverageStatus({ kind: 'unaccounted' })).toBe('unaccounted');
+  });
+
+  it('builds a report with rolled-up summary counts and reading-order entries', () => {
+    const entries = evaluateSourceCoverage(
+      [
+        item({ text: 'Aboleth', page: 261 }),
+        item({ text: 'Wizard Spells', page: 111 }),
+        item({ text: 'Bard Spells', page: 105 }),
+        item({ text: 'Figurine of Wondrous Power', page: 221 }),
+        item({ text: 'Mystery Heading', page: 999 }),
+      ],
+      records,
+      [
+        ignoreRule('spell-list-header', (i) => / Spells$/.test(i.text)),
+        knownGapRule('eshyra-4a7.8', (i) => i.text.startsWith('Figurine')),
+      ],
+    );
+    const report = buildSourceCoverageReport(entries);
+    expect(report.summary).toEqual({
+      record: 1,
+      childOf: 0,
+      ignored: { 'spell-list-header': 2 },
+      knownGap: { 'eshyra-4a7.8': 1 },
+      unaccounted: 1,
+    });
+    expect(report.entries.map((e) => `${e.page}:${e.status}`)).toEqual([
+      '105:ignored:spell-list-header',
+      '111:ignored:spell-list-header',
+      '221:known-gap:eshyra-4a7.8',
+      '261:record:creature:aboleth',
+      '999:unaccounted',
+    ]);
+    // Entries carry the locator fields a reviewer needs.
+    expect(report.entries[0]).toEqual({
+      page: 105,
+      lineIndex: 0,
+      tier: 'leaf',
+      structure: 'heading',
+      text: 'Bard Spells',
+      section: null,
+      status: 'ignored:spell-list-header',
+    });
+  });
+});

@@ -24,6 +24,8 @@ import type {
   RulesRecord,
 } from '../../../src/rules/types.js';
 import { validateRulesPack } from '../../../src/rules/validate.js';
+import type { SourceInventoryItem } from './sourceInventory.js';
+import type { SourceCoverageReport } from './sourceInventoryCoverage.js';
 import type {
   ActionExtraction,
   AncestryExtraction,
@@ -1016,6 +1018,35 @@ export function writePackToDirectory(
   writeFileSync(
     join(options.outDir, 'records.json'),
     stringify(pack.records),
+    'utf8',
+  );
+}
+
+/** File names of the source-coverage artifacts written next to the pack. */
+export const SOURCE_INVENTORY_FILE = 'source-inventory.json';
+export const SOURCE_COVERAGE_FILE = 'source-coverage.json';
+
+/**
+ * Write the source-structure inventory and its coverage report next to the
+ * pack files (eshyra-4a7.1). These are review artifacts, not pack data:
+ * `loadRulesPackFromDirectory` reads only `manifest.json` + `records.json`
+ * by name and tolerates extra files in the directory. Same stable JSON
+ * serialization as the pack files so regeneration is byte-stable.
+ */
+export function writeSourceCoverageArtifacts(
+  inventory: readonly SourceInventoryItem[],
+  report: SourceCoverageReport,
+  options: WritePackOptions,
+): void {
+  mkdirSync(options.outDir, { recursive: true });
+  writeFileSync(
+    join(options.outDir, SOURCE_INVENTORY_FILE),
+    stringify(inventory),
+    'utf8',
+  );
+  writeFileSync(
+    join(options.outDir, SOURCE_COVERAGE_FILE),
+    stringify(report),
     'utf8',
   );
 }

@@ -380,6 +380,11 @@ function buildReadme(meta: {
     '- `suspicious-records.json` — records flagged by the generic audit heuristics',
     '- `partial-fields.json` — fields present on some but not all records of a kind',
     '- `unicode-scan.json` — records containing invisible hyphens or control chars',
+    '- `source-inventory.json` — typography-derived inventory of every source',
+    '  structure in the PDF (headings, table captions, stat blocks, table runs)',
+    '- `source-coverage.json` — per-structure accounting status (record /',
+    '  child-of / ignored / known-gap) with a roll-up summary; `unaccounted`',
+    '  must be 0 or the importer refuses to write the pack (eshyra-4a7.1)',
     '- `source-hash-verification.txt` — SHA-256 and size check for the vendored PDF',
     '',
     '## How to reproduce',
@@ -582,6 +587,39 @@ async function main(): Promise<void> {
     );
   }
 
+  // 6c. Source-coverage artifacts (eshyra-4a7.1): copy the committed
+  // typography-derived source inventory + coverage report into reports/ and
+  // summarize the accounting so the bundle shows which source structures are
+  // records, child data, reasoned ignores, or tracked known gaps.
+  log('Copying source-coverage artifacts...');
+  cpSync(
+    join(COMMITTED_PACK_DIR, 'source-inventory.json'),
+    join(outDir, 'reports/source-inventory.json'),
+  );
+  cpSync(
+    join(COMMITTED_PACK_DIR, 'source-coverage.json'),
+    join(outDir, 'reports/source-coverage.json'),
+  );
+  const sourceCoverage = JSON.parse(
+    readFileSync(join(COMMITTED_PACK_DIR, 'source-coverage.json'), 'utf8'),
+  ) as {
+    summary: {
+      record: number;
+      childOf: number;
+      ignored: Record<string, number>;
+      knownGap: Record<string, number>;
+      unaccounted: number;
+    };
+    entries: unknown[];
+  };
+  const knownGapTotal = Object.values(sourceCoverage.summary.knownGap).reduce(
+    (a, b) => a + b,
+    0,
+  );
+  log(
+    `  ${sourceCoverage.entries.length} source structures: ${sourceCoverage.summary.unaccounted} unaccounted, ${knownGapTotal} known-gap`,
+  );
+
   // 7. Record keys by kind
   log('Generating record key listing...');
   const rawRecords = JSON.parse(
@@ -674,6 +712,12 @@ async function main(): Promise<void> {
           hasFindings: srdAuditHasFindings(srdAudit),
         }
       : null,
+    sourceCoverage: {
+      inventoryItems: sourceCoverage.entries.length,
+      unaccounted: sourceCoverage.summary.unaccounted,
+      knownGapTotal,
+      knownGapByBead: sourceCoverage.summary.knownGap,
+    },
     pdfPages: pages.length,
     unicodeScan: {
       scanned: rawRecords.length,
@@ -728,6 +772,9 @@ async function main(): Promise<void> {
   if (srdAudit) {
     log(`  SRD structure/coverage findings: ${srdAudit.findings.length}`);
   }
+  log(
+    `  Source coverage: ${sourceCoverage.entries.length} structures, ${sourceCoverage.summary.unaccounted} unaccounted, ${knownGapTotal} known-gap`,
+  );
 }
 
 main().catch((err) => {

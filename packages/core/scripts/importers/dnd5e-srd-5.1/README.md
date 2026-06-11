@@ -469,6 +469,73 @@ Per the `loreweaver-0m9.5` scope rule, the importer must not emit empty stubs
 for kinds it does not yet cover -- landing a stub parser without real
 extraction would let the generated pack pose as more complete than it is.
 
+## Source-structure coverage gate
+
+The importer is self-auditing against the source PDF (eshyra-4a7.1): every
+source structure the PDF's own typography identifies must be accounted for,
+or the import refuses to write a pack.
+
+**Inventory** (`sourceInventory.ts`): a pure scan of the extracted
+`PageText[]` driven by per-line rendered font heights (`lineHeights`).
+Measured tier map for the vendored `SRD_CC_v5.1.pdf`:
+
+| height | tier         | examples                                              |
+| ------ | ------------ | ----------------------------------------------------- |
+| ≈25.9  | `chapter`    | chapter titles, class names                           |
+| ≈18.0  | `section`    | section titles ("Spell Lists", "Sacred Oaths")        |
+| ≈13.9  | `subsection` | subsection headings, subclass names                   |
+| ≈12.0  | `leaf`       | spells, magic items, creatures, features, captions    |
+| ≈10.8  | `sidebar`    | gray callout-box headings                             |
+| ≈10.0  | (excluded)   | page-1/2 legal front matter                           |
+| ≈9.8   | (excluded)   | body prose                                            |
+| ≈8.9   | table cells  | become `table-shape` runs / `table-caption` evidence  |
+
+Structural classification on top of the tiers: a heading followed by a
+size/type/alignment line is a `stat-block`; a heading followed by
+table-cell-height lines is a `table-caption`; a table-cell run not owned by a
+caption is a `table-shape` item of its own.
+
+**Coverage** (`sourceInventoryCoverage.ts`): every inventory item resolves to
+exactly one status — name auto-match against the emitted records first, then
+the curated `SRD_5_1_COVERAGE_RULES` (first match wins), then a
+document-structure default for unmatched chapter/section tiers, else
+`unaccounted`, which makes `runImporter` throw before writing anything. The
+gate is opt-in per run (`RunImporterInput.sourceCoverageRules`) because
+fixture PDFs render at one body size and carry no tier signal; the CLI and
+`verify:dnd5e-srd-pack` always pass the curated rules.
+
+**Artifacts**: a gated run writes two review artifacts next to the pack
+files (the pack loader reads only `manifest.json`/`records.json` by name and
+tolerates them):
+
+- `source-inventory.json` — the raw inventory:
+  `[{ page, lineIndex, text, tier, structure, section, context }, …]`.
+- `source-coverage.json` — `{ summary, entries }` where `summary` rolls up
+  counts (per ignore reason and per known-gap bead) and each entry carries
+  the item's locator fields plus a one-line `status`:
+  `record:<key>` | `child-of:<key>` | `ignored:<reason>` |
+  `known-gap:<beadId>` | `unaccounted`.
+
+**Rule curation lifecycle**: rules are predicates over understood classes of
+source structure, never per-item allowlists. `ignored` is reserved for
+genuine non-content (e.g. spell-list level headers; equipment tables whose
+rows ARE the equipment records) and documented intentional exclusions.
+Anything that should become a record or child data is a
+`known-gap:<beadId>` pointing at the bead that will close it — when that
+bead lands and starts emitting the records, the auto-match claims the items,
+the known-gap rule is REMOVED, the canonical artifacts are regenerated, and
+the sentinel tests in `srdSourceInventoryArtifact.test.ts` are updated in
+the same change. Leaving a stale known-gap rule in place would let a future
+regression of that coverage pass silently.
+
+`verify:dnd5e-srd-pack` byte-diffs the regenerated artifacts against the
+committed copies (the same exact-match contract as `records.json`), and the
+audit bundle copies both artifacts into `reports/` with the accounting
+summary in `metadata.json`. The hand-curated name lists in
+`sourceCoverage.ts` remain as an independent source-truth regression net;
+the typography inventory is the structural superset that also catches
+structures nobody has listed yet.
+
 ## Determinism
 
 The importer is deterministic in two senses:
