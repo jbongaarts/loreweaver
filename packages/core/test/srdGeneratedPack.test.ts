@@ -647,15 +647,23 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
       ]);
     });
 
-    it('keeps the Oath of Devotion description beyond its spells table', () => {
+    it('bounds the Oath of Devotion description to its overview (eshyra-4a7.2)', () => {
+      // Before eshyra-4a7.2 the subclass description ran past the Oath Spells
+      // table to swallow the Aura of Devotion / Purity of Spirit / Holy Nimbus
+      // feature bodies. The bounded-span parser now stops at the first feature
+      // heading, so the blurb is just the archetype overview and the features
+      // live only in their own `feature:oath-of-devotion:*` records. The
+      // body-font "Paladin" spell-table cell (h≈8.9) is still not mistaken for
+      // the parent-class heading (the original loreweaver-fak concern).
       const oath = pack.records.find(
         (record) => record.key === 'subclass:oath-of-devotion',
       );
       const description = (oath?.data as { description?: unknown }).description;
       expect(typeof description).toBe('string');
-      expect(description).toContain('Oath of Devotion Spells');
-      expect(description).toContain('Aura of Devotion');
-      expect(description).toContain('Holy Nimbus');
+      expect(description).toContain('binds a paladin to the loftiest ideals');
+      expect(description).not.toContain('Oath of Devotion Spells');
+      expect(description).not.toContain('Aura of Devotion');
+      expect(description).not.toContain('Holy Nimbus');
     });
   });
 
@@ -1602,13 +1610,19 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
       });
     }
 
-    it('keeps the bounded School of Evocation content intact up to Overchannel', () => {
-      // The subclass body still ends with its last feature (Overchannel), and
-      // the Overchannel feature record still carries its full 14th-level text —
-      // the fix removes only the trailing sidebar, not real subclass content.
+    it('bounds the School of Evocation blurb to its overview, with feature text in its own records', () => {
+      // eshyra-4a7.2: the subclass blurb is now just the arcane-tradition
+      // overview; the evocation feature bodies (Empowered Evocation's "This
+      // damage ignores resistance and immunity", etc.) live only in their own
+      // `feature:school-of-evocation:*` records, not the subclass description.
+      // The Overchannel feature still carries its full 14th-level text and is
+      // still bounded before the trailing "Your Spellbook" sidebar (the
+      // original loreweaver-6fw concern), proven by the cases above and here.
       const subclass = bodyOf('subclass:school-of-evocation');
       expect(subclass).toContain('You focus your study on magic');
-      expect(subclass).toContain('This damage ignores resistance and immunity');
+      expect(subclass).not.toContain(
+        'This damage ignores resistance and immunity',
+      );
       expect(bodyOf('feature:school-of-evocation:overchannel')).toContain(
         'you can deal maximum damage with that spell',
       );

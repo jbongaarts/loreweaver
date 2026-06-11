@@ -93,6 +93,17 @@ export const PARENT_CLASS_NAMES = new Set(
 // body is bounded here — only the real extraction is affected (loreweaver-6fw).
 const CALLOUT_BOX_MIN_H = 10.3;
 const CALLOUT_BOX_MAX_H = 11.5;
+// A subclass-granted feature heading renders at the leaf tier (h≈12.0 in the
+// real SRD, e.g. Champion's "Improved Critical", Circle of the Land's "Bonus
+// Cantrip"); the subclass-group / class-features section titles above it render
+// higher still (h≈18). Any heading at or above the callout-box ceiling that is
+// not itself a class or subclass heading therefore bounds the preceding
+// subclass's OVERVIEW prose, so the feature bodies — emitted as their own
+// `feature` records by `parseFeatures` — do not bleed into the subclass
+// description (eshyra-4a7.2). Using the callout-box ceiling keeps the tier band
+// contiguous: body < CALLOUT_BOX_MIN_H ≤ callout box < CALLOUT_BOX_MAX_H ≤
+// feature/section heading. Gated on `tiersPresent`, like the callout-box bound.
+const FEATURE_LEAF_MIN_H = CALLOUT_BOX_MAX_H;
 // Base-class chapter headings render at h≈25.9 in the real SRD, above every
 // nested class/subclass heading. Exact class-name text below this tier can be a
 // table cell (notably the "Paladin" header in the Oath of Devotion spells
@@ -251,6 +262,22 @@ export function parseSubclasses(
     }
     const sc = SUBCLASS_BY_NAME.get(line);
     if (sc !== undefined && sc.parent === currentParent) {
+      boundaries.push(i);
+      continue;
+    }
+    // A leaf/section heading (font tier at or above the callout-box ceiling)
+    // that is not itself a class or subclass heading is a subclass FEATURE
+    // heading (h≈12.0) or a structural group/section title. It bounds the
+    // preceding subclass's overview at its first feature, so the feature
+    // bodies stay out of the subclass description (eshyra-4a7.2). The boundary
+    // index is not a subclass, so the emit loop skips it; it does not move the
+    // parent cursor. Gated on tiersPresent: uniform-font fixtures have no tier
+    // signal and keep the conservative bound-at-next-subclass fallback.
+    if (
+      tiersPresent &&
+      flat[i].height !== undefined &&
+      (flat[i].height as number) >= FEATURE_LEAF_MIN_H
+    ) {
       boundaries.push(i);
     }
   }
