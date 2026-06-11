@@ -882,6 +882,136 @@ describe('parseTables', () => {
     });
   });
 
+  // The two core-rules tables behind excluded captions (eshyra-10t). Fixture
+  // lines reproduce the real SRD 5.1 extraction shape (verified against the
+  // vendored source), including the repeated caption/heading lines that force
+  // the header-row anchors and the trailing boundary line.
+  describe('core-rules tables behind excluded captions (eshyra-10t)', () => {
+    const ABILITY_SCORES_PAGE = page(76, [
+      // The h≈18 section heading shares the caption text, so the parser must
+      // anchor on the unique "Score Modifier" header row instead.
+      'Ability Scores and Modifiers',
+      'Each of a creature’s abilities has a score, a number',
+      'that defines the magnitude of that ability.',
+      'Ability Scores and Modifiers',
+      'Score Modifier',
+      '1 −5',
+      '2–3 −4',
+      '4–5 −3',
+      '6–7 −2',
+      '8–9 −1',
+      '10–11 +0',
+      '12–13 +1',
+      '14–15 +2',
+      '16–17 +3',
+      '18–19 +4',
+      '20–21 +5',
+      '22–23 +6',
+      '24–25 +7',
+      '26–27 +8',
+      '28–29 +9',
+      '30 +10',
+      'To determine an ability modifier without',
+      'consulting the table, subtract 10 from the ability',
+    ]);
+
+    const TRAVEL_PACE_PAGE = page(84, [
+      // The Speed section's "Travel Pace" prose heading precedes the table's
+      // identical caption, so the parser must anchor on the unique two-line
+      // column header instead.
+      'Travel Pace',
+      'While traveling, a group of adventurers can move at',
+      'a normal, fast, or slow pace, as shown on the Travel',
+      'Pace table. The table states how far the party can',
+      'move in a period of time and whether the pace has',
+      'any effect.',
+      'Travel Pace',
+      'Pace Distance Traveled per . . .',
+      'Minute Hour Day Effect',
+      'Fast 400 4 30 −5 penalty to passive',
+      'feet miles miles Wisdom (Perception)',
+      'scores',
+      'Normal 300 3 24 —',
+      'feet miles miles',
+      'Slow 200 2 18 Able to use stealth',
+      'feet miles miles',
+      'Difficult Terrain',
+      'The travel speeds given in the Travel Pace table',
+    ]);
+
+    it('reconstructs the Ability Scores and Modifiers score table', () => {
+      const [table] = parseTables([ABILITY_SCORES_PAGE]);
+      expect(table.name).toBe('Ability Scores and Modifiers');
+      expect(table.columns).toEqual(['Score', 'Modifier']);
+      expect(table.rows).toHaveLength(16);
+      // Score ranges keep the SRD en-dash and modifiers the typographic
+      // minus sign (U+2212) verbatim.
+      expect(table.rows[0]).toEqual(['1', '−5']);
+      expect(table.rows[1]).toEqual(['2–3', '−4']);
+      expect(table.rows[5]).toEqual(['10–11', '+0']);
+      expect(table.rows[15]).toEqual(['30', '+10']);
+      expect(table.sourcePage).toBe(76);
+    });
+
+    it('fails the Ability Scores and Modifiers table closed on a truncated range', () => {
+      // Drop one row ("12–13 +1"): the parser must emit no table rather than
+      // a partial score range.
+      const truncated = page(
+        76,
+        ABILITY_SCORES_PAGE.lines.filter((line) => line !== '12–13 +1'),
+      );
+      expect(parseTables([truncated])).toHaveLength(0);
+    });
+
+    it('reconstructs the Travel Pace table across its wrapped row lines', () => {
+      const [table] = parseTables([TRAVEL_PACE_PAGE]);
+      expect(table.name).toBe('Travel Pace');
+      expect(table.columns).toEqual([
+        'Pace',
+        'Distance per Minute',
+        'Distance per Hour',
+        'Distance per Day',
+        'Effect',
+      ]);
+      // The units line folds into the distance cells; the effect cell rejoins
+      // its wrap lines; the Normal "—" effect is preserved verbatim.
+      expect(table.rows).toEqual([
+        [
+          'Fast',
+          '400 feet',
+          '4 miles',
+          '30 miles',
+          '−5 penalty to passive Wisdom (Perception) scores',
+        ],
+        ['Normal', '300 feet', '3 miles', '24 miles', '—'],
+        ['Slow', '200 feet', '2 miles', '18 miles', 'Able to use stealth'],
+      ]);
+      expect(table.sourcePage).toBe(84);
+    });
+
+    it('does not capture prose past the Difficult Terrain boundary as effect text', () => {
+      const [table] = parseTables([TRAVEL_PACE_PAGE]);
+      expect(table.rows[2][4]).toBe('Able to use stealth');
+    });
+
+    it('fails the Travel Pace table closed when a units line is missing', () => {
+      // Drop the Normal row's "feet miles miles" units line: the parser must
+      // emit no table rather than rows with unit-less distance cells.
+      const lines = [...TRAVEL_PACE_PAGE.lines];
+      lines.splice(lines.indexOf('Normal 300 3 24 —') + 1, 1);
+      expect(parseTables([page(84, lines)])).toHaveLength(0);
+    });
+
+    it('fails the Travel Pace table closed on a missing pace row', () => {
+      const lines = TRAVEL_PACE_PAGE.lines.filter(
+        (line) => line !== 'Slow 200 2 18 Able to use stealth',
+      );
+      // Removing the Slow row start leaves its units line as a stray
+      // continuation; only two complete rows remain.
+      expect(parseTables([page(84, lines)])).toHaveLength(0);
+    });
+  });
+
   // The five money / downtime cost tables (eshyra-0m9.19). Fixture lines
   // reproduce the real SRD 5.1 extraction shape (verified against the vendored
   // source), including the trailing boundary line for each table.

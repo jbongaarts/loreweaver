@@ -1239,6 +1239,10 @@ export const EXPECTED_SRD_5_1_TABLE_NAMES: readonly string[] = [
   'Acolyte Ideals',
   'Acolyte Bonds',
   'Acolyte Flaws',
+  // The two core-rules tables behind excluded captions, reconstructed by
+  // their unique column-header anchors because both captions repeat in the
+  // core-rules slice (eshyra-10t).
+  'Ability Scores and Modifiers',
   'Character Advancement',
   'Damage Severity by Level',
   'Difficulty Classes',
@@ -1262,6 +1266,7 @@ export const EXPECTED_SRD_5_1_TABLE_NAMES: readonly string[] = [
   'Standard Languages',
   'Trade Goods',
   'Trap Save DCs and Attack Bonuses',
+  'Travel Pace',
 ];
 
 /**
@@ -2352,9 +2357,13 @@ export async function runImporter(
     ...monsterRules,
     ...backgroundRules,
   ];
-  // The two trap reference tables live in the Traps slice (loreweaver-hvp); feed
-  // it alongside the core-rules and treasure slices so parseTables reconstructs
-  // them with the same anchored row rules. The six "Beyond 1st Level" reference
+  // The core-rules slice carries the Difficulty Classes table plus the two
+  // tables behind excluded captions — Ability Scores and Modifiers (p76) and
+  // Travel Pace (p84) — each anchored on its unique column-header row because
+  // both captions also occur as section headings in the same slice
+  // (eshyra-10t). The two trap reference tables live in the Traps slice
+  // (loreweaver-hvp); feed it alongside the core-rules and treasure slices so
+  // parseTables reconstructs them with the same anchored row rules. The six "Beyond 1st Level" reference
   // tables (Character Advancement, Multiclassing Prerequisites / Proficiencies,
   // Standard / Exotic Languages — eshyra-0m9.23 — and Multiclass Spellcaster:
   // Spell Slots per Spell Level — eshyra-0m9.18) live in the chapter slice

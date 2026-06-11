@@ -214,11 +214,14 @@ const EXPECTED_COUNTS_BY_KIND: Readonly<Record<string, number>> = {
   // Food/Drink/Lodging, Services (eshyra-0m9.19) — and the four
   // Monsters-chapter reference tables — Size Categories, Hit Dice by Size,
   // Proficiency Bonus by Challenge Rating, Experience Points by Challenge
-  // Rating (eshyra-0m9.22) — and the four Acolyte suggested-characteristics
+  // Rating (eshyra-0m9.22) — the four Acolyte suggested-characteristics
   // roll tables (Personality Traits / Ideals / Bonds / Flaws), which
   // parseBackgrounds emits with synthesized "<Background> <Label>s" names
-  // because the SRD prints them caption-less (eshyra-0m9.17).
-  table: 27,
+  // because the SRD prints them caption-less (eshyra-0m9.17) — and the two
+  // core-rules tables behind excluded captions, Ability Scores and Modifiers
+  // and Travel Pace, anchored on their unique column-header rows because
+  // both captions repeat in the core-rules slice (eshyra-10t).
+  table: 29,
 };
 
 /**
@@ -1908,6 +1911,8 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
 
     it('contains exactly the reviewed table key set', () => {
       expect(tables.map((record) => record.key).sort()).toEqual([
+        // Core-rules table behind an excluded caption (eshyra-10t).
+        'table:ability-scores-and-modifiers',
         // The four Acolyte suggested-characteristics roll tables
         // (eshyra-0m9.17), named "<Background> <Label>s" by parseBackgrounds
         // because the SRD prints them caption-less.
@@ -1938,6 +1943,8 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
         'table:standard-languages',
         'table:trade-goods',
         'table:trap-save-dcs-and-attack-bonuses',
+        // Core-rules table behind an excluded caption (eshyra-10t).
+        'table:travel-pace',
       ]);
     });
 
@@ -2234,6 +2241,52 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
       expect(xpRows[17]).toEqual(['14', '11,500']);
       expect(xpRows[33]).toEqual(['30', '155,000']);
       expect(xp?.provenance.locator).toBe('p. 258');
+    });
+
+    it('pins the two core-rules tables behind excluded captions (eshyra-10t)', () => {
+      // Both captions repeat in the core-rules slice ("Ability Scores and
+      // Modifiers" is also the chapter's subsection title; "Travel Pace" is
+      // also the Speed section's prose heading), so each table anchors on its
+      // unique column-header row.
+      const modifiers = table('table:ability-scores-and-modifiers');
+      expect(modifiers?.data).toMatchObject({
+        columns: ['Score', 'Modifier'],
+        // Score ranges keep the SRD en-dash and modifiers the typographic
+        // minus sign (U+2212) verbatim.
+        rows: expect.arrayContaining([
+          ['1', '−5'],
+          ['10–11', '+0'],
+          ['30', '+10'],
+        ]),
+      });
+      expect((modifiers?.data as { rows: unknown[] }).rows).toHaveLength(16);
+      expect(modifiers?.provenance.locator).toBe('p. 76');
+
+      // Travel Pace rows span three extracted lines each (numeric row, the
+      // "feet miles miles" units row, effect wrap lines); the units fold into
+      // standalone distance cells and the Normal "—" effect stays verbatim.
+      const pace = table('table:travel-pace');
+      expect(pace?.data).toMatchObject({
+        columns: [
+          'Pace',
+          'Distance per Minute',
+          'Distance per Hour',
+          'Distance per Day',
+          'Effect',
+        ],
+        rows: [
+          [
+            'Fast',
+            '400 feet',
+            '4 miles',
+            '30 miles',
+            '−5 penalty to passive Wisdom (Perception) scores',
+          ],
+          ['Normal', '300 feet', '3 miles', '24 miles', '—'],
+          ['Slow', '200 feet', '2 miles', '18 miles', 'Able to use stealth'],
+        ],
+      });
+      expect(pace?.provenance.locator).toBe('p. 84');
     });
 
     it('emits Spellcasting Services as a rule rather than lost prose (eshyra-0m9.19)', () => {
