@@ -37,6 +37,13 @@ function tieredPage(
 // Fighter → Champion: a martial subclass. The slice mirrors the SRD shape: the
 // base-class name and its Class Features precede the "Martial Archetypes" intro
 // and the "Champion" subclass heading.
+//
+// This fixture is uniform-font (no `lineHeights`), so it exercises the
+// FALLBACK path: with no tier signal the parser cannot tell where the overview
+// ends and the first feature begins, so it conservatively keeps the following
+// prose inline. The real SRD import is multi-tier and bounds the overview at
+// the first feature heading — see the tiered Champion / Circle of the Land
+// regressions below (eshyra-4a7.2).
 // ---------------------------------------------------------------------------
 
 const FIGHTER_WITH_CHAMPION = page(72, [
@@ -68,8 +75,11 @@ describe('parseSubclasses — Champion (martial subclass)', () => {
     expect(champion.parentClass).toBe('Fighter');
   });
 
-  it('captures the subclass body prose (including its granted-feature text)', () => {
+  it('captures the subclass overview prose (uniform-font fallback keeps following text inline)', () => {
     expect(champion.description).toMatch(/archetypal Champion focuses/);
+    // No tier signal in this uniform fixture, so the conservative fallback
+    // retains the trailing feature text. The tiered regression below proves
+    // the real (multi-tier) import excludes it.
     expect(champion.description).toMatch(/Improved Critical/);
     expect(champion.description).toMatch(/critical hit on a roll of 19 or 20/);
   });
@@ -303,12 +313,115 @@ const PALADIN_OATH_TABLE_REAL_PDF_SHAPE = tieredPage(33, [
 describe('parseSubclasses — body-font parent-class name inside a subclass table', () => {
   const [oath] = parseSubclasses([PALADIN_OATH_TABLE_REAL_PDF_SHAPE]);
 
-  it('does not truncate Oath of Devotion at its spell-table Paladin cell', () => {
+  // Two regressions in one tiered fixture:
+  //   1. The body-font "Paladin" cell (h=8.88) inside the Oath Spells table
+  //      must not be mistaken for the parent-class chapter heading (which is
+  //      h≈25.9) and truncate / misparent the subclass.
+  //   2. The subclass description is bounded to its OVERVIEW: it stops at the
+  //      first feature heading ("Oath Spells", h=12) so the feature bodies —
+  //      Oath Spells, Aura of Devotion, Purity of Spirit, Holy Nimbus, which
+  //      parseFeatures emits as their own records — do not bleed in
+  //      (eshyra-4a7.2).
+  it('parses Oath of Devotion and bounds its description to the overview', () => {
     expect(oath.name).toBe('Oath of Devotion');
-    expect(oath.description).toContain('Oath of Devotion Spells');
-    expect(oath.description).toContain('Aura of Devotion');
-    expect(oath.description).toContain('Holy Nimbus');
-    expect(oath.description).toContain('emanate an aura of sunlight');
+    expect(oath.parentClass).toBe('Paladin');
+    expect(oath.description).toContain(
+      'binds a paladin to the loftiest ideals',
+    );
+  });
+
+  it('does not swallow the subclass feature headings or bodies', () => {
+    expect(oath.description).not.toContain('Oath Spells');
+    expect(oath.description).not.toContain('Oath of Devotion Spells');
+    expect(oath.description).not.toContain('Aura of Devotion');
+    expect(oath.description).not.toContain('Holy Nimbus');
+    expect(oath.description).not.toContain('emanate an aura of sunlight');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Tiered (real-PDF-shaped) bounded-overview regressions (eshyra-4a7.2). On the
+// real SRD every subclass-granted feature heading renders at the leaf tier
+// (h≈12.0) one step below the subclass name (h≈13.9); the subclass overview is
+// body prose (h≈9.8) between them. The parser must end the subclass
+// description at the first feature heading so the feature records (emitted by
+// parseFeatures) are not duplicated inside the subclass blurb. These two cases
+// are the boundary-bleed examples named in the bead.
+// ---------------------------------------------------------------------------
+
+const FIGHTER_CHAMPION_TIERED = tieredPage(25, [
+  ['Fighter', 25.92],
+  ['Class Features', 18],
+  ['Hit Dice: 1d10 per fighter level', 9.84],
+  ['Saving Throws: Strength, Constitution', 9.84],
+  ['Martial Archetypes', 18],
+  ['Different fighters choose different approaches.', 9.84],
+  ['Champion', 13.92],
+  ['The archetypal Champion focuses on the development of raw physical', 9.84],
+  ['power honed to deadly perfection.', 9.84],
+  ['Improved Critical', 12],
+  ['Beginning when you choose this archetype at 3rd level, your weapon', 9.84],
+  ['attacks score a critical hit on a roll of 19 or 20.', 9.84],
+  ['Remarkable Athlete', 12],
+  ['Starting at 7th level, you can add half your proficiency bonus.', 9.84],
+  ['Monk', 25.92],
+]);
+
+describe('parseSubclasses — Champion overview bounded at first feature (tiered)', () => {
+  const [champion] = parseSubclasses([FIGHTER_CHAMPION_TIERED]);
+
+  it('keeps only the archetype overview prose', () => {
+    expect(champion.name).toBe('Champion');
+    expect(champion.parentClass).toBe('Fighter');
+    expect(champion.description).toBe(
+      'The archetypal Champion focuses on the development of raw physical power honed to deadly perfection.',
+    );
+  });
+
+  it('does not include Improved Critical or later Champion feature bodies', () => {
+    expect(champion.description).not.toMatch(/Improved Critical/);
+    expect(champion.description).not.toMatch(
+      /critical hit on a roll of 19 or 20/,
+    );
+    expect(champion.description).not.toMatch(/Remarkable Athlete/);
+  });
+});
+
+const DRUID_CIRCLE_OF_THE_LAND_TIERED = tieredPage(21, [
+  ['Druid', 25.92],
+  ['Druid Circles', 18],
+  ['The druidic circles are loose associations.', 9.84],
+  ['Circle of the Land', 13.92],
+  [
+    'The Circle of the Land is made up of mystics and sages who safeguard',
+    9.84,
+  ],
+  ['ancient knowledge and rites through a vast oral tradition.', 9.84],
+  ['Bonus Cantrip', 12],
+  ['When you choose this circle at 2nd level, you learn one additional', 9.84],
+  ['druid cantrip of your choice.', 9.84],
+  ['Natural Recovery', 12],
+  ['Starting at 2nd level, you can regain some of your magical energy.', 9.84],
+  ['Ranger', 25.92],
+]);
+
+describe('parseSubclasses — Circle of the Land overview bounded at first feature (tiered)', () => {
+  const [circle] = parseSubclasses([DRUID_CIRCLE_OF_THE_LAND_TIERED]);
+
+  it('keeps only the circle overview prose', () => {
+    expect(circle.name).toBe('Circle of the Land');
+    expect(circle.parentClass).toBe('Druid');
+    expect(circle.description).toBe(
+      'The Circle of the Land is made up of mystics and sages who safeguard ancient knowledge and rites through a vast oral tradition.',
+    );
+  });
+
+  it('does not include Bonus Cantrip, Natural Recovery, or later feature bodies', () => {
+    expect(circle.description).not.toMatch(/Bonus Cantrip/);
+    expect(circle.description).not.toMatch(/Natural Recovery/);
+    expect(circle.description).not.toMatch(
+      /regain some of your magical energy/,
+    );
   });
 });
 

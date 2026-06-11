@@ -16,6 +16,17 @@ function page(pageNumber: number, lines: string[]): PageText {
   return { pageNumber, lines };
 }
 
+function tieredPage(
+  pageNumber: number,
+  entries: readonly (readonly [line: string, height: number])[],
+): PageText {
+  return {
+    pageNumber,
+    lines: entries.map(([line]) => line),
+    lineHeights: entries.map(([, height]) => height),
+  };
+}
+
 const MAGIC_ITEMS_A_Z_PAGE = page(207, [
   'Magic items are presented in alphabetical order. A',
   'magic item’s description gives the item’s name, its',
@@ -431,6 +442,79 @@ describe('parseMagicItems', () => {
     expect(orb.description).toMatch(/^Ages past, elves and humans waged/);
     expect(orb.description).toContain('Random Properties.');
     expect(orb.description).toContain('Destroying an Orb.');
+  });
+
+  // -------------------------------------------------------------------------
+  // Bounded spans (eshyra-4a7.2). On the real SRD every magic-item NAME renders
+  // at the leaf tier (h≈12.0); the body is h≈9.8. An item body must end at the
+  // next item NAME heading even when that next item's category does not parse
+  // (so it is not a detected entry). SRD 5.1 "Figurine of Wondrous Power"
+  // (p221) prints "Wondrous item, rarity by figurine" — "figurine" is not a
+  // recognized rarity — so before this bound, the preceding "Feather Token"
+  // swallowed the whole Figurine entry (its variants and the embedded Giant Fly
+  // stat block). The font-tier bound stops Feather Token at the Figurine
+  // heading; Figurine itself is emitted by a later magic-item bead (4a7.8).
+  // -------------------------------------------------------------------------
+  it('bounds an item body at the next item heading whose category does not parse', () => {
+    const parsed = parseMagicItems([
+      tieredPage(221, [
+        ['Feather Token', 12],
+        ['Wondrous item, rare', 9.84],
+        [
+          'This tiny object looks like a feather. Different types of feather',
+          9.84,
+        ],
+        ['tokens exist, each with a different single-use effect.', 9.84],
+        [
+          'Whip. You can use an action to throw the token to a point within 10',
+          9.84,
+        ],
+        [
+          'feet of you. The token disappears, and a floating whip takes its place.',
+          9.84,
+        ],
+        ['Figurine of Wondrous Power', 12],
+        ['Wondrous item, rarity by figurine', 9.84],
+        [
+          'A figurine of wondrous power is a statuette of a beast small enough',
+          9.84,
+        ],
+        ['to fit in a pocket.', 9.84],
+        [
+          'Bronze Griffon (Rare). This bronze statuette is of a griffon rampant.',
+          9.84,
+        ],
+        ['Giant Fly', 12],
+        ['Large beast, unaligned', 9.84],
+        ['Armor Class 11', 9.84],
+        ['Flame Tongue', 12],
+        ['Weapon (any sword), rare (requires attunement)', 9.84],
+        [
+          'While holding this magic sword, you can use a bonus action to speak',
+          9.84,
+        ],
+        ['its command word, causing flames to erupt from the blade.', 9.84],
+      ]),
+    ]);
+    const byTieredName = new Map(parsed.map((item) => [item.name, item]));
+
+    // Feather Token stops before the Figurine heading: no Figurine overview,
+    // no figurine variants, no embedded Giant Fly stat block.
+    const feather = byTieredName.get('Feather Token');
+    expect(feather?.description).toContain('floating whip takes its place');
+    expect(feather?.description).not.toContain('Figurine of Wondrous Power');
+    expect(feather?.description).not.toContain('Bronze Griffon');
+    expect(feather?.description).not.toContain('Giant Fly');
+
+    // Figurine's category does not parse, so it is not (yet) emitted — that is
+    // eshyra-4a7.8. The next item whose category DOES parse is still detected.
+    expect(parsed.map((item) => item.name)).toEqual([
+      'Feather Token',
+      'Flame Tongue',
+    ]);
+    expect(byTieredName.get('Flame Tongue')?.description).toContain(
+      'flames to erupt from the blade',
+    );
   });
 
   it('keeps wrapped attunement parentheticals in category metadata', () => {

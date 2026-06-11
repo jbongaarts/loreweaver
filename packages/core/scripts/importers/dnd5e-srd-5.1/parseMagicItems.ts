@@ -12,13 +12,31 @@
  * text. The A-Z tables are item-specific mechanics, not freestanding reference
  * tables, and preserving them in the parent item avoids inventing linked table
  * semantics not present elsewhere in the pack.
+ *
+ * Bounded spans (eshyra-4a7.2): every magic-item NAME renders at the leaf
+ * heading tier (h≈12.0 in the real SRD), one tier above the h≈9.8 body. An
+ * item body therefore ends at the next leaf-tier heading whose following line
+ * has the shape of a category line — even when that next item's own category
+ * does not parse and so is not emitted. SRD 5.1 "Figurine of Wondrous Power"
+ * (p221) prints its category as "Wondrous item, rarity by figurine"; the bare
+ * word "figurine" is not a recognized rarity, so `findEntries` skips it, and
+ * before this bound the preceding "Feather Token" body swallowed the entire
+ * Figurine entry (its variants and the embedded Giant Fly stat block). The
+ * font-tier bound stops Feather Token at the Figurine heading regardless; the
+ * Figurine record itself is emitted by a later magic-item bead (eshyra-4a7.8).
+ * The bound is gated on a genuinely multi-tier slice (`hasHeadingTiers`):
+ * uniform-font fixture PDFs render every line at one body size, so they retain
+ * the conservative bound-at-next-detected-entry fallback.
  */
 
+import { hasHeadingTiers } from './parseSubclasses.js';
 import type { MagicItemExtraction, PageText } from './types.js';
 
 interface FlatLine {
   readonly line: string;
   readonly page: number;
+  /** Rendered max font height (PDF points), when the source carried it. */
+  readonly height?: number;
 }
 
 interface EntryAnchor {
@@ -45,6 +63,22 @@ const ITEM_TYPE_WORD =
 const RARITY_WORD =
   /\b(common|uncommon|rare|very rare|legendary|artifact|rarity varies|varies)\b/i;
 
+// Leaf-tier band (PDF user-space points) of a magic-item NAME heading in the
+// real SRD (h≈12.0). Used only to bound an item body at the next item heading;
+// section titles (h≈18) and body prose (h≈9.8) sit outside it.
+const LEAF_HEADING_MIN_H = 11;
+const LEAF_HEADING_MAX_H = 15;
+
+// A real category line begins with an item-type word immediately followed by a
+// subtype paren or the rarity comma ("Wondrous item, …", "Armor (plate), …",
+// "Potion, …", "Wondrous item, rarity by figurine"). This is stricter than
+// ITEM_TYPE_PREFIX on purpose: an embedded table header that merely starts with
+// an item-type word — e.g. the Potion of Healing variants table caption
+// "Potion of … Rarity HP Regained" — is NOT followed by `(` or `,`, so it is
+// not mistaken for the start of a new item when bounding a body span.
+const CATEGORY_LINE_START =
+  /^(Armor|Potion|Ring|Rod|Scroll|Staff|Wand|Weapon|Wondrous item)\s*[(,]/;
+
 const BODY_LABEL_PREFIX =
   /^(Actions|Armor Class|Challenge|Condition Immunities|Damage Immunities|Hit Points|Languages|Senses|Speed|STR DEX CON INT WIS CHA)\b/i;
 
@@ -57,11 +91,45 @@ const DAMAGE_TYPE_WORD =
 function flatten(pages: readonly PageText[]): readonly FlatLine[] {
   const out: FlatLine[] = [];
   for (const page of pages) {
-    for (const line of page.lines) {
-      out.push({ line, page: page.pageNumber });
+    for (let i = 0; i < page.lines.length; i++) {
+      out.push({
+        line: page.lines[i],
+        page: page.pageNumber,
+        height: page.lineHeights?.[i],
+      });
     }
   }
   return out;
+}
+
+/**
+ * Is the line at `index` a magic-item NAME heading that starts a new entry —
+ * a leaf-tier heading (h≈12.0) whose next non-empty line has the shape of a
+ * category line? Returns false on a slice without genuine font tiers (uniform
+ * fixtures), where every line lands in one band and the signal is meaningless.
+ *
+ * This is the deterministic span boundary: it catches a new item even when its
+ * category does not fully parse (Figurine of Wondrous Power), while ignoring an
+ * embedded sub-heading or table caption whose following line is table content,
+ * not a category.
+ */
+function isItemHeadingBoundary(
+  flat: readonly FlatLine[],
+  index: number,
+  tiersPresent: boolean,
+): boolean {
+  if (!tiersPresent) return false;
+  const height = flat[index].height;
+  if (
+    height === undefined ||
+    height < LEAF_HEADING_MIN_H ||
+    height >= LEAF_HEADING_MAX_H
+  ) {
+    return false;
+  }
+  let next = index + 1;
+  while (next < flat.length && flat[next].line.trim().length === 0) next++;
+  return next < flat.length && CATEGORY_LINE_START.test(flat[next].line.trim());
 }
 
 function joinParagraphs(lines: readonly string[]): string {
@@ -362,12 +430,26 @@ export function parseMagicItems(
 ): MagicItemExtraction[] {
   const flat = flatten(pages);
   const entries = findEntries(flat);
+  const tiersPresent = hasHeadingTiers(flat.map((f) => f.height));
   const out: MagicItemExtraction[] = [];
 
   for (let i = 0; i < entries.length; i++) {
     const entry = entries[i];
     const bodyStart = entry.categoryEnd + 1;
-    const bodyEnd = entries[i + 1]?.nameStart ?? flat.length;
+    // The body ends at the next DETECTED entry's name, or — on a genuinely
+    // multi-tier slice — at the first item NAME heading after this body,
+    // whichever comes first. The font-tier bound catches a real next item
+    // whose category did not parse (so it is not a detected entry), e.g.
+    // Figurine of Wondrous Power after Feather Token (eshyra-4a7.2).
+    let bodyEnd = entries[i + 1]?.nameStart ?? flat.length;
+    if (tiersPresent) {
+      for (let k = bodyStart; k < bodyEnd; k++) {
+        if (isItemHeadingBoundary(flat, k, tiersPresent)) {
+          bodyEnd = k;
+          break;
+        }
+      }
+    }
     const description = joinParagraphs(
       flat.slice(bodyStart, bodyEnd).map((f) => f.line),
     );
