@@ -5,19 +5,21 @@
  * deliberately narrow: row-regex reconstruction for the simple reference
  * tables and column-block reconstruction for the treasure challenge tables.
  *
- * Twenty-three tables are present in the vendored SRD 5.1 PDF: Difficulty
+ * Twenty-five tables are present in the vendored SRD 5.1 PDF: Difficulty
  * Classes, two trap tables, three Madness effect tables, the Object Armor
  * Class / Object Hit Points tables, the six "Beyond 1st Level" reference
  * tables (Character Advancement, Multiclassing Prerequisites, Multiclassing
  * Proficiencies, Standard Languages, Exotic Languages — eshyra-0m9.23 — and
  * Multiclass Spellcaster: Spell Slots per Spell Level — eshyra-0m9.18), the
  * five money/downtime tables (Standard Exchange Rates, Trade Goods, Lifestyle
- * Expenses, Food/Drink/Lodging, Services; eshyra-0m9.19), and the four
+ * Expenses, Food/Drink/Lodging, Services; eshyra-0m9.19), the four
  * Monsters-chapter reference tables (Size Categories, Hit Dice by Size,
  * Proficiency Bonus by Challenge Rating, Experience Points by Challenge
- * Rating; eshyra-0m9.22). XP-threshold and treasure-table reconstruction
- * rules match no section in this source and remain fixture-only. See the
- * importer README's "Reference-table coverage" section.
+ * Rating; eshyra-0m9.22), and the two core-rules tables behind excluded
+ * captions (Ability Scores and Modifiers, Travel Pace; eshyra-10t).
+ * XP-threshold and treasure-table reconstruction rules match no section in
+ * this source and remain fixture-only. See the importer README's
+ * "Reference-table coverage" section.
  */
 
 import type { PageText, TableExtraction } from './types.js';
@@ -1136,6 +1138,148 @@ function parsePairedColumnTable(
   };
 }
 
+// --- Core-rules tables behind excluded captions (p76, p84; eshyra-10t) ------
+//
+// Both captions repeat inside the fed core-rules slice — "Ability Scores and
+// Modifiers" is also the chapter's h≈18 subsection title (p76) and "Travel
+// Pace" is also the Speed section's h≈12 prose heading (p84) — so neither
+// caption can anchor its table. Each table instead anchors on its unique
+// column-header row, the same pattern as the money/downtime tables and the
+// Monsters-chapter Size Categories table.
+
+// Ability Scores and Modifiers (p76): score range to ability modifier. Score
+// ranges keep the SRD en-dash verbatim ("2–3"); modifiers keep the
+// typographic minus sign (U+2212 — distinct from the hyphen cluster the
+// extractor normalizes, and so preserved by extraction) and explicit plus
+// verbatim ("−5" … "+0" … "+10").
+const ABILITY_SCORES_AND_MODIFIERS_HEADER = /^Score Modifier$/i;
+const ABILITY_SCORES_AND_MODIFIERS_ROW = /^(\d+(?:–\d+)?)\s+([+−]\d+)$/;
+
+function parseAbilityScoreModifierRow(
+  line: string,
+): readonly [string, string] | undefined {
+  const match = ABILITY_SCORES_AND_MODIFIERS_ROW.exec(line);
+  if (match === null) return undefined;
+  return [match[1], match[2]];
+}
+
+function parseAbilityScoresAndModifiers(
+  flat: readonly FlatLine[],
+): TableExtraction | undefined {
+  const anchor = findAnchor(flat, ABILITY_SCORES_AND_MODIFIERS_HEADER);
+  if (anchor === undefined) return undefined;
+  const rows = collectRows(flat, anchor.idx + 1, parseAbilityScoreModifierRow);
+  // The SRD modifier table covers scores 1-30 in exactly 16 rows; a short
+  // parse means the extraction drifted, so fail this table rather than emit
+  // a partial score range.
+  if (rows.length !== 16) return undefined;
+  return {
+    name: 'Ability Scores and Modifiers',
+    columns: ['Score', 'Modifier'],
+    rows,
+    sourcePage: anchor.page,
+  };
+}
+
+// Travel Pace (p84): three pace rows whose cells span up to three extracted
+// lines — the numeric row ("Fast 400 4 30 −5 penalty to passive"), the units
+// row ("feet miles miles Wisdom (Perception)") whose three leading words
+// belong to the distance cells and whose remainder continues the Effect
+// cell, and any further Effect wrap lines ("scores"). The units fold the
+// distance cells into standalone values ("400 feet", "4 miles", "30 miles");
+// the Normal pace's "—" Effect cell is preserved verbatim. The table is
+// bounded by the "Difficult Terrain" heading that follows it in the
+// core-rules slice (the same explicit-boundary pattern as Multiclassing
+// Proficiencies' "Class Features"). A row whose units line never appears
+// fails the whole table rather than emitting unit-less distance cells.
+const TRAVEL_PACE_HEADER = /^Pace Distance Traveled per \. \. \.$/i;
+const TRAVEL_PACE_SUBHEADER = /^Minute Hour Day Effect$/i;
+const TRAVEL_PACE_ROW_START =
+  /^(Fast|Normal|Slow)\s+(\d+)\s+(\d+)\s+(\d+)\s+(.+)$/;
+const TRAVEL_PACE_UNITS = /^feet miles miles(?:\s+(.+))?$/;
+const TRAVEL_PACE_END = /^Difficult Terrain$/i;
+
+function parseTravelPace(
+  flat: readonly FlatLine[],
+): TableExtraction | undefined {
+  const anchor = findAnchor(flat, TRAVEL_PACE_HEADER);
+  if (anchor === undefined) return undefined;
+
+  interface OpenRow {
+    readonly pace: string;
+    readonly minute: string;
+    readonly hour: string;
+    readonly day: string;
+    unitsSeen: boolean;
+    effectParts: string[];
+  }
+
+  const rows: [string, string, string, string, string][] = [];
+  let current: OpenRow | undefined;
+  let missingUnits = false;
+  const flush = (): void => {
+    if (current === undefined) return;
+    if (!current.unitsSeen) missingUnits = true;
+    rows.push([
+      current.pace,
+      `${current.minute} feet`,
+      `${current.hour} miles`,
+      `${current.day} miles`,
+      joinWrappedCell(current.effectParts),
+    ]);
+    current = undefined;
+  };
+
+  const end = Math.min(flat.length, anchor.idx + MAX_TABLE_SCAN_LINES);
+  for (let i = anchor.idx + 1; i < end; i++) {
+    const line = flat[i].line.trim();
+    if (line.length === 0 || TRAVEL_PACE_SUBHEADER.test(line)) {
+      continue;
+    }
+    if (TRAVEL_PACE_END.test(line)) {
+      break;
+    }
+    const rowStart = TRAVEL_PACE_ROW_START.exec(line);
+    if (rowStart !== null) {
+      flush();
+      current = {
+        pace: rowStart[1],
+        minute: rowStart[2],
+        hour: rowStart[3],
+        day: rowStart[4],
+        unitsSeen: false,
+        effectParts: [rowStart[5]],
+      };
+      continue;
+    }
+    if (current === undefined) continue;
+    if (!current.unitsSeen) {
+      const units = TRAVEL_PACE_UNITS.exec(line);
+      if (units !== null) {
+        current.unitsSeen = true;
+        if (units[1] !== undefined) current.effectParts.push(units[1]);
+        continue;
+      }
+    }
+    current.effectParts.push(line);
+  }
+  flush();
+
+  if (missingUnits || rows.length !== 3) return undefined;
+  return {
+    name: 'Travel Pace',
+    columns: [
+      'Pace',
+      'Distance per Minute',
+      'Distance per Hour',
+      'Distance per Day',
+      'Effect',
+    ],
+    rows,
+    sourcePage: anchor.page,
+  };
+}
+
 export function parseTables(pages: readonly PageText[]): TableExtraction[] {
   const flat = flatten(pages);
   const tables = [
@@ -1182,6 +1326,8 @@ export function parseTables(pages: readonly PageText[]): TableExtraction[] {
     parseLifestyleExpenses(flat),
     parseGroupedCostTable(flat, FOOD_DRINK_LODGING_SPEC),
     parseGroupedCostTable(flat, SERVICES_SPEC),
+    parseAbilityScoresAndModifiers(flat),
+    parseTravelPace(flat),
     parseSizeCategories(flat),
     parseHitDiceBySize(flat),
     parsePairedColumnTable(flat, PROFICIENCY_BONUS_BY_CR_SPEC),
