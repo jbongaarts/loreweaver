@@ -12,7 +12,13 @@
  * `loreweaver-0m9.6`'s coverage tests once vendored.
  */
 
-import { createWriteStream, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import {
+  createWriteStream,
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import PDFDocument from 'pdfkit';
@@ -30,6 +36,10 @@ import {
   TrapCoverageError,
 } from '../../../scripts/importers/dnd5e-srd-5.1/index.js';
 import { SectionNotFoundError } from '../../../scripts/importers/dnd5e-srd-5.1/sections.js';
+import {
+  ignoreRule,
+  SourceInventoryCoverageError,
+} from '../../../scripts/importers/dnd5e-srd-5.1/sourceInventoryCoverage.js';
 import { loadRulesPackFromDirectory } from '../../../src/internal.js';
 
 const tmpDirs: string[] = [];
@@ -2631,5 +2641,85 @@ describe('runImporter — end-to-end against a fixture PDF', () => {
     const fighter = pack.records.find((r) => r.key === 'class:fighter');
     const fighterData = fighter?.data as Record<string, unknown>;
     expect(fighterData.primaryAbilities).toEqual([]);
+  });
+});
+
+describe('runImporter — source-structure coverage gate (eshyra-4a7.1)', () => {
+  // Fixture PDFs render at a uniform body font size, so every line lands in
+  // the inventory's leaf band: the tiers carry no signal, but the gate's
+  // mechanics (auto-match, rules, fail-closed, artifact writing) are fully
+  // exercised. The real-PDF rule curation is regression-tested against the
+  // committed artifacts in srdSourceInventoryArtifact.test.ts.
+  it('writes source-inventory.json and source-coverage.json when rules are supplied', async () => {
+    const workDir = makeTmpDir();
+    const pdfPath = join(workDir, 'fixture.pdf');
+    const outDir = join(workDir, 'pack');
+    await writeFixturePdf(pdfPath, IMPLEMENTED_KINDS_FIXTURE_PAGES);
+
+    await runImporter({
+      pdfPath,
+      outDir,
+      sourceCoverageRules: [
+        // Account for every fixture line the name auto-match doesn't claim.
+        ignoreRule('fixture-body', () => true),
+      ],
+    });
+
+    const inventory = JSON.parse(
+      readFileSync(join(outDir, 'source-inventory.json'), 'utf8'),
+    ) as ReadonlyArray<Record<string, unknown>>;
+    expect(inventory.length).toBeGreaterThan(0);
+    expect(inventory[0]).toMatchObject({
+      page: expect.any(Number),
+      lineIndex: expect.any(Number),
+      text: expect.any(String),
+    });
+
+    const coverage = JSON.parse(
+      readFileSync(join(outDir, 'source-coverage.json'), 'utf8'),
+    ) as {
+      summary: Record<string, unknown>;
+      entries: ReadonlyArray<{ text: string; status: string }>;
+    };
+    expect(coverage.summary.unaccounted).toBe(0);
+    // The name auto-match runs before any rule: an emitted record claims its
+    // own source heading even though the catch-all ignore would also match.
+    expect(
+      coverage.entries.some((e) => e.status === 'record:spell:acid-splash'),
+    ).toBe(true);
+    expect(
+      coverage.entries.some((e) => e.status === 'ignored:fixture-body'),
+    ).toBe(true);
+    // The pack files still load (the loader tolerates the extra artifacts).
+    expect(loadRulesPackFromDirectory(outDir).records.length).toBeGreaterThan(
+      0,
+    );
+  });
+
+  it('fails closed and writes nothing when a source structure is unaccounted', async () => {
+    const workDir = makeTmpDir();
+    const pdfPath = join(workDir, 'fixture.pdf');
+    const outDir = join(workDir, 'pack');
+    await writeFixturePdf(pdfPath, IMPLEMENTED_KINDS_FIXTURE_PAGES);
+
+    // Empty rule list: every fixture line that isn't an emitted record's own
+    // heading is unaccounted, so the gate must throw before writing.
+    await expect(
+      runImporter({ pdfPath, outDir, sourceCoverageRules: [] }),
+    ).rejects.toThrow(SourceInventoryCoverageError);
+    expect(existsSync(join(outDir, 'records.json'))).toBe(false);
+    expect(existsSync(join(outDir, 'source-inventory.json'))).toBe(false);
+  });
+
+  it('skips the gate and writes no artifacts when rules are omitted', async () => {
+    const workDir = makeTmpDir();
+    const pdfPath = join(workDir, 'fixture.pdf');
+    const outDir = join(workDir, 'pack');
+    await writeFixturePdf(pdfPath, IMPLEMENTED_KINDS_FIXTURE_PAGES);
+
+    await runImporter({ pdfPath, outDir });
+    expect(existsSync(join(outDir, 'records.json'))).toBe(true);
+    expect(existsSync(join(outDir, 'source-inventory.json'))).toBe(false);
+    expect(existsSync(join(outDir, 'source-coverage.json'))).toBe(false);
   });
 });

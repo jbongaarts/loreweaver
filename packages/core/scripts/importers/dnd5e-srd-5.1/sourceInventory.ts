@@ -34,8 +34,11 @@
  *     item so caption-less embedded tables (Ring of Resistance's d10 table)
  *     still demand accounting.
  *
- * Pages without `lineHeights` (uniform-font fixture PDFs) yield no items, so
- * fixture pipelines see an empty inventory and a trivially clean gate.
+ * Pages without `lineHeights` yield no items. Note that fixture PDFs DO
+ * carry `lineHeights` (extract.ts always populates them) at a uniform body
+ * size that lands in the leaf band, so the tiers carry no signal there —
+ * which is why the coverage gate is opt-in per import run
+ * (`RunImporterInput.sourceCoverageRules`) rather than always-on.
  *
  * Pure function: same pages always yield the same inventory, sorted in
  * reading order (page, then lineIndex).
@@ -111,8 +114,7 @@ function isTableCell(height: number | undefined): boolean {
  * "Large aberration, lawful evil". It renders at body height, so the shape of
  * the text is the signal: a size word, a type phrase, and a comma.
  */
-const SIZE_TYPE_LINE =
-  /^(?:Tiny|Small|Medium|Large|Huge|Gargantuan)\b[^.]*,/;
+const SIZE_TYPE_LINE = /^(?:Tiny|Small|Medium|Large|Huge|Gargantuan)\b[^.]*,/;
 
 /**
  * Wrap-continuation discriminator. The extractor only re-merges wrapped

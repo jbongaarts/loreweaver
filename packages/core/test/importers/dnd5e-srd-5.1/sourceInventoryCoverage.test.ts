@@ -12,10 +12,13 @@ import { describe, expect, it } from 'vitest';
 import type { SourceInventoryItem } from '../../../scripts/importers/dnd5e-srd-5.1/sourceInventory.js';
 import {
   assertSourceCoverage,
+  buildSourceCoverageReport,
   childOfRule,
   evaluateSourceCoverage,
+  formatCoverageStatus,
   ignoreRule,
   knownGapRule,
+  recordRule,
   SourceInventoryCoverageError,
 } from '../../../scripts/importers/dnd5e-srd-5.1/sourceInventoryCoverage.js';
 
@@ -106,12 +109,23 @@ describe('evaluateSourceCoverage — rules and defaults', () => {
       item({ text: 'Aboleth' }), // auto-match wins even though a rule would also match
       item({ text: 'Wizard Spells', lineIndex: 1 }),
       item({ text: 'Figurine of Wondrous Power', lineIndex: 2 }),
-      item({ text: 'd10 Damage Type Gem', lineIndex: 3, structure: 'table-shape', tier: null }),
+      item({
+        text: 'd10 Damage Type Gem',
+        lineIndex: 3,
+        structure: 'table-shape',
+        tier: null,
+      }),
     ];
     const entries = evaluateSourceCoverage(inventory, records, [
       ignoreRule('spell-list-header', (i) => / Spells$/.test(i.text)),
-      knownGapRule('eshyra-4a7.8', (i) => i.text === 'Figurine of Wondrous Power'),
-      childOfRule('magic-item:ring-of-resistance', (i) => i.structure === 'table-shape'),
+      knownGapRule(
+        'eshyra-4a7.8',
+        (i) => i.text === 'Figurine of Wondrous Power',
+      ),
+      childOfRule(
+        'magic-item:ring-of-resistance',
+        (i) => i.structure === 'table-shape',
+      ),
       // A later rule matching an already-matched item must not override.
       ignoreRule('too-late', (i) => i.text === 'Aboleth'),
     ]);
@@ -136,6 +150,31 @@ describe('evaluateSourceCoverage — rules and defaults', () => {
       { kind: 'ignored', reason: 'document-structure' },
       { kind: 'ignored', reason: 'document-structure' },
     ]);
+  });
+
+  it('maps a renamed heading to its record via recordRule', () => {
+    // The SRD prints "Lightfoot" while the emitted record is named
+    // "Lightfoot Halfling" — auto-match misses, the rule claims it.
+    const entries = evaluateSourceCoverage(
+      [item({ text: 'Lightfoot' })],
+      [
+        {
+          kind: 'ancestry',
+          key: 'ancestry:lightfoot-halfling',
+          name: 'Lightfoot Halfling',
+        },
+      ],
+      [
+        recordRule(
+          'ancestry:lightfoot-halfling',
+          (i) => i.text === 'Lightfoot',
+        ),
+      ],
+    );
+    expect(entries[0].status).toEqual({
+      kind: 'record',
+      key: 'ancestry:lightfoot-halfling',
+    });
   });
 
   it('leaves unmatched leaf/sidebar/table items unaccounted', () => {
@@ -165,7 +204,12 @@ describe('assertSourceCoverage', () => {
   it('throws SourceInventoryCoverageError naming every unaccounted item with provenance', () => {
     const entries = evaluateSourceCoverage(
       [
-        item({ text: 'Mystery Heading', page: 42, lineIndex: 7, section: 'Magic Items' }),
+        item({
+          text: 'Mystery Heading',
+          page: 42,
+          lineIndex: 7,
+          section: 'Magic Items',
+        }),
         item({ text: 'Aboleth', page: 261 }),
       ],
       records,
@@ -193,5 +237,65 @@ describe('assertSourceCoverage', () => {
       [],
     );
     expect(() => assertSourceCoverage(entries)).not.toThrow();
+  });
+});
+
+describe('coverage report serialization', () => {
+  it('formats every status kind as a stable one-line string', () => {
+    expect(
+      formatCoverageStatus({ kind: 'record', key: 'creature:aboleth' }),
+    ).toBe('record:creature:aboleth');
+    expect(
+      formatCoverageStatus({ kind: 'child-of', key: 'background:acolyte' }),
+    ).toBe('child-of:background:acolyte');
+    expect(
+      formatCoverageStatus({ kind: 'ignored', reason: 'front-matter' }),
+    ).toBe('ignored:front-matter');
+    expect(
+      formatCoverageStatus({ kind: 'known-gap', beadId: 'eshyra-4a7.3' }),
+    ).toBe('known-gap:eshyra-4a7.3');
+    expect(formatCoverageStatus({ kind: 'unaccounted' })).toBe('unaccounted');
+  });
+
+  it('builds a report with rolled-up summary counts and reading-order entries', () => {
+    const entries = evaluateSourceCoverage(
+      [
+        item({ text: 'Aboleth', page: 261 }),
+        item({ text: 'Wizard Spells', page: 111 }),
+        item({ text: 'Bard Spells', page: 105 }),
+        item({ text: 'Figurine of Wondrous Power', page: 221 }),
+        item({ text: 'Mystery Heading', page: 999 }),
+      ],
+      records,
+      [
+        ignoreRule('spell-list-header', (i) => / Spells$/.test(i.text)),
+        knownGapRule('eshyra-4a7.8', (i) => i.text.startsWith('Figurine')),
+      ],
+    );
+    const report = buildSourceCoverageReport(entries);
+    expect(report.summary).toEqual({
+      record: 1,
+      childOf: 0,
+      ignored: { 'spell-list-header': 2 },
+      knownGap: { 'eshyra-4a7.8': 1 },
+      unaccounted: 1,
+    });
+    expect(report.entries.map((e) => `${e.page}:${e.status}`)).toEqual([
+      '105:ignored:spell-list-header',
+      '111:ignored:spell-list-header',
+      '221:known-gap:eshyra-4a7.8',
+      '261:record:creature:aboleth',
+      '999:unaccounted',
+    ]);
+    // Entries carry the locator fields a reviewer needs.
+    expect(report.entries[0]).toEqual({
+      page: 105,
+      lineIndex: 0,
+      tier: 'leaf',
+      structure: 'heading',
+      text: 'Bard Spells',
+      section: null,
+      status: 'ignored:spell-list-header',
+    });
   });
 });

@@ -60,7 +60,10 @@ describe('buildSourceInventory — tier classification', () => {
 
   it('returns no items for pages without lineHeights (uniform-font fixture PDFs)', () => {
     const items = buildSourceInventory([
-      { pageNumber: 1, lines: ['Spells', 'Acid Splash', 'Conjuration cantrip'] },
+      {
+        pageNumber: 1,
+        lines: ['Spells', 'Acid Splash', 'Conjuration cantrip'],
+      },
     ]);
     expect(items).toEqual([]);
   });
@@ -73,7 +76,11 @@ describe('buildSourceInventory — tier classification', () => {
       ]),
     ]);
     expect(items).toEqual([
-      expect.objectContaining({ page: 221, lineIndex: 1, text: 'Feather Token' }),
+      expect.objectContaining({
+        page: 221,
+        lineIndex: 1,
+        text: 'Feather Token',
+      }),
     ]);
   });
 });
@@ -152,7 +159,10 @@ describe('buildSourceInventory — structural classification', () => {
       ]),
     ]);
     expect(items[0]).toEqual(
-      expect.objectContaining({ text: 'Avatar of Death', structure: 'stat-block' }),
+      expect.objectContaining({
+        text: 'Avatar of Death',
+        structure: 'stat-block',
+      }),
     );
   });
 
@@ -165,7 +175,10 @@ describe('buildSourceInventory — structural classification', () => {
       ]),
     ]);
     expect(items[0]).toEqual(
-      expect.objectContaining({ text: 'Draconic Ancestry', structure: 'table-caption' }),
+      expect.objectContaining({
+        text: 'Draconic Ancestry',
+        structure: 'table-caption',
+      }),
     );
   });
 

@@ -37,6 +37,7 @@ import {
   MIN_EXPECTED_SRD_5_1_SUBCLASSES,
   runImporter,
 } from './index.js';
+import { SRD_5_1_COVERAGE_RULES } from './sourceInventoryCoverage.js';
 
 interface ParsedArgs {
   readonly pdf: string;
@@ -119,6 +120,7 @@ async function main(): Promise<void> {
     minSubclassCount: MIN_EXPECTED_SRD_5_1_SUBCLASSES,
     minFeatureCount: MIN_EXPECTED_SRD_5_1_FEATURES,
     minMagicItemCount: MIN_EXPECTED_SRD_5_1_MAGIC_ITEMS,
+    sourceCoverageRules: SRD_5_1_COVERAGE_RULES,
   });
   const c = result.counts;
   console.log(
