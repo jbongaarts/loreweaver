@@ -114,6 +114,19 @@ function isTableCell(height: number | undefined): boolean {
 const SIZE_TYPE_LINE =
   /^(?:Tiny|Small|Medium|Large|Huge|Gargantuan)\b[^.]*,/;
 
+/**
+ * Wrap-continuation discriminator. The extractor only re-merges wrapped
+ * headings at the h≥14 anchor tiers, so sub-14 wraps reach the inventory as
+ * adjacent same-tier lines. Measured against the real PDF, the document has
+ * exactly 14 such adjacencies: 4 genuine wraps — every one breaking after a
+ * continuation token ("Multiclass Spellcaster:", "…Detection and",
+ * "…Resistances, and") — and 10 dragon-group collisions ("Black Dragon"
+ * directly followed by "Ancient Black Dragon") that must stay separate. A
+ * line is therefore a wrap head only when it ends in ":", ",", or a trailing
+ * connective word.
+ */
+const WRAP_CONTINUATION = /(?:[:,]|\b(?:and|of|the|or|to|with|against|per))$/i;
+
 /** One extracted line flattened into the document-wide reading order. */
 interface Row {
   readonly page: number;
@@ -148,14 +161,16 @@ export function buildSourceInventory(
     const tier = classifyTier(row.height);
 
     if (tier !== null) {
-      // Merge directly adjacent same-tier lines: narrow columns wrap long
-      // headings ("Figurine of Wondrous" / "Power"), and the extractor only
-      // re-merges wraps at the h≥14 anchor tiers. Distinct same-tier headings
-      // are never adjacent in the SRD (a rarity line, size/type line, or body
-      // always intervenes), so adjacency is safe to treat as a wrap.
+      // Re-merge wrapped headings: adjacency alone is NOT sufficient (the
+      // dragon group headings sit directly above the first dragon's name at
+      // the same tier), so a continuation token must end the line too.
       let text = row.text;
       let end = i + 1;
-      while (end < rows.length && classifyTier(rows[end].height) === tier) {
+      while (
+        end < rows.length &&
+        classifyTier(rows[end].height) === tier &&
+        WRAP_CONTINUATION.test(text)
+      ) {
         text = `${text} ${rows[end].text.trim()}`.trim();
         end += 1;
       }

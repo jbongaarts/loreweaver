@@ -79,16 +79,47 @@ describe('buildSourceInventory — tier classification', () => {
 });
 
 describe('buildSourceInventory — wrapped heading merge', () => {
-  it('merges adjacent same-tier lines into one logical heading', () => {
+  // The real SRD has exactly 14 adjacent same-tier pairs below the h≥14
+  // anchor tiers: 4 genuine wraps, every one ending in a continuation token
+  // (":", "and"), and 10 dragon-group collisions ("Black Dragon" directly
+  // followed by "Ancient Black Dragon") that must NOT merge.
+  it('merges adjacent same-tier lines when the first ends in a continuation token', () => {
     const items = buildSourceInventory([
-      page(221, [
-        ['Figurine of Wondrous', 12.0],
-        ['Power', 12.0],
-        ['Wondrous item, rarity varies', 9.8],
+      page(207, [
+        ['Amulet of Proof against Detection and', 12.0],
+        ['Location', 12.0],
+        ['Wondrous item, uncommon', 9.8],
       ]),
     ]);
-    expect(texts(items)).toEqual(['Figurine of Wondrous Power']);
+    expect(texts(items)).toEqual([
+      'Amulet of Proof against Detection and Location',
+    ]);
     expect(items[0].lineIndex).toBe(0);
+  });
+
+  it('merges a colon-terminated wrap', () => {
+    const items = buildSourceInventory([
+      page(58, [
+        ['Multiclass Spellcaster:', 12.0],
+        ['Spell Slots per Spell Level', 12.0],
+      ]),
+    ]);
+    expect(texts(items)).toEqual([
+      'Multiclass Spellcaster: Spell Slots per Spell Level',
+    ]);
+  });
+
+  it('does not merge adjacent same-tier headings that are complete on their own', () => {
+    const items = buildSourceInventory([
+      page(280, [
+        ['Black Dragon', 12.0],
+        ['Ancient Black Dragon', 12.0],
+        ['Huge dragon, chaotic evil', 9.8],
+      ]),
+    ]);
+    expect(texts(items)).toEqual(['Black Dragon', 'Ancient Black Dragon']);
+    // The unmerged second heading keeps its stat-block classification.
+    expect(items[1].structure).toBe('stat-block');
   });
 
   it('does not merge across different tiers', () => {
@@ -101,12 +132,12 @@ describe('buildSourceInventory — wrapped heading merge', () => {
     expect(texts(items)).toEqual(['Barbarian', 'Class Features']);
   });
 
-  it('merges a heading wrapped across a page boundary', () => {
+  it('merges a continuation-token wrap across a page boundary', () => {
     const items = buildSourceInventory([
-      page(10, [['Path of the', 13.9]]),
-      page(11, [['Berserker', 13.9]]),
+      page(10, [['Damage Resistance and', 13.9]]),
+      page(11, [['Vulnerability', 13.9]]),
     ]);
-    expect(texts(items)).toEqual(['Path of the Berserker']);
+    expect(texts(items)).toEqual(['Damage Resistance and Vulnerability']);
     expect(items[0].page).toBe(10);
   });
 });
