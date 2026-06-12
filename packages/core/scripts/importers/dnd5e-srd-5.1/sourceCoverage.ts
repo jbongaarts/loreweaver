@@ -75,6 +75,36 @@ export const SRD_5_1_SOURCE_TABLE_GAPS: readonly string[] = [
   'Lifestyle Expenses',
   'Food, Drink, and Lodging',
   'Services',
+  // The 24 document-wide tables emitted by eshyra-4a7.3 (parseDocumentTables),
+  // retained here as durable source truth on the same lifecycle: the audit
+  // reports any of them as missing-coverage if a regression drops them from
+  // the emitted baseline. Names follow the emitted records (verbatim captions;
+  // synthesized names for the caption-less tables — see
+  // EXPECTED_SRD_5_1_TABLE_NAMES in index.ts).
+  'Bag of Beans',
+  'Belt of Giant Strength',
+  'Circle of the Land (Arctic)',
+  'Circle of the Land (Coast)',
+  'Circle of the Land (Desert)',
+  'Circle of the Land (Forest)',
+  'Circle of the Land (Grassland)',
+  'Circle of the Land (Mountain)',
+  'Circle of the Land (Swamp)',
+  'Creating Spell Slots',
+  'Donning and Doffing Armor',
+  'Draconic Ancestry',
+  'Draconic Bloodline Draconic Ancestry',
+  'Fiend Expanded Spells',
+  'Gray Bag of Tricks',
+  'Life Domain Spells',
+  'Oath of Devotion Spells',
+  'Potion of Giant Strength',
+  'Potions of Healing',
+  'Robe of Useful Items',
+  'Rust Bag of Tricks',
+  'Tan Bag of Tricks',
+  'The Barbarian',
+  'Wand of Wonder',
 ];
 
 /**

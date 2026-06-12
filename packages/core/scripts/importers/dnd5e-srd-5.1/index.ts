@@ -56,6 +56,7 @@ import { parseClasses } from './parseClasses.js';
 import { parseConditions } from './parseConditions.js';
 import { parseCreatures } from './parseCreatures.js';
 import { parseDiseases } from './parseDiseases.js';
+import { parseDocumentTables } from './parseDocumentTables.js';
 import { parseEquipment, parseMountsAndVehicles } from './parseEquipment.js';
 import { parseFeats } from './parseFeats.js';
 import { parseFeatures } from './parseFeatures.js';
@@ -1278,6 +1279,40 @@ export const EXPECTED_SRD_5_1_TABLE_NAMES: readonly string[] = [
   'Trade Goods',
   'Trap Save DCs and Attack Bonuses',
   'Travel Pace',
+  // Document-wide tables (eshyra-4a7.3), reconstructed by parseDocumentTables
+  // from typography anchors (leaf-tier heading + exact cell-tier header) with
+  // exact per-table row counts. Names are verbatim captions except where the
+  // SRD prints the table caption-less: the Sorcerer-chapter Draconic Ancestry
+  // copy is qualified "Draconic Bloodline Draconic Ancestry", the seven
+  // Circle of the Land terrain tables are qualified
+  // "Circle of the Land (<Terrain>)" (their printed captions are the bare
+  // terrain words), and the caption-less magic-item variety / dice tables
+  // take their owning item's name (Belt/Potion of Giant Strength, Bag of
+  // Beans, Robe of Useful Items, Wand of Wonder).
+  'Bag of Beans',
+  'Belt of Giant Strength',
+  'Circle of the Land (Arctic)',
+  'Circle of the Land (Coast)',
+  'Circle of the Land (Desert)',
+  'Circle of the Land (Forest)',
+  'Circle of the Land (Grassland)',
+  'Circle of the Land (Mountain)',
+  'Circle of the Land (Swamp)',
+  'Creating Spell Slots',
+  'Donning and Doffing Armor',
+  'Draconic Ancestry',
+  'Draconic Bloodline Draconic Ancestry',
+  'Fiend Expanded Spells',
+  'Gray Bag of Tricks',
+  'Life Domain Spells',
+  'Oath of Devotion Spells',
+  'Potion of Giant Strength',
+  'Potions of Healing',
+  'Robe of Useful Items',
+  'Rust Bag of Tricks',
+  'Tan Bag of Tricks',
+  'The Barbarian',
+  'Wand of Wonder',
 ];
 
 /**
@@ -2408,6 +2443,10 @@ export async function runImporter(
   // parseBackgrounds (the SRD prints them caption-less, so parseTables'
   // caption-anchored reconstruction cannot own them); concatenate before the
   // coverage gate so the table baseline covers them too (eshyra-0m9.17).
+  // Document-wide tables (eshyra-4a7.3): located by typography (leaf-tier
+  // anchor heading + exact cell-tier header line) against the FULL document
+  // rather than a section slice, per reviewed spec with an exact row count.
+  // Uniform-font fixtures never satisfy the tier requirement and yield none.
   const tables = [
     ...parseTables([
       ...coreRulePages,
@@ -2420,6 +2459,7 @@ export async function runImporter(
       ...expensesPages,
       ...monsterRulePages,
     ]),
+    ...parseDocumentTables(pages),
     ...characteristicTables,
   ];
   validateTableCoverage(tables, input.expectedTableNames);

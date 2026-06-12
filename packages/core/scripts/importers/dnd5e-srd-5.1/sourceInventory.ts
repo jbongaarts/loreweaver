@@ -92,7 +92,12 @@ const SIDEBAR_MIN = 10.4;
 const TABLE_CELL_MIN = 8.5;
 const TABLE_CELL_MAX = 9.3;
 
-function classifyTier(height: number | undefined): SourceTier | null {
+/**
+ * Classify a rendered line height into its typography tier (see the band
+ * constants above). Shared with the document-wide table parser
+ * (`parseDocumentTables.ts`) so both consumers read the same band map.
+ */
+export function classifyTier(height: number | undefined): SourceTier | null {
   if (height === undefined) return null;
   if (height >= CHAPTER_MIN) return 'chapter';
   if (height >= SECTION_MIN) return 'section';
@@ -102,7 +107,13 @@ function classifyTier(height: number | undefined): SourceTier | null {
   return null;
 }
 
-function isTableCell(height: number | undefined): boolean {
+/**
+ * True when a rendered line height sits in the table-cell band (h≈8.9).
+ * Note that sidebar/callout BOX BODY text also renders in this band, so a
+ * cell-height run is "table-shaped", not proof of a table. Shared with
+ * `parseDocumentTables.ts`.
+ */
+export function isTableCell(height: number | undefined): boolean {
   return (
     height !== undefined && height >= TABLE_CELL_MIN && height <= TABLE_CELL_MAX
   );

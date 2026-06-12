@@ -124,7 +124,20 @@ describe('committed SRD source-coverage artifacts — integrity', () => {
     // When an eshyra-4a7.* gap bead lands and regenerates the artifacts, update
     // these numbers in the same change that removes the matching curation rule.
     expect(inventory).toHaveLength(2258);
-    expect(coverage.summary.record).toBe(1849);
+    // record 1849 -> 1873 (eshyra-4a7.3): the 24 document-wide table records
+    // claim their captions / caption-less runs. The eshyra-4a7.3 catch-all
+    // known-gap rule is gone; its remaining items moved to scoped owners —
+    // the 26 still-flattened Magic-Items-chapter embedded tables joined
+    // Figurine of Wondrous Power under eshyra-4a7.8 (1 -> 27), the 9
+    // spell-embedded tables are tracked by eshyra-o4j7, and the deity tables
+    // (5 items), Half-Dragon Template tables (2), and the Self-Sufficiency
+    // prose sidebar (1) joined their regions under eshyra-4a7.10 (62 -> 70).
+    // eshyra-4a7.6 dropped 128 -> 116 (the Barbarian progression caption,
+    // seven Circle of the Land tables, Life Domain / Oath of Devotion /
+    // Fiend Expanded spell tables, and Creating Spell Slots are now records);
+    // eshyra-4a7.7's two Draconic Ancestry captions are now records, so its
+    // rule was removed per the known-gap lifecycle.
+    expect(coverage.summary.record).toBe(1873);
     expect(coverage.summary.childOf).toBe(12);
     expect(coverage.summary.unaccounted).toBe(0);
     expect(coverage.summary.ignored).toEqual({
@@ -137,13 +150,12 @@ describe('committed SRD source-coverage artifacts — integrity', () => {
       'variant-rule-excluded': 2,
     });
     expect(coverage.summary.knownGap).toEqual({
-      'eshyra-4a7.3': 53,
       'eshyra-4a7.4': 2,
       'eshyra-4a7.5': 2,
-      'eshyra-4a7.6': 128,
-      'eshyra-4a7.7': 2,
-      'eshyra-4a7.8': 1,
-      'eshyra-4a7.10': 62,
+      'eshyra-4a7.6': 116,
+      'eshyra-4a7.8': 27,
+      'eshyra-4a7.10': 70,
+      'eshyra-o4j7': 9,
     });
   });
 });
@@ -163,22 +175,43 @@ describe('committed SRD source-coverage artifacts — known-gap sentinels', () =
     expect(fly.status).toBe('known-gap:eshyra-4a7.4');
   });
 
-  it('the Dragonborn Draconic Ancestry table (p5) is a table caption tracked by eshyra-4a7.7', () => {
-    const entry = entryFor(5, 'Draconic Ancestry');
-    expect(entry.structure).toBe('table-caption');
-    expect(entry.status).toBe('known-gap:eshyra-4a7.7');
-  });
-
-  it('the Barbarian class progression table (p8) is a table caption tracked by eshyra-4a7.6', () => {
-    const entry = entryFor(8, 'The Barbarian');
-    expect(entry.structure).toBe('table-caption');
-    expect(entry.status).toBe('known-gap:eshyra-4a7.6');
-  });
-
-  it('the Ring of Resistance embedded d10 table (p237) is a caption-less table run tracked by eshyra-4a7.3', () => {
+  it('the Ring of Resistance embedded d10 table (p237) is a caption-less table run tracked by eshyra-4a7.8', () => {
     const entry = entryFor(237, 'd10 Damage Type Gem');
     expect(entry.structure).toBe('table-shape');
-    expect(entry.status).toBe('known-gap:eshyra-4a7.3');
+    expect(entry.status).toBe('known-gap:eshyra-4a7.8');
+  });
+
+  it('the Carpet of Flying embedded size table (p213) is tracked by eshyra-4a7.8', () => {
+    const entry = entryFor(213, 'd100 Size Capacity Flying Speed');
+    expect(entry.structure).toBe('table-shape');
+    expect(entry.status).toBe('known-gap:eshyra-4a7.8');
+  });
+
+  it('the Teleport familiarity matrix (p186) is a spell-embedded table tracked by eshyra-o4j7', () => {
+    const entry = entryFor(186, 'Similar Off On');
+    expect(entry.structure).toBe('table-shape');
+    expect(entry.status).toBe('known-gap:eshyra-o4j7');
+  });
+
+  it('the Celtic Deities table (p360) belongs to the Appendix PH-B region tracked by eshyra-4a7.10', () => {
+    const entry = entryFor(360, 'Celtic Deities');
+    expect(entry.structure).toBe('table-caption');
+    expect(entry.status).toBe('known-gap:eshyra-4a7.10');
+  });
+
+  it('the Half-Dragon Template tables (p320-321) belong to the template region tracked by eshyra-4a7.10', () => {
+    const colors = entryFor(320, 'Color Damage Resistance');
+    expect(colors.structure).toBe('table-shape');
+    expect(colors.status).toBe('known-gap:eshyra-4a7.10');
+    const sizes = entryFor(321, 'Optional');
+    expect(sizes.structure).toBe('table-shape');
+    expect(sizes.status).toBe('known-gap:eshyra-4a7.10');
+  });
+
+  it('the Self-Sufficiency prose sidebar (p73, table-shaped by typography) is tracked by eshyra-4a7.10', () => {
+    const entry = entryFor(73, 'Self-Sufficiency');
+    expect(entry.structure).toBe('table-caption');
+    expect(entry.status).toBe('known-gap:eshyra-4a7.10');
   });
 });
 
@@ -196,5 +229,47 @@ describe('committed SRD source-coverage artifacts — covered-structure sentinel
   it('race trait subsections resolve as child data on ancestry records', () => {
     const entry = entryFor(3, 'Dwarf Traits');
     expect(entry.status).toBe('child-of:ancestry:dwarf');
+  });
+
+  it('the Dragonborn Draconic Ancestry captions (p5 Races, p44 Sorcerer) resolve to the emitted table record', () => {
+    // Both captions print the same text, so the name auto-match claims both
+    // for the p5 record; the p44 copy's own 2-column data lives in the
+    // separate table:draconic-bloodline-draconic-ancestry record
+    // (eshyra-4a7.3).
+    const races = entryFor(5, 'Draconic Ancestry');
+    expect(races.structure).toBe('table-caption');
+    expect(races.status).toBe('record:table:draconic-ancestry');
+    const sorcerer = entryFor(44, 'Draconic Ancestry');
+    expect(sorcerer.status).toBe('record:table:draconic-ancestry');
+  });
+
+  it('the Barbarian progression caption (p8) resolves to the emitted table record', () => {
+    const entry = entryFor(8, 'The Barbarian');
+    expect(entry.structure).toBe('table-caption');
+    expect(entry.status).toBe('record:table:the-barbarian');
+  });
+
+  it('the bare Circle of the Land terrain captions (p22) resolve to their qualified table records', () => {
+    const arctic = entryFor(22, 'Arctic');
+    expect(arctic.structure).toBe('table-caption');
+    expect(arctic.status).toBe('record:table:circle-of-the-land-arctic');
+    const swamp = entryFor(22, 'Swamp');
+    expect(swamp.status).toBe('record:table:circle-of-the-land-swamp');
+  });
+
+  it('caption-less magic-item table runs resolve to their owning-item-named table records', () => {
+    const wand = entryFor(250, 'd100 Effect');
+    expect(wand.structure).toBe('table-shape');
+    expect(wand.status).toBe('record:table:wand-of-wonder');
+    const beans = entryFor(209, 'd100 Effect');
+    expect(beans.status).toBe('record:table:bag-of-beans');
+    const belt = entryFor(211, 'Type Strength Rarity');
+    expect(belt.status).toBe('record:table:belt-of-giant-strength');
+  });
+
+  it('the Donning and Doffing Armor caption (p64) resolves to the emitted table record', () => {
+    const entry = entryFor(64, 'Donning and Doffing Armor');
+    expect(entry.structure).toBe('table-caption');
+    expect(entry.status).toBe('record:table:donning-and-doffing-armor');
   });
 });
