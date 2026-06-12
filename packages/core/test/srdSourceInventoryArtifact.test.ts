@@ -48,6 +48,18 @@ interface CoverageEntry {
   readonly status: string;
 }
 
+interface AmbiguousNameCollision {
+  readonly normalizedName: string;
+  readonly winnerKey: string;
+  readonly shadowedKeys: readonly string[];
+}
+
+interface CollapsedSourceGroup {
+  readonly text: string;
+  readonly resolvedKey: string;
+  readonly count: number;
+}
+
 interface CoverageReport {
   readonly summary: {
     readonly record: number;
@@ -55,6 +67,10 @@ interface CoverageReport {
     readonly ignored: Readonly<Record<string, number>>;
     readonly knownGap: Readonly<Record<string, number>>;
     readonly unaccounted: number;
+  };
+  readonly ambiguous: {
+    readonly shadowedRecords: readonly AmbiguousNameCollision[];
+    readonly collapsedSourceItems: readonly CollapsedSourceGroup[];
   };
   readonly entries: readonly CoverageEntry[];
 }
@@ -212,6 +228,68 @@ describe('committed SRD source-coverage artifacts — known-gap sentinels', () =
     const entry = entryFor(73, 'Self-Sufficiency');
     expect(entry.structure).toBe('table-caption');
     expect(entry.status).toBe('known-gap:eshyra-4a7.10');
+  });
+});
+
+describe('committed SRD source-coverage artifacts — ambiguous-match diagnostic (eshyra-xwic)', () => {
+  it('artifact carries an ambiguous section with shadowedRecords and collapsedSourceItems', () => {
+    expect(coverage.ambiguous).toBeDefined();
+    expect(Array.isArray(coverage.ambiguous.shadowedRecords)).toBe(true);
+    expect(Array.isArray(coverage.ambiguous.collapsedSourceItems)).toBe(true);
+  });
+
+  it('pins exact ambiguous-match counts so silent drift fails loudly', () => {
+    // When a bead closes a name collision (e.g. by adding an explicit
+    // recordRule that disambiguates a duplicate, or by renaming a record),
+    // these counts should drop and the test should be updated in the same change.
+    expect(coverage.ambiguous.shadowedRecords).toHaveLength(62);
+    expect(coverage.ambiguous.collapsedSourceItems).toHaveLength(60);
+  });
+
+  it('surfaces the 12-way Ability Score Improvement feature collapse (one per class, all map to barbarian key)', () => {
+    const asi = coverage.ambiguous.collapsedSourceItems.find(
+      (g) => g.resolvedKey === 'feature:barbarian:ability-score-improvement',
+    );
+    expect(asi).toBeDefined();
+    expect(asi?.text).toBe('Ability Score Improvement');
+    expect(asi?.count).toBe(12);
+  });
+
+  it('surfaces the Acolyte cross-kind collision (background and creature share the same name)', () => {
+    const shadow = coverage.ambiguous.shadowedRecords.find(
+      (r) => r.normalizedName === 'acolyte',
+    );
+    expect(shadow).toBeDefined();
+    expect(shadow?.winnerKey).toBe('background:acolyte');
+    expect(shadow?.shadowedKeys).toContain('creature:acolyte');
+  });
+
+  it('surfaces the Actions collapse (monster stat-block sections all map to the rule:actions key)', () => {
+    const actions = coverage.ambiguous.collapsedSourceItems.find(
+      (g) => g.resolvedKey === 'rule:actions',
+    );
+    expect(actions).toBeDefined();
+    expect(actions?.text).toBe('Actions');
+    // 296 creature + 21 NPC stat blocks each have an Actions section; the
+    // exact count may change as the monster chapter parser evolves. Gate on
+    // a minimum so a regression that drops entries fails, not the exact value.
+    expect(actions?.count).toBeGreaterThanOrEqual(300);
+  });
+
+  it('shadowedRecords entries are sorted by normalizedName', () => {
+    const names = coverage.ambiguous.shadowedRecords.map(
+      (r) => r.normalizedName,
+    );
+    const sorted = [...names].sort();
+    expect(names).toEqual(sorted);
+  });
+
+  it('collapsedSourceItems entries are sorted by resolvedKey', () => {
+    const keys = coverage.ambiguous.collapsedSourceItems.map(
+      (g) => g.resolvedKey,
+    );
+    const sorted = [...keys].sort();
+    expect(keys).toEqual(sorted);
   });
 });
 

@@ -2558,7 +2558,7 @@ export async function runImporter(
     assertSourceCoverage(coverageEntries);
     sourceCoverageArtifacts = {
       inventory,
-      report: buildSourceCoverageReport(coverageEntries),
+      report: buildSourceCoverageReport(coverageEntries, pack.records),
     };
   }
   writePackToDirectory(pack, { outDir: input.outDir });
