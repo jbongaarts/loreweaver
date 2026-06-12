@@ -231,16 +231,18 @@ describe('committed SRD source-coverage artifacts — covered-structure sentinel
     expect(entry.status).toBe('child-of:ancestry:dwarf');
   });
 
-  it('the Dragonborn Draconic Ancestry captions (p5 Races, p44 Sorcerer) resolve to the emitted table record', () => {
-    // Both captions print the same text, so the name auto-match claims both
-    // for the p5 record; the p44 copy's own 2-column data lives in the
-    // separate table:draconic-bloodline-draconic-ancestry record
-    // (eshyra-4a7.3).
+  it('the duplicate Draconic Ancestry captions (p5 Races, p44 Sorcerer) resolve to their OWN table records', () => {
+    // Both captions print the same text, so the name auto-match alone cannot
+    // tell them apart; explicit per-chapter record rules (which outrank the
+    // auto-match) map each caption to its own emitted record (eshyra-4a7.3).
     const races = entryFor(5, 'Draconic Ancestry');
     expect(races.structure).toBe('table-caption');
     expect(races.status).toBe('record:table:draconic-ancestry');
     const sorcerer = entryFor(44, 'Draconic Ancestry');
-    expect(sorcerer.status).toBe('record:table:draconic-ancestry');
+    expect(sorcerer.structure).toBe('table-caption');
+    expect(sorcerer.status).toBe(
+      'record:table:draconic-bloodline-draconic-ancestry',
+    );
   });
 
   it('the Barbarian progression caption (p8) resolves to the emitted table record', () => {

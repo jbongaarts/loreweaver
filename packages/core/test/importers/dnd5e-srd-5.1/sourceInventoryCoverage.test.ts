@@ -177,6 +177,71 @@ describe('evaluateSourceCoverage — rules and defaults', () => {
     });
   });
 
+  it('lets an explicit recordRule outrank the name auto-match (duplicate source captions)', () => {
+    // The SRD prints "Draconic Ancestry" twice — the Dragonborn table (p5,
+    // Races) and the Sorcerer Draconic Bloodline copy (p44). Both captions
+    // normalize to the same name, so the auto-match alone would claim both
+    // for the p5 record; the explicit per-chapter record rules map each
+    // caption to its own emitted record.
+    const tableRecords = [
+      {
+        kind: 'table',
+        key: 'table:draconic-ancestry',
+        name: 'Draconic Ancestry',
+      },
+      {
+        kind: 'table',
+        key: 'table:draconic-bloodline-draconic-ancestry',
+        name: 'Draconic Bloodline Draconic Ancestry',
+      },
+    ] as const;
+    const inventory = [
+      item({
+        text: 'Draconic Ancestry',
+        page: 5,
+        structure: 'table-caption',
+        section: 'Races',
+      }),
+      item({
+        text: 'Draconic Ancestry',
+        page: 44,
+        structure: 'table-caption',
+        section: 'Sorcerer',
+      }),
+    ];
+    const entries = evaluateSourceCoverage(inventory, tableRecords, [
+      recordRule(
+        'table:draconic-ancestry',
+        (i) => i.section === 'Races' && i.text === 'Draconic Ancestry',
+      ),
+      recordRule(
+        'table:draconic-bloodline-draconic-ancestry',
+        (i) => i.section === 'Sorcerer' && i.text === 'Draconic Ancestry',
+      ),
+    ]);
+    expect(entries.map((e) => e.status)).toEqual([
+      { kind: 'record', key: 'table:draconic-ancestry' },
+      { kind: 'record', key: 'table:draconic-bloodline-draconic-ancestry' },
+    ]);
+  });
+
+  it('keeps non-record rules behind the auto-match', () => {
+    // Hoisting applies ONLY to record-type rules: an ignore/known-gap rule
+    // matching a record-named heading must not steal it from the auto-match.
+    const entries = evaluateSourceCoverage(
+      [item({ text: 'Aboleth' })],
+      records,
+      [
+        ignoreRule('would-shadow', (i) => i.text === 'Aboleth'),
+        knownGapRule('eshyra-0000', (i) => i.text === 'Aboleth'),
+      ],
+    );
+    expect(entries[0].status).toEqual({
+      kind: 'record',
+      key: 'creature:aboleth',
+    });
+  });
+
   it('leaves unmatched leaf/sidebar/table items unaccounted', () => {
     const entries = evaluateSourceCoverage(
       [item({ text: 'Mystery Heading' })],

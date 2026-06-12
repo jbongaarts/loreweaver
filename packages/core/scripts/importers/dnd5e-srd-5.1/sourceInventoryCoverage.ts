@@ -14,9 +14,13 @@
  *                    the new coverage;
  *   - `unaccounted`— nothing claims it. `assertSourceCoverage` fails closed.
  *
- * Resolution order: name auto-match first (an emitted record always wins),
- * then the caller's rules in order (first match wins), then the
- * document-structure default for chapter/section tiers, else unaccounted.
+ * Resolution order: explicit `record`-type rules first (a curated mapping is
+ * more precise than the name heuristic, so it can disambiguate duplicate
+ * source captions — e.g. the two "Draconic Ancestry" tables on p5 and p44
+ * map to two different emitted records), then the name auto-match (an
+ * emitted record claims its own heading without curation), then the caller's
+ * remaining rules in order (first match wins), then the document-structure
+ * default for chapter/section tiers, else unaccounted.
  *
  * Rules are PREDICATES with stable reason codes, not per-item lists: one rule
  * accounts for a whole class of source items (e.g. every spell-list header),
@@ -91,10 +95,16 @@ export function childOfRule(
 }
 
 /**
- * Map a source item to an emitted record whose NAME differs from the source
- * heading text, so the name auto-match cannot claim it — e.g. the SRD's
- * "Lightfoot" subrace heading vs the emitted `ancestry:lightfoot-halfling`
- * record named "Lightfoot Halfling".
+ * Map a source item to a specific emitted record. Evaluated BEFORE the name
+ * auto-match, so it serves two cases:
+ *
+ *   - an emitted record whose NAME differs from the source heading text, so
+ *     the auto-match cannot claim it — e.g. the SRD's "Lightfoot" subrace
+ *     heading vs the emitted `ancestry:lightfoot-halfling` record named
+ *     "Lightfoot Halfling";
+ *   - DUPLICATE source captions that must map to different records, where
+ *     the auto-match would claim both for one record — e.g. the p5
+ *     Dragonborn and p44 Sorcerer "Draconic Ancestry" tables.
  */
 export function recordRule(
   key: string,
@@ -152,12 +162,21 @@ export function evaluateSourceCoverage(
   }
 
   const entries = inventory.map((item): SourceCoverageEntry => {
+    // Explicit record mappings outrank the name auto-match: a curated rule
+    // is more precise than the name heuristic, which cannot tell duplicate
+    // source captions apart (the p5 vs p44 "Draconic Ancestry" tables) and
+    // resolves duplicate record names lexicographically.
+    for (const rule of rules) {
+      if (rule.type === 'record' && rule.match(item)) {
+        return { item, status: statusForRule(rule) };
+      }
+    }
     const matchedKey = keyByName.get(normalizeName(item.text));
     if (matchedKey !== undefined) {
       return { item, status: { kind: 'record', key: matchedKey } };
     }
     for (const rule of rules) {
-      if (rule.match(item)) {
+      if (rule.type !== 'record' && rule.match(item)) {
         return { item, status: statusForRule(rule) };
       }
     }
@@ -305,8 +324,10 @@ export function buildSourceCoverageReport(
 // ---------------------------------------------------------------------------
 // Curated coverage rules for the vendored SRD 5.1 PDF (eshyra-4a7.1.3).
 //
-// Resolution order matters: the name auto-match runs before any rule (an
-// emitted record always claims its own heading), then these rules apply
+// Resolution order matters: explicit `record`-type rules run FIRST (a curated
+// mapping outranks the name heuristic, so duplicate source captions can map
+// to distinct records), then the name auto-match (an emitted record claims
+// its own heading without curation), then the remaining rules apply
 // first-match-wins. Rules are predicates over understood CLASSES of source
 // structure, not per-item allowlists, so a new item of an already-understood
 // shape is auto-accounted while a genuinely novel structure stays
@@ -462,11 +483,27 @@ export const SRD_5_1_COVERAGE_RULES: readonly CoverageRule[] = [
     'table:difficulty-classes',
     (i) => i.text === 'Typical Difficulty Classes',
   ),
+  // The two same-caption "Draconic Ancestry" tables (eshyra-4a7.3): the name
+  // auto-match cannot tell them apart and would claim both captions for one
+  // record, so each chapter's caption maps explicitly to its own emitted
+  // record (record rules outrank the auto-match — see the resolution order
+  // above).
+  recordRule(
+    'table:draconic-ancestry',
+    (i) =>
+      i.section === 'Races' &&
+      i.structure === 'table-caption' &&
+      i.text === 'Draconic Ancestry',
+  ),
+  recordRule(
+    'table:draconic-bloodline-draconic-ancestry',
+    (i) =>
+      i.section === 'Sorcerer' &&
+      i.structure === 'table-caption' &&
+      i.text === 'Draconic Ancestry',
+  ),
   // Document-wide tables (eshyra-4a7.3) whose emitted record name differs
-  // from the source text, so the name auto-match cannot claim them. (The
-  // Sorcerer-chapter "Draconic Ancestry" caption auto-matches the p5
-  // `table:draconic-ancestry` record by name; its own 2-column copy is the
-  // separate `table:draconic-bloodline-draconic-ancestry` record.)
+  // from the source text, so the name auto-match cannot claim them.
   ...CIRCLE_OF_THE_LAND_TABLE_TERRAINS.map(([terrain, key]) =>
     recordRule(
       key,
