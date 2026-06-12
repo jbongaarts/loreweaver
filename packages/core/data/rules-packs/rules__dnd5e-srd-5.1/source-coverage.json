@@ -21,6 +21,780 @@
     },
     "unaccounted": 0
   },
+  "ambiguous": {
+    "shadowedRecords": [
+      {
+        "normalizedName": "ability score improvement",
+        "winnerKey": "feature:barbarian:ability-score-improvement",
+        "shadowedKeys": [
+          "feature:bard:ability-score-improvement",
+          "feature:cleric:ability-score-improvement",
+          "feature:druid:ability-score-improvement",
+          "feature:fighter:ability-score-improvement",
+          "feature:monk:ability-score-improvement",
+          "feature:paladin:ability-score-improvement",
+          "feature:ranger:ability-score-improvement",
+          "feature:rogue:ability-score-improvement",
+          "feature:sorcerer:ability-score-improvement",
+          "feature:warlock:ability-score-improvement",
+          "feature:wizard:ability-score-improvement"
+        ]
+      },
+      {
+        "normalizedName": "ability scores and modifiers",
+        "winnerKey": "rule:ability-scores-and-modifiers",
+        "shadowedKeys": [
+          "table:ability-scores-and-modifiers"
+        ]
+      },
+      {
+        "normalizedName": "acolyte",
+        "winnerKey": "background:acolyte",
+        "shadowedKeys": [
+          "creature:acolyte"
+        ]
+      },
+      {
+        "normalizedName": "alignment",
+        "winnerKey": "rule:alignment",
+        "shadowedKeys": [
+          "rule:monsters-alignment"
+        ]
+      },
+      {
+        "normalizedName": "armor class",
+        "winnerKey": "rule:armor-class",
+        "shadowedKeys": [
+          "rule:monsters-armor-class"
+        ]
+      },
+      {
+        "normalizedName": "attack",
+        "winnerKey": "action:attack",
+        "shadowedKeys": [
+          "rule:attack"
+        ]
+      },
+      {
+        "normalizedName": "attack rolls",
+        "winnerKey": "rule:attack-rolls",
+        "shadowedKeys": [
+          "rule:casting-a-spell-attack-rolls"
+        ]
+      },
+      {
+        "normalizedName": "attack rolls and damage",
+        "winnerKey": "rule:dexterity-attack-rolls-and-damage",
+        "shadowedKeys": [
+          "rule:strength-attack-rolls-and-damage"
+        ]
+      },
+      {
+        "normalizedName": "bag of beans",
+        "winnerKey": "magic-item:bag-of-beans",
+        "shadowedKeys": [
+          "table:bag-of-beans"
+        ]
+      },
+      {
+        "normalizedName": "belt of giant strength",
+        "winnerKey": "magic-item:belt-of-giant-strength",
+        "shadowedKeys": [
+          "table:belt-of-giant-strength"
+        ]
+      },
+      {
+        "normalizedName": "blindsight",
+        "winnerKey": "rule:blindsight",
+        "shadowedKeys": [
+          "rule:senses-blindsight"
+        ]
+      },
+      {
+        "normalizedName": "camel",
+        "winnerKey": "creature:camel",
+        "shadowedKeys": [
+          "equipment:camel"
+        ]
+      },
+      {
+        "normalizedName": "cantrips",
+        "winnerKey": "feature:cleric:cantrips",
+        "shadowedKeys": [
+          "feature:druid:cantrips",
+          "feature:sorcerer:cantrips",
+          "feature:wizard:cantrips",
+          "rule:cantrips"
+        ]
+      },
+      {
+        "normalizedName": "cast a spell",
+        "winnerKey": "action:cast-a-spell",
+        "shadowedKeys": [
+          "rule:cast-a-spell"
+        ]
+      },
+      {
+        "normalizedName": "channel divinity",
+        "winnerKey": "feature:cleric:channel-divinity",
+        "shadowedKeys": [
+          "feature:oath-of-devotion:channel-divinity",
+          "rule:channel-divinity"
+        ]
+      },
+      {
+        "normalizedName": "darkvision",
+        "winnerKey": "rule:darkvision",
+        "shadowedKeys": [
+          "rule:senses-darkvision",
+          "spell:darkvision"
+        ]
+      },
+      {
+        "normalizedName": "dash",
+        "winnerKey": "action:dash",
+        "shadowedKeys": [
+          "rule:dash"
+        ]
+      },
+      {
+        "normalizedName": "difficult terrain",
+        "winnerKey": "rule:movement-and-position-difficult-terrain",
+        "shadowedKeys": [
+          "rule:speed-difficult-terrain"
+        ]
+      },
+      {
+        "normalizedName": "disengage",
+        "winnerKey": "action:disengage",
+        "shadowedKeys": [
+          "rule:disengage"
+        ]
+      },
+      {
+        "normalizedName": "dodge",
+        "winnerKey": "action:dodge",
+        "shadowedKeys": [
+          "rule:dodge"
+        ]
+      },
+      {
+        "normalizedName": "druid",
+        "winnerKey": "class:druid",
+        "shadowedKeys": [
+          "creature:druid"
+        ]
+      },
+      {
+        "normalizedName": "elephant",
+        "winnerKey": "creature:elephant",
+        "shadowedKeys": [
+          "equipment:elephant"
+        ]
+      },
+      {
+        "normalizedName": "equipment",
+        "winnerKey": "rule:backgrounds-equipment",
+        "shadowedKeys": [
+          "rule:equipment"
+        ]
+      },
+      {
+        "normalizedName": "evasion",
+        "winnerKey": "feature:monk:evasion",
+        "shadowedKeys": [
+          "feature:rogue:evasion"
+        ]
+      },
+      {
+        "normalizedName": "experience points",
+        "winnerKey": "rule:challenge-experience-points",
+        "shadowedKeys": [
+          "rule:experience-points"
+        ]
+      },
+      {
+        "normalizedName": "expertise",
+        "winnerKey": "feature:bard:expertise",
+        "shadowedKeys": [
+          "feature:rogue:expertise"
+        ]
+      },
+      {
+        "normalizedName": "extra attack",
+        "winnerKey": "feature:barbarian:extra-attack",
+        "shadowedKeys": [
+          "feature:fighter:extra-attack",
+          "feature:monk:extra-attack",
+          "feature:paladin:extra-attack",
+          "feature:ranger:extra-attack",
+          "rule:extra-attack"
+        ]
+      },
+      {
+        "normalizedName": "fighting style",
+        "winnerKey": "feature:fighter:fighting-style",
+        "shadowedKeys": [
+          "feature:paladin:fighting-style",
+          "feature:ranger:fighting-style"
+        ]
+      },
+      {
+        "normalizedName": "fly",
+        "winnerKey": "rule:fly",
+        "shadowedKeys": [
+          "spell:fly"
+        ]
+      },
+      {
+        "normalizedName": "help",
+        "winnerKey": "action:help",
+        "shadowedKeys": [
+          "rule:help"
+        ]
+      },
+      {
+        "normalizedName": "hide",
+        "winnerKey": "action:hide",
+        "shadowedKeys": [
+          "equipment:hide",
+          "rule:hide"
+        ]
+      },
+      {
+        "normalizedName": "hit points",
+        "winnerKey": "rule:constitution-hit-points",
+        "shadowedKeys": [
+          "rule:damage-and-healing-hit-points",
+          "rule:hit-points"
+        ]
+      },
+      {
+        "normalizedName": "initiative",
+        "winnerKey": "rule:dexterity-initiative",
+        "shadowedKeys": [
+          "rule:the-order-of-combat-initiative"
+        ]
+      },
+      {
+        "normalizedName": "land's stride",
+        "winnerKey": "feature:circle-of-the-land:lands-stride",
+        "shadowedKeys": [
+          "feature:ranger:lands-stride"
+        ]
+      },
+      {
+        "normalizedName": "languages",
+        "winnerKey": "rule:backgrounds-languages",
+        "shadowedKeys": [
+          "rule:languages",
+          "rule:monsters-languages"
+        ]
+      },
+      {
+        "normalizedName": "lifestyle expenses",
+        "winnerKey": "rule:lifestyle-expenses",
+        "shadowedKeys": [
+          "table:lifestyle-expenses"
+        ]
+      },
+      {
+        "normalizedName": "mastiff",
+        "winnerKey": "creature:mastiff",
+        "shadowedKeys": [
+          "equipment:mastiff"
+        ]
+      },
+      {
+        "normalizedName": "multiattack",
+        "winnerKey": "feature:hunter:multiattack",
+        "shadowedKeys": [
+          "rule:multiattack"
+        ]
+      },
+      {
+        "normalizedName": "pony",
+        "winnerKey": "creature:pony",
+        "shadowedKeys": [
+          "equipment:pony"
+        ]
+      },
+      {
+        "normalizedName": "potion of giant strength",
+        "winnerKey": "magic-item:potion-of-giant-strength",
+        "shadowedKeys": [
+          "table:potion-of-giant-strength"
+        ]
+      },
+      {
+        "normalizedName": "potion of healing",
+        "winnerKey": "equipment:potion-of-healing",
+        "shadowedKeys": [
+          "magic-item:potion-of-healing"
+        ]
+      },
+      {
+        "normalizedName": "proficiencies",
+        "winnerKey": "rule:backgrounds-proficiencies",
+        "shadowedKeys": [
+          "rule:proficiencies"
+        ]
+      },
+      {
+        "normalizedName": "proficiency bonus",
+        "winnerKey": "rule:multiclassing-proficiency-bonus",
+        "shadowedKeys": [
+          "rule:proficiency-bonus"
+        ]
+      },
+      {
+        "normalizedName": "range",
+        "winnerKey": "rule:casting-a-spell-range",
+        "shadowedKeys": [
+          "rule:range"
+        ]
+      },
+      {
+        "normalizedName": "reactions",
+        "winnerKey": "rule:casting-time-reactions",
+        "shadowedKeys": [
+          "rule:monsters-reactions",
+          "rule:reactions"
+        ]
+      },
+      {
+        "normalizedName": "ready",
+        "winnerKey": "action:ready",
+        "shadowedKeys": [
+          "rule:ready"
+        ]
+      },
+      {
+        "normalizedName": "robe of useful items",
+        "winnerKey": "magic-item:robe-of-useful-items",
+        "shadowedKeys": [
+          "table:robe-of-useful-items"
+        ]
+      },
+      {
+        "normalizedName": "saving throws",
+        "winnerKey": "rule:casting-a-spell-saving-throws",
+        "shadowedKeys": [
+          "rule:monsters-saving-throws",
+          "rule:saving-throws"
+        ]
+      },
+      {
+        "normalizedName": "search",
+        "winnerKey": "action:search",
+        "shadowedKeys": [
+          "rule:search"
+        ]
+      },
+      {
+        "normalizedName": "shield",
+        "winnerKey": "equipment:shield",
+        "shadowedKeys": [
+          "spell:shield"
+        ]
+      },
+      {
+        "normalizedName": "skills",
+        "winnerKey": "rule:monsters-skills",
+        "shadowedKeys": [
+          "rule:skills"
+        ]
+      },
+      {
+        "normalizedName": "speed",
+        "winnerKey": "rule:monsters-speed",
+        "shadowedKeys": [
+          "rule:speed"
+        ]
+      },
+      {
+        "normalizedName": "spellbook",
+        "winnerKey": "equipment:spellbook",
+        "shadowedKeys": [
+          "feature:wizard:spellbook"
+        ]
+      },
+      {
+        "normalizedName": "spellcasting",
+        "winnerKey": "feature:bard:spellcasting",
+        "shadowedKeys": [
+          "feature:cleric:spellcasting",
+          "feature:druid:spellcasting",
+          "feature:paladin:spellcasting",
+          "feature:ranger:spellcasting",
+          "feature:sorcerer:spellcasting",
+          "feature:wizard:spellcasting",
+          "rule:special-traits-spellcasting",
+          "rule:spellcasting"
+        ]
+      },
+      {
+        "normalizedName": "spellcasting ability",
+        "winnerKey": "rule:charisma-spellcasting-ability",
+        "shadowedKeys": [
+          "rule:intelligence-spellcasting-ability",
+          "rule:wisdom-spellcasting-ability"
+        ]
+      },
+      {
+        "normalizedName": "sphere of annihilation",
+        "winnerKey": "hazard:sphere-of-annihilation",
+        "shadowedKeys": [
+          "magic-item:sphere-of-annihilation"
+        ]
+      },
+      {
+        "normalizedName": "timeless body",
+        "winnerKey": "feature:druid:timeless-body",
+        "shadowedKeys": [
+          "feature:monk:timeless-body"
+        ]
+      },
+      {
+        "normalizedName": "truesight",
+        "winnerKey": "rule:senses-truesight",
+        "shadowedKeys": [
+          "rule:truesight"
+        ]
+      },
+      {
+        "normalizedName": "unarmored defense",
+        "winnerKey": "feature:barbarian:unarmored-defense",
+        "shadowedKeys": [
+          "feature:monk:unarmored-defense",
+          "rule:unarmored-defense"
+        ]
+      },
+      {
+        "normalizedName": "use an object",
+        "winnerKey": "action:use-an-object",
+        "shadowedKeys": [
+          "rule:use-an-object"
+        ]
+      },
+      {
+        "normalizedName": "wand of wonder",
+        "winnerKey": "magic-item:wand-of-wonder",
+        "shadowedKeys": [
+          "table:wand-of-wonder"
+        ]
+      },
+      {
+        "normalizedName": "warhorse",
+        "winnerKey": "creature:warhorse",
+        "shadowedKeys": [
+          "equipment:warhorse"
+        ]
+      }
+    ],
+    "collapsedSourceItems": [
+      {
+        "text": "Acolyte",
+        "resolvedKey": "background:acolyte",
+        "count": 2
+      },
+      {
+        "text": "Druid",
+        "resolvedKey": "class:druid",
+        "count": 2
+      },
+      {
+        "text": "Ability Score Improvement",
+        "resolvedKey": "feature:barbarian:ability-score-improvement",
+        "count": 12
+      },
+      {
+        "text": "Extra Attack",
+        "resolvedKey": "feature:barbarian:extra-attack",
+        "count": 6
+      },
+      {
+        "text": "Unarmored Defense",
+        "resolvedKey": "feature:barbarian:unarmored-defense",
+        "count": 3
+      },
+      {
+        "text": "Expertise",
+        "resolvedKey": "feature:bard:expertise",
+        "count": 2
+      },
+      {
+        "text": "Spellcasting",
+        "resolvedKey": "feature:bard:spellcasting",
+        "count": 10
+      },
+      {
+        "text": "Land’s Stride",
+        "resolvedKey": "feature:circle-of-the-land:lands-stride",
+        "count": 2
+      },
+      {
+        "text": "Cantrips",
+        "resolvedKey": "feature:cleric:cantrips",
+        "count": 7
+      },
+      {
+        "text": "Channel Divinity",
+        "resolvedKey": "feature:cleric:channel-divinity",
+        "count": 4
+      },
+      {
+        "text": "Destroy Undead",
+        "resolvedKey": "feature:cleric:destroy-undead",
+        "count": 2
+      },
+      {
+        "text": "Timeless Body",
+        "resolvedKey": "feature:druid:timeless-body",
+        "count": 2
+      },
+      {
+        "text": "Fighting Style",
+        "resolvedKey": "feature:fighter:fighting-style",
+        "count": 3
+      },
+      {
+        "text": "Multiattack",
+        "resolvedKey": "feature:hunter:multiattack",
+        "count": 2
+      },
+      {
+        "text": "Evasion",
+        "resolvedKey": "feature:monk:evasion",
+        "count": 2
+      },
+      {
+        "text": "Eldritch Invocations",
+        "resolvedKey": "feature:warlock:eldritch-invocations",
+        "count": 2
+      },
+      {
+        "text": "Sphere of Annihilation",
+        "resolvedKey": "hazard:sphere-of-annihilation",
+        "count": 2
+      },
+      {
+        "text": "Spell Scroll",
+        "resolvedKey": "magic-item:spell-scroll",
+        "count": 2
+      },
+      {
+        "text": "Ability Scores and Modifiers",
+        "resolvedKey": "rule:ability-scores-and-modifiers",
+        "count": 2
+      },
+      {
+        "text": "Actions",
+        "resolvedKey": "rule:actions",
+        "count": 316
+      },
+      {
+        "text": "Alignment",
+        "resolvedKey": "rule:alignment",
+        "count": 4
+      },
+      {
+        "text": "Armor Class",
+        "resolvedKey": "rule:armor-class",
+        "count": 2
+      },
+      {
+        "text": "Attack Rolls",
+        "resolvedKey": "rule:attack-rolls",
+        "count": 2
+      },
+      {
+        "text": "Equipment",
+        "resolvedKey": "rule:backgrounds-equipment",
+        "count": 15
+      },
+      {
+        "text": "Languages",
+        "resolvedKey": "rule:backgrounds-languages",
+        "count": 4
+      },
+      {
+        "text": "Proficiencies",
+        "resolvedKey": "rule:backgrounds-proficiencies",
+        "count": 14
+      },
+      {
+        "text": "Blindsight",
+        "resolvedKey": "rule:blindsight",
+        "count": 2
+      },
+      {
+        "text": "Range",
+        "resolvedKey": "rule:casting-a-spell-range",
+        "count": 2
+      },
+      {
+        "text": "Saving Throws",
+        "resolvedKey": "rule:casting-a-spell-saving-throws",
+        "count": 3
+      },
+      {
+        "text": "Reactions",
+        "resolvedKey": "rule:casting-time-reactions",
+        "count": 15
+      },
+      {
+        "text": "Experience Points",
+        "resolvedKey": "rule:challenge-experience-points",
+        "count": 2
+      },
+      {
+        "text": "Charisma",
+        "resolvedKey": "rule:charisma",
+        "count": 2
+      },
+      {
+        "text": "Spellcasting Ability",
+        "resolvedKey": "rule:charisma-spellcasting-ability",
+        "count": 11
+      },
+      {
+        "text": "Class Features",
+        "resolvedKey": "rule:class-features",
+        "count": 13
+      },
+      {
+        "text": "Hit Points",
+        "resolvedKey": "rule:constitution-hit-points",
+        "count": 15
+      },
+      {
+        "text": "Darkvision",
+        "resolvedKey": "rule:darkvision",
+        "count": 3
+      },
+      {
+        "text": "Dexterity",
+        "resolvedKey": "rule:dexterity",
+        "count": 2
+      },
+      {
+        "text": "Attack Rolls and Damage",
+        "resolvedKey": "rule:dexterity-attack-rolls-and-damage",
+        "count": 2
+      },
+      {
+        "text": "Initiative",
+        "resolvedKey": "rule:dexterity-initiative",
+        "count": 2
+      },
+      {
+        "text": "Fly",
+        "resolvedKey": "rule:fly",
+        "count": 2
+      },
+      {
+        "text": "Intelligence",
+        "resolvedKey": "rule:intelligence",
+        "count": 2
+      },
+      {
+        "text": "Legendary Actions",
+        "resolvedKey": "rule:legendary-actions",
+        "count": 31
+      },
+      {
+        "text": "Lifestyle Expenses",
+        "resolvedKey": "rule:lifestyle-expenses",
+        "count": 3
+      },
+      {
+        "text": "Skills",
+        "resolvedKey": "rule:monsters-skills",
+        "count": 2
+      },
+      {
+        "text": "Speed",
+        "resolvedKey": "rule:monsters-speed",
+        "count": 3
+      },
+      {
+        "text": "Difficult Terrain",
+        "resolvedKey": "rule:movement-and-position-difficult-terrain",
+        "count": 2
+      },
+      {
+        "text": "Proficiency Bonus",
+        "resolvedKey": "rule:multiclassing-proficiency-bonus",
+        "count": 2
+      },
+      {
+        "text": "Senses",
+        "resolvedKey": "rule:senses",
+        "count": 2
+      },
+      {
+        "text": "Truesight",
+        "resolvedKey": "rule:senses-truesight",
+        "count": 2
+      },
+      {
+        "text": "Size",
+        "resolvedKey": "rule:size",
+        "count": 2
+      },
+      {
+        "text": "Spell Slots",
+        "resolvedKey": "rule:spell-slots",
+        "count": 5
+      },
+      {
+        "text": "Strength",
+        "resolvedKey": "rule:strength",
+        "count": 2
+      },
+      {
+        "text": "Suggested Characteristics",
+        "resolvedKey": "rule:suggested-characteristics",
+        "count": 2
+      },
+      {
+        "text": "Two-Weapon Fighting",
+        "resolvedKey": "rule:two-weapon-fighting",
+        "count": 3
+      },
+      {
+        "text": "Wisdom",
+        "resolvedKey": "rule:wisdom",
+        "count": 2
+      },
+      {
+        "text": "Food, Drink, and Lodging",
+        "resolvedKey": "table:food-drink-and-lodging",
+        "count": 2
+      },
+      {
+        "text": "Services",
+        "resolvedKey": "table:services",
+        "count": 2
+      },
+      {
+        "text": "Size Categories",
+        "resolvedKey": "table:size-categories",
+        "count": 2
+      },
+      {
+        "text": "Trade Goods",
+        "resolvedKey": "table:trade-goods",
+        "count": 2
+      },
+      {
+        "text": "Travel Pace",
+        "resolvedKey": "table:travel-pace",
+        "count": 2
+      }
+    ]
+  },
   "entries": [
     {
       "page": 1,

@@ -250,6 +250,29 @@ export interface SourceCoverageReportEntry {
   readonly status: string;
 }
 
+/**
+ * A name that maps to multiple emitted record keys: the auto-match can only
+ * resolve to the lexicographically-first key, so the rest are silently
+ * shadowed. The reporter surfaces these so reviewers can decide whether each
+ * collision needs an explicit `recordRule` disambiguation.
+ */
+export interface AmbiguousNameCollision {
+  readonly normalizedName: string;
+  readonly winnerKey: string;
+  readonly shadowedKeys: readonly string[];
+}
+
+/**
+ * Multiple source inventory items that share the same normalized text and all
+ * auto-match to the same record key. The count shows how many source items are
+ * collapsed into one auto-match result. Only groups with count > 1 are listed.
+ */
+export interface CollapsedSourceGroup {
+  readonly text: string;
+  readonly resolvedKey: string;
+  readonly count: number;
+}
+
 /** JSON shape of the `source-coverage.json` artifact. */
 export interface SourceCoverageReport {
   readonly summary: {
@@ -259,17 +282,37 @@ export interface SourceCoverageReport {
     readonly knownGap: Readonly<Record<string, number>>;
     readonly unaccounted: number;
   };
+  readonly ambiguous: {
+    readonly shadowedRecords: readonly AmbiguousNameCollision[];
+    readonly collapsedSourceItems: readonly CollapsedSourceGroup[];
+  };
   readonly entries: readonly SourceCoverageReportEntry[];
 }
 
 /**
  * Build the reviewer-facing coverage report: a roll-up of statuses (per
- * ignore reason and per known-gap bead) followed by every entry in reading
- * order. Pure and deterministic — sub-summary keys are sorted so the emitted
- * JSON is byte-stable for identical input.
+ * ignore reason and per known-gap bead), an ambiguous-match diagnostic, and
+ * every entry in reading order. Pure and deterministic — sub-summary keys are
+ * sorted so the emitted JSON is byte-stable for identical input.
+ *
+ * The `ambiguous` section surfaces two classes of silent collisions in the
+ * name auto-matcher:
+ *
+ *   - `shadowedRecords`: emitted records whose normalized name is shared with
+ *     another record. The auto-match resolves to the lexicographically-first
+ *     key; the rest are shadowed and can only be claimed by an explicit
+ *     `recordRule`. Cross-kind name collisions (e.g. a class and a creature
+ *     both named "Druid") appear here.
+ *
+ *   - `collapsedSourceItems`: groups of source inventory items that share the
+ *     same normalized text and all auto-match to the same record key. Each
+ *     group shows the count so reviewers can see how many source items are
+ *     silently folded into one match (e.g. 12 per-class "Ability Score
+ *     Improvement" headings all resolving to one feature key).
  */
 export function buildSourceCoverageReport(
   entries: readonly SourceCoverageEntry[],
+  records: readonly CoverageRecordRef[],
 ): SourceCoverageReport {
   let record = 0;
   let childOf = 0;
@@ -301,6 +344,65 @@ export function buildSourceCoverageReport(
     Object.fromEntries(
       [...counts.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
     );
+
+  // ---- ambiguous: shadowed records ----
+  // Collect all keys per normalized name, then report names with >1 key.
+  const nameToKeys = new Map<string, string[]>();
+  for (const rec of records) {
+    const name = normalizeName(rec.name);
+    const list = nameToKeys.get(name);
+    if (list === undefined) {
+      nameToKeys.set(name, [rec.key]);
+    } else {
+      list.push(rec.key);
+    }
+  }
+  const shadowedRecords: AmbiguousNameCollision[] = [];
+  for (const [normalizedName, keys] of [...nameToKeys.entries()].sort(
+    ([a], [b]) => (a < b ? -1 : a > b ? 1 : 0),
+  )) {
+    if (keys.length > 1) {
+      const sortedKeys = [...keys].sort();
+      shadowedRecords.push({
+        normalizedName,
+        winnerKey: sortedKeys[0],
+        shadowedKeys: sortedKeys.slice(1),
+      });
+    }
+  }
+
+  // ---- ambiguous: collapsed source items ----
+  // Rebuild keyByName (same logic as evaluateSourceCoverage) to identify
+  // which record entries came from the name auto-match vs an explicit
+  // recordRule (recordRule entries have a key that differs from what the
+  // auto-match would have chosen for that text).
+  const keyByName = new Map<string, string>();
+  for (const rec of records) {
+    const name = normalizeName(rec.name);
+    const existing = keyByName.get(name);
+    if (existing === undefined || rec.key < existing) {
+      keyByName.set(name, rec.key);
+    }
+  }
+  const autoMatchCounts = new Map<string, { text: string; count: number }>();
+  for (const { item, status } of entries) {
+    if (status.kind !== 'record') continue;
+    const expectedKey = keyByName.get(normalizeName(item.text));
+    if (expectedKey !== status.key) continue; // resolved by a recordRule
+    const existing = autoMatchCounts.get(status.key);
+    if (existing === undefined) {
+      autoMatchCounts.set(status.key, { text: item.text, count: 1 });
+    } else {
+      existing.count += 1;
+    }
+  }
+  const collapsedSourceItems: CollapsedSourceGroup[] = [
+    ...autoMatchCounts.entries(),
+  ]
+    .filter(([, { count }]) => count > 1)
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([resolvedKey, { text, count }]) => ({ text, resolvedKey, count }));
+
   return {
     summary: {
       record,
@@ -309,6 +411,7 @@ export function buildSourceCoverageReport(
       knownGap: sortedCounts(knownGap),
       unaccounted,
     },
+    ambiguous: { shadowedRecords, collapsedSourceItems },
     entries: entries.map(({ item, status }) => ({
       page: item.page,
       lineIndex: item.lineIndex,

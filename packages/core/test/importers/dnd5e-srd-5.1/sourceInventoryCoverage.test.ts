@@ -305,6 +305,134 @@ describe('assertSourceCoverage', () => {
   });
 });
 
+describe('ambiguous-match diagnostic', () => {
+  it('reports shadowed records when multiple records share a normalized name', () => {
+    // records has two 'Improved Critical' features; fighter wins lexicographically.
+    const report = buildSourceCoverageReport(
+      evaluateSourceCoverage(
+        [item({ text: 'Improved Critical' })],
+        records,
+        [],
+      ),
+      records,
+    );
+    expect(report.ambiguous.shadowedRecords).toEqual([
+      {
+        normalizedName: 'improved critical',
+        winnerKey: 'feature:fighter:improved-critical',
+        shadowedKeys: ['feature:paladin:improved-critical'],
+      },
+    ]);
+  });
+
+  it('reports collapsed source items when multiple source items auto-match the same key', () => {
+    const singleRecord = [
+      {
+        kind: 'feature',
+        key: 'feature:fighter:improved-critical',
+        name: 'Improved Critical',
+      },
+    ];
+    const entries = evaluateSourceCoverage(
+      [
+        item({ text: 'Improved Critical', page: 25, lineIndex: 0 }),
+        item({ text: 'Improved Critical', page: 42, lineIndex: 3 }),
+        item({ text: 'Improved Critical', page: 70, lineIndex: 1 }),
+      ],
+      singleRecord,
+      [],
+    );
+    const report = buildSourceCoverageReport(entries, singleRecord);
+    expect(report.ambiguous.collapsedSourceItems).toEqual([
+      {
+        text: 'Improved Critical',
+        resolvedKey: 'feature:fighter:improved-critical',
+        count: 3,
+      },
+    ]);
+  });
+
+  it('excludes recordRule-resolved entries from collapsed source items', () => {
+    // An explicit recordRule maps "Lightfoot" -> ancestry:lightfoot-halfling.
+    // keyByName has no entry for "lightfoot" (the record name is "Lightfoot
+    // Halfling"), so these entries are not auto-matched and must not appear
+    // in collapsedSourceItems even with two source items.
+    const lightfootRecord = {
+      kind: 'ancestry',
+      key: 'ancestry:lightfoot-halfling',
+      name: 'Lightfoot Halfling',
+    };
+    const entries = evaluateSourceCoverage(
+      [
+        item({ text: 'Lightfoot', lineIndex: 0 }),
+        item({ text: 'Lightfoot', lineIndex: 1 }),
+      ],
+      [lightfootRecord],
+      [
+        recordRule(
+          'ancestry:lightfoot-halfling',
+          (i) => i.text === 'Lightfoot',
+        ),
+      ],
+    );
+    const report = buildSourceCoverageReport(entries, [lightfootRecord]);
+    expect(report.ambiguous.collapsedSourceItems).toEqual([]);
+  });
+
+  it('reports empty ambiguous when all record names are unique and each item matches once', () => {
+    const uniqueRecords = [
+      { kind: 'creature', key: 'creature:aboleth', name: 'Aboleth' },
+    ];
+    const entries = evaluateSourceCoverage(
+      [item({ text: 'Aboleth' })],
+      uniqueRecords,
+      [],
+    );
+    const report = buildSourceCoverageReport(entries, uniqueRecords);
+    expect(report.ambiguous).toEqual({
+      shadowedRecords: [],
+      collapsedSourceItems: [],
+    });
+  });
+
+  it('shadowedRecords is sorted by normalizedName', () => {
+    const multiDupeRecords = [
+      { kind: 'feature', key: 'feature:barbarian:rage', name: 'Rage' },
+      { kind: 'feature', key: 'feature:monk:rage', name: 'Rage' },
+      { kind: 'feature', key: 'feature:fighter:critical', name: 'Critical' },
+      { kind: 'feature', key: 'feature:paladin:critical', name: 'Critical' },
+    ];
+    const report = buildSourceCoverageReport(
+      evaluateSourceCoverage([], multiDupeRecords, []),
+      multiDupeRecords,
+    );
+    expect(
+      report.ambiguous.shadowedRecords.map((r) => r.normalizedName),
+    ).toEqual(['critical', 'rage']);
+  });
+
+  it('collapsedSourceItems is sorted by resolvedKey', () => {
+    const recs = [
+      { kind: 'feature', key: 'feature:barbarian:strike', name: 'Strike' },
+      { kind: 'feature', key: 'feature:barbarian:rage', name: 'Rage' },
+    ];
+    const entries = evaluateSourceCoverage(
+      [
+        item({ text: 'Strike', page: 1, lineIndex: 0 }),
+        item({ text: 'Strike', page: 2, lineIndex: 0 }),
+        item({ text: 'Rage', page: 3, lineIndex: 0 }),
+        item({ text: 'Rage', page: 4, lineIndex: 0 }),
+      ],
+      recs,
+      [],
+    );
+    const report = buildSourceCoverageReport(entries, recs);
+    expect(
+      report.ambiguous.collapsedSourceItems.map((g) => g.resolvedKey),
+    ).toEqual(['feature:barbarian:rage', 'feature:barbarian:strike']);
+  });
+});
+
 describe('coverage report serialization', () => {
   it('formats every status kind as a stable one-line string', () => {
     expect(
@@ -337,7 +465,7 @@ describe('coverage report serialization', () => {
         knownGapRule('eshyra-4a7.8', (i) => i.text.startsWith('Figurine')),
       ],
     );
-    const report = buildSourceCoverageReport(entries);
+    const report = buildSourceCoverageReport(entries, records);
     expect(report.summary).toEqual({
       record: 1,
       childOf: 0,
@@ -345,6 +473,17 @@ describe('coverage report serialization', () => {
       knownGap: { 'eshyra-4a7.8': 1 },
       unaccounted: 1,
     });
+    // The test records have two 'Improved Critical' features; one is shadowed.
+    expect(report.ambiguous.shadowedRecords).toEqual([
+      {
+        normalizedName: 'improved critical',
+        winnerKey: 'feature:fighter:improved-critical',
+        shadowedKeys: ['feature:paladin:improved-critical'],
+      },
+    ]);
+    // Aboleth is the only auto-matched record item and appears once, so no
+    // collapsed source items.
+    expect(report.ambiguous.collapsedSourceItems).toEqual([]);
     expect(report.entries.map((e) => `${e.page}:${e.status}`)).toEqual([
       '105:ignored:spell-list-header',
       '111:ignored:spell-list-header',
