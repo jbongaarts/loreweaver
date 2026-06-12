@@ -221,7 +221,15 @@ const EXPECTED_COUNTS_BY_KIND: Readonly<Record<string, number>> = {
   // core-rules tables behind excluded captions, Ability Scores and Modifiers
   // and Travel Pace, anchored on their unique column-header rows because
   // both captions repeat in the core-rules slice (eshyra-10t).
-  table: 29,
+  // 29 -> 53 (eshyra-4a7.3): parseDocumentTables adds the 24 document-wide
+  // tables located by typography anchors — Draconic Ancestry (p5) and the
+  // Sorcerer-chapter copy (p44), The Barbarian progression, Creating Spell
+  // Slots, the ten subclass spell tables (Life Domain, seven Circle of the
+  // Land terrains, Oath of Devotion, Fiend Expanded), Donning and Doffing
+  // Armor, and nine representative magic-item tables (Gray/Rust/Tan Bag of
+  // Tricks, Belt/Potion of Giant Strength, Potions of Healing, Bag of Beans,
+  // Robe of Useful Items, Wand of Wonder).
+  table: 53,
 };
 
 /**
@@ -1934,31 +1942,61 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
         'table:acolyte-flaws',
         'table:acolyte-ideals',
         'table:acolyte-personality-traits',
+        // Document-wide tables (eshyra-4a7.3), reconstructed by
+        // parseDocumentTables from typography anchors. Caption-less tables
+        // carry synthesized names: the magic-item variety/dice tables take
+        // their owning item's name, the Circle of the Land terrain tables are
+        // qualified "Circle of the Land (<Terrain>)", and the Sorcerer-chapter
+        // Draconic Ancestry copy is "Draconic Bloodline Draconic Ancestry".
+        'table:bag-of-beans',
+        'table:belt-of-giant-strength',
         'table:character-advancement',
+        'table:circle-of-the-land-arctic',
+        'table:circle-of-the-land-coast',
+        'table:circle-of-the-land-desert',
+        'table:circle-of-the-land-forest',
+        'table:circle-of-the-land-grassland',
+        'table:circle-of-the-land-mountain',
+        'table:circle-of-the-land-swamp',
+        'table:creating-spell-slots',
         'table:damage-severity-by-level',
         'table:difficulty-classes',
+        'table:donning-and-doffing-armor',
+        'table:draconic-ancestry',
+        'table:draconic-bloodline-draconic-ancestry',
         'table:exotic-languages',
         'table:experience-points-by-challenge-rating',
+        'table:fiend-expanded-spells',
         'table:food-drink-and-lodging',
+        'table:gray-bag-of-tricks',
         'table:hit-dice-by-size',
         'table:indefinite-madness',
+        'table:life-domain-spells',
         'table:lifestyle-expenses',
         'table:long-term-madness',
         'table:multiclass-spellcaster-spell-slots-per-spell-level',
         'table:multiclassing-prerequisites',
         'table:multiclassing-proficiencies',
+        'table:oath-of-devotion-spells',
         'table:object-armor-class',
         'table:object-hit-points',
+        'table:potion-of-giant-strength',
+        'table:potions-of-healing',
         'table:proficiency-bonus-by-challenge-rating',
+        'table:robe-of-useful-items',
+        'table:rust-bag-of-tricks',
         'table:services',
         'table:short-term-madness',
         'table:size-categories',
         'table:standard-exchange-rates',
         'table:standard-languages',
+        'table:tan-bag-of-tricks',
+        'table:the-barbarian',
         'table:trade-goods',
         'table:trap-save-dcs-and-attack-bonuses',
         // Core-rules table behind an excluded caption (eshyra-10t).
         'table:travel-pace',
+        'table:wand-of-wonder',
       ]);
     });
 
@@ -2301,6 +2339,241 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
         ],
       });
       expect(pace?.provenance.locator).toBe('p. 84');
+    });
+
+    it('pins the Dragonborn Draconic Ancestry tables (eshyra-4a7.3)', () => {
+      // The Races-chapter table (p5) carries the Breath Weapon column; the
+      // Sorcerer-chapter Draconic Bloodline copy (p44) drops it and is a
+      // distinct record under a synthesized qualified name.
+      const ancestry = table('table:draconic-ancestry');
+      expect(ancestry?.name).toBe('Draconic Ancestry');
+      expect(ancestry?.data).toMatchObject({
+        columns: ['Dragon', 'Damage Type', 'Breath Weapon'],
+        rows: [
+          ['Black', 'Acid', '5 by 30 ft. line (Dex. save)'],
+          ['Blue', 'Lightning', '5 by 30 ft. line (Dex. save)'],
+          ['Brass', 'Fire', '5 by 30 ft. line (Dex. save)'],
+          ['Bronze', 'Lightning', '5 by 30 ft. line (Dex. save)'],
+          ['Copper', 'Acid', '5 by 30 ft. line (Dex. save)'],
+          ['Gold', 'Fire', '15 ft. cone (Dex. save)'],
+          ['Green', 'Poison', '15 ft. cone (Con. save)'],
+          ['Red', 'Fire', '15 ft. cone (Dex. save)'],
+          ['Silver', 'Cold', '15 ft. cone (Con. save)'],
+          ['White', 'Cold', '15 ft. cone (Con. save)'],
+        ],
+      });
+      expect(ancestry?.provenance.locator).toBe('p. 5');
+
+      const bloodline = table('table:draconic-bloodline-draconic-ancestry');
+      expect(bloodline?.data).toMatchObject({
+        columns: ['Dragon', 'Damage Type'],
+        rows: expect.arrayContaining([
+          ['Black', 'Acid'],
+          ['White', 'Cold'],
+        ]),
+      });
+      expect((bloodline?.data as { rows: unknown[] }).rows).toHaveLength(10);
+      expect(bloodline?.provenance.locator).toBe('p. 44');
+    });
+
+    it('pins the Barbarian progression table (eshyra-4a7.3)', () => {
+      // The one SRD class progression table whose columns all live on one
+      // physical line per row; the Features cell wraps onto continuation
+      // lines that must re-join ("Rage, / Unarmored / Defense").
+      const barbarian = table('table:the-barbarian');
+      expect(barbarian?.name).toBe('The Barbarian');
+      expect(barbarian?.data).toMatchObject({
+        columns: [
+          'Level',
+          'Proficiency Bonus',
+          'Features',
+          'Rages',
+          'Rage Damage',
+        ],
+        rows: expect.arrayContaining([
+          ['1st', '+2', 'Rage, Unarmored Defense', '2', '+2'],
+          ['9th', '+4', 'Brutal Critical (1 die)', '4', '+3'],
+          // The 20th-level Rages cell is the verbatim "Unlimited".
+          ['20th', '+6', 'Primal Champion', 'Unlimited', '+4'],
+        ]),
+      });
+      expect((barbarian?.data as { rows: unknown[] }).rows).toHaveLength(20);
+      expect(barbarian?.provenance.locator).toBe('p. 8');
+    });
+
+    it('pins the subclass spell tables (eshyra-4a7.3)', () => {
+      const oath = table('table:oath-of-devotion-spells');
+      expect(oath?.data).toMatchObject({
+        columns: ['Paladin Level', 'Spells'],
+        rows: [
+          ['3rd', 'protection from evil and good, sanctuary'],
+          ['5th', 'lesser restoration, zone of truth'],
+          ['9th', 'beacon of hope, dispel magic'],
+          ['13th', 'freedom of movement, guardian of faith'],
+          ['17th', 'commune, flame strike'],
+        ],
+      });
+      expect(oath?.provenance.locator).toBe('p. 33');
+
+      const life = table('table:life-domain-spells');
+      expect(life?.data).toMatchObject({
+        columns: ['Cleric Level', 'Spells'],
+        rows: expect.arrayContaining([
+          ['1st', 'bless, cure wounds'],
+          ['9th', 'mass cure wounds, raise dead'],
+        ]),
+      });
+      expect((life?.data as { rows: unknown[] }).rows).toHaveLength(5);
+
+      // The Desert circle's 5th-level spells cell wraps across two extracted
+      // lines ("protection from / energy") and must re-join.
+      const desert = table('table:circle-of-the-land-desert');
+      expect(desert?.name).toBe('Circle of the Land (Desert)');
+      expect(desert?.data).toMatchObject({
+        columns: ['Druid Level', 'Circle Spells'],
+        rows: expect.arrayContaining([
+          ['5th', 'create food and water, protection from energy'],
+        ]),
+      });
+      expect((desert?.data as { rows: unknown[] }).rows).toHaveLength(4);
+
+      const fiend = table('table:fiend-expanded-spells');
+      expect(fiend?.data).toMatchObject({
+        columns: ['Spell Level', 'Spells'],
+        rows: expect.arrayContaining([['1st', 'burning hands, command']]),
+      });
+      expect((fiend?.data as { rows: unknown[] }).rows).toHaveLength(5);
+    });
+
+    it('pins the Sorcerer Creating Spell Slots table (eshyra-4a7.3)', () => {
+      const slots = table('table:creating-spell-slots');
+      expect(slots?.data).toMatchObject({
+        columns: ['Spell Slot Level', 'Sorcery Point Cost'],
+        rows: [
+          ['1st', 2],
+          ['2nd', 3],
+          ['3rd', 5],
+          ['4th', 6],
+          ['5th', 7],
+        ],
+      });
+      expect(slots?.provenance.locator).toBe('p. 43');
+    });
+
+    it('pins the magic-item option/property tables (eshyra-4a7.3)', () => {
+      const gray = table('table:gray-bag-of-tricks');
+      expect(gray?.data).toMatchObject({
+        columns: ['d8', 'Creature'],
+        rows: [
+          [1, 'Weasel'],
+          [2, 'Giant rat'],
+          [3, 'Badger'],
+          [4, 'Boar'],
+          [5, 'Panther'],
+          [6, 'Giant badger'],
+          // The d8 7-8 rows cross the p210/p211 page break.
+          [7, 'Dire wolf'],
+          [8, 'Giant elk'],
+        ],
+      });
+      expect(gray?.provenance.locator).toBe('p. 210');
+      expect(
+        (table('table:rust-bag-of-tricks')?.data as { rows: unknown[] }).rows,
+      ).toHaveLength(8);
+      expect(
+        (table('table:tan-bag-of-tricks')?.data as { rows: unknown[] }).rows,
+      ).toHaveLength(8);
+
+      // Caption-less variety tables named after their owning items; the two
+      // near-identical tables differ by header and rarity column values.
+      const belt = table('table:belt-of-giant-strength');
+      expect(belt?.data).toMatchObject({
+        columns: ['Type', 'Strength', 'Rarity'],
+        rows: expect.arrayContaining([
+          ['Hill giant', 21, 'Rare'],
+          ['Storm giant', 29, 'Legendary'],
+        ]),
+      });
+      expect((belt?.data as { rows: unknown[] }).rows).toHaveLength(5);
+
+      const potion = table('table:potion-of-giant-strength');
+      expect(potion?.data).toMatchObject({
+        columns: ['Type of Giant', 'Strength', 'Rarity'],
+        rows: expect.arrayContaining([
+          ['Hill giant', 21, 'Uncommon'],
+          ['Storm giant', 29, 'Legendary'],
+        ]),
+      });
+      expect((potion?.data as { rows: unknown[] }).rows).toHaveLength(5);
+
+      const healing = table('table:potions-of-healing');
+      expect(healing?.data).toMatchObject({
+        columns: ['Potion of …', 'Rarity', 'HP Regained'],
+        rows: [
+          ['Healing', 'Common', '2d4 + 2'],
+          ['Greater healing', 'Uncommon', '4d4 + 4'],
+          ['Superior healing', 'Rare', '8d4 + 8'],
+          ['Supreme healing', 'Very rare', '10d4 + 20'],
+        ],
+      });
+      expect(healing?.provenance.locator).toBe('p. 234');
+    });
+
+    it('pins the magic-item dice-result tables (eshyra-4a7.3)', () => {
+      // Wrapped-d100 rows: a range or zero-padded single value opens a row
+      // and following cell lines re-join into the effect cell.
+      const beans = table('table:bag-of-beans');
+      expect(beans?.data).toMatchObject({ columns: ['d100', 'Effect'] });
+      const beanRows = (beans?.data as { rows: [string, string][] }).rows;
+      expect(beanRows).toHaveLength(12);
+      expect(beanRows.map((row) => row[0])).toEqual([
+        '01',
+        '02–10',
+        '11–20',
+        '21–30',
+        '31–40',
+        '41–50',
+        '51–60',
+        '61–70',
+        '71–80',
+        '81–90',
+        '91–99',
+        '00',
+      ]);
+      // The 81-90 effect cell crosses the p209/p210 page break intact.
+      expect(beanRows[9][1]).toBe(
+        'A nest of 1d4 + 3 eggs springs up. Any creature that eats an egg must make a DC 20 Constitution saving throw. On a successful save, a creature permanently increases its lowest ability score by 1, randomly choosing among equally low scores. On a failed save, the creature takes 10d6 force damage from an internal magical explosion.',
+      );
+      expect(beans?.provenance.locator).toBe('p. 209');
+
+      const robe = table('table:robe-of-useful-items');
+      expect(robe?.data).toMatchObject({ columns: ['d100', 'Patch'] });
+      const robeRows = (robe?.data as { rows: [string, string][] }).rows;
+      expect(robeRows).toHaveLength(13);
+      expect(robeRows[0]).toEqual(['01–08', 'Bag of 100 gp']);
+      expect(robeRows[12]).toEqual(['97–00', 'Portable ram']);
+
+      const wand = table('table:wand-of-wonder');
+      expect(wand?.data).toMatchObject({ columns: ['d100', 'Effect'] });
+      const wandRows = (wand?.data as { rows: [string, string][] }).rows;
+      expect(wandRows).toHaveLength(22);
+      expect(wandRows[0]).toEqual(['01–05', 'You cast slow.']);
+      expect(wandRows[21][0]).toBe('98–00');
+      expect(wand?.provenance.locator).toBe('p. 250');
+    });
+
+    it('pins the Donning and Doffing Armor table (eshyra-4a7.3)', () => {
+      const donning = table('table:donning-and-doffing-armor');
+      expect(donning?.data).toMatchObject({
+        columns: ['Category', 'Don', 'Doff'],
+        rows: [
+          ['Light Armor', '1 minute', '1 minute'],
+          ['Medium Armor', '5 minutes', '1 minute'],
+          ['Heavy Armor', '10 minutes', '5 minutes'],
+          ['Shield', '1 action', '1 action'],
+        ],
+      });
+      expect(donning?.provenance.locator).toBe('p. 64');
     });
 
     it('emits Spellcasting Services as a rule rather than lost prose (eshyra-0m9.19)', () => {

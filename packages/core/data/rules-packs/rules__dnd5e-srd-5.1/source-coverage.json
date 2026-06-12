@@ -1,6 +1,6 @@
 {
   "summary": {
-    "record": 1849,
+    "record": 1873,
     "childOf": 12,
     "ignored": {
       "document-structure": 41,
@@ -12,13 +12,12 @@
       "variant-rule-excluded": 2
     },
     "knownGap": {
-      "eshyra-4a7.10": 62,
-      "eshyra-4a7.3": 53,
+      "eshyra-4a7.10": 70,
       "eshyra-4a7.4": 2,
       "eshyra-4a7.5": 2,
-      "eshyra-4a7.6": 128,
-      "eshyra-4a7.7": 2,
-      "eshyra-4a7.8": 1
+      "eshyra-4a7.6": 116,
+      "eshyra-4a7.8": 27,
+      "eshyra-o4j7": 9
     },
     "unaccounted": 0
   },
@@ -246,7 +245,7 @@
       "structure": "table-caption",
       "text": "Draconic Ancestry",
       "section": "Races",
-      "status": "known-gap:eshyra-4a7.7"
+      "status": "record:table:draconic-ancestry"
     },
     {
       "page": 6,
@@ -381,7 +380,7 @@
       "structure": "table-caption",
       "text": "The Barbarian",
       "section": "Barbarian",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "record:table:the-barbarian"
     },
     {
       "page": 8,
@@ -1020,7 +1019,7 @@
       "structure": "table-caption",
       "text": "Life Domain Spells",
       "section": "Cleric",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "record:table:life-domain-spells"
     },
     {
       "page": 17,
@@ -1308,7 +1307,7 @@
       "structure": "table-caption",
       "text": "Arctic",
       "section": "Druid",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "record:table:circle-of-the-land-arctic"
     },
     {
       "page": 22,
@@ -1317,7 +1316,7 @@
       "structure": "table-caption",
       "text": "Coast",
       "section": "Druid",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "record:table:circle-of-the-land-coast"
     },
     {
       "page": 22,
@@ -1326,7 +1325,7 @@
       "structure": "table-caption",
       "text": "Desert",
       "section": "Druid",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "record:table:circle-of-the-land-desert"
     },
     {
       "page": 22,
@@ -1335,7 +1334,7 @@
       "structure": "table-caption",
       "text": "Forest",
       "section": "Druid",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "record:table:circle-of-the-land-forest"
     },
     {
       "page": 22,
@@ -1344,7 +1343,7 @@
       "structure": "table-caption",
       "text": "Grassland",
       "section": "Druid",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "record:table:circle-of-the-land-grassland"
     },
     {
       "page": 22,
@@ -1353,7 +1352,7 @@
       "structure": "table-caption",
       "text": "Mountain",
       "section": "Druid",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "record:table:circle-of-the-land-mountain"
     },
     {
       "page": 22,
@@ -1362,7 +1361,7 @@
       "structure": "table-caption",
       "text": "Swamp",
       "section": "Druid",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "record:table:circle-of-the-land-swamp"
     },
     {
       "page": 22,
@@ -2262,7 +2261,7 @@
       "structure": "table-caption",
       "text": "Oath of Devotion Spells",
       "section": "Paladin",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "record:table:oath-of-devotion-spells"
     },
     {
       "page": 33,
@@ -3000,7 +2999,7 @@
       "structure": "table-caption",
       "text": "Creating Spell Slots",
       "section": "Sorcerer",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "record:table:creating-spell-slots"
     },
     {
       "page": 44,
@@ -3135,7 +3134,7 @@
       "structure": "table-caption",
       "text": "Draconic Ancestry",
       "section": "Sorcerer",
-      "status": "known-gap:eshyra-4a7.7"
+      "status": "record:table:draconic-bloodline-draconic-ancestry"
     },
     {
       "page": 45,
@@ -3702,7 +3701,7 @@
       "structure": "table-caption",
       "text": "Fiend Expanded Spells",
       "section": "Warlock",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "record:table:fiend-expanded-spells"
     },
     {
       "page": 50,
@@ -4404,7 +4403,7 @@
       "structure": "table-caption",
       "text": "Donning and Doffing Armor",
       "section": "Equipment",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "record:table:donning-and-doffing-armor"
     },
     {
       "page": 64,
@@ -4638,7 +4637,7 @@
       "structure": "table-caption",
       "text": "Self-Sufficiency",
       "section": "Equipment",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "known-gap:eshyra-4a7.10"
     },
     {
       "page": 73,
@@ -7095,7 +7094,7 @@
       "structure": "table-caption",
       "text": "Animated Object Statistics",
       "section": "Spellcasting",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "known-gap:eshyra-o4j7"
     },
     {
       "page": 116,
@@ -7482,7 +7481,7 @@
       "structure": "table-shape",
       "text": "d10 Behavior",
       "section": "Spellcasting",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "known-gap:eshyra-o4j7"
     },
     {
       "page": 127,
@@ -7599,7 +7598,7 @@
       "structure": "table-caption",
       "text": "Precipitation",
       "section": "Spellcasting",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "known-gap:eshyra-o4j7"
     },
     {
       "page": 131,
@@ -7608,7 +7607,7 @@
       "structure": "table-caption",
       "text": "Temperature",
       "section": "Spellcasting",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "known-gap:eshyra-o4j7"
     },
     {
       "page": 131,
@@ -7617,7 +7616,7 @@
       "structure": "table-caption",
       "text": "Wind",
       "section": "Spellcasting",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "known-gap:eshyra-o4j7"
     },
     {
       "page": 131,
@@ -7671,7 +7670,7 @@
       "structure": "table-shape",
       "text": "Material Duration",
       "section": "Spellcasting",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "known-gap:eshyra-o4j7"
     },
     {
       "page": 132,
@@ -9237,7 +9236,7 @@
       "structure": "table-shape",
       "text": "d100 Race",
       "section": "Spellcasting",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "known-gap:eshyra-o4j7"
     },
     {
       "page": 174,
@@ -9345,7 +9344,7 @@
       "structure": "table-shape",
       "text": "Knowledge Save Modifier",
       "section": "Spellcasting",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "known-gap:eshyra-o4j7"
     },
     {
       "page": 177,
@@ -9678,7 +9677,7 @@
       "structure": "table-shape",
       "text": "Similar Off On",
       "section": "Spellcasting",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "known-gap:eshyra-o4j7"
     },
     {
       "page": 186,
@@ -10443,7 +10442,7 @@
       "structure": "table-caption",
       "text": "Apparatus of the Crab Levers",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "known-gap:eshyra-4a7.8"
     },
     {
       "page": 208,
@@ -10479,7 +10478,7 @@
       "structure": "table-shape",
       "text": "d10 Damage Type d10 Damage Type",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "known-gap:eshyra-4a7.8"
     },
     {
       "page": 209,
@@ -10524,7 +10523,7 @@
       "structure": "table-shape",
       "text": "d100 Effect",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "record:table:bag-of-beans"
     },
     {
       "page": 210,
@@ -10560,7 +10559,7 @@
       "structure": "table-caption",
       "text": "Gray Bag of Tricks",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "record:table:gray-bag-of-tricks"
     },
     {
       "page": 211,
@@ -10569,7 +10568,7 @@
       "structure": "table-caption",
       "text": "Rust Bag of Tricks",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "record:table:rust-bag-of-tricks"
     },
     {
       "page": 211,
@@ -10578,7 +10577,7 @@
       "structure": "table-caption",
       "text": "Tan Bag of Tricks",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "record:table:tan-bag-of-tricks"
     },
     {
       "page": 211,
@@ -10614,7 +10613,7 @@
       "structure": "table-shape",
       "text": "Type Strength Rarity",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "record:table:belt-of-giant-strength"
     },
     {
       "page": 211,
@@ -10740,7 +10739,7 @@
       "structure": "table-shape",
       "text": "d20 Alignment",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "known-gap:eshyra-4a7.8"
     },
     {
       "page": 213,
@@ -10767,7 +10766,7 @@
       "structure": "table-shape",
       "text": "d100 Size Capacity Flying Speed",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "known-gap:eshyra-4a7.8"
     },
     {
       "page": 213,
@@ -10875,7 +10874,7 @@
       "structure": "table-caption",
       "text": "Cube of Force Faces",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "known-gap:eshyra-4a7.8"
     },
     {
       "page": 215,
@@ -10884,7 +10883,7 @@
       "structure": "table-shape",
       "text": "Spell or Item Charges Lost",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "known-gap:eshyra-4a7.8"
     },
     {
       "page": 215,
@@ -10938,7 +10937,7 @@
       "structure": "table-shape",
       "text": "Playing Card Illusion",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "known-gap:eshyra-4a7.8"
     },
     {
       "page": 216,
@@ -10956,7 +10955,7 @@
       "structure": "table-shape",
       "text": "Playing Card Card",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "known-gap:eshyra-4a7.8"
     },
     {
       "page": 218,
@@ -11019,7 +11018,7 @@
       "structure": "table-shape",
       "text": "Dragon Resistance Dragon Resistance",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "known-gap:eshyra-4a7.8"
     },
     {
       "page": 219,
@@ -11100,7 +11099,7 @@
       "structure": "table-shape",
       "text": "d100 Effect",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "known-gap:eshyra-4a7.8"
     },
     {
       "page": 220,
@@ -11118,7 +11117,7 @@
       "structure": "table-shape",
       "text": "Gem Summoned Elemental",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "known-gap:eshyra-4a7.8"
     },
     {
       "page": 220,
@@ -11181,7 +11180,7 @@
       "structure": "table-shape",
       "text": "d100 Feather Token d100 Feather Token",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "known-gap:eshyra-4a7.8"
     },
     {
       "page": 221,
@@ -11406,7 +11405,7 @@
       "structure": "table-shape",
       "text": "d100 Horn Berserkers Requirement",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "known-gap:eshyra-4a7.8"
     },
     {
       "page": 226,
@@ -11478,7 +11477,7 @@
       "structure": "table-shape",
       "text": "d100 Contents",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "known-gap:eshyra-4a7.8"
     },
     {
       "page": 228,
@@ -11577,7 +11576,7 @@
       "structure": "table-shape",
       "text": "d20 Golem Time Cost",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "known-gap:eshyra-4a7.8"
     },
     {
       "page": 230,
@@ -11658,7 +11657,7 @@
       "structure": "table-shape",
       "text": "d20 Bead of … Spell",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "known-gap:eshyra-4a7.8"
     },
     {
       "page": 231,
@@ -11856,7 +11855,7 @@
       "structure": "table-shape",
       "text": "Type of Giant Strength Rarity",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "record:table:potion-of-giant-strength"
     },
     {
       "page": 234,
@@ -11883,7 +11882,7 @@
       "structure": "table-caption",
       "text": "Potions of Healing",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "record:table:potions-of-healing"
     },
     {
       "page": 234,
@@ -11937,7 +11936,7 @@
       "structure": "table-shape",
       "text": "d10 Damage Type d10 Damage Type",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "known-gap:eshyra-4a7.8"
     },
     {
       "page": 235,
@@ -12081,7 +12080,7 @@
       "structure": "table-shape",
       "text": "d10 Damage Type Gem",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "known-gap:eshyra-4a7.8"
     },
     {
       "page": 237,
@@ -12099,7 +12098,7 @@
       "structure": "table-shape",
       "text": "Spheres Lightning Damage",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "known-gap:eshyra-4a7.8"
     },
     {
       "page": 237,
@@ -12234,7 +12233,7 @@
       "structure": "table-shape",
       "text": "d100 Patch",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "record:table:robe-of-useful-items"
     },
     {
       "page": 239,
@@ -12396,7 +12395,7 @@
       "structure": "table-shape",
       "text": "d100 Result",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "known-gap:eshyra-4a7.8"
     },
     {
       "page": 243,
@@ -12450,7 +12449,7 @@
       "structure": "table-shape",
       "text": "Distance from Origin Damage",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "known-gap:eshyra-4a7.8"
     },
     {
       "page": 244,
@@ -12486,7 +12485,7 @@
       "structure": "table-shape",
       "text": "Distance from Origin Damage",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "known-gap:eshyra-4a7.8"
     },
     {
       "page": 245,
@@ -12792,7 +12791,7 @@
       "structure": "table-shape",
       "text": "d100 Effect",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "record:table:wand-of-wonder"
     },
     {
       "page": 250,
@@ -12882,7 +12881,7 @@
       "structure": "table-shape",
       "text": "d100 Communication",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "known-gap:eshyra-4a7.8"
     },
     {
       "page": 251,
@@ -12900,7 +12899,7 @@
       "structure": "table-shape",
       "text": "d4 Senses",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "known-gap:eshyra-4a7.8"
     },
     {
       "page": 251,
@@ -12918,7 +12917,7 @@
       "structure": "table-shape",
       "text": "d100 Alignment d100 Alignment",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "known-gap:eshyra-4a7.8"
     },
     {
       "page": 251,
@@ -12936,7 +12935,7 @@
       "structure": "table-shape",
       "text": "d10 Purpose",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "known-gap:eshyra-4a7.8"
     },
     {
       "page": 252,
@@ -16131,7 +16130,7 @@
       "structure": "table-shape",
       "text": "Color Damage Resistance",
       "section": "Monsters",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "known-gap:eshyra-4a7.10"
     },
     {
       "page": 321,
@@ -16140,7 +16139,7 @@
       "structure": "table-shape",
       "text": "Optional",
       "section": "Monsters",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "known-gap:eshyra-4a7.10"
     },
     {
       "page": 321,
@@ -18057,7 +18056,7 @@
       "structure": "table-caption",
       "text": "Celtic Deities",
       "section": "Appendix PH-B: Fantasy-Historical Pantheons",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "known-gap:eshyra-4a7.10"
     },
     {
       "page": 360,
@@ -18084,7 +18083,7 @@
       "structure": "table-shape",
       "text": "Suggested Domains Symbol",
       "section": "Appendix PH-B: Fantasy-Historical Pantheons",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "known-gap:eshyra-4a7.10"
     },
     {
       "page": 361,
@@ -18093,7 +18092,7 @@
       "structure": "table-caption",
       "text": "Greek Deities",
       "section": "Appendix PH-B: Fantasy-Historical Pantheons",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "known-gap:eshyra-4a7.10"
     },
     {
       "page": 361,
@@ -18102,7 +18101,7 @@
       "structure": "table-caption",
       "text": "Egyptian Deities",
       "section": "Appendix PH-B: Fantasy-Historical Pantheons",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "known-gap:eshyra-4a7.10"
     },
     {
       "page": 361,
@@ -18111,7 +18110,7 @@
       "structure": "table-caption",
       "text": "Norse Deities",
       "section": "Appendix PH-B: Fantasy-Historical Pantheons",
-      "status": "known-gap:eshyra-4a7.3"
+      "status": "known-gap:eshyra-4a7.10"
     },
     {
       "page": 363,

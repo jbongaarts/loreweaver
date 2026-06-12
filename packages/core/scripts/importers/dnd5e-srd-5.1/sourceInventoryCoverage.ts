@@ -14,9 +14,13 @@
  *                    the new coverage;
  *   - `unaccounted`— nothing claims it. `assertSourceCoverage` fails closed.
  *
- * Resolution order: name auto-match first (an emitted record always wins),
- * then the caller's rules in order (first match wins), then the
- * document-structure default for chapter/section tiers, else unaccounted.
+ * Resolution order: explicit `record`-type rules first (a curated mapping is
+ * more precise than the name heuristic, so it can disambiguate duplicate
+ * source captions — e.g. the two "Draconic Ancestry" tables on p5 and p44
+ * map to two different emitted records), then the name auto-match (an
+ * emitted record claims its own heading without curation), then the caller's
+ * remaining rules in order (first match wins), then the document-structure
+ * default for chapter/section tiers, else unaccounted.
  *
  * Rules are PREDICATES with stable reason codes, not per-item lists: one rule
  * accounts for a whole class of source items (e.g. every spell-list header),
@@ -91,10 +95,16 @@ export function childOfRule(
 }
 
 /**
- * Map a source item to an emitted record whose NAME differs from the source
- * heading text, so the name auto-match cannot claim it — e.g. the SRD's
- * "Lightfoot" subrace heading vs the emitted `ancestry:lightfoot-halfling`
- * record named "Lightfoot Halfling".
+ * Map a source item to a specific emitted record. Evaluated BEFORE the name
+ * auto-match, so it serves two cases:
+ *
+ *   - an emitted record whose NAME differs from the source heading text, so
+ *     the auto-match cannot claim it — e.g. the SRD's "Lightfoot" subrace
+ *     heading vs the emitted `ancestry:lightfoot-halfling` record named
+ *     "Lightfoot Halfling";
+ *   - DUPLICATE source captions that must map to different records, where
+ *     the auto-match would claim both for one record — e.g. the p5
+ *     Dragonborn and p44 Sorcerer "Draconic Ancestry" tables.
  */
 export function recordRule(
   key: string,
@@ -152,12 +162,21 @@ export function evaluateSourceCoverage(
   }
 
   const entries = inventory.map((item): SourceCoverageEntry => {
+    // Explicit record mappings outrank the name auto-match: a curated rule
+    // is more precise than the name heuristic, which cannot tell duplicate
+    // source captions apart (the p5 vs p44 "Draconic Ancestry" tables) and
+    // resolves duplicate record names lexicographically.
+    for (const rule of rules) {
+      if (rule.type === 'record' && rule.match(item)) {
+        return { item, status: statusForRule(rule) };
+      }
+    }
     const matchedKey = keyByName.get(normalizeName(item.text));
     if (matchedKey !== undefined) {
       return { item, status: { kind: 'record', key: matchedKey } };
     }
     for (const rule of rules) {
-      if (rule.match(item)) {
+      if (rule.type !== 'record' && rule.match(item)) {
         return { item, status: statusForRule(rule) };
       }
     }
@@ -305,8 +324,10 @@ export function buildSourceCoverageReport(
 // ---------------------------------------------------------------------------
 // Curated coverage rules for the vendored SRD 5.1 PDF (eshyra-4a7.1.3).
 //
-// Resolution order matters: the name auto-match runs before any rule (an
-// emitted record always claims its own heading), then these rules apply
+// Resolution order matters: explicit `record`-type rules run FIRST (a curated
+// mapping outranks the name heuristic, so duplicate source captions can map
+// to distinct records), then the name auto-match (an emitted record claims
+// its own heading without curation), then the remaining rules apply
 // first-match-wins. Rules are predicates over understood CLASSES of source
 // structure, not per-item allowlists, so a new item of an already-understood
 // shape is auto-accounted while a genuinely novel structure stays
@@ -378,6 +399,40 @@ const EQUIPMENT_ROWS_AS_RECORDS_CAPTIONS: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * The seven Circle of the Land terrain spell tables (p22): the SRD prints
+ * bare terrain-word captions ("Arctic") while the emitted records carry
+ * qualified names ("Circle of the Land (Arctic)"), so the name auto-match
+ * cannot claim the captions (eshyra-4a7.3).
+ */
+const CIRCLE_OF_THE_LAND_TABLE_TERRAINS: ReadonlyArray<
+  readonly [string, string]
+> = [
+  ['Arctic', 'table:circle-of-the-land-arctic'],
+  ['Coast', 'table:circle-of-the-land-coast'],
+  ['Desert', 'table:circle-of-the-land-desert'],
+  ['Forest', 'table:circle-of-the-land-forest'],
+  ['Grassland', 'table:circle-of-the-land-grassland'],
+  ['Mountain', 'table:circle-of-the-land-mountain'],
+  ['Swamp', 'table:circle-of-the-land-swamp'],
+];
+
+/**
+ * Caption-less magic-item tables emitted under their owning item's name
+ * (eshyra-4a7.3): each surfaces in the inventory as a `table-shape` run whose
+ * text is its column-header line, located by the owning item heading the
+ * inventory records as `context`.
+ */
+const CAPTIONLESS_MAGIC_ITEM_TABLE_RECORDS: ReadonlyArray<
+  readonly [string, string]
+> = [
+  ['Belt of Giant Strength', 'table:belt-of-giant-strength'],
+  ['Potion of Giant Strength', 'table:potion-of-giant-strength'],
+  ['Bag of Beans', 'table:bag-of-beans'],
+  ['Robe of Useful Items', 'table:robe-of-useful-items'],
+  ['Wand of Wonder', 'table:wand-of-wonder'],
+];
+
+/**
  * Unimported prose regions tracked by eshyra-4a7.10 (see that bead for the
  * region-by-region inventory). Grouped here so the predicates below stay
  * readable.
@@ -389,7 +444,7 @@ const RACES_INTRO_PROSE_HEADINGS: ReadonlySet<string> = new Set([
   'Subraces',
 ]);
 const EQUIPMENT_PROSE_HEADINGS: ReadonlySet<string> = new Set([
-  'Getting Into and Out of Armor', // p64 (its Donning and Doffing table => eshyra-4a7.3)
+  'Getting Into and Out of Armor', // p64 prose (its Donning and Doffing table IS emitted — eshyra-4a7.3)
   'Weapon Proficiency', // p64
   'Weapon Properties', // p64-65 (defines the property tokens equipment records carry)
   'Improvised Weapons', // p65
@@ -428,6 +483,42 @@ export const SRD_5_1_COVERAGE_RULES: readonly CoverageRule[] = [
     'table:difficulty-classes',
     (i) => i.text === 'Typical Difficulty Classes',
   ),
+  // The two same-caption "Draconic Ancestry" tables (eshyra-4a7.3): the name
+  // auto-match cannot tell them apart and would claim both captions for one
+  // record, so each chapter's caption maps explicitly to its own emitted
+  // record (record rules outrank the auto-match — see the resolution order
+  // above).
+  recordRule(
+    'table:draconic-ancestry',
+    (i) =>
+      i.section === 'Races' &&
+      i.structure === 'table-caption' &&
+      i.text === 'Draconic Ancestry',
+  ),
+  recordRule(
+    'table:draconic-bloodline-draconic-ancestry',
+    (i) =>
+      i.section === 'Sorcerer' &&
+      i.structure === 'table-caption' &&
+      i.text === 'Draconic Ancestry',
+  ),
+  // Document-wide tables (eshyra-4a7.3) whose emitted record name differs
+  // from the source text, so the name auto-match cannot claim them.
+  ...CIRCLE_OF_THE_LAND_TABLE_TERRAINS.map(([terrain, key]) =>
+    recordRule(
+      key,
+      (i) =>
+        i.section === 'Druid' &&
+        i.structure === 'table-caption' &&
+        i.text === terrain,
+    ),
+  ),
+  ...CAPTIONLESS_MAGIC_ITEM_TABLE_RECORDS.map(([itemHeading, key]) =>
+    recordRule(
+      key,
+      (i) => i.structure === 'table-shape' && i.context === itemHeading,
+    ),
+  ),
   // "<Race> Traits" subsection headings — traits are child data on the
   // ancestry records.
   ...RACE_TRAIT_HEADINGS.map(([heading, key]) =>
@@ -439,9 +530,6 @@ export const SRD_5_1_COVERAGE_RULES: readonly CoverageRule[] = [
   // Embedded stat blocks outside the monster chapters (Avatar of Death p218,
   // Giant Fly p222) — the document-wide stat-block bead accounts for them.
   knownGapRule('eshyra-4a7.4', (i) => i.structure === 'stat-block'),
-  // Dragonborn Draconic Ancestry table (p5 Races, repeated p44 Sorcerer) —
-  // the ancestry option-table bead models it.
-  knownGapRule('eshyra-4a7.7', (i) => i.text === 'Draconic Ancestry'),
   // Creature variant sidebars (Variant: Diseased Giant Rats p378, Variant:
   // Insect Swarms p391) — variant notes belong to the stat-block completion
   // bead ("variant notes where present").
@@ -515,13 +603,33 @@ export const SRD_5_1_COVERAGE_RULES: readonly CoverageRule[] = [
       (EQUIPMENT_ROWS_AS_RECORDS_CAPTIONS.has(i.text) ||
         i.structure === 'table-shape'),
   ),
-  // Document-wide table accounting (eshyra-4a7.3): every remaining table
-  // caption or caption-less table run — embedded spell tables, magic-item
-  // option/dice tables, deity tables, monster template tables, Donning and
-  // Doffing Armor, Self-Sufficiency.
+  // Remaining Magic-Items-chapter embedded tables (eshyra-4a7.3 emitted the
+  // representative set — Bags of Tricks, Giant Strength varieties, Potions of
+  // Healing, Bag of Beans, Robe of Useful Items, Wand of Wonder, all claimed
+  // above by auto-match or the caption-less record rules before this rule):
+  // option/dice tables still flattened into their item descriptions
+  // (Apparatus of the Crab Levers, Cube of Force Faces, Deck of
+  // Illusions/Many Things cards, Dragon Scale Mail, Carpet of Flying, Feather
+  // Token, Horn of Valhalla, Iron Flask, Manual of Golems, Necklace of Prayer
+  // Beads, resistance tables, Staff retributive-strike tables, scroll-mishap
+  // table) plus the four sentient-item property tables (p251-252). The
+  // magic-item embedded-content bead owns their structured representation.
   knownGapRule(
-    'eshyra-4a7.3',
-    (i) => i.structure === 'table-caption' || i.structure === 'table-shape',
+    'eshyra-4a7.8',
+    (i) =>
+      i.section === 'Magic Items' &&
+      (i.structure === 'table-caption' || i.structure === 'table-shape'),
+  ),
+  // Spell-embedded tables (Animated Object Statistics p116, Confusion d10
+  // Behavior p127, Control Weather Precipitation/Temperature/Wind p131,
+  // Creation Material Duration p132, Reincarnate d100 Race p174, Scrying
+  // Knowledge/Save p176, Teleport familiarity matrix p186) — currently
+  // flattened into spell descriptions; the follow-up bead emits them.
+  knownGapRule(
+    'eshyra-o4j7',
+    (i) =>
+      i.section === 'Spellcasting' &&
+      (i.structure === 'table-caption' || i.structure === 'table-shape'),
   ),
   // Unimported prose regions, tracked region-by-region in eshyra-4a7.10.
   knownGapRule(
@@ -529,13 +637,24 @@ export const SRD_5_1_COVERAGE_RULES: readonly CoverageRule[] = [
     (i) =>
       (i.section === 'Races' && RACES_INTRO_PROSE_HEADINGS.has(i.text)) ||
       (i.section === 'Equipment' && EQUIPMENT_PROSE_HEADINGS.has(i.text)) ||
+      // The "Self-Sufficiency" downtime sidebar (p73): a prose callout box
+      // whose body renders at table-cell height, so the inventory classifies
+      // it as a table-caption; it belongs to the unimported-prose bead with
+      // the rest of the Expenses region.
+      (i.section === 'Equipment' && i.text === 'Self-Sufficiency') ||
       // Monsters-chapter creature-family lore headings (Angels … Zombies,
-      // the ten per-color dragon group intros, Half-Dragon Template).
-      // Section-tier items there are the alphabetical "Monsters (A)" …
-      // navigation headings — left to the document-structure default.
+      // the ten per-color dragon group intros, Half-Dragon Template) plus the
+      // two Half-Dragon Template tables (Color/Damage Resistance p320 and the
+      // size/breath-weapon table p321), which belong to the same unimported
+      // template region. Section-tier items there are the alphabetical
+      // "Monsters (A)" … navigation headings — left to the
+      // document-structure default.
       (i.section === 'Monsters' &&
         i.structure === 'heading' &&
         (i.tier === 'subsection' || i.tier === 'leaf')) ||
+      (i.section === 'Monsters' &&
+        i.structure === 'table-shape' &&
+        i.context === 'Half-Dragon Template') ||
       (i.section === 'Magic Items' &&
         SENTIENT_MAGIC_ITEM_HEADINGS.has(i.text)) ||
       (i.section?.startsWith('Appendix PH-B') ?? false) ||
