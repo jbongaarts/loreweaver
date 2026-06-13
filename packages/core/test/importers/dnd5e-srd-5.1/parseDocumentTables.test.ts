@@ -23,6 +23,8 @@ import {
 } from '../../../scripts/importers/dnd5e-srd-5.1/parseDocumentTables.js';
 import type { PageText } from '../../../scripts/importers/dnd5e-srd-5.1/types.js';
 
+const CHAPTER = 25.9;
+const SUBSECTION = 13.9;
 const LEAF = 12.0;
 const CELL = 8.9;
 const BODY = 9.8;
@@ -287,6 +289,142 @@ describe('parseDocumentTables — The Barbarian (wrapped Features column)', () =
 });
 
 // ---------------------------------------------------------------------------
+// class-progression-reconstruction: pinned source blocks past interleaved prose
+// ---------------------------------------------------------------------------
+
+describe('parseDocumentTables — class-progression-reconstruction (eshyra-4a7.6)', () => {
+  // A miniature stand-in for a sheared class table: a leaf caption, then the
+  // proficiency/Equipment prose (with an Equipment LEAF heading) the SRD flows
+  // around the table, then the pinned cell-tier data block further down.
+  function shearedClassPage(): PageText {
+    return tieredPage(15, [
+      ['Class Features', SIDEBAR],
+      ['The Tester', LEAF],
+      ['Proficiency Cantrips', CELL], // a stray header fragment near the caption
+      ['Weapons: Simple weapons', BODY],
+      ['Equipment', LEAF], // a leaf heading between caption and data block
+      ['• A spellbook', BODY],
+      ['Spell Slots per Spell Level', CELL], // data block starts here
+      ['1st 2nd 3rd', CELL],
+      ['1st +2 Spellcasting', CELL],
+      ['2nd +2 Subclass', CELL],
+      ['3 2', CELL],
+      ['3 3', CELL],
+      ['Spellcasting', SUBSECTION], // h≈13.9 ends the data block
+      ['You can cast spells.', BODY],
+    ]);
+  }
+
+  const TESTER_SPEC = {
+    name: 'The Tester',
+    columns: [
+      'Level',
+      'Proficiency Bonus',
+      'Features',
+      'Cantrips Known',
+      '1st',
+    ],
+    anchorHeading: 'The Tester',
+    anchor: 'caption',
+    headerLines: [],
+    rows: {
+      kind: 'class-progression-reconstruction',
+      sourceBlocks: [
+        [
+          'Spell Slots per Spell Level',
+          '1st 2nd 3rd',
+          '1st +2 Spellcasting',
+          '2nd +2 Subclass',
+          '3 2',
+          '3 3',
+        ],
+      ],
+      rows: [
+        ['1st', '+2', 'Spellcasting', '3', '2'],
+        ['2nd', '+2', 'Subclass', '3', '3'],
+      ],
+    },
+    expectedRows: 2,
+  } as const;
+
+  it('locates the pinned data block past the Equipment heading and prose', () => {
+    const tables = parseDocumentTables([shearedClassPage()], [TESTER_SPEC]);
+    expect(tables).toHaveLength(1);
+    expect(tables[0]).toMatchObject({
+      name: 'The Tester',
+      columns: [
+        'Level',
+        'Proficiency Bonus',
+        'Features',
+        'Cantrips Known',
+        '1st',
+      ],
+      rows: [
+        ['1st', '+2', 'Spellcasting', '3', '2'],
+        ['2nd', '+2', 'Subclass', '3', '3'],
+      ],
+      sourcePage: 15,
+    });
+  });
+
+  it('fails closed when a pinned source line drifts', () => {
+    const drifted = tieredPage(15, [
+      ['The Tester', LEAF],
+      ['Spell Slots per Spell Level', CELL],
+      ['1st 2nd 3rd', CELL],
+      ['1st +2 Spellcasting', CELL],
+      ['2nd +2 Subclass feature', CELL], // drifted (extra word)
+      ['3 2', CELL],
+      ['3 3', CELL],
+    ]);
+    expect(parseDocumentTables([drifted], [TESTER_SPEC])).toEqual([]);
+  });
+
+  it('does not cross a chapter heading to claim a later class block', () => {
+    // The data block lives AFTER the next chapter heading, so the bounded
+    // search must not reach it.
+    const crossed = tieredPage(15, [
+      ['The Tester', LEAF],
+      ['Wizard', CHAPTER], // next class chapter
+      ['Spell Slots per Spell Level', CELL],
+      ['1st 2nd 3rd', CELL],
+      ['1st +2 Spellcasting', CELL],
+      ['2nd +2 Subclass', CELL],
+      ['3 2', CELL],
+      ['3 3', CELL],
+    ]);
+    expect(parseDocumentTables([crossed], [TESTER_SPEC])).toEqual([]);
+  });
+
+  it('locates two ordered blocks (Sorcerer-style split)', () => {
+    const twoBlock = {
+      ...TESTER_SPEC,
+      rows: {
+        kind: 'class-progression-reconstruction',
+        sourceBlocks: [
+          ['Proficiency Sorcery', '1st +2 Spellcasting'],
+          ['Spells', '4 2'],
+        ],
+        rows: [['1st', '+2', 'Spellcasting', '4', '2']],
+      },
+      expectedRows: 1,
+    } as const;
+    const page = tieredPage(42, [
+      ['The Tester', LEAF],
+      ['Proficiency Sorcery', CELL],
+      ['1st +2 Spellcasting', CELL],
+      ['Weapons: Daggers', BODY], // prose between the two blocks
+      ['Spells', CELL],
+      ['4 2', CELL],
+    ]);
+    const tables = parseDocumentTables([page], [twoBlock]);
+    expect(tables).toHaveLength(1);
+    expect(tables[0].rows).toEqual([['1st', '+2', 'Spellcasting', '4', '2']]);
+    expect(tables[0].sourcePage).toBe(42);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // wrapped d100 rows + item anchor + cross-page run: Bag of Beans
 // ---------------------------------------------------------------------------
 
@@ -502,11 +640,23 @@ describe('SRD_5_1_DOCUMENT_TABLE_SPECS hygiene', () => {
     expect(new Set(names).size).toBe(names.length);
   });
 
-  it('every spec demands at least one header line and a positive row count', () => {
+  it('every spec demands a locator, a positive row count, and columns', () => {
     for (const spec of SRD_5_1_DOCUMENT_TABLE_SPECS) {
-      expect(spec.headerLines.length).toBeGreaterThan(0);
       expect(spec.expectedRows).toBeGreaterThan(0);
       expect(spec.columns.length).toBeGreaterThan(0);
+      // Header/caption specs verify against at least one exact cell-tier header
+      // line. Class-progression-reconstruction specs locate by pinned source
+      // blocks instead (eshyra-4a7.6), so they require those rather than a
+      // header line.
+      if (spec.rows.kind === 'class-progression-reconstruction') {
+        expect(spec.rows.sourceBlocks.length).toBeGreaterThan(0);
+        for (const block of spec.rows.sourceBlocks) {
+          expect(block.length).toBeGreaterThan(0);
+        }
+        expect(spec.rows.rows.length).toBe(spec.expectedRows);
+      } else {
+        expect(spec.headerLines.length).toBeGreaterThan(0);
+      }
     }
   });
 });

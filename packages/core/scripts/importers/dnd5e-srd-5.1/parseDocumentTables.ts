@@ -39,6 +39,7 @@
  * real import via the table-name baseline.
  */
 
+import { CLASS_PROGRESSION_TABLE_SPECS } from './classProgressionTables.js';
 import { classifyTier, isTableCell } from './sourceInventory.js';
 import type { PageText, TableExtraction } from './types.js';
 
@@ -95,6 +96,26 @@ type RowRule =
       readonly kind: 'reviewed-reconstruction';
       readonly sourceLines: readonly string[];
       readonly rows: readonly (readonly unknown[])[];
+    }
+  | {
+      /**
+       * Class progression tables (eshyra-4a7.6). The SRD's two-column page
+       * layout shears each non-Barbarian class table into 2–4 separate
+       * cell-tier runs — a Level/Bonus/Features run and one or more
+       * spell-slot/resource runs — interleaved with the proficiency and
+       * Equipment prose that flows around the table, so neither the
+       * caption-immediate header (`findHeaderAt`) nor a single contiguous cell
+       * run (`cellRunAfter`) can reach the data. Each spec instead pins the
+       * exact contiguous source block(s) in document order and carries the
+       * reviewed row reconstruction (verified against the SRD print). Every
+       * block line must match exactly and render at table-cell tier or the
+       * table fails closed (`locateClassProgression`), so a re-extraction
+       * drift trips the table-name coverage gate rather than emitting a
+       * silently wrong table.
+       */
+      readonly kind: 'class-progression-reconstruction';
+      readonly sourceBlocks: readonly (readonly string[])[];
+      readonly rows: readonly (readonly string[])[];
     };
 
 export interface DocumentTableSpec {
@@ -235,6 +256,12 @@ export const SRD_5_1_DOCUMENT_TABLE_SPECS: readonly DocumentTableSpec[] = [
     },
     expectedRows: 20,
   },
+  // The remaining 11 class progression tables plus the two feature-owned class
+  // tables (Beast Shapes, Destroy Undead). Fighter/Rogue extract like the
+  // Barbarian (one line per row); the nine spellcaster/monk tables are sheared
+  // by the two-column layout and use pinned-source reconstruction
+  // (eshyra-4a7.6; see classProgressionTables.ts).
+  ...CLASS_PROGRESSION_TABLE_SPECS,
   // Sorcerer Font of Magic option table (p43).
   {
     name: 'Creating Spell Slots',
@@ -950,6 +977,62 @@ function findHeaderAt(
   return headerIdx;
 }
 
+/**
+ * Locate a class-progression table's pinned source block(s) after its caption
+ * anchor and verify them exactly (eshyra-4a7.6). Each block is found in order
+ * by its first line at table-cell tier, then every line of the block must
+ * match verbatim and render at cell tier; a mismatch fails the table closed
+ * (returns undefined). The search is bounded to the anchor's own chapter — it
+ * stops at the next chapter-tier heading (the next class) so a block-start
+ * string that recurs in a later class chapter can never be claimed here. When
+ * a block's first-line text recurs WITHIN the chapter, every occurrence is
+ * tried until one verifies in full. Returns the page of the first block.
+ */
+function locateClassProgression(
+  rows: readonly Row[],
+  anchorIdx: number,
+  sourceBlocks: readonly (readonly string[])[],
+): { readonly page: number } | undefined {
+  let limit = rows.length;
+  for (let j = anchorIdx + 1; j < rows.length; j++) {
+    if (classifyTier(rows[j].height) === 'chapter') {
+      limit = j;
+      break;
+    }
+  }
+  let searchFrom = anchorIdx + 1;
+  let firstPage: number | undefined;
+  for (const block of sourceBlocks) {
+    if (block.length === 0) return undefined;
+    let matchedAt: number | undefined;
+    for (let j = searchFrom; j < limit; j++) {
+      if (!isTableCell(rows[j].height)) continue;
+      if (normalizeWhitespace(rows[j].text) !== block[0]) continue;
+      // Candidate start: verify the whole block contiguously at cell tier.
+      let ok = true;
+      for (let k = 0; k < block.length; k++) {
+        const row = rows[j + k];
+        if (
+          row === undefined ||
+          !isTableCell(row.height) ||
+          normalizeWhitespace(row.text) !== block[k]
+        ) {
+          ok = false;
+          break;
+        }
+      }
+      if (ok) {
+        matchedAt = j;
+        break;
+      }
+    }
+    if (matchedAt === undefined) return undefined;
+    if (firstPage === undefined) firstPage = rows[matchedAt].page;
+    searchFrom = matchedAt + block.length;
+  }
+  return firstPage === undefined ? undefined : { page: firstPage };
+}
+
 /** The contiguous cell-tier run starting right after the header lines. */
 function cellRunAfter(
   rows: readonly Row[],
@@ -1053,6 +1136,12 @@ function collectRows(
       }
       return rule.rows.map((row) => [...row]);
     }
+    case 'class-progression-reconstruction':
+      // Located and reconstructed directly in parseSpec via
+      // locateClassProgression; never routed through cellRunAfter/collectRows.
+      throw new Error(
+        'class-progression-reconstruction must be handled in parseSpec',
+      );
   }
 }
 
@@ -1065,6 +1154,21 @@ function parseSpec(
     // Evocation") arrive with multi-space gaps.
     if (normalizeWhitespace(rows[i].text) !== spec.anchorHeading) continue;
     if (classifyTier(rows[i].height) !== 'leaf') continue;
+    // Class progression tables locate their pinned source block(s) past the
+    // interleaved proficiency/Equipment prose, then return reviewed rows; they
+    // never use the caption-immediate header + contiguous-run path below.
+    if (spec.rows.kind === 'class-progression-reconstruction') {
+      const located = locateClassProgression(rows, i, spec.rows.sourceBlocks);
+      if (located === undefined) continue; // try the next anchor occurrence
+      const tableRows = spec.rows.rows.map((row) => [...row]);
+      if (tableRows.length !== spec.expectedRows) return undefined;
+      return {
+        name: spec.name,
+        columns: [...spec.columns],
+        rows: tableRows,
+        sourcePage: located.page,
+      };
+    }
     const headerIdx = findHeaderAt(rows, i, spec);
     if (headerIdx === undefined) continue; // try the next anchor occurrence
     const run = cellRunAfter(rows, headerIdx, spec.headerLines.length);

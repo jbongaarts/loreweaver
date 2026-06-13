@@ -1,6 +1,6 @@
 {
   "summary": {
-    "record": 1902,
+    "record": 1914,
     "childOf": 14,
     "ignored": {
       "document-structure": 41,
@@ -13,7 +13,7 @@
     },
     "knownGap": {
       "eshyra-4a7.10": 70,
-      "eshyra-4a7.6": 116,
+      "eshyra-4a7.6": 104,
       "eshyra-o4j7": 9
     },
     "unaccounted": 0
@@ -187,6 +187,13 @@
         "winnerKey": "magic-item:deck-of-many-things",
         "shadowedKeys": [
           "table:deck-of-many-things"
+        ]
+      },
+      {
+        "normalizedName": "destroy undead",
+        "winnerKey": "feature:cleric:destroy-undead",
+        "shadowedKeys": [
+          "table:destroy-undead"
         ]
       },
       {
@@ -673,11 +680,6 @@
         "text": "Channel Divinity",
         "resolvedKey": "feature:cleric:channel-divinity",
         "count": 4
-      },
-      {
-        "text": "Destroy Undead",
-        "resolvedKey": "feature:cleric:destroy-undead",
-        "count": 2
       },
       {
         "text": "Timeless Body",
@@ -1496,7 +1498,7 @@
       "structure": "table-caption",
       "text": "The Bard",
       "section": "Bard",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "record:table:the-bard"
     },
     {
       "page": 11,
@@ -1757,7 +1759,7 @@
       "structure": "table-caption",
       "text": "The Cleric",
       "section": "Cleric",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "record:table:the-cleric"
     },
     {
       "page": 15,
@@ -1892,7 +1894,7 @@
       "structure": "table-caption",
       "text": "Destroy Undead",
       "section": "Cleric",
-      "status": "record:feature:cleric:destroy-undead"
+      "status": "record:table:destroy-undead"
     },
     {
       "page": 17,
@@ -2018,7 +2020,7 @@
       "structure": "table-caption",
       "text": "The Druid",
       "section": "Druid",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "record:table:the-druid"
     },
     {
       "page": 19,
@@ -2117,7 +2119,7 @@
       "structure": "table-caption",
       "text": "Beast Shapes",
       "section": "Druid",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "record:table:beast-shapes"
     },
     {
       "page": 21,
@@ -2360,7 +2362,7 @@
       "structure": "table-caption",
       "text": "The Fighter",
       "section": "Fighter",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "record:table:the-fighter"
     },
     {
       "page": 24,
@@ -2585,7 +2587,7 @@
       "structure": "table-caption",
       "text": "The Monk",
       "section": "Monk",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "record:table:the-monk"
     },
     {
       "page": 26,
@@ -2900,7 +2902,7 @@
       "structure": "table-caption",
       "text": "The Paladin",
       "section": "Paladin",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "record:table:the-paladin"
     },
     {
       "page": 30,
@@ -3251,7 +3253,7 @@
       "structure": "table-caption",
       "text": "The Ranger",
       "section": "Ranger",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "record:table:the-ranger"
     },
     {
       "page": 35,
@@ -3557,7 +3559,7 @@
       "structure": "table-caption",
       "text": "The Rogue",
       "section": "Rogue",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "record:table:the-rogue"
     },
     {
       "page": 39,
@@ -3782,7 +3784,7 @@
       "structure": "table-caption",
       "text": "The Sorcerer",
       "section": "Sorcerer",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "record:table:the-sorcerer"
     },
     {
       "page": 42,
@@ -4115,7 +4117,7 @@
       "structure": "table-caption",
       "text": "The Warlock",
       "section": "Warlock",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "record:table:the-warlock"
     },
     {
       "page": 46,
@@ -4691,7 +4693,7 @@
       "structure": "table-caption",
       "text": "The Wizard",
       "section": "Wizard",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "record:table:the-wizard"
     },
     {
       "page": 52,
