@@ -329,6 +329,11 @@ const EXPECTED_STABLE_KEYS: readonly string[] = [
  *     `category: 'npc'`; the 296 Monsters/Appendix MM-A creatures omit it (its
  *     absence means "monster") so they stay byte-identical to the pre-NPC pack
  *     (loreweaver-bn0).
+ *   - creature.{conditionImmunities,damageImmunities,damageResistances,
+ *     damageVulnerabilities,savingThrows,skills}: optional keyed stat-block
+ *     fields emitted only when the SRD prints that label for the creature
+ *     (eshyra-ez6v / eshyra-4a7.5). `senses` and `languages` are fully populated
+ *     (all 317 stat blocks carry them), so they are not partial and not listed.
  *   - condition.effects: present on all conditions except Exhaustion, whose
  *     mechanics live in its per-level `levels` table.
  *   - condition.levels: only Exhaustion has graded levels.
@@ -380,6 +385,42 @@ const EXPECTED_PARTIAL_FIELDS: ReadonlyArray<{
   // monster creatures intentionally omit it (loreweaver-bn0). Ordered after
   // `condition` because auditPack sorts the summary by kind.
   { kind: 'creature', field: 'category', missingCount: 296, totalInKind: 317 },
+  // Optional keyed defensive / sense fields (eshyra-ez6v / eshyra-4a7.5): each
+  // is emitted only when the SRD prints that label for the creature, so they are
+  // genuinely partial. `senses` and `languages` are NOT listed because every one
+  // of the 317 stat blocks prints them (missingCount 0). Alphabetical within the
+  // kind, matching `summarizeMissingFields`' `[...fieldUnion].sort()`.
+  {
+    kind: 'creature',
+    field: 'conditionImmunities',
+    missingCount: 229,
+    totalInKind: 317,
+  },
+  {
+    kind: 'creature',
+    field: 'damageImmunities',
+    missingCount: 191,
+    totalInKind: 317,
+  },
+  {
+    kind: 'creature',
+    field: 'damageResistances',
+    missingCount: 253,
+    totalInKind: 317,
+  },
+  {
+    kind: 'creature',
+    field: 'damageVulnerabilities',
+    missingCount: 302,
+    totalInKind: 317,
+  },
+  {
+    kind: 'creature',
+    field: 'savingThrows',
+    missingCount: 225,
+    totalInKind: 317,
+  },
+  { kind: 'creature', field: 'skills', missingCount: 129, totalInKind: 317 },
   { kind: 'equipment', field: 'ac', missingCount: 205, totalInKind: 218 },
   {
     kind: 'equipment',

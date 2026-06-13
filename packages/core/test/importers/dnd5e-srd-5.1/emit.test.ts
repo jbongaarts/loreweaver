@@ -17,6 +17,7 @@ import {
   actionExtractionsToRecords,
   ancestryExtractionsToRecords,
   buildPack,
+  creatureExtractionsToRecords,
   diseaseExtractionsToRecords,
   featureExtractionsToRecords,
   magicItemExtractionsToRecords,
@@ -30,6 +31,7 @@ import {
 import type {
   ActionExtraction,
   AncestryExtraction,
+  CreatureExtraction,
   DiseaseExtraction,
   FeatureExtraction,
   MagicItemExtraction,
@@ -393,6 +395,89 @@ describe('spellExtractionsToRecords — record shape', () => {
       'https://dnd.wizards.com/resources/systems-reference-document',
     );
     expect(record.provenance.locator).toBe('p. 211');
+  });
+});
+
+describe('creatureExtractionsToRecords — keyed defensive / sense fields', () => {
+  const baseAbilities = {
+    strength: 21,
+    dexterity: 9,
+    constitution: 15,
+    intelligence: 18,
+    wisdom: 15,
+    charisma: 18,
+  };
+  const ABOLETH: CreatureExtraction = {
+    name: 'Aboleth',
+    category: 'monster',
+    size: 'Large',
+    type: 'aberration',
+    alignment: 'lawful evil',
+    armorClass: 17,
+    hitPoints: 135,
+    speed: { walk: 10, swim: 40 },
+    challengeRating: '10',
+    abilityScores: baseAbilities,
+    savingThrows: 'Con +6, Int +8, Wis +6',
+    skills: 'History +12, Perception +10',
+    senses: 'darkvision 120 ft., passive Perception 20',
+    languages: 'Deep Speech, telepathy 120 ft.',
+    sourcePage: 261,
+  };
+
+  it('emits the keyed fields onto the record data', () => {
+    const [record] = creatureExtractionsToRecords([ABOLETH]);
+    const data = record.data as Record<string, unknown>;
+    expect(data.savingThrows).toBe('Con +6, Int +8, Wis +6');
+    expect(data.skills).toBe('History +12, Perception +10');
+    expect(data.senses).toBe('darkvision 120 ft., passive Perception 20');
+    expect(data.languages).toBe('Deep Speech, telepathy 120 ft.');
+  });
+
+  it('orders keyed fields after abilityScores in stat-block print order', () => {
+    const [record] = creatureExtractionsToRecords([ABOLETH]);
+    const keys = Object.keys(record.data as Record<string, unknown>);
+    expect(keys).toEqual([
+      'size',
+      'type',
+      'alignment',
+      'armorClass',
+      'hitPoints',
+      'speed',
+      'challengeRating',
+      'abilityScores',
+      'savingThrows',
+      'skills',
+      'senses',
+      'languages',
+    ]);
+  });
+
+  it('omits keyed fields the creature does not carry (no empty keys)', () => {
+    const beast: CreatureExtraction = {
+      name: 'Black Bear',
+      category: 'monster',
+      size: 'Medium',
+      type: 'beast',
+      alignment: 'unaligned',
+      armorClass: 11,
+      hitPoints: 19,
+      speed: { walk: 40, climb: 30 },
+      challengeRating: '1/2',
+      abilityScores: baseAbilities,
+      skills: 'Perception +3',
+      senses: 'passive Perception 13',
+      languages: '—',
+      sourcePage: 318,
+    };
+    const data = creatureExtractionsToRecords([beast])[0].data as Record<
+      string,
+      unknown
+    >;
+    expect(Object.keys(data)).not.toContain('savingThrows');
+    expect(Object.keys(data)).not.toContain('damageResistances');
+    expect(Object.keys(data)).not.toContain('conditionImmunities');
+    expect(data.skills).toBe('Perception +3');
   });
 });
 

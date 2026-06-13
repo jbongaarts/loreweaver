@@ -448,6 +448,19 @@ export interface CreatureExtraction {
   readonly speed: Readonly<Record<string, number>>;
   readonly challengeRating: string;
   readonly abilityScores: CreatureAbilityScores;
+  // Keyed defensive / sense fields the SRD prints between the ability-score row
+  // and the Challenge line (eshyra-ez6v / eshyra-4a7.5). Each is preserved
+  // verbatim from the source, with values that wrap across extracted lines
+  // re-joined. All optional — a stat block carries only the labels the SRD
+  // prints for that creature (a simple beast may have only Senses + Languages).
+  readonly savingThrows?: string;
+  readonly skills?: string;
+  readonly damageVulnerabilities?: string;
+  readonly damageResistances?: string;
+  readonly damageImmunities?: string;
+  readonly conditionImmunities?: string;
+  readonly senses?: string;
+  readonly languages?: string;
   /** 1-based page in the source PDF where the creature stat block begins. */
   readonly sourcePage: number;
 }

@@ -372,3 +372,154 @@ describe('parseCreatures — real-PDF resilience', () => {
     expect(tiger.type).toBe('beast');
   });
 });
+
+// ---------------------------------------------------------------------------
+// Keyed defensive / sense fields (eshyra-ez6v / eshyra-4a7.5)
+//
+// The SRD prints Saving Throws, Skills, Damage Vulnerabilities/Resistances/
+// Immunities, Condition Immunities, Senses, and Languages in a fixed-order run
+// between the ability-score row and the Challenge line. Each creature carries
+// only the labels its source prints. Excerpts below are reproduced verbatim
+// from the SRD 5.1 extracted-line shape (Aboleth p261, Deva p261-262), trait /
+// action body included so the bounded scan is exercised against trailing prose.
+// ---------------------------------------------------------------------------
+
+const ABOLETH_LINES = [
+  'Aboleth',
+  'Large aberration, lawful evil',
+  'Armor Class 17 (natural armor)',
+  'Hit Points 135 (18d10 + 36)',
+  'Speed 10 ft., swim 40 ft.',
+  'STR DEX CON INT WIS CHA',
+  '21 (+5) 9 (−1) 15 (+2) 18 (+4) 15 (+2) 18 (+4)',
+  'Saving Throws Con +6, Int +8, Wis +6',
+  'Skills History +12, Perception +10',
+  'Senses darkvision 120 ft., passive Perception 20',
+  'Languages Deep Speech, telepathy 120 ft.',
+  'Challenge 10 (5,900 XP)',
+  'Amphibious. The aboleth can breathe air and water.',
+  'Actions',
+  'Multiattack. The aboleth makes three tentacle attacks.',
+];
+
+// Deva: the SRD wraps Damage Resistances across two extracted lines, and the
+// block carries Condition Immunities — neither present on the Aboleth.
+const DEVA_LINES = [
+  'Deva',
+  'Medium celestial, lawful good',
+  'Armor Class 17 (natural armor)',
+  'Hit Points 136 (16d8 + 64)',
+  'Speed 30 ft., fly 90 ft.',
+  'STR DEX CON INT WIS CHA',
+  '18 (+4) 18 (+4) 18 (+4) 17 (+3) 20 (+5) 20 (+5)',
+  'Saving Throws Wis +9, Cha +9',
+  'Skills Insight +9, Perception +9',
+  'Damage Resistances radiant; bludgeoning, piercing,',
+  'and slashing from nonmagical attacks',
+  'Condition Immunities charmed, exhaustion, frightened',
+  'Senses darkvision 120 ft., passive Perception 19',
+  'Languages all, telepathy 120 ft.',
+  'Challenge 10 (5,900 XP)',
+  'Angelic Weapons. The deva’s weapon attacks are magical.',
+];
+
+describe('parseCreatures — keyed defensive / sense fields', () => {
+  it('captures the full keyed run printed for the Aboleth', () => {
+    const [aboleth] = parseCreatures([page(261, ABOLETH_LINES)]);
+    expect(aboleth.savingThrows).toBe('Con +6, Int +8, Wis +6');
+    expect(aboleth.skills).toBe('History +12, Perception +10');
+    expect(aboleth.senses).toBe('darkvision 120 ft., passive Perception 20');
+    expect(aboleth.languages).toBe('Deep Speech, telepathy 120 ft.');
+  });
+
+  it('leaves labels the Aboleth does not print undefined (no empty keys)', () => {
+    const [aboleth] = parseCreatures([page(261, ABOLETH_LINES)]);
+    expect(aboleth.damageVulnerabilities).toBeUndefined();
+    expect(aboleth.damageResistances).toBeUndefined();
+    expect(aboleth.damageImmunities).toBeUndefined();
+    expect(aboleth.conditionImmunities).toBeUndefined();
+  });
+
+  it('does not let trait / action prose after Challenge leak into a keyed field', () => {
+    const [aboleth] = parseCreatures([page(261, ABOLETH_LINES)]);
+    // Languages is the last keyed line before Challenge; its value must stop at
+    // the source line and not absorb the Amphibious trait below Challenge.
+    expect(aboleth.languages).toBe('Deep Speech, telepathy 120 ft.');
+  });
+
+  it('re-joins a Damage Resistances value that wraps across extracted lines', () => {
+    const [deva] = parseCreatures([page(261, DEVA_LINES)]);
+    expect(deva.damageResistances).toBe(
+      'radiant; bludgeoning, piercing, and slashing from nonmagical attacks',
+    );
+    expect(deva.conditionImmunities).toBe('charmed, exhaustion, frightened');
+    expect(deva.savingThrows).toBe('Wis +9, Cha +9');
+    expect(deva.languages).toBe('all, telepathy 120 ft.');
+  });
+
+  it('splits a next-field label the PDF merged onto the previous value line', () => {
+    // Real SRD p327 (Wereboar): column flow merged "Senses passive Perception
+    // 12" onto the end of the wrapped Damage Immunities value. The Senses label
+    // must still split off as its own field rather than be absorbed.
+    const wereboar = [
+      'Wereboar',
+      'Medium humanoid (human, shapechanger), neutral evil',
+      'Armor Class 10 in humanoid form, 11 (natural armor)',
+      'in boar or hybrid form',
+      'Hit Points 78 (12d8 + 24)',
+      'Speed 30 ft. (40 ft. in boar form)',
+      'STR DEX CON INT WIS CHA',
+      '17 (+3) 10 (+0) 15 (+2) 10 (+0) 11 (+0) 8 (−1)',
+      'Skills Perception +2',
+      'Damage Immunities bludgeoning, piercing, and',
+      'slashing from nonmagical attacks not made with',
+      'silvered weapons Senses passive Perception 12',
+      'Languages Common (can’t speak in boar form)',
+      'Challenge 4 (1,100 XP)',
+    ];
+    const [boar] = parseCreatures([page(327, wereboar)]);
+    expect(boar.damageImmunities).toBe(
+      'bludgeoning, piercing, and slashing from nonmagical attacks not made with silvered weapons',
+    );
+    expect(boar.senses).toBe('passive Perception 12');
+    expect(boar.languages).toBe('Common (can’t speak in boar form)');
+  });
+
+  it('accepts the singular "Damage Resistance" label a conditional block prints', () => {
+    // Real SRD p395 (Archmage): the stoneskin conditional is printed as singular
+    // "Damage Resistance"; it must map to damageResistances, not be swallowed by
+    // the preceding Skills value.
+    const archmage = [
+      'Archmage',
+      'Medium humanoid (any race), any alignment',
+      'Armor Class 12 (15 with mage armor)',
+      'Hit Points 99 (18d8 + 18)',
+      'Speed 30 ft.',
+      'STR DEX CON INT WIS CHA',
+      '10 (+0) 14 (+2) 12 (+1) 20 (+5) 15 (+2) 16 (+3)',
+      'Saving Throws Int +9, Wis +6',
+      'Skills Arcana +13, History +13',
+      'Damage Resistance damage from spells; nonmagical',
+      'bludgeoning, piercing, and slashing (from stoneskin)',
+      'Senses passive Perception 12',
+      'Languages any six languages',
+      'Challenge 12 (8,400 XP)',
+    ];
+    const [mage] = parseCreatures([page(395, archmage)], 'npc');
+    expect(mage.skills).toBe('Arcana +13, History +13');
+    expect(mage.damageResistances).toBe(
+      'damage from spells; nonmagical bludgeoning, piercing, and slashing (from stoneskin)',
+    );
+    expect(mage.senses).toBe('passive Perception 12');
+  });
+
+  it('captures keyed fields on an NPC stat block the same way', () => {
+    // The Bandit Captain prints no defensive/sense run beyond what its block
+    // carries; a beast-simple block (Black Bear) has only Skills/Senses/Languages.
+    const [bear] = parseCreatures([page(318, BLACK_BEAR_LINES)]);
+    expect(bear.skills).toBe('Perception +3');
+    expect(bear.senses).toBe('passive Perception 13');
+    expect(bear.languages).toBe('—');
+    expect(bear.savingThrows).toBeUndefined();
+  });
+});
