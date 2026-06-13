@@ -322,6 +322,13 @@ function buildCreatureData(
     }));
     data.legendaryActions = legendary;
   }
+  // Boxed "Variant: …" sidebars that modify this creature (eshyra-70xr).
+  if (creature.variants !== undefined) {
+    data.variants = creature.variants.map((v) => ({
+      name: v.name,
+      text: v.text,
+    }));
+  }
   return data;
 }
 

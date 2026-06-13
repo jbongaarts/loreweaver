@@ -158,7 +158,11 @@ describe('committed SRD source-coverage artifacts — integrity', () => {
     // `structure: 'stat-block'` inventory items and the `known-gap:eshyra-4a7.4`
     // rule (2 items) was removed per the known-gap lifecycle.
     expect(coverage.summary.record).toBe(1875);
-    expect(coverage.summary.childOf).toBe(12);
+    // childOf 12 -> 14 (eshyra-70xr): the two creature variant sidebars
+    // (Diseased Giant Rats p378, Insect Swarms p391) are now `variants` child
+    // data on the Giant Rat and Swarm of Insects, so the `known-gap:eshyra-4a7.5`
+    // rule (2 items) was removed per the known-gap lifecycle.
+    expect(coverage.summary.childOf).toBe(14);
     expect(coverage.summary.unaccounted).toBe(0);
     expect(coverage.summary.ignored).toEqual({
       'document-structure': 41,
@@ -170,7 +174,6 @@ describe('committed SRD source-coverage artifacts — integrity', () => {
       'variant-rule-excluded': 2,
     });
     expect(coverage.summary.knownGap).toEqual({
-      'eshyra-4a7.5': 2,
       'eshyra-4a7.6': 116,
       'eshyra-4a7.8': 27,
       'eshyra-4a7.10': 70,
@@ -336,6 +339,15 @@ describe('committed SRD source-coverage artifacts — covered-structure sentinel
   it('race trait subsections resolve as child data on ancestry records', () => {
     const entry = entryFor(3, 'Dwarf Traits');
     expect(entry.status).toBe('child-of:ancestry:dwarf');
+  });
+
+  it('creature variant sidebars resolve as child data on the creatures they modify (eshyra-70xr)', () => {
+    expect(entryFor(378, 'Variant: Diseased Giant Rats').status).toBe(
+      'child-of:creature:giant-rat',
+    );
+    expect(entryFor(391, 'Variant: Insect Swarms').status).toBe(
+      'child-of:creature:swarm-of-insects',
+    );
   });
 
   it('the duplicate Draconic Ancestry captions (p5 Races, p44 Sorcerer) resolve to their OWN table records', () => {

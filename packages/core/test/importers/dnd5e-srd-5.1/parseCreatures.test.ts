@@ -750,3 +750,140 @@ describe('parseCreatures — narrative sections', () => {
     );
   });
 });
+
+// ---------------------------------------------------------------------------
+// Creature variant sidebars (eshyra-70xr / eshyra-4a7.5). The SRD prints two
+// boxed "Variant: …" notes in the creature chapters; each ends the preceding
+// creature's narrative and is attached to the creature it modifies.
+// ---------------------------------------------------------------------------
+
+// Giant Rat (SRD p378 / MM-A) followed by its Diseased variant sidebar. The
+// variant repeats a "Bite." line that must NOT become a second Giant Rat action.
+const GIANT_RAT_WITH_VARIANT = [
+  'Giant Rat',
+  'Small beast, unaligned',
+  'Armor Class 12',
+  'Hit Points 7 (2d6)',
+  'Speed 30 ft.',
+  'STR DEX CON INT WIS CHA',
+  '7 (−2) 15 (+2) 11 (+0) 2 (−4) 10 (+0) 4 (−3)',
+  'Senses darkvision 60 ft., passive Perception 10',
+  'Languages —',
+  'Challenge 1/8 (25 XP)',
+  'Keen Smell. The rat has advantage on Wisdom (Perception) checks that rely on',
+  'smell.',
+  'Actions',
+  'Bite. Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 4 (1d4 +',
+  '2) piercing damage.',
+  'Variant: Diseased Giant Rats',
+  'Some giant rats carry vile diseases that they spread with their',
+  'bites. A diseased giant rat has a challenge rating of 1/8 (25',
+  'XP) and the following action instead of its normal bite attack.',
+  'Bite. Melee Weapon Attack: +4 to hit, reach 5 ft., one',
+  'target. Hit: 4 (1d4 + 2) piercing damage.',
+];
+
+describe('parseCreatures — variant sidebars', () => {
+  it('does not let a variant sidebar pollute the creature it follows', () => {
+    const [rat] = parseCreatures([page(378, GIANT_RAT_WITH_VARIANT)]);
+    // The variant's repeated "Bite." is NOT a second action.
+    expect(rat.actions?.map((a) => a.name)).toEqual(['Bite']);
+    expect(rat.traits?.map((t) => t.name)).toEqual(['Keen Smell']);
+  });
+
+  it('attaches the variant sidebar to the creature it modifies', () => {
+    const [rat] = parseCreatures([page(378, GIANT_RAT_WITH_VARIANT)]);
+    expect(rat.variants?.map((v) => v.name)).toEqual(['Diseased Giant Rats']);
+    const text = rat.variants?.[0].text ?? '';
+    expect(text).toContain(
+      'A diseased giant rat has a challenge rating of 1/8',
+    );
+    // The sidebar body, including its alternate Bite action, is preserved.
+    expect(text).toContain('instead of its normal bite attack');
+    expect(text).toContain('Bite. Melee Weapon Attack: +4 to hit');
+  });
+
+  it('bounds the variant body at the next creature by font height', () => {
+    const lines = [
+      ...GIANT_RAT_WITH_VARIANT,
+      'Giant Scorpion',
+      'Large beast, unaligned',
+    ];
+    const lineHeights = lines.map((l) =>
+      l === 'Giant Scorpion'
+        ? 12
+        : l === 'Variant: Diseased Giant Rats'
+          ? 10.8
+          : 9.84,
+    );
+    const [rat] = parseCreatures([{ pageNumber: 378, lines, lineHeights }]);
+    // "Giant Scorpion" (a taller heading line) is not swept into the variant.
+    expect(rat.variants?.[0].text).not.toContain('Giant Scorpion');
+    expect(rat.variants?.[0].text).toContain('piercing damage');
+  });
+
+  it('attaches a variant to a creature other than the one whose body it sits in', () => {
+    // Insect Swarms is printed after Swarm of Ravens but modifies Swarm of
+    // Insects (SRD p391). Both creatures present; the variant must land on the
+    // target, and Swarm of Ravens must stay unpolluted.
+    const swarmOfInsects = [
+      'Swarm of Insects',
+      'Medium swarm of Tiny beasts, unaligned',
+      'Armor Class 11 (natural armor)',
+      'Hit Points 22 (5d8)',
+      'Speed 20 ft., climb 20 ft.',
+      'STR DEX CON INT WIS CHA',
+      '3 (−4) 13 (+1) 10 (+0) 1 (−5) 7 (−2) 1 (−5)',
+      'Senses blindsight 10 ft., passive Perception 8',
+      'Languages —',
+      'Challenge 1/2 (100 XP)',
+      'Swarm. The swarm can occupy another creature’s space and vice versa.',
+      'Actions',
+      'Bites. Melee Weapon Attack: +3 to hit, reach 0 ft., one creature in the',
+      'swarm’s space. Hit: 10 (4d4) piercing damage, or 5 (2d4) piercing damage if',
+      'the swarm has half of its hit points or fewer.',
+    ];
+    const swarmOfRavens = [
+      'Swarm of Ravens',
+      'Medium swarm of Tiny beasts, unaligned',
+      'Armor Class 12',
+      'Hit Points 24 (7d8 − 7)',
+      'Speed 10 ft., fly 50 ft.',
+      'STR DEX CON INT WIS CHA',
+      '6 (−2) 14 (+2) 8 (−1) 3 (−4) 12 (+1) 6 (−2)',
+      'Senses passive Perception 15',
+      'Languages —',
+      'Challenge 1/4 (50 XP)',
+      'Swarm. The swarm can occupy another creature’s space and vice versa.',
+      'Actions',
+      'Beaks. Melee Weapon Attack: +4 to hit, reach 5 ft., one target in the',
+      'swarm’s space. Hit: 7 (4d4 − 3) piercing damage.',
+      'Variant: Insect Swarms',
+      'Different kinds of insects can gather in swarms, and each',
+      'swarm has the special characteristics described below.',
+      'Swarm of Beetles. A swarm of beetles gains a burrowing',
+      'speed of 5 feet.',
+      'Spider Climb. The swarm can climb difficult surfaces.',
+    ];
+    const creatures = parseCreatures([
+      page(389, swarmOfInsects),
+      page(391, swarmOfRavens),
+    ]);
+    const insects = creatures.find((c) => c.name === 'Swarm of Insects');
+    const ravens = creatures.find((c) => c.name === 'Swarm of Ravens');
+    expect(insects?.variants?.map((v) => v.name)).toEqual(['Insect Swarms']);
+    expect(insects?.variants?.[0].text).toContain('Swarm of Beetles');
+    // Swarm of Ravens keeps only its own action and carries no variant.
+    expect(ravens?.actions?.map((a) => a.name)).toEqual(['Beaks']);
+    expect(ravens?.variants).toBeUndefined();
+  });
+
+  it('fails closed on a variant caption not in the reviewed target map', () => {
+    const lines = [...GIANT_RAT_WITH_VARIANT];
+    lines[lines.indexOf('Variant: Diseased Giant Rats')] =
+      'Variant: Mutant Rats';
+    expect(() => parseCreatures([page(378, lines)])).toThrow(
+      /reviewed variant-target map/,
+    );
+  });
+});

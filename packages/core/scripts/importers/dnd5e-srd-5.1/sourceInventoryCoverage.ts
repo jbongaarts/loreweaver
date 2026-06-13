@@ -635,15 +635,16 @@ export const SRD_5_1_COVERAGE_RULES: readonly CoverageRule[] = [
   // the name auto-match claims their `structure: 'stat-block'` inventory items —
   // no rule needed here. A NEW unmatched inline stat block (not emitted, not in
   // the reviewed map) would fail `parseStatBlocks` closed before coverage runs.
-  // Creature variant sidebars (Variant: Diseased Giant Rats p378, Variant:
-  // Insect Swarms p391) — variant notes belong to the stat-block completion
-  // bead ("variant notes where present").
-  knownGapRule(
-    'eshyra-4a7.5',
-    (i) =>
-      /^Variant: /.test(i.text) &&
-      (i.section === 'Monsters' ||
-        (i.section?.startsWith('Appendix MM') ?? false)),
+  // Creature variant sidebars (eshyra-70xr) are now emitted as `variants` child
+  // data on the creature each one modifies: Diseased Giant Rats (p378) on the
+  // Giant Rat, Insect Swarms (p391) on the Swarm of Insects.
+  childOfRule(
+    'creature:giant-rat',
+    (i) => i.text === 'Variant: Diseased Giant Rats',
+  ),
+  childOfRule(
+    'creature:swarm-of-insects',
+    (i) => i.text === 'Variant: Insect Swarms',
   ),
   // Rules-chapter "Variant:" optional rules (Skills with Different Abilities
   // p78, Encumbrance p80) — documented intentional exclusion; see the

@@ -35,6 +35,7 @@ import type {
   CreatureExtraction,
   CreatureLegendaryActions,
   CreatureStatBlockEntry,
+  CreatureVariant,
   PageText,
 } from './types.js';
 
@@ -335,13 +336,19 @@ const SPELL_LIST_LINE =
 // supplied a height.
 const MIN_STRUCTURAL_HEADING_HEIGHT = 11.5;
 
-// Section header lines that switch the active narrative section. "Lair Actions"
-// and "Regional Effects" (post-stat-block, often tabular) are owned by a later
-// slice (eshyra-70xr): encountering either ends the sections this slice emits.
+// Section header lines that switch the active narrative section. SRD 5.1 prints
+// no in-body "Lair Actions" / "Regional Effects" headers (those appear only in
+// the general Legendary Creatures rules on p260), but they are recognized as a
+// stop boundary as defense-in-depth.
 const ACTIONS_HEADER = 'Actions';
 const REACTIONS_HEADER = 'Reactions';
 const LEGENDARY_HEADER = 'Legendary Actions';
 const DEFERRED_HEADERS = new Set(['Lair Actions', 'Regional Effects']);
+
+// A boxed "Variant: <name>" sidebar caption (eshyra-70xr). Used both to stop a
+// creature's narrative (so the sidebar body does not pollute it) and to start a
+// variant extraction.
+const VARIANT_CAPTION_RE = /^Variant:\s+(.+)$/;
 
 interface EntryLabelMatch {
   readonly name: string;
@@ -489,6 +496,16 @@ export function parseNarrativeSections(
       section = 'deferred';
       continue;
     }
+    // A boxed "Variant: …" sidebar ends the creature's own narrative; its body
+    // is extracted separately and attached as `variants` (eshyra-70xr), so the
+    // variant's own bold-lead-in lines must not pollute this creature's traits /
+    // actions (e.g. the Giant Rat's duplicate "Bite", the Swarm of Insects
+    // additions printed under Swarm of Ravens).
+    if (VARIANT_CAPTION_RE.test(line)) {
+      flush();
+      section = 'deferred';
+      continue;
+    }
     if (section === 'deferred') continue;
 
     const match = matchEntryLabel(line);
@@ -524,6 +541,78 @@ export function parseNarrativeSections(
       ...(description.length > 0 ? { description } : {}),
       entries: legendaryEntries,
     };
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// Creature variant sidebars (eshyra-70xr). SRD 5.1 prints two boxed "Variant:"
+// notes in the creature chapters. Each sits in the body of whatever creature
+// precedes it, but modifies a specific creature, so a reviewed caption -> target
+// map attaches it correctly: Diseased Giant Rats (in the Giant Rat's body)
+// targets the Giant Rat; Insect Swarms (printed after Swarm of Ravens, the last
+// swarm) targets the Swarm of Insects. A new "Variant:" caption in a creature
+// chapter that is not in this map fails closed.
+// ---------------------------------------------------------------------------
+const CREATURE_VARIANT_TARGETS = new Map<string, string>([
+  ['Diseased Giant Rats', 'Giant Rat'],
+  ['Insect Swarms', 'Swarm of Insects'],
+]);
+
+interface VariantExtraction {
+  readonly targetCreature: string;
+  readonly name: string;
+  readonly text: string;
+  readonly sourcePage: number;
+}
+
+/**
+ * Scan a flattened body for "Variant: …" sidebars and return each with the
+ * creature it modifies (from the reviewed target map). The sidebar body runs
+ * from the caption to the next structural heading (creature name by font height,
+ * a meta line, another variant caption, or EOF); wrapped lines are re-joined.
+ * Throws on a caption absent from the reviewed map.
+ */
+export function parseCreatureVariants(
+  flat: readonly FlatLine[],
+): VariantExtraction[] {
+  const out: VariantExtraction[] = [];
+  for (let i = 0; i < flat.length; i++) {
+    const caption = VARIANT_CAPTION_RE.exec(flat[i].line.trim());
+    if (caption === null) continue;
+    const name = caption[1].trim();
+    const target = CREATURE_VARIANT_TARGETS.get(name);
+    if (target === undefined) {
+      throw new Error(
+        `creature variant "${flat[i].line.trim()}" at page ${flat[i].page} is not in the reviewed variant-target map (eshyra-70xr)`,
+      );
+    }
+    // Collect the sidebar body until the next structural boundary.
+    const bodyLines: string[] = [];
+    for (let j = i + 1; j < flat.length; j++) {
+      const entry = flat[j];
+      const line = entry.line.trim();
+      if (
+        (entry.height !== undefined &&
+          entry.height >= MIN_STRUCTURAL_HEADING_HEIGHT) ||
+        VARIANT_CAPTION_RE.test(line) ||
+        parseMetaLine(line) !== null ||
+        // A creature name line immediately followed by its meta line (handles
+        // fixtures built without per-line heights).
+        (j + 1 < flat.length &&
+          parseMetaLine(flat[j + 1].line.trim()) !== null &&
+          isLikelyCreatureName(line))
+      ) {
+        break;
+      }
+      if (line.length > 0) bodyLines.push(line);
+    }
+    out.push({
+      targetCreature: target,
+      name,
+      text: bodyLines.join(' ').trim(),
+      sourcePage: flat[i].page,
+    });
   }
   return out;
 }
@@ -788,6 +877,32 @@ export function parseCreatures(
       ...narrative,
       sourcePage,
     });
+  }
+
+  // Attach variant sidebars to the creatures they modify (eshyra-70xr). A
+  // variant's target must be among the parsed creatures; otherwise the reviewed
+  // map is stale, so fail closed rather than silently drop the variant.
+  const variants = parseCreatureVariants(flat);
+  if (variants.length > 0) {
+    const byTarget = new Map<string, CreatureVariant[]>();
+    for (const v of variants) {
+      const list = byTarget.get(v.targetCreature) ?? [];
+      list.push({ name: v.name, text: v.text });
+      byTarget.set(v.targetCreature, list);
+    }
+    for (const [target] of byTarget) {
+      if (!out.some((c) => c.name === target)) {
+        throw new Error(
+          `creature variant target "${target}" was not parsed as a creature (eshyra-70xr)`,
+        );
+      }
+    }
+    for (let i = 0; i < out.length; i++) {
+      const attached = byTarget.get(out[i].name);
+      if (attached !== undefined) {
+        out[i] = { ...out[i], variants: attached };
+      }
+    }
   }
 
   out.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));

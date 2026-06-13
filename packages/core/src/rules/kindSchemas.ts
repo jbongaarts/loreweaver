@@ -290,6 +290,8 @@ function validateDnd5eCreature(record: RulesRecord, path: string): void {
       );
     }
   }
+  // Optional "Variant: …" sidebars that modify the creature (eshyra-70xr).
+  optNamedEntryArray(data, 'variants', `${path}.data`);
 }
 
 // An abbreviated combat stat block defined INLINE under another entry — Avatar
