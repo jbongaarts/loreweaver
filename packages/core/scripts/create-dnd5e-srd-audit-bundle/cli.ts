@@ -1,7 +1,7 @@
 /**
  * Audit bundle creator for the committed D&D SRD 5.1 rules pack.
  *
- * Produces a self-contained directory at D:\audit-bundle (or the path given
+ * Produces a self-contained directory under .audit-bundles/ (or the path given
  * as the first CLI argument) for external/manual review of the committed pack
  * against the vendored SRD 5.1 PDF. The bundle contains:
  *
@@ -63,6 +63,11 @@ const COMMITTED_PACK_DIR = join(
 );
 const SOURCE_DIR = join(REPO_ROOT, 'packages/core/sources/dnd5e-srd-5.1');
 const PDF_PATH = join(SOURCE_DIR, 'SRD_CC_v5.1.pdf');
+const DEFAULT_OUT_DIR = join(
+  REPO_ROOT,
+  '.audit-bundles/dnd5e-srd-audit-bundle',
+);
+const DEFAULT_HOST_ZIP_COPY_PATH = '/mnt/d/dnd5e-srd-audit-bundle.zip';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -403,7 +408,8 @@ function buildReadme(meta: {
 // ---------------------------------------------------------------------------
 
 async function main(): Promise<void> {
-  const outDir = process.argv[2] ?? 'D:\\audit-bundle';
+  const outDir = resolve(process.argv[2] ?? DEFAULT_OUT_DIR);
+  const copyZipPath = resolve(process.argv[3] ?? DEFAULT_HOST_ZIP_COPY_PATH);
   log(`Creating audit bundle at: ${outDir}`);
   log(`Repo root: ${REPO_ROOT}`);
   log('');
@@ -742,25 +748,36 @@ async function main(): Promise<void> {
     'utf8',
   );
 
-  // 12. Zip the bundle directory
+  // 12. Zip the bundle directory and copy the archive to the Windows host drive.
   const zipPath = `${outDir}.zip`;
   log(`Zipping bundle to: ${zipPath}`);
   rmSync(zipPath, { force: true });
-  const zipResult = spawnSync(
-    `Compress-Archive -Path "${outDir}" -DestinationPath "${zipPath}"`,
-    [],
-    { shell: 'powershell.exe', encoding: 'utf8', timeout: 120_000 },
-  );
+
+  const zipResult = spawnSync('zip', ['-qr', zipPath, '.'], {
+    cwd: outDir,
+    encoding: 'utf8',
+    timeout: 120_000,
+  });
+
   if (zipResult.status !== 0) {
-    log(`  WARNING: zip failed (exit ${zipResult.status ?? 'null'})`);
+    log(`  ERROR: zip failed (exit ${zipResult.status ?? 'null'})`);
+    if (zipResult.error) log(`  ${zipResult.error.message}`);
+    if (zipResult.stdout) log(`  ${zipResult.stdout.trim()}`);
     if (zipResult.stderr) log(`  ${zipResult.stderr.trim()}`);
-  } else {
-    log(`  Done: ${zipPath}`);
+    process.exitCode = 1;
+    return;
   }
+
+  log(`  Done: ${zipPath}`);
+  log(`Copying archive to: ${copyZipPath}`);
+  mkdirSync(dirname(copyZipPath), { recursive: true });
+  cpSync(zipPath, copyZipPath);
+  log(`  Copied: ${copyZipPath}`);
 
   log('');
   log(`Bundle complete: ${outDir}`);
   log(`Archive:         ${zipPath}`);
+  log(`Copied archive:  ${copyZipPath}`);
   log(`  Commit: ${gitSha}`);
   log(`  Branch: ${gitBranch}`);
   log(`  PDF pages: ${pages.length}`);
