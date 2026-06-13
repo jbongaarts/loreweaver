@@ -617,6 +617,19 @@ export const SRD_5_1_COVERAGE_RULES: readonly CoverageRule[] = [
     'table:difficulty-classes',
     (i) => i.text === 'Typical Difficulty Classes',
   ),
+  // The Cleric's "Destroy Undead" table caption (p17) collides by name with
+  // the `feature:cleric:destroy-undead` heading; both normalize to "destroy
+  // undead", and the name auto-match would claim the table-caption item for
+  // the lexicographically-first key (the feature). Map the table-caption item
+  // explicitly to the emitted `table:destroy-undead` record (eshyra-4a7.6);
+  // the feature HEADING item still auto-matches the feature record.
+  recordRule(
+    'table:destroy-undead',
+    (i) =>
+      i.section === 'Cleric' &&
+      i.structure === 'table-caption' &&
+      i.text === 'Destroy Undead',
+  ),
   // The two same-caption "Draconic Ancestry" tables (eshyra-4a7.3): the name
   // auto-match cannot tell them apart and would claim both captions for one
   // record, so each chapter's caption maps explicitly to its own emitted

@@ -1349,6 +1349,24 @@ export const EXPECTED_SRD_5_1_TABLE_NAMES: readonly string[] = [
   'Tan Bag of Tricks',
   'The Barbarian',
   'Wand of Wonder',
+  // The remaining 11 class progression tables plus the two feature-owned class
+  // tables, emitted by parseDocumentTables from pinned source blocks
+  // (eshyra-4a7.6; see classProgressionTables.ts). Fighter/Rogue extract one
+  // line per row like the Barbarian; the nine spellcaster/monk tables are
+  // sheared by the two-column layout and use reviewed reconstruction.
+  'Beast Shapes',
+  'Destroy Undead',
+  'The Bard',
+  'The Cleric',
+  'The Druid',
+  'The Fighter',
+  'The Monk',
+  'The Paladin',
+  'The Ranger',
+  'The Rogue',
+  'The Sorcerer',
+  'The Warlock',
+  'The Wizard',
   // Magic Items chapter embedded tables (eshyra-4a7.8). Names are
   // the printed caption when present; caption-less tables use their owning
   // item, and sentient-item construction tables are parent-qualified.

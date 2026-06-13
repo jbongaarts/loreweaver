@@ -238,7 +238,10 @@ const EXPECTED_COUNTS_BY_KIND: Readonly<Record<string, number>> = {
   // Robe of Useful Items, Wand of Wonder).
   // 53 -> 80 (eshyra-4a7.8): every remaining Magic Items chapter option,
   // variety, card, dice-result, and sentient-item construction table.
-  table: 80,
+  // 80 -> 93 (eshyra-4a7.6): the 11 remaining class progression tables (The
+  // Bard … The Wizard) plus the two feature-owned class tables Beast Shapes
+  // (Druid Wild Shape) and Destroy Undead (Cleric).
+  table: 93,
 };
 
 /**
@@ -2121,6 +2124,8 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
         // qualified "Circle of the Land (<Terrain>)", and the Sorcerer-chapter
         // Draconic Ancestry copy is "Draconic Bloodline Draconic Ancestry".
         'table:bag-of-beans',
+        // Druid Wild Shape's Beast Shapes table (eshyra-4a7.6).
+        'table:beast-shapes',
         'table:belt-of-giant-strength',
         'table:candle-of-invocation',
         'table:carpet-of-flying',
@@ -2138,6 +2143,10 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
         'table:damage-severity-by-level',
         'table:deck-of-illusions',
         'table:deck-of-many-things',
+        // Cleric Destroy Undead table (eshyra-4a7.6); its caption collides by
+        // name with feature:cleric:destroy-undead, mapped explicitly in source
+        // coverage.
+        'table:destroy-undead',
         'table:difficulty-classes',
         'table:donning-and-doffing-armor',
         'table:draconic-ancestry',
@@ -2189,6 +2198,21 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
         'table:standard-languages',
         'table:tan-bag-of-tricks',
         'table:the-barbarian',
+        // The remaining 11 class progression tables (eshyra-4a7.6): Fighter and
+        // Rogue extract one line per row like the Barbarian; the nine
+        // spellcaster/monk tables are sheared by the two-column layout and use
+        // pinned-source reconstruction (classProgressionTables.ts).
+        'table:the-bard',
+        'table:the-cleric',
+        'table:the-druid',
+        'table:the-fighter',
+        'table:the-monk',
+        'table:the-paladin',
+        'table:the-ranger',
+        'table:the-rogue',
+        'table:the-sorcerer',
+        'table:the-warlock',
+        'table:the-wizard',
         'table:trade-goods',
         'table:trap-save-dcs-and-attack-bonuses',
         // Core-rules table behind an excluded caption (eshyra-10t).
@@ -2617,6 +2641,275 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
       });
       expect((barbarian?.data as { rows: unknown[] }).rows).toHaveLength(20);
       expect(barbarian?.provenance.locator).toBe('p. 8');
+    });
+
+    it('pins a full spellcaster progression table — The Wizard (eshyra-4a7.6)', () => {
+      // The Wizard table is sheared by the two-column layout into a
+      // Level/Features run and a separate spell-slot run; reconstruction zips
+      // them per level. Cantrips Known and the 1st–9th slot progression must
+      // align to the correct levels.
+      const wizard = table('table:the-wizard');
+      expect(wizard?.name).toBe('The Wizard');
+      const data = wizard?.data as {
+        columns: string[];
+        rows: string[][];
+      };
+      expect(data.columns).toEqual([
+        'Level',
+        'Proficiency Bonus',
+        'Features',
+        'Cantrips Known',
+        '1st',
+        '2nd',
+        '3rd',
+        '4th',
+        '5th',
+        '6th',
+        '7th',
+        '8th',
+        '9th',
+      ]);
+      expect(data.rows).toHaveLength(20);
+      // L1: 3 cantrips known, two 1st-level slots, nothing higher.
+      expect(data.rows[0]).toEqual([
+        '1st',
+        '+2',
+        'Spellcasting, Arcane Recovery',
+        '3',
+        '2',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+      ]);
+      // L20: 5 cantrips known, the full 4/3/3/3/3/2/2/1/1 slot row.
+      expect(data.rows[19]).toEqual([
+        '20th',
+        '+6',
+        'Signature Spell',
+        '5',
+        '4',
+        '3',
+        '3',
+        '3',
+        '3',
+        '2',
+        '2',
+        '1',
+        '1',
+      ]);
+      expect(wizard?.provenance.locator).toBe('p. 52');
+    });
+
+    it('pins the Warlock Pact Magic progression (eshyra-4a7.6)', () => {
+      const warlock = table('table:the-warlock');
+      const data = warlock?.data as { columns: string[]; rows: string[][] };
+      // The Pact Magic resource columns must all survive reconstruction.
+      expect(data.columns).toEqual([
+        'Level',
+        'Proficiency Bonus',
+        'Features',
+        'Cantrips Known',
+        'Spells Known',
+        'Spell Slots',
+        'Slot Level',
+        'Invocations Known',
+      ]);
+      expect(data.rows).toHaveLength(20);
+      // L1: Pact Magic feature, 2 cantrips/2 spells, 1 slot at slot level 1st,
+      // no invocations yet (blank).
+      expect(data.rows[0]).toEqual([
+        '1st',
+        '+2',
+        'Otherworldly Patron, Pact Magic',
+        '2',
+        '2',
+        '1',
+        '1st',
+        '',
+      ]);
+      // L20: 4 slots at slot level 5th, 8 invocations known.
+      expect(data.rows[19]).toEqual([
+        '20th',
+        '+6',
+        'Eldritch Master',
+        '4',
+        '15',
+        '4',
+        '5th',
+        '8',
+      ]);
+    });
+
+    it('preserves Fighter repeated-use feature details (eshyra-4a7.6)', () => {
+      // Fighter extracts one line per row (Features is the wrapping last
+      // column). Repeated-use parentheticals are kept verbatim in the cell;
+      // no second feature body is created.
+      const fighter = table('table:the-fighter');
+      const data = fighter?.data as { columns: string[]; rows: string[][] };
+      expect(data.columns).toEqual(['Level', 'Proficiency Bonus', 'Features']);
+      expect(data.rows).toHaveLength(20);
+      expect(data.rows[1]).toEqual(['2nd', '+2', 'Action Surge (one use)']);
+      // The 17th-level row's wrapped Features cell re-joins and keeps both
+      // repeated-use updates verbatim.
+      expect(data.rows[16]).toEqual([
+        '17th',
+        '+6',
+        'Action Surge (two uses), Indomitable (three uses)',
+      ]);
+    });
+
+    it('pins the Sorcerer Sorcery Points and Monk Ki resource columns (eshyra-4a7.6)', () => {
+      const sorcerer = table('table:the-sorcerer');
+      const sData = sorcerer?.data as { columns: string[]; rows: string[][] };
+      expect(sData.columns).toEqual([
+        'Level',
+        'Proficiency Bonus',
+        'Sorcery Points',
+        'Features',
+        'Cantrips Known',
+        'Spells Known',
+        '1st',
+        '2nd',
+        '3rd',
+        '4th',
+        '5th',
+        '6th',
+        '7th',
+        '8th',
+        '9th',
+      ]);
+      // L1 has no Sorcery Points (blank); L2 grants 2.
+      expect(sData.rows[0][2]).toBe('');
+      expect(sData.rows[1][2]).toBe('2');
+      expect(sData.rows[19][2]).toBe('20');
+
+      const monk = table('table:the-monk');
+      const mData = monk?.data as { columns: string[]; rows: string[][] };
+      expect(mData.columns).toEqual([
+        'Level',
+        'Proficiency Bonus',
+        'Martial Arts',
+        'Ki Points',
+        'Unarmored Movement',
+        'Features',
+      ]);
+      // L1: 1d4 martial arts, no Ki/Unarmored Movement yet (verbatim "—").
+      expect(mData.rows[0]).toEqual([
+        '1st',
+        '+2',
+        '1d4',
+        '—',
+        '—',
+        'Unarmored Defense, Martial Arts',
+      ]);
+      expect(mData.rows[19]).toEqual([
+        '20th',
+        '+6',
+        '1d10',
+        '20',
+        '+30 ft.',
+        'Perfect Self',
+      ]);
+    });
+
+    it('pins the Beast Shapes and Destroy Undead feature tables (eshyra-4a7.6)', () => {
+      const beast = table('table:beast-shapes');
+      expect(beast?.data).toMatchObject({
+        columns: ['Level', 'Max. CR', 'Limitations', 'Example'],
+        rows: [
+          ['2nd', '1/4', 'No flying or swimming speed', 'Wolf'],
+          ['4th', '1/2', 'No flying speed', 'Crocodile'],
+          ['8th', '1', '—', 'Giant eagle'],
+        ],
+      });
+      expect(beast?.provenance.locator).toBe('p. 20');
+
+      const destroy = table('table:destroy-undead');
+      expect(destroy?.data).toMatchObject({
+        columns: ['Cleric Level', 'Destroys Undead of CR . . .'],
+        rows: [
+          ['5th', '1/2 or lower'],
+          ['8th', '1 or lower'],
+          ['11th', '2 or lower'],
+          ['14th', '3 or lower'],
+          ['17th', '4 or lower'],
+        ],
+      });
+      expect(destroy?.provenance.locator).toBe('p. 17');
+    });
+
+    it('distinguishes source-blank cells from genuine em-dash cells (eshyra-4a7.6)', () => {
+      // SRD 5.1 leaves an unavailable cell BLANK; it does NOT print a dash
+      // there. Verified against the source text layer: across the whole
+      // Classes chapter the only genuine table-cell em dashes are Monk L1
+      // (Ki Points / Unarmored Movement) and Beast Shapes L8 (Limitations).
+      // Every unavailable spell-slot cell and empty Features row carries no
+      // glyph in the source, so it is emitted as "" — emitting "—" there would
+      // fabricate a token the source does not print (ADR 0007). This test pins
+      // both conventions so a future change that fabricates or drops a dash
+      // fails loudly. (Raised in PR #205 review.)
+      const rowsOf = (key: string) =>
+        (table(key)?.data as { rows: string[][] }).rows;
+
+      // --- genuine source em dashes are preserved verbatim ---
+      // Monk L1: no Ki Points, no Unarmored Movement bonus yet.
+      expect(rowsOf('table:the-monk')[0]).toEqual([
+        '1st',
+        '+2',
+        '1d4',
+        '—',
+        '—',
+        'Unarmored Defense, Martial Arts',
+      ]);
+      // Beast Shapes L8: no movement limitation.
+      expect(rowsOf('table:beast-shapes')[2]).toEqual([
+        '8th',
+        '1',
+        '—',
+        'Giant eagle',
+      ]);
+
+      // --- source-blank cells are emitted as "" (NOT "—") ---
+      // Bard empty Features rows (L7 index 6, L11 index 10) and the unavailable
+      // high-level spell-slot columns at L1.
+      const bard = rowsOf('table:the-bard');
+      expect(bard[6][2]).toBe(''); // L7 Features: blank in source
+      expect(bard[10][2]).toBe(''); // L11 Features: blank in source
+      expect(bard[0].slice(6)).toEqual(['', '', '', '', '', '', '', '']); // L1 2nd–9th slots blank
+      // Cleric L3 (index 2) Features blank; trailing slot columns blank.
+      const cleric = rowsOf('table:the-cleric');
+      expect(cleric[2][2]).toBe('');
+      expect(cleric[0].slice(5)).toEqual(['', '', '', '', '', '', '', '']); // L1 2nd–9th slots blank
+      // Half-casters: Paladin L1 (no spells at all) and Ranger L1 (no Spells
+      // Known and no slots) leave those cells blank, not dashed.
+      const paladin = rowsOf('table:the-paladin');
+      expect(paladin[0]).toEqual([
+        '1st',
+        '+2',
+        'Divine Sense, Lay on Hands',
+        '',
+        '',
+        '',
+        '',
+        '',
+      ]);
+      const ranger = rowsOf('table:the-ranger');
+      expect(ranger[0]).toEqual([
+        '1st',
+        '+2',
+        'Favored Enemy, Natural Explorer',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+      ]);
     });
 
     it('pins the subclass spell tables (eshyra-4a7.3)', () => {

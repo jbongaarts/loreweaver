@@ -25,7 +25,7 @@ tracked as child issues).
 | `feat`      | Implemented. Parser extracts feat entries (SRD 5.1: Grappler) with optional prerequisites and description text in `data.description`. Section anchor: `feats` (`startHeading: /^Feats?$\|^Feat Descriptions?$/`, `requireEndHeading: true`). |
 | `condition` | Implemented. Parser extracts all 15 SRD conditions (blinded, charmed, deafened, exhaustion, frightened, grappled, incapacitated, invisible, paralyzed, petrified, poisoned, prone, restrained, stunned, unconscious). Exhaustion carries a structured `levels` array (6 entries). Section anchor: `conditions` (`startHeading: /^Appendix A: Conditions$\|^Conditions$/`). |
 | `hazard`    | Implemented. The canonical SRD 5.1 pack carries **25** `hazard` records from three gamemastering sub-families: **8 sample traps** (loreweaver-hvp: Collapsing Roof, Falling Net, Fire-Breathing Statue, Pits, Poison Darts, Poison Needle, Rolling Sphere, Sphere of Annihilation), **3 sample diseases** (loreweaver-6ra: Cackle Fever, Sewer Plague, Sight Rot), and **14 sample poisons** (loreweaver-6ra: Assassin's Blood … Wyvern Poison). All emit under the `hazard` kind (decision below); the SRD groups Traps with Diseases/Madness/Poisons and each is a description-only danger with a save DC and effects, so they share the `hazard` kindSchema (only `description` is required). They are discriminated within the kind: **traps** carry `data.trapType` (`"mechanical"` \| `"magic"`, the SRD subtitle); **diseases** carry `data.category: "disease"`; **poisons** carry `data.category: "poison"` plus `data.poisonType` (`contact`\|`ingested`\|`inhaled`\|`injury`) and `data.price` (per-dose, from the Poisons reference table). Each carries a re-flowed `data.description` (for poisons, the save DC and damage stay inside the description rather than being parsed out); "Pits" is one trap record describing its four inlined variants. Parsers: `parseTraps` keys each entry off its name line + standalone `Mechanical trap` / `Magic trap` subtitle; `parseDiseases` keys off the exact disease name lines (like `parseHazards`); `parsePoisons` keys off the inline `Name (Type). …` bold lead-in and cross-references the price table by normalized name. The leading guidance prose of the Diseases and Poisons sections (disease/poison framing, the four poison-type definitions) is **not** emitted — DM-facing procedure, not a lookupable entity. The Traps general guidance prose **is** emitted as `rule` records via the `trapRulePages` sub-slice (eshyra-0m9.20): Traps chapter intro, Traps in Play, Triggering a Trap, Detecting and Disabling a Trap, Trap Effects, and Complex Traps. Section anchors: `traps` (end at `Diseases`), `diseases` (`/^Diseases$/`, end at `Madness`), `poisons` (`/^Poisons$/`, end at `Magic Items`), all `requireEndHeading: true`, best-effort start. The real import fails closed against `EXPECTED_SRD_5_1_TRAP_NAMES` / `_DISEASE_NAMES` / `_POISON_NAMES` (a missing/renamed/spurious entry throws `TrapCoverageError` / `DiseaseCoverageError` / `PoisonCoverageError`). The two trap reference tables emit as `table` records (see Reference-table coverage); the Poisons price table is folded into the poison records, not emitted separately. **No `trap` / `disease` / `poison` record kinds:** all three fit the `hazard` kindSchema exactly, and new kinds would force changes across the exhaustive `Record<RulesRecordKind, …>` validators/indexes for no schema benefit. SRD 5.1 has no environmental-hazard chapter (Brown Mold / Green Slime / Webs / Yellow Mold are absent), but the environmental-hazard parser (`parseHazards`, exact-name match, best-effort `hazards` anchor `/^Dungeon Hazards$\|^Hazards$/`) is retained for fixtures and future editions; it emits zero records here. **Extractor note (loreweaver-6ra):** the p205 "Sample Poisons" page is a single column whose entries open with a short indented bold lead-in followed by the justified remainder of the first line on the same baseline; that pattern opened a phantom column gutter that scrambled each poison's first sentence, so `partitionItemsByColumn` now merges such a page back to one column (it straddles ≥2 contiguous baselines with no real gutter, the widest cut is also the most balanced, and the right side owns no standalone line). |
-| `table`     | Implemented (**80 records**). The canonical pack contains 25 section-scoped reference tables, four Acolyte suggested-characteristics tables, and 51 document-wide tables reconstructed from reviewed typography and row-layout specifications. The document-wide set includes the original 24 class, subclass, equipment, and representative magic-item tables from eshyra-4a7.3 plus all 27 remaining Magic Items chapter tables from eshyra-4a7.8, including paired resistance tables, Cube of Force's nested tables, Deck of Illusions/Many Things, sentient-item construction tables, and reviewed reconstructions for layouts whose extracted columns lose row boundaries. `EXPECTED_SRD_5_1_TABLE_NAMES` is an exact fail-closed baseline, and each document-wide specification pins its source fingerprint and expected row count. See "Reference-table coverage" and "Document-wide tables" below. |
+| `table`     | Implemented (**93 records**). The canonical pack contains 25 section-scoped reference tables, four Acolyte suggested-characteristics tables, and 64 document-wide tables reconstructed from reviewed typography and row-layout specifications. The document-wide set includes the original 24 class, subclass, equipment, and representative magic-item tables from eshyra-4a7.3, all 27 remaining Magic Items chapter tables from eshyra-4a7.8 (paired resistance tables, Cube of Force's nested tables, Deck of Illusions/Many Things, sentient-item construction tables, and reviewed reconstructions for layouts whose extracted columns lose row boundaries), and the 13 class-chapter tables from eshyra-4a7.6 (the 11 remaining base-class progression tables `The Bard` … `The Wizard` plus the feature-owned `Beast Shapes` and `Destroy Undead`). `EXPECTED_SRD_5_1_TABLE_NAMES` is an exact fail-closed baseline, and each document-wide specification pins its source fingerprint and expected row count. See "Reference-table coverage" and "Document-wide tables" below. |
 | `rule`      | Implemented (**256 records**): 127 core rules, 34 spellcasting rules, five focused gamemastering rules (`Madness`, `Going Mad`, `Madness Effects`, `Curing Madness`, and `Objects`), five Classes callouts, the Equipment-chapter `Spellcasting Services` prose rule (eshyra-0m9.19, which has no rate table — the SRD states no established rates exist), the 18 "Beyond 1st Level" chapter rules (eshyra-0m9.18): the chapter-intro advancement prose (`rule:beyond-1st-level`, emitted via `parseRules`'s `chapterIntro` option because the intro precedes any heading in the slice), the Multiclassing subsection tree (Prerequisites, Experience Points, Hit Points and Hit Dice, Proficiency Bonus — parent-qualified to `rule:multiclassing-proficiency-bonus` against the core-rules key — Proficiencies, Class Features, Channel Divinity, Extra Attack, Unarmored Defense, Spellcasting), Alignment, Alignment in the Multiverse, Languages, Inspiration, and Gaining / Using Inspiration, the 10 "Magic Items" chapter-intro usage rules (eshyra-0m9.21, from the `magicItemRules` slice, pp206-207, kept separate from the per-item `magic-item` records): the chapter intro (`rule:magic-items`, via `chapterIntro`), Attunement, Wearing and Wielding Items (Multiple Items of the Same Kind, Paired Items), and Activating an Item (Command Word, Consumables, Spells — the casting-from-an-item leaf — and Charges), and the 6 gamemastering Traps general-rules prose records (eshyra-0m9.20, from a `trapRulePages` sub-slice of `trapPages` truncated before "Sample Traps"): the chapter-intro paragraph (`rule:traps`, via `chapterIntro`), Traps in Play, Triggering a Trap, Detecting and Disabling a Trap, Trap Effects, and Complex Traps, and the 44 Monsters-chapter stat-block interpretation rules (eshyra-0m9.22, from a `monsterRulePages` sub-slice of `monsterPages` truncated before the first alphabetic group heading "Monsters (A)"; a reduced fixture without that boundary degrades to no monster rules — `missingBoundary: 'empty'` — and the real import stays fail-closed via `expectedRuleKeys`): the chapter-intro paragraph (`rule:monsters`, via `chapterIntro`), the pp254-260 sections (Size, Type/Tags, Alignment, Armor Class, Hit Points, Speed with Burrow/Climb/Fly/Swim, Ability Scores, Saving Throws, Skills, Vulnerabilities/Resistances/Immunities, Senses with Blindsight/Darkvision/Tremorsense/Truesight, Languages/Telepathy, Challenge/Experience Points, Special Traits with Innate Spellcasting/Spellcasting/Psionics, Actions with Melee and Ranged Attacks/Multiattack/Ammunition, Reactions, Limited Usage, Equipment), the Legendary Creatures tree (Legendary Actions, A Legendary Creature's Lair, Lair Actions, Regional Effects), and the chapter's three h≈10.8 gray callout boxes (Modifying Creatures; Armor, Weapon, and Tool Proficiencies; Grapple Rules for Monsters), and the 6 Backgrounds-chapter intro rules (eshyra-0m9.17, from a `truncateBeforeFirst(/^Acolyte$/)` sub-slice of the `backgrounds` slice — the Acolyte entry heading is h≈13.9, below the heading-flag threshold, so it cannot be a matchHeadings boundary): the chapter-intro paragraph (`rule:backgrounds`, via `chapterIntro`), Suggested Characteristics, Customizing a Background, and the three intro leaves whose bare titles other slices already own — Proficiencies / Languages (Beyond 1st Level) and Equipment (the Monsters chapter) — parent-qualified to `rule:backgrounds-proficiencies` / `-languages` / `-equipment`. The `chapterIntro` name additionally seeds a synthetic tier-0 chapter ancestor (the section anchor consumes the chapter title line), so the seven Monsters sections whose titles other slices already own qualify as `rule:monsters-alignment` / `-armor-class` / `-speed` / `-saving-throws` / `-skills` / `-languages` / `-reactions`, and colliding leaves qualify with their section parent (`rule:senses-blindsight` / `-darkvision` / `-truesight`, `rule:challenge-experience-points`, `rule:special-traits-spellcasting`). The trap and monster reference table captions (both h≈12) are excluded from rule emission by `TABLE_CAPTION_LEAF_TITLES`; the `table` kind owns those records. An excluded caption drops only its table rows (h≈8.9): prose-height lines after the rows are the enclosing section's text resuming below the printed table and re-flow into the preceding rule — this keeps the Hit Points Constitution-modifier paragraph (p256) and also recovered the previously swallowed resuming prose in `rule:ability-scores-and-modifiers` (p76), `rule:ability-checks` (p77), and `rule:speed` (the p84 Travel Pace / Forced March / Mounts and Vehicles prose). `parseRules` remains heading-hierarchy-aware for core/spellcasting/Beyond-1st-Level/Magic-Items/Traps/Monsters chapters, `parseGamemasteringRules` handles the source-shaped Madness root intro and consolidates Objects prose while excluding its two structured tables, and `parseClassCallouts` imports every structurally detected Classes gray box as a standalone rule. Class-callout keys are parent-qualified as `rule:<class-slug>-<callout-slug>`. Semantic filtering is intentionally not performed: procedural, illustrative, and lore boxes are all retained because source structure is the stable inclusion criterion. The real import fails closed against the exact combined `EXPECTED_SRD_5_1_RULE_KEYS` set. Madness and Objects use exact heading anchors with required end headings; their starts are best-effort only so reduced fixtures can omit those sections. Full body text is stored in `data.text`. Diseases and Poisons emit as structured `hazard` records under `loreweaver-6ra`. |
 
 The importer does **not** emit empty stubs for unimplemented kinds. Per the
@@ -229,12 +229,14 @@ sources/dnd5e-srd-5.1/SRD_CC_v5.1.pdf
   reconstruction for simple reference tables and column-block reconstruction
   for SRD treasure tables. Rows are emitted as structured arrays in
   `data.rows`.
-- `parseDocumentTables.ts` -- the FULL extracted document -> 24
-  `TableExtraction`s by typography anchors (eshyra-4a7.3): each reviewed spec
-  names a leaf-tier anchor heading, the table's exact cell-tier column-header
-  line(s), a row rule, and an exact expected row count. Fails closed per
-  table; emits nothing for uniform-font fixtures. See "Document-wide tables"
-  below.
+- `parseDocumentTables.ts` -- the FULL extracted document -> 64
+  `TableExtraction`s by typography anchors (eshyra-4a7.3, extended by
+  eshyra-4a7.8 and eshyra-4a7.6): each reviewed spec names a leaf-tier anchor
+  heading, the table's exact cell-tier column-header line(s) (or, for the
+  sheared class tables, the pinned source block(s)), a row rule, and an exact
+  expected row count. Fails closed per table; emits nothing for uniform-font
+  fixtures. The class-chapter specs live in `classProgressionTables.ts`. See
+  "Document-wide tables" below.
 - `parseGamemasteringRules.ts` -- narrowed Madness and Objects text -> five
   `RuleExtraction` records. It preserves the Madness root introduction,
   separates Going Mad / Madness Effects / Curing Madness, and removes the
@@ -315,10 +317,10 @@ below). The exact canonical name set is guarded by
 
 The committed pack holds exactly these twenty-five reconstructed `table`
 records plus the four Acolyte suggested-characteristics roll tables emitted by
-`parseBackgrounds` and the fifty-one document-wide tables emitted by
-`parseDocumentTables` (80 `table` records total — see the document-wide table
+`parseBackgrounds` and the sixty-four document-wide tables emitted by
+`parseDocumentTables` (93 `table` records total — see the document-wide table
 section below). `srdGeneratedPack.test.ts` pins the table key/name set (and
-the per-kind `table: 80` count) so coverage cannot silently collapse or grow
+the per-kind `table: 93` count) so coverage cannot silently collapse or grow
 without a reviewed baseline update.
 
 ### Document-wide tables (eshyra-4a7.3, eshyra-4a7.8)
@@ -338,28 +340,67 @@ closed, and the missing name then trips `TableCoverageError` via
 `EXPECTED_SRD_5_1_TABLE_NAMES` before any output is written. Row rules include
 `line-per-row` (one cell line per row),
 `paired-line-per-row` (two logical rows on each physical line),
-`wrapped-last-column` (subclass spell tables and the d100 dice tables, whose
-row starts are a d100 range or a zero-padded single "01"/"00" so a wrapped
-cell beginning with a bare number cannot open a phantom row), reviewed exact
-row reconstructions for source layouts whose columns are irrecoverably
-interleaved, and the Barbarian progression's wrapped-Features shape.
+`wrapped-last-column` (subclass spell tables, the d100 dice tables, and the
+Fighter/Rogue class tables, whose row starts are a d100 range, a zero-padded
+single "01"/"00", or a level ordinal so a wrapped cell beginning with a bare
+number cannot open a phantom row), reviewed exact row reconstructions for
+source layouts whose columns are irrecoverably interleaved, the Barbarian
+progression's wrapped-Features shape, and the `class-progression-reconstruction`
+rule for the nine spellcaster/monk class tables (see below).
 Uniform-font fixtures never satisfy the tier requirements and emit nothing.
+
+#### Class progression tables (eshyra-4a7.6)
+
+All twelve base classes now emit a `table` record (`The Barbarian` … `The
+Wizard`), as do the two feature-owned class tables `Beast Shapes` (Druid Wild
+Shape) and `Destroy Undead` (Cleric). The Barbarian, Fighter, and Rogue tables
+extract as one physical line per row and use `wrapped-features-column` /
+`wrapped-last-column`. The other nine are sheared by the two-column page layout
+into separate cell-tier runs — a Level/Features run and one or more
+spell-slot/resource runs — interleaved with the proficiency and Equipment prose
+that flows around the table, so neither the caption-immediate header nor a
+single contiguous cell run can reach the data. Their specs live in
+`classProgressionTables.ts` and use `class-progression-reconstruction`: each
+pins the exact contiguous source block(s) in document order
+(`locateClassProgression` finds them past the interleaving prose, bounded to the
+class's own chapter) and carries the reviewed row reconstruction, with every
+block line required to match verbatim at table-cell tier or the table fails
+closed. The reconstructed rows preserve source tokens verbatim ("+2", "1d6",
+"Unlimited", "+10 ft.", and extraction artifacts like "Land s Stride") and
+expose each class's resource columns (Rages, Sneak Attack, Ki Points, Sorcery
+Points, Pact Magic Spell Slots / Slot Level / Invocations Known, cantrips/spells
+known, and the per-level spell-slot progression). Structured per-level
+`class.data.progression` is a separate follow-up; this layer only preserves the
+source tables as reviewed `table` records.
+
+Blank vs. dash cells: SRD 5.1 leaves an unavailable cell BLANK and does not
+print a dash there. Verified against the source text layer, the only genuine
+table-cell em dashes in the entire Classes chapter are the Monk's level-1 Ki
+Points / Unarmored Movement and the Beast Shapes level-8 Limitations cell —
+those are emitted as "—". Every unavailable spell-slot cell and empty Features
+row (Bard L7/L11, Cleric L3, the half-caster slots before they come online, …)
+carries no glyph in the source, so it is emitted as "" rather than a fabricated
+"—" (ADR 0007). `srdGeneratedPack.test.ts` pins both conventions.
 
 Source-table accounting (the rest of the eshyra-4a7.3 scope) lives in the
 coverage gate: every `table-caption` / `table-shape` inventory item now
 resolves to an emitted record, structured child data, a documented ignore, or
-a NARROW known-gap naming the bead that owns its representation — the 12
-class progression tables (whose spell-slot columns print as separate column
-blocks) and class option tables like Beast Shapes stay with eshyra-4a7.6, the
-Appendix PH-B deity tables and Half-Dragon Template tables with eshyra-4a7.10
-(their unimported regions), and the nine spell-embedded tables (Animated
-Object Statistics, Confusion, Control Weather, Creation, Reincarnate, Scrying,
-Teleport) with eshyra-o4j7. A table caption that shares its name with an
-emitted record is claimed by that record via the name auto-match (e.g. the
-Destroy Undead progression caption resolves to `feature:cleric:destroy-undead`,
-whose description carries the flattened rows; the exhaustion-levels caption
-resolves to `condition:exhaustion`, which carries structured `levels[]`);
-those flattened-table cases belong to the owning beads above.
+a NARROW known-gap naming the bead that owns its representation. The 12 class
+progression tables and the two feature-owned class tables (Beast Shapes,
+Destroy Undead) are now emitted `table` records (eshyra-4a7.6); the remaining
+class-chapter items (feature-option headings, spellcasting boilerplate, and the
+progression tables' column-header fragments) stay with eshyra-4a7.6 until the
+structured class-progression follow-up. The Appendix PH-B deity tables and
+Half-Dragon Template tables stay with eshyra-4a7.10 (their unimported regions),
+and the nine spell-embedded tables (Animated Object Statistics, Confusion,
+Control Weather, Creation, Reincarnate, Scrying, Teleport) with eshyra-o4j7. A
+table caption that shares its name with an emitted record is normally claimed
+by that record via the name auto-match (e.g. the exhaustion-levels caption
+resolves to `condition:exhaustion`, which carries structured `levels[]`). The
+Cleric's `Destroy Undead` table caption collides by name with the
+`feature:cleric:destroy-undead` heading, so an explicit `recordRule` maps the
+table caption to `table:destroy-undead` while the feature heading still
+auto-matches the feature record.
 
 The core-rules Combat chapter's own "Size Categories" table (p92, Size/Space
 only) is an intentional omission: its Space cells are identical to the
@@ -404,7 +445,6 @@ table section above):
 
 | Table family | Reason deferred | Follow-up |
 |--------------|-----------------|-----------|
-| Class progression tables (The Bard … The Wizard) + class option tables (Beast Shapes) | The spellcaster progression tables print their Level/Features columns and their spell-slot columns as SEPARATE column blocks (with empty feature cells), so reconstruction requires the per-class structured-progression modeling decision. | `eshyra-4a7.6` |
 | Appendix PH-B deity tables (Celtic/Greek/Egyptian/Norse) + Half-Dragon Template tables | The deity tables' name and alignment/domain/symbol column blocks interleave across pages in extraction order; both regions are unimported. | `eshyra-4a7.10` |
 | Spell-embedded tables (Animated Object Statistics, Confusion, Control Weather, Creation, Reincarnate, Scrying, Teleport) | Currently flattened into spell descriptions; several are multi-column with wrapped cells. | `eshyra-o4j7` |
 

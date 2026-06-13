@@ -159,7 +159,13 @@ describe('committed SRD source-coverage artifacts — integrity', () => {
     // formerly deferred Magic Items table structures are now records. The
     // Spell Scroll structure also resolves explicitly to its table record
     // instead of the same-name magic item.
-    expect(coverage.summary.record).toBe(1902);
+    // record 1902 -> 1914 (eshyra-4a7.6): the 11 remaining class progression
+    // table captions ("The Bard" … "The Wizard") and the Druid's Beast Shapes
+    // caption now auto-match their emitted table records (12 items). The
+    // Cleric's Destroy Undead table caption was already record-status (it
+    // auto-matched the same-name feature); it now maps explicitly to
+    // table:destroy-undead, so the count is unchanged by that one.
+    expect(coverage.summary.record).toBe(1914);
     // childOf 12 -> 14 (eshyra-70xr): the two creature variant sidebars
     // (Diseased Giant Rats p378, Insect Swarms p391) are now `variants` child
     // data on the Giant Rat and Swarm of Insects, so the `known-gap:eshyra-4a7.5`
@@ -175,8 +181,13 @@ describe('committed SRD source-coverage artifacts — integrity', () => {
       'table-rows-emitted-as-records': 18,
       'variant-rule-excluded': 2,
     });
+    // eshyra-4a7.6 dropped 116 -> 104: the 11 class progression captions and
+    // the Beast Shapes caption are now emitted table records. The remaining
+    // class-chapter items (feature-option headings, spellcasting boilerplate,
+    // and the progression tables' column-header fragments) stay tracked here
+    // until the structured class-progression follow-up lands.
     expect(coverage.summary.knownGap).toEqual({
-      'eshyra-4a7.6': 116,
+      'eshyra-4a7.6': 104,
       'eshyra-4a7.10': 70,
       'eshyra-o4j7': 9,
     });
@@ -278,8 +289,13 @@ describe('committed SRD source-coverage artifacts — ambiguous-match diagnostic
     // Same-name magic-item/table records add 19 reviewed shadowed-record
     // diagnostics. Explicit Spell Scroll table accounting removes its former
     // two-source-item collapse.
-    expect(coverage.ambiguous.shadowedRecords).toHaveLength(81);
-    expect(coverage.ambiguous.collapsedSourceItems).toHaveLength(59);
+    // eshyra-4a7.6: the new table:destroy-undead shares its name with
+    // feature:cleric:destroy-undead, adding one shadowed-record diagnostic
+    // (81 -> 82). With the table caption now claimed by an explicit recordRule
+    // rather than the auto-match, "Destroy Undead" is no longer a collapsed
+    // two-source-item group (59 -> 58).
+    expect(coverage.ambiguous.shadowedRecords).toHaveLength(82);
+    expect(coverage.ambiguous.collapsedSourceItems).toHaveLength(58);
   });
 
   it('surfaces the 12-way Ability Score Improvement feature collapse (one per class, all map to barbarian key)', () => {
