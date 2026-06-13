@@ -78,9 +78,9 @@ const META_PATTERN = new RegExp(
   `^(${SIZE_PATTERN})\\s+([^,()]+?)(?:\\s*\\(([^)]*)\\))?,\\s*(.+?)\\.?$`,
 );
 
-const AC_PATTERN = /^Armor Class\s+(\d+)/;
+export const AC_PATTERN = /^Armor Class\s+(\d+)/;
 const HP_PATTERN = /^Hit Points\s+(\d+)/;
-const SPEED_PATTERN = /^Speed\s+(.+)$/;
+export const SPEED_PATTERN = /^Speed\s+(.+)$/;
 const CHALLENGE_PATTERN = /^Challenge\s+([0-9/]+)/;
 const ABILITY_HEADER_PATTERN = /^STR\s+DEX\s+CON\s+INT\s+WIS\s+CHA$/i;
 // Six "score (modifier)" cells, e.g. "8 (−1) 14 (+2) 10 (+0) …". Only the
@@ -89,7 +89,7 @@ const ABILITY_SCORES_PATTERN = new RegExp(
   `^${Array(6).fill('(\\d+)\\s*\\([^)]*\\)').join('\\s+')}$`,
 );
 
-interface FlatLine {
+export interface FlatLine {
   readonly line: string;
   readonly page: number;
 }
@@ -121,7 +121,7 @@ function normalizeLine(line: string): string {
     .replace(HYPHEN_RUN_RE, '-');
 }
 
-function flatten(pages: readonly PageText[]): readonly FlatLine[] {
+export function flatten(pages: readonly PageText[]): readonly FlatLine[] {
   const out: FlatLine[] = [];
   for (const page of pages) {
     for (const line of page.lines) {
@@ -131,13 +131,13 @@ function flatten(pages: readonly PageText[]): readonly FlatLine[] {
   return out;
 }
 
-interface MetaParse {
+export interface MetaParse {
   readonly size: string;
   readonly type: string;
   readonly alignment: string;
 }
 
-function parseMetaLine(line: string): MetaParse | null {
+export function parseMetaLine(line: string): MetaParse | null {
   const match = META_PATTERN.exec(line.trim());
   if (match === null) return null;
   const baseType = match[2].trim();
@@ -176,7 +176,7 @@ function isLikelyCreatureName(line: string): boolean {
   return /^[A-Z][A-Za-z0-9 ,'’\-/()]*$/.test(trimmed);
 }
 
-function findPrecedingNameIdx(
+export function findPrecedingNameIdx(
   flat: readonly FlatLine[],
   metaIdx: number,
 ): number | null {
@@ -195,7 +195,7 @@ function findPrecedingNameIdx(
  * (climb, fly, swim, burrow) key on their label. Any trailing parenthetical
  * such as "(hover)" is ignored.
  */
-function parseSpeed(text: string): Record<string, number> {
+export function parseSpeed(text: string): Record<string, number> {
   const speed: Record<string, number> = {};
   for (const raw of text.split(',')) {
     const segment = raw.trim();
@@ -209,7 +209,9 @@ function parseSpeed(text: string): Record<string, number> {
   return speed;
 }
 
-function parseAbilityScores(scoresLine: string): CreatureAbilityScores | null {
+export function parseAbilityScores(
+  scoresLine: string,
+): CreatureAbilityScores | null {
   const match = ABILITY_SCORES_PATTERN.exec(scoresLine.trim());
   if (match === null) return null;
   const n = (i: number): number => Number.parseInt(match[i], 10);

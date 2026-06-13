@@ -29,6 +29,7 @@ import {
   EXPECTED_SRD_5_1_NPC_NAMES,
   EXPECTED_SRD_5_1_POISON_NAMES,
   EXPECTED_SRD_5_1_RULE_KEYS,
+  EXPECTED_SRD_5_1_STAT_BLOCK_NAMES,
   EXPECTED_SRD_5_1_TABLE_NAMES,
   EXPECTED_SRD_5_1_TRAP_NAMES,
   MIN_EXPECTED_SRD_5_1_CLASSES,
@@ -36,6 +37,7 @@ import {
   MIN_EXPECTED_SRD_5_1_MAGIC_ITEMS,
   MIN_EXPECTED_SRD_5_1_SUBCLASSES,
   runImporter,
+  SRD_5_1_STAT_BLOCK_CONTAINING_ITEMS,
 } from './index.js';
 import { SRD_5_1_COVERAGE_RULES } from './sourceInventoryCoverage.js';
 
@@ -113,6 +115,8 @@ async function main(): Promise<void> {
     expectedDiseaseNames: EXPECTED_SRD_5_1_DISEASE_NAMES,
     expectedPoisonNames: EXPECTED_SRD_5_1_POISON_NAMES,
     expectedMagicItemNames: EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES,
+    expectedStatBlockNames: EXPECTED_SRD_5_1_STAT_BLOCK_NAMES,
+    statBlockContainingItems: SRD_5_1_STAT_BLOCK_CONTAINING_ITEMS,
     expectedRuleKeys: EXPECTED_SRD_5_1_RULE_KEYS,
     expectedTableNames: EXPECTED_SRD_5_1_TABLE_NAMES,
     expectedBackgroundNames: EXPECTED_SRD_5_1_BACKGROUND_NAMES,
@@ -124,7 +128,7 @@ async function main(): Promise<void> {
   });
   const c = result.counts;
   console.log(
-    `Imported ${c.spells} spells, ${c.creatures} creatures, ${c.npcs} NPCs, ${c.classes} classes, ${c.subclasses} subclasses, ${c.features} features, ${c.conditions} conditions, ${c.feats} feats, ${c.hazards} hazards, ${c.traps} traps, ${c.diseases} diseases, ${c.poisons} poisons, ${c.actions} actions, ${c.rules} rules, ${c.tables} tables, ${c.equipment} equipment, ${c.magicItems} magic items, ${c.ancestries} ancestries, and ${c.backgrounds} backgrounds.`,
+    `Imported ${c.spells} spells, ${c.creatures} creatures, ${c.npcs} NPCs, ${c.statBlocks} inline stat blocks, ${c.classes} classes, ${c.subclasses} subclasses, ${c.features} features, ${c.conditions} conditions, ${c.feats} feats, ${c.hazards} hazards, ${c.traps} traps, ${c.diseases} diseases, ${c.poisons} poisons, ${c.actions} actions, ${c.rules} rules, ${c.tables} tables, ${c.equipment} equipment, ${c.magicItems} magic items, ${c.ancestries} ancestries, and ${c.backgrounds} backgrounds.`,
   );
   console.log(`Source PDF SHA-256: ${result.sourceHash}`);
   console.log(`Output written to: ${result.outDir}`);

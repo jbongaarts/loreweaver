@@ -60,6 +60,7 @@ import {
   EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES,
   EXPECTED_SRD_5_1_NPC_NAMES,
   EXPECTED_SRD_5_1_RULE_KEYS,
+  EXPECTED_SRD_5_1_STAT_BLOCK_NAMES,
   EXPECTED_SRD_5_1_TABLE_NAMES,
   EXPECTED_SRD_5_1_TRAP_NAMES,
   MIN_EXPECTED_SRD_5_1_CLASSES,
@@ -67,6 +68,7 @@ import {
   MIN_EXPECTED_SRD_5_1_MAGIC_ITEMS,
   MIN_EXPECTED_SRD_5_1_SUBCLASSES,
   runImporter,
+  SRD_5_1_STAT_BLOCK_CONTAINING_ITEMS,
 } from '../importers/dnd5e-srd-5.1/index.js';
 import { SRD_5_1_COVERAGE_RULES } from '../importers/dnd5e-srd-5.1/sourceInventoryCoverage.js';
 
@@ -98,6 +100,8 @@ async function main(): Promise<void> {
         expectedNpcNames: EXPECTED_SRD_5_1_NPC_NAMES,
         expectedTrapNames: EXPECTED_SRD_5_1_TRAP_NAMES,
         expectedMagicItemNames: EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES,
+        expectedStatBlockNames: EXPECTED_SRD_5_1_STAT_BLOCK_NAMES,
+        statBlockContainingItems: SRD_5_1_STAT_BLOCK_CONTAINING_ITEMS,
         expectedRuleKeys: EXPECTED_SRD_5_1_RULE_KEYS,
         expectedTableNames: EXPECTED_SRD_5_1_TABLE_NAMES,
         expectedBackgroundNames: EXPECTED_SRD_5_1_BACKGROUND_NAMES,

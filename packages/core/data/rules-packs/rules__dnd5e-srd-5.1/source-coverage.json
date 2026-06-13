@@ -1,6 +1,6 @@
 {
   "summary": {
-    "record": 1873,
+    "record": 1875,
     "childOf": 12,
     "ignored": {
       "document-structure": 41,
@@ -13,7 +13,6 @@
     },
     "knownGap": {
       "eshyra-4a7.10": 70,
-      "eshyra-4a7.4": 2,
       "eshyra-4a7.5": 2,
       "eshyra-4a7.6": 116,
       "eshyra-4a7.8": 27,
@@ -11738,7 +11737,7 @@
       "structure": "stat-block",
       "text": "Avatar of Death",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.4"
+      "status": "record:stat-block:avatar-of-death"
     },
     {
       "page": 218,
@@ -11972,7 +11971,7 @@
       "structure": "stat-block",
       "text": "Giant Fly",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.4"
+      "status": "record:stat-block:giant-fly"
     },
     {
       "page": 223,

@@ -631,8 +631,10 @@ export const SRD_5_1_COVERAGE_RULES: readonly CoverageRule[] = [
   // magic-item boundary bead emits it as its own record.
   knownGapRule('eshyra-4a7.8', (i) => i.text === 'Figurine of Wondrous Power'),
   // Embedded stat blocks outside the monster chapters (Avatar of Death p218,
-  // Giant Fly p222) — the document-wide stat-block bead accounts for them.
-  knownGapRule('eshyra-4a7.4', (i) => i.structure === 'stat-block'),
+  // Giant Fly p222) are now emitted as `stat-block` records (eshyra-4a7.4), so
+  // the name auto-match claims their `structure: 'stat-block'` inventory items —
+  // no rule needed here. A NEW unmatched inline stat block (not emitted, not in
+  // the reviewed map) would fail `parseStatBlocks` closed before coverage runs.
   // Creature variant sidebars (Variant: Diseased Giant Rats p378, Variant:
   // Insect Swarms p391) — variant notes belong to the stat-block completion
   // bead ("variant notes where present").

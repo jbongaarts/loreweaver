@@ -203,6 +203,12 @@ const EXPECTED_COUNTS_BY_KIND: Readonly<Record<string, number>> = {
   // eshyra-0m9.17). Validated exactly against EXPECTED_SRD_5_1_RULE_KEYS.
   rule: 256,
   spell: 319,
+  // Avatar of Death (Deck of Many Things, p218) and Giant Fly (Figurine of
+  // Wondrous Power, p222): abbreviated combat stat blocks defined inline under a
+  // magic item, emitted under the dedicated `stat-block` kind so the strict
+  // `creature` schema stays untouched (eshyra-4a7.4). Validated exactly against
+  // EXPECTED_SRD_5_1_STAT_BLOCK_NAMES.
+  'stat-block': 2,
   subclass: 12,
   // Difficulty Classes, two trap tables, three Madness tables, two Objects
   // statistics tables (loreweaver-hvp, loreweaver-uuk), the six "Beyond 1st
@@ -439,6 +445,14 @@ const EXPECTED_PARTIAL_FIELDS: ReadonlyArray<{
     missingCount: 213,
     totalInKind: 239,
   },
+  // Only the Deck of Many Things references an inline stat block (Avatar of
+  // Death) via statBlockRefs (eshyra-4a7.4); the other 238 magic items have none.
+  {
+    kind: 'magic-item',
+    field: 'statBlockRefs',
+    missingCount: 238,
+    totalInKind: 239,
+  },
   {
     kind: 'spell',
     field: 'componentMaterials',
@@ -447,6 +461,34 @@ const EXPECTED_PARTIAL_FIELDS: ReadonlyArray<{
   },
   { kind: 'spell', field: 'higherLevels', missingCount: 227, totalInKind: 319 },
   { kind: 'spell', field: 'ritual', missingCount: 290, totalInKind: 319 },
+  // The 2 inline stat blocks (eshyra-4a7.4) carry different optional keyed
+  // fields: Avatar of Death has damage/condition immunities and a "—"
+  // challengeRating with 0 XP; Giant Fly (abbreviated) has neither. senses and
+  // languages are present on both, so they are not partial.
+  {
+    kind: 'stat-block',
+    field: 'challengeRating',
+    missingCount: 1,
+    totalInKind: 2,
+  },
+  {
+    kind: 'stat-block',
+    field: 'conditionImmunities',
+    missingCount: 1,
+    totalInKind: 2,
+  },
+  {
+    kind: 'stat-block',
+    field: 'damageImmunities',
+    missingCount: 1,
+    totalInKind: 2,
+  },
+  {
+    kind: 'stat-block',
+    field: 'experiencePoints',
+    missingCount: 1,
+    totalInKind: 2,
+  },
 ];
 
 // `<kind>:<kebab-slug>` with one or more colon-separated slug segments. Kinds

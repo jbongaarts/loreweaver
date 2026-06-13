@@ -45,6 +45,7 @@ import type {
   SpellCasterClass,
   SpellClassIndex,
   SpellExtraction,
+  StatBlockExtraction,
   SubclassExtraction,
   TableExtraction,
   TrapExtraction,
@@ -232,6 +233,10 @@ function magicItemKey(name: string): string {
   return `magic-item:${slug(name)}`;
 }
 
+export function statBlockKey(name: string): string {
+  return `stat-block:${slug(name)}`;
+}
+
 function ancestryKey(name: string): string {
   return `ancestry:${slug(name)}`;
 }
@@ -285,6 +290,84 @@ export function creatureExtractionsToRecords(
       source: sourceLabelFor(creature.sourcePage),
       license: SRD_5_1_LICENSE,
       provenance: provenanceFor(creature.sourcePage),
+    };
+    return record;
+  });
+  out.sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+  return out;
+}
+
+/**
+ * Build the `data` payload for one inline stat-block record. Field insertion
+ * order is fixed for byte-stable JSON and matches `validateDnd5eStatBlock`. Hit
+ * points ride the permissive `{ value?, formula?, special? }` shape and the
+ * challenge rating is omitted entirely when the source block has none, so the
+ * strict creature schema (integer HP, required CR) is never relaxed (eshyra-4a7.4).
+ */
+function buildStatBlockData(
+  statBlock: StatBlockExtraction,
+): Record<string, unknown> {
+  const data: Record<string, unknown> = {};
+  data.size = statBlock.size;
+  data.type = statBlock.type;
+  data.alignment = statBlock.alignment;
+  data.armorClass = statBlock.armorClass;
+  const hp: Record<string, unknown> = {};
+  if (statBlock.hitPoints.value !== undefined)
+    hp.value = statBlock.hitPoints.value;
+  if (statBlock.hitPoints.formula !== undefined)
+    hp.formula = statBlock.hitPoints.formula;
+  if (statBlock.hitPoints.special !== undefined)
+    hp.special = statBlock.hitPoints.special;
+  data.hitPoints = hp;
+  data.speed = { ...statBlock.speed };
+  data.abilityScores = {
+    strength: statBlock.abilityScores.strength,
+    dexterity: statBlock.abilityScores.dexterity,
+    constitution: statBlock.abilityScores.constitution,
+    intelligence: statBlock.abilityScores.intelligence,
+    wisdom: statBlock.abilityScores.wisdom,
+    charisma: statBlock.abilityScores.charisma,
+  };
+  // Keyed trailing fields in stat-block print order; each emitted only when the
+  // source block carries it (eshyra-4a7.4).
+  if (statBlock.savingThrows !== undefined)
+    data.savingThrows = statBlock.savingThrows;
+  if (statBlock.skills !== undefined) data.skills = statBlock.skills;
+  if (statBlock.damageVulnerabilities !== undefined)
+    data.damageVulnerabilities = statBlock.damageVulnerabilities;
+  if (statBlock.damageResistances !== undefined)
+    data.damageResistances = statBlock.damageResistances;
+  if (statBlock.damageImmunities !== undefined)
+    data.damageImmunities = statBlock.damageImmunities;
+  if (statBlock.conditionImmunities !== undefined)
+    data.conditionImmunities = statBlock.conditionImmunities;
+  if (statBlock.senses !== undefined) data.senses = statBlock.senses;
+  if (statBlock.languages !== undefined) data.languages = statBlock.languages;
+  if (statBlock.challengeRating !== undefined)
+    data.challengeRating = statBlock.challengeRating;
+  if (statBlock.experiencePoints !== undefined)
+    data.experiencePoints = statBlock.experiencePoints;
+  data.inlineSource = {
+    containingItem: statBlock.containingItem,
+    page: statBlock.sourcePage,
+  };
+  return data;
+}
+
+export function statBlockExtractionsToRecords(
+  statBlocks: readonly StatBlockExtraction[],
+): RulesRecord[] {
+  const out: RulesRecord[] = statBlocks.map((statBlock) => {
+    const record: RulesRecord = {
+      systemId: SYSTEM_ID,
+      kind: 'stat-block',
+      key: statBlockKey(statBlock.name),
+      name: statBlock.name,
+      data: buildStatBlockData(statBlock),
+      source: sourceLabelFor(statBlock.sourcePage),
+      license: SRD_5_1_LICENSE,
+      provenance: provenanceFor(statBlock.sourcePage),
     };
     return record;
   });
@@ -761,6 +844,7 @@ export function equipmentExtractionsToRecords(
 
 function buildMagicItemData(
   item: MagicItemExtraction,
+  statBlockRefs: readonly string[] | undefined,
 ): Record<string, unknown> {
   const data: Record<string, unknown> = {
     itemType: item.itemType,
@@ -771,11 +855,22 @@ function buildMagicItemData(
     data.attunementRequirement = item.attunementRequirement;
   }
   data.description = item.description;
+  // An item that defines an inline stat block (Deck of Many Things -> Avatar of
+  // Death) points at the emitted `stat-block` record(s) via `statBlockRefs`
+  // (eshyra-4a7.4). Sorted for byte-stable JSON.
+  if (statBlockRefs !== undefined && statBlockRefs.length > 0) {
+    data.statBlockRefs = [...statBlockRefs].sort();
+  }
   return data;
 }
 
+/**
+ * @param statBlockRefsByItemName Map from a magic-item NAME to the stat-block
+ * record keys it references. Items absent from the map emit no `statBlockRefs`.
+ */
 export function magicItemExtractionsToRecords(
   magicItems: readonly MagicItemExtraction[],
+  statBlockRefsByItemName: ReadonlyMap<string, readonly string[]> = new Map(),
 ): RulesRecord[] {
   const out: RulesRecord[] = magicItems.map((item) => {
     const record: RulesRecord = {
@@ -783,7 +878,7 @@ export function magicItemExtractionsToRecords(
       kind: 'magic-item',
       key: magicItemKey(item.name),
       name: item.name,
-      data: buildMagicItemData(item),
+      data: buildMagicItemData(item, statBlockRefsByItemName.get(item.name)),
       source: sourceLabelFor(item.sourcePage),
       license: SRD_5_1_LICENSE,
       provenance: provenanceFor(item.sourcePage),
@@ -904,6 +999,12 @@ export interface BuildPackInput {
    */
   readonly primaryAbilityIndex?: ClassPrimaryAbilityIndex;
   readonly creatures?: readonly CreatureExtraction[];
+  /**
+   * Abbreviated inline stat blocks (Avatar of Death, Giant Fly; eshyra-4a7.4).
+   * Emitted under the `stat-block` kind; their containing magic items gain a
+   * `data.statBlockRefs` pointer when that item is itself emitted.
+   */
+  readonly statBlocks?: readonly StatBlockExtraction[];
   readonly classes?: readonly ClassExtraction[];
   readonly subclasses?: readonly SubclassExtraction[];
   readonly features?: readonly FeatureExtraction[];
@@ -957,8 +1058,22 @@ export function buildPack(input: BuildPackInput): RulesPack {
   const ruleRecords = ruleExtractionsToRecords(input.rules ?? []);
   const tableRecords = tableExtractionsToRecords(input.tables ?? []);
   const equipmentRecords = equipmentExtractionsToRecords(input.equipment ?? []);
+  // Inline stat blocks (eshyra-4a7.4) and the container -> stat-block reference
+  // map. A container that is not itself an emitted magic item (Figurine of
+  // Wondrous Power, still owned by eshyra-4a7.8) simply never matches in
+  // `magicItemExtractionsToRecords`, so its reference is naturally deferred.
+  const statBlockRecords = statBlockExtractionsToRecords(
+    input.statBlocks ?? [],
+  );
+  const statBlockRefsByItemName = new Map<string, string[]>();
+  for (const statBlock of input.statBlocks ?? []) {
+    const list = statBlockRefsByItemName.get(statBlock.containingItem) ?? [];
+    list.push(statBlockKey(statBlock.name));
+    statBlockRefsByItemName.set(statBlock.containingItem, list);
+  }
   const magicItemRecords = magicItemExtractionsToRecords(
     input.magicItems ?? [],
+    statBlockRefsByItemName,
   );
   const ancestryRecords = ancestryExtractionsToRecords(input.ancestries ?? []);
   const backgroundRecords = backgroundExtractionsToRecords(
@@ -978,6 +1093,7 @@ export function buildPack(input: BuildPackInput): RulesPack {
     ...tableRecords,
     ...equipmentRecords,
     ...magicItemRecords,
+    ...statBlockRecords,
     ...ancestryRecords,
     ...backgroundRecords,
   ].sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
