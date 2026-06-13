@@ -14,8 +14,12 @@
  *   metadata.json Git commit, branch, timestamp, and source artifact hash
  *
  * Usage:
- *   npm run audit-bundle:dnd5e-srd             # writes to D:\audit-bundle
- *   npm run audit-bundle:dnd5e-srd -- <outDir> # writes to <outDir>
+ *   npm run audit-bundle:dnd5e-srd
+ *     # writes to .audit-bundles/dnd5e-srd-audit-bundle
+ *     # and copies .audit-bundles/dnd5e-srd-audit-bundle.zip to /mnt/d/dnd5e-srd-audit-bundle.zip
+ *
+ *   npm run audit-bundle:dnd5e-srd -- <bundle-dir> <zip-copy-path>
+ *     # writes to <bundle-dir> and copies the zip to <zip-copy-path>
  *
  * Exit codes:
  *   0  Bundle created successfully.
@@ -326,6 +330,7 @@ function buildReadme(meta: {
   branch: string;
   timestamp: string;
   sourceHashMatch: boolean;
+  recordCount: number;
 }): string {
   return [
     '# D&D SRD 5.1 Rules-Pack Audit Bundle',
@@ -344,7 +349,7 @@ function buildReadme(meta: {
     '## File glossary',
     '',
     '### pack/',
-    '- `records.json` — committed pack records (all 834 entries)',
+    `- \`records.json\` — committed pack records (all ${meta.recordCount} entries)`,
     '- `manifest.json` — committed pack manifest (packId, license, source hash)',
     '',
     '### source/',
@@ -744,6 +749,7 @@ async function main(): Promise<void> {
       branch: gitBranch,
       timestamp,
       sourceHashMatch: hashVerification.match,
+      recordCount: rawRecords.length,
     }),
     'utf8',
   );
