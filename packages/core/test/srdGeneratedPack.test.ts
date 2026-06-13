@@ -334,6 +334,9 @@ const EXPECTED_STABLE_KEYS: readonly string[] = [
  *     fields emitted only when the SRD prints that label for the creature
  *     (eshyra-ez6v / eshyra-4a7.5). `senses` and `languages` are fully populated
  *     (all 317 stat blocks carry them), so they are not partial and not listed.
+ *   - creature.{traits,actions,reactions,legendaryActions}: optional narrative
+ *     body sections emitted only when the creature prints that section
+ *     (eshyra-yevt / eshyra-4a7.5).
  *   - condition.effects: present on all conditions except Exhaustion, whose
  *     mechanics live in its per-level `levels` table.
  *   - condition.levels: only Exhaustion has graded levels.
@@ -381,15 +384,19 @@ const EXPECTED_PARTIAL_FIELDS: ReadonlyArray<{
   { kind: 'ancestry', field: 'subraces', missingCount: 9, totalInKind: 13 },
   { kind: 'condition', field: 'effects', missingCount: 1, totalInKind: 15 },
   { kind: 'condition', field: 'levels', missingCount: 14, totalInKind: 15 },
-  // Only Appendix MM-B NPC creatures carry data.category='npc' (21 of 317);
-  // monster creatures intentionally omit it (loreweaver-bn0). Ordered after
-  // `condition` because auditPack sorts the summary by kind.
+  // Creature fields, alphabetical within the kind (matching
+  // `summarizeMissingFields`' `[...fieldUnion].sort()`), ordered after
+  // `condition` because auditPack sorts the summary by kind:
+  //   - category: only the 21 Appendix MM-B NPCs carry data.category='npc';
+  //     monsters omit it (loreweaver-bn0).
+  //   - keyed defensive/sense fields (eshyra-ez6v): emitted only when the SRD
+  //     prints that label. `senses`/`languages` are NOT listed — every one of the
+  //     317 stat blocks prints them (missingCount 0).
+  //   - narrative sections traits/actions/reactions/legendaryActions
+  //     (eshyra-yevt): emitted only when the creature prints that section
+  //     (3 have no Actions; 55 no traits; 305 no reactions; 287 no legendary).
+  { kind: 'creature', field: 'actions', missingCount: 3, totalInKind: 317 },
   { kind: 'creature', field: 'category', missingCount: 296, totalInKind: 317 },
-  // Optional keyed defensive / sense fields (eshyra-ez6v / eshyra-4a7.5): each
-  // is emitted only when the SRD prints that label for the creature, so they are
-  // genuinely partial. `senses` and `languages` are NOT listed because every one
-  // of the 317 stat blocks prints them (missingCount 0). Alphabetical within the
-  // kind, matching `summarizeMissingFields`' `[...fieldUnion].sort()`.
   {
     kind: 'creature',
     field: 'conditionImmunities',
@@ -416,11 +423,24 @@ const EXPECTED_PARTIAL_FIELDS: ReadonlyArray<{
   },
   {
     kind: 'creature',
+    field: 'legendaryActions',
+    missingCount: 287,
+    totalInKind: 317,
+  },
+  {
+    kind: 'creature',
+    field: 'reactions',
+    missingCount: 305,
+    totalInKind: 317,
+  },
+  {
+    kind: 'creature',
     field: 'savingThrows',
     missingCount: 225,
     totalInKind: 317,
   },
   { kind: 'creature', field: 'skills', missingCount: 129, totalInKind: 317 },
+  { kind: 'creature', field: 'traits', missingCount: 55, totalInKind: 317 },
   { kind: 'equipment', field: 'ac', missingCount: 205, totalInKind: 218 },
   {
     kind: 'equipment',

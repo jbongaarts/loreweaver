@@ -33,6 +33,8 @@ import type {
   CreatureAbilityScores,
   CreatureCategory,
   CreatureExtraction,
+  CreatureLegendaryActions,
+  CreatureStatBlockEntry,
   PageText,
 } from './types.js';
 
@@ -92,6 +94,15 @@ const ABILITY_SCORES_PATTERN = new RegExp(
 export interface FlatLine {
   readonly line: string;
   readonly page: number;
+  /**
+   * Font height of the source line when the extractor provided one
+   * (`PageText.lineHeights`). Used to strip structural heading lines — SRD
+   * creature-group headings ("Angels", "Dragons"), running page headers
+   * ("Monsters (B)"), and leaked creature names — from the narrative body,
+   * since those are printed larger than stat-block content (eshyra-yevt).
+   * Undefined for fixture pages built without per-line heights.
+   */
+  readonly height?: number;
 }
 
 /**
@@ -124,9 +135,14 @@ function normalizeLine(line: string): string {
 export function flatten(pages: readonly PageText[]): readonly FlatLine[] {
   const out: FlatLine[] = [];
   for (const page of pages) {
-    for (const line of page.lines) {
-      out.push({ line: normalizeLine(line), page: page.pageNumber });
-    }
+    page.lines.forEach((line, idx) => {
+      const height = page.lineHeights?.[idx];
+      out.push({
+        line: normalizeLine(line),
+        page: page.pageNumber,
+        ...(height === undefined ? {} : { height }),
+      });
+    });
   }
   return out;
 }
@@ -223,6 +239,293 @@ export function parseAbilityScores(
     wisdom: n(5),
     charisma: n(6),
   };
+}
+
+// ---------------------------------------------------------------------------
+// Narrative body sections (Traits, Actions, Reactions, Legendary Actions). After
+// the Challenge line a 5e stat block prints a run of bold-lead-in named entries:
+// an implicit Traits run, then header-delimited Actions / Reactions / Legendary
+// Actions sections. This mirrors the proven `parseAncestries` "Label. body"
+// splitter — a short Title-Case label, then a period and body, with a
+// sentence-completeness guard so a wrapped body sentence that merely starts with
+// a capitalized phrase ("Constitution saving throw. On a failure …") is not
+// mis-promoted to a new entry (eshyra-yevt).
+// ---------------------------------------------------------------------------
+
+// "Name. body": a Title-Case label (letters with single internal space /
+// apostrophe / slash / hyphen separators) plus an optional usage parenthetical
+// ("(3/Day)", "(Recharge 5-6)", "(Costs 2 Actions)"), then a period, a space,
+// and body text. The apostrophes (ASCII U+0027 and curly U+2019) let names like
+// "Devil's Sight" match; the parenthetical is captured loosely so its digits and
+// punctuation do not break the name.
+const ENTRY_LABEL_RE =
+  /^([A-Z][A-Za-z]+(?:[ '’/-][A-Za-z]+)*(?:\s*\([^)]*\))?)\.\s+(\S.*)$/;
+
+// Words that begin body prose, never an entry name — guards against a wrapped
+// sentence whose first word is capitalized being read as a label. Mirrors the
+// parseAncestries / parseFeats prose-starter guard, extended with the stat-block
+// attack-line lead-ins ("Hit:", "Melee", "Ranged").
+const ENTRY_PROSE_STARTERS = new Set([
+  'You',
+  'Your',
+  'The',
+  'A',
+  'An',
+  'This',
+  'These',
+  'When',
+  'While',
+  'If',
+  'As',
+  'Once',
+  'At',
+  'In',
+  'On',
+  'For',
+  'To',
+  'By',
+  'With',
+  'Choose',
+  'It',
+  'Its',
+  'He',
+  'She',
+  'They',
+  'Each',
+  'Any',
+  'All',
+  'Whenever',
+  'Until',
+  'After',
+  'Before',
+  'Hit',
+  'Melee',
+  'Ranged',
+  'Some',
+  'Of',
+  'That',
+  'Their',
+  'Otherwise',
+  'Make',
+  'Roll',
+]);
+
+// Sentence-terminal punctuation. A real entry body ends with one of these and
+// the SRD breaks to a fresh line before the next bold "Name." lead-in, so a
+// "Name."-shaped line only opens a new entry once the open entry's prose has
+// ended. Includes the curly close-quote (U+2019) and close-double-quote
+// (U+201D) the PDF uses.
+const ENTRY_TERMINAL_PUNCTUATION = /[.!?:)”"’']$/;
+
+// A spell-list line inside an Innate Spellcasting / Spellcasting trait
+// ("At will: …", "1/day each: …", "3rd level (3 slots): …"). These do NOT end
+// in terminal punctuation, so without this the next trait after a spell list
+// (e.g. the Deva's Magic Resistance) would be swallowed as a continuation. A
+// trailing spell-list line is treated as a completed body so the next label
+// opens a new entry.
+const SPELL_LIST_LINE =
+  /^(?:at will|cantrips?|\d+\s*\/\s*day|\d(?:st|nd|rd|th)(?:[ -]?level)?)\b/i;
+
+// Lines printed larger than stat-block content (>= ~12pt) are structural
+// headings — SRD creature-group headings ("Angels" ~14pt, "Black Dragon"
+// ~12pt), running page headers ("Monsters (B)" ~18pt), and leaked creature
+// names (~26pt). Stat-block body and section headers ("Actions") are <= 10.8pt,
+// so this threshold strips heading noise from the narrative body without
+// touching any real entry text (eshyra-yevt). Applied only when the extractor
+// supplied a height.
+const MIN_STRUCTURAL_HEADING_HEIGHT = 11.5;
+
+// Section header lines that switch the active narrative section. "Lair Actions"
+// and "Regional Effects" (post-stat-block, often tabular) are owned by a later
+// slice (eshyra-70xr): encountering either ends the sections this slice emits.
+const ACTIONS_HEADER = 'Actions';
+const REACTIONS_HEADER = 'Reactions';
+const LEGENDARY_HEADER = 'Legendary Actions';
+const DEFERRED_HEADERS = new Set(['Lair Actions', 'Regional Effects']);
+
+interface EntryLabelMatch {
+  readonly name: string;
+  readonly body: string;
+}
+
+function matchEntryLabel(line: string): EntryLabelMatch | null {
+  const m = ENTRY_LABEL_RE.exec(line.trim());
+  if (m === null) return null;
+  const name = m[1].trim();
+  // Guard on the name WITHOUT its parenthetical: a real entry name is a short
+  // noun phrase, while the usage qualifier ("Recharges after a Short or Long
+  // Rest") can be long and must not count toward the word/length cap.
+  const bare = name.replace(/\s*\([^)]*\)\s*$/, '');
+  const words = bare.split(/\s+/);
+  if (bare.length > 45 || words.length > 6) return null;
+  if (ENTRY_PROSE_STARTERS.has(words[0])) return null;
+  return { name, body: m[2].trim() };
+}
+
+/** True when the open entry body's last non-blank line ends an entry. */
+function entryBodyComplete(body: readonly string[]): boolean {
+  for (let i = body.length - 1; i >= 0; i--) {
+    const trimmed = body[i].trim();
+    if (trimmed.length === 0) continue;
+    return (
+      ENTRY_TERMINAL_PUNCTUATION.test(trimmed) || SPELL_LIST_LINE.test(trimmed)
+    );
+  }
+  return true;
+}
+
+interface MutableEntry {
+  readonly name: string;
+  body: string[];
+}
+
+function toEntry(entry: MutableEntry): CreatureStatBlockEntry {
+  // Re-flow wrapped lines; preserve a blank-line paragraph break as "\n\n"
+  // (multi-paragraph entries like Enslave or the legendary-action intro).
+  const paragraphs: string[] = [];
+  let current: string[] = [];
+  for (const raw of entry.body) {
+    const line = raw.trim();
+    if (line.length === 0) {
+      if (current.length > 0) {
+        paragraphs.push(current.join(' '));
+        current = [];
+      }
+      continue;
+    }
+    current.push(line);
+  }
+  if (current.length > 0) paragraphs.push(current.join(' '));
+  return { name: entry.name, text: paragraphs.join('\n\n').trim() };
+}
+
+interface NarrativeSections {
+  readonly traits?: readonly CreatureStatBlockEntry[];
+  readonly actions?: readonly CreatureStatBlockEntry[];
+  readonly reactions?: readonly CreatureStatBlockEntry[];
+  readonly legendaryActions?: CreatureLegendaryActions;
+}
+
+/**
+ * Parse the Traits / Actions / Reactions / Legendary Actions sections from a
+ * confirmed stat-block body. Input is the full FlatLine body (meta line
+ * onward); parsing begins after the Challenge line and ignores structural
+ * heading lines by font height.
+ */
+export function parseNarrativeSections(
+  body: readonly FlatLine[],
+): NarrativeSections {
+  let challengeIdx = -1;
+  for (let i = 0; i < body.length; i++) {
+    if (CHALLENGE_PATTERN.test(body[i].line.trim())) {
+      challengeIdx = i;
+      break;
+    }
+  }
+  if (challengeIdx < 0) return {};
+
+  const lines: string[] = [];
+  for (let i = challengeIdx + 1; i < body.length; i++) {
+    const entry = body[i];
+    if (
+      entry.height !== undefined &&
+      entry.height >= MIN_STRUCTURAL_HEADING_HEIGHT
+    ) {
+      continue; // structural heading (group/running header / leaked name)
+    }
+    const trimmed = entry.line.trim();
+    if (trimmed.length > 0) lines.push(trimmed);
+  }
+
+  const traits: CreatureStatBlockEntry[] = [];
+  const actions: CreatureStatBlockEntry[] = [];
+  const reactions: CreatureStatBlockEntry[] = [];
+  const legendaryEntries: CreatureStatBlockEntry[] = [];
+  const legendaryIntro: string[] = [];
+
+  type Section = 'traits' | 'actions' | 'reactions' | 'legendary' | 'deferred';
+  let section: Section = 'traits';
+  let current: MutableEntry | null = null;
+
+  const bucketFor = (s: Section): CreatureStatBlockEntry[] | null => {
+    switch (s) {
+      case 'traits':
+        return traits;
+      case 'actions':
+        return actions;
+      case 'reactions':
+        return reactions;
+      case 'legendary':
+        return legendaryEntries;
+      default:
+        return null;
+    }
+  };
+  const flush = () => {
+    if (current !== null) {
+      bucketFor(section)?.push(toEntry(current));
+      current = null;
+    }
+  };
+
+  for (const line of lines) {
+    if (line === ACTIONS_HEADER) {
+      flush();
+      section = 'actions';
+      continue;
+    }
+    if (line === REACTIONS_HEADER) {
+      flush();
+      section = 'reactions';
+      continue;
+    }
+    if (line === LEGENDARY_HEADER) {
+      flush();
+      section = 'legendary';
+      continue;
+    }
+    if (DEFERRED_HEADERS.has(line)) {
+      flush();
+      section = 'deferred';
+      continue;
+    }
+    if (section === 'deferred') continue;
+
+    const match = matchEntryLabel(line);
+    if (
+      match !== null &&
+      (current === null || entryBodyComplete(current.body))
+    ) {
+      flush();
+      current = { name: match.name, body: [match.body] };
+    } else if (current !== null) {
+      current.body.push(line);
+    } else if (section === 'legendary') {
+      // Intro paragraph printed before the first legendary option.
+      legendaryIntro.push(line);
+    }
+    // A pre-entry line in any other section (none observed in SRD 5.1) is
+    // dropped rather than misattributed.
+  }
+  flush();
+
+  const out: {
+    traits?: CreatureStatBlockEntry[];
+    actions?: CreatureStatBlockEntry[];
+    reactions?: CreatureStatBlockEntry[];
+    legendaryActions?: CreatureLegendaryActions;
+  } = {};
+  if (traits.length > 0) out.traits = traits;
+  if (actions.length > 0) out.actions = actions;
+  if (reactions.length > 0) out.reactions = reactions;
+  if (legendaryEntries.length > 0 || legendaryIntro.length > 0) {
+    const description = legendaryIntro.join(' ').trim();
+    out.legendaryActions = {
+      ...(description.length > 0 ? { description } : {}),
+      entries: legendaryEntries,
+    };
+  }
+  return out;
 }
 
 interface CreatureCandidate {
@@ -441,7 +744,8 @@ export function parseCreatures(
     const candidate = candidates[i];
     const next = candidates[i + 1];
     const bodyEnd = next?.nameIdx ?? flat.length;
-    const body = flat.slice(candidate.metaIdx + 1, bodyEnd).map((f) => f.line);
+    const bodyLines = flat.slice(candidate.metaIdx + 1, bodyEnd);
+    const body = bodyLines.map((f) => f.line);
     const fields = readStatBlock(body);
 
     // Not a creature unless the structural signature is present.
@@ -467,6 +771,7 @@ export function parseCreatures(
     }
 
     const keyed = extractCreatureKeyedFields(body);
+    const narrative = parseNarrativeSections(bodyLines);
 
     out.push({
       name: candidate.name,
@@ -480,6 +785,7 @@ export function parseCreatures(
       challengeRating: fields.challengeRating,
       abilityScores: fields.abilityScores,
       ...keyed,
+      ...narrative,
       sourcePage,
     });
   }

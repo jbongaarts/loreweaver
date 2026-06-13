@@ -523,3 +523,230 @@ describe('parseCreatures — keyed defensive / sense fields', () => {
     expect(bear.savingThrows).toBeUndefined();
   });
 });
+
+// ---------------------------------------------------------------------------
+// Narrative body sections — traits, actions, reactions, legendary actions
+// (eshyra-yevt / eshyra-4a7.5). Excerpts reproduced verbatim from the SRD 5.1
+// extracted-line shape (Aboleth p261, Deva p261-262), wrapped exactly as pdfjs
+// emits them so the sentence-completeness and wrap-rejoining logic is exercised.
+// ---------------------------------------------------------------------------
+
+// Full Aboleth body: 3 traits, an Actions section (incl. a multi-paragraph
+// Enslave and a usage-qualified name), and a Legendary Actions section with an
+// intro paragraph.
+const ABOLETH_FULL = [
+  'Aboleth',
+  'Large aberration, lawful evil',
+  'Armor Class 17 (natural armor)',
+  'Hit Points 135 (18d10 + 36)',
+  'Speed 10 ft., swim 40 ft.',
+  'STR DEX CON INT WIS CHA',
+  '21 (+5) 9 (−1) 15 (+2) 18 (+4) 15 (+2) 18 (+4)',
+  'Saving Throws Con +6, Int +8, Wis +6',
+  'Skills History +12, Perception +10',
+  'Senses darkvision 120 ft., passive Perception 20',
+  'Languages Deep Speech, telepathy 120 ft.',
+  'Challenge 10 (5,900 XP)',
+  'Amphibious. The aboleth can breathe air and water.',
+  'Mucous Cloud. While underwater, the aboleth is',
+  'surrounded by transformative mucus. A creature that',
+  'touches the aboleth or that hits it with a melee attack',
+  'while within 5 feet of it must make a DC 14',
+  'Constitution saving throw. On a failure, the creature is',
+  'diseased for 1d4 hours.',
+  'Probing Telepathy. If a creature communicates',
+  'telepathically with the aboleth, the aboleth learns the',
+  'creature’s greatest desires if the aboleth can see the',
+  'creature.',
+  'Actions',
+  'Multiattack. The aboleth makes three tentacle attacks.',
+  'Tentacle. Melee Weapon Attack: +9 to hit, reach 10 ft.,',
+  'one target. Hit: 12 (2d6 + 5) bludgeoning damage.',
+  'Enslave (3/Day). The aboleth targets one creature it',
+  'can see within 30 feet of it.',
+  'Whenever the charmed target takes damage, the',
+  'target can repeat the saving throw.',
+  'Legendary Actions',
+  'The aboleth can take 3 legendary actions, choosing',
+  'from the options below. The aboleth regains spent',
+  'legendary actions at the start of its turn.',
+  'Detect. The aboleth makes a Wisdom (Perception)',
+  'check.',
+  'Psychic Drain (Costs 2 Actions). One creature charmed',
+  'by the aboleth takes 10 (3d6) psychic damage.',
+];
+
+describe('parseCreatures — narrative sections', () => {
+  const [aboleth] = parseCreatures([page(261, ABOLETH_FULL)]);
+
+  it('splits the implicit trait run into named entries', () => {
+    expect(aboleth.traits?.map((t) => t.name)).toEqual([
+      'Amphibious',
+      'Mucous Cloud',
+      'Probing Telepathy',
+    ]);
+    expect(aboleth.traits?.[0].text).toBe(
+      'The aboleth can breathe air and water.',
+    );
+  });
+
+  it('does not split a wrapped body sentence that starts with a capitalized phrase', () => {
+    // "Constitution saving throw. On a failure …" is a wrapped continuation of
+    // Mucous Cloud, not a new trait — the open body was not sentence-complete.
+    const mucous = aboleth.traits?.find((t) => t.name === 'Mucous Cloud');
+    expect(mucous?.text).toContain(
+      'must make a DC 14 Constitution saving throw',
+    );
+    expect(mucous?.text).toContain('On a failure, the creature is diseased');
+    expect(
+      aboleth.traits?.some((t) => t.name === 'Constitution saving throw'),
+    ).toBe(false);
+  });
+
+  it('parses the Actions section, preserving a usage-qualified name', () => {
+    expect(aboleth.actions?.map((a) => a.name)).toEqual([
+      'Multiattack',
+      'Tentacle',
+      'Enslave (3/Day)',
+    ]);
+  });
+
+  it('keeps a multi-paragraph entry body joined on a blank-line break', () => {
+    const enslave = aboleth.actions?.find((a) => a.name === 'Enslave (3/Day)');
+    // The two source paragraphs are joined; both are present.
+    expect(enslave?.text).toContain('targets one creature it can see');
+    expect(enslave?.text).toContain('Whenever the charmed target takes damage');
+  });
+
+  it('captures the legendary-actions intro as description and the options as entries', () => {
+    expect(aboleth.legendaryActions?.description).toContain(
+      'can take 3 legendary actions',
+    );
+    expect(aboleth.legendaryActions?.entries.map((e) => e.name)).toEqual([
+      'Detect',
+      'Psychic Drain (Costs 2 Actions)',
+    ]);
+  });
+
+  it('leaves sections the creature does not print undefined', () => {
+    expect(aboleth.reactions).toBeUndefined();
+  });
+
+  it('splits a trait that follows a spellcasting spell list (no terminal punctuation)', () => {
+    // Real SRD Deva (p261-262): the Innate Spellcasting body ends on a spell-list
+    // line ("1/day each: …") with no terminal period; Magic Resistance must still
+    // open as a new trait rather than be absorbed.
+    const deva = [
+      'Deva',
+      'Medium celestial, lawful good',
+      'Armor Class 17 (natural armor)',
+      'Hit Points 136 (16d8 + 64)',
+      'Speed 30 ft., fly 90 ft.',
+      'STR DEX CON INT WIS CHA',
+      '18 (+4) 18 (+4) 18 (+4) 17 (+3) 20 (+5) 20 (+5)',
+      'Senses darkvision 120 ft., passive Perception 19',
+      'Languages all, telepathy 120 ft.',
+      'Challenge 10 (5,900 XP)',
+      'Innate Spellcasting. The deva’s spellcasting ability is',
+      'Charisma (spell save DC 17). The deva can innately cast',
+      'the following spells, requiring only verbal components:',
+      'At will: detect evil and good',
+      '1/day each: commune, raise dead',
+      'Magic Resistance. The deva has advantage on saving',
+      'throws against spells and other magical effects.',
+    ];
+    const [parsed] = parseCreatures([page(261, deva)]);
+    expect(parsed.traits?.map((t) => t.name)).toEqual([
+      'Innate Spellcasting',
+      'Magic Resistance',
+    ]);
+    // The spell list rides inside the Innate Spellcasting trait text verbatim.
+    const spellcasting = parsed.traits?.[0];
+    expect(spellcasting?.text).toContain('At will: detect evil and good');
+    expect(spellcasting?.text).toContain('1/day each: commune, raise dead');
+  });
+
+  it('parses a Reactions section', () => {
+    // Real SRD Shrieker (p309): a trait then a Reactions section, no Actions.
+    const shrieker = [
+      'Shrieker',
+      'Medium plant, unaligned',
+      'Armor Class 5',
+      'Hit Points 13 (3d8)',
+      'Speed 0 ft.',
+      'STR DEX CON INT WIS CHA',
+      '1 (−5) 1 (−5) 10 (+0) 1 (−5) 3 (−4) 1 (−5)',
+      'Senses blindsight 30 ft. (blind beyond this radius),',
+      'passive Perception 6',
+      'Languages —',
+      'Challenge 0 (10 XP)',
+      'False Appearance. While the shrieker remains',
+      'motionless, it is indistinguishable from an ordinary',
+      'fungus.',
+      'Reactions',
+      'Shriek. When bright light or a creature is within 30 feet',
+      'of the shrieker, it emits a shriek audible within 300 feet',
+      'of it.',
+    ];
+    const [parsed] = parseCreatures([page(309, shrieker)]);
+    expect(parsed.traits?.map((t) => t.name)).toEqual(['False Appearance']);
+    expect(parsed.actions).toBeUndefined();
+    expect(parsed.reactions?.map((r) => r.name)).toEqual(['Shriek']);
+  });
+
+  it('matches an entry name containing a curly apostrophe', () => {
+    // Real SRD devils print "Devil’s Sight" with a curly apostrophe (U+2019).
+    const devil = [
+      'Bearded Devil',
+      'Medium fiend (devil), lawful evil',
+      'Armor Class 13 (natural armor)',
+      'Hit Points 52 (8d8 + 16)',
+      'Speed 30 ft.',
+      'STR DEX CON INT WIS CHA',
+      '16 (+3) 15 (+2) 15 (+2) 9 (−1) 11 (+0) 11 (+0)',
+      'Senses darkvision 120 ft., passive Perception 10',
+      'Languages Infernal, telepathy 120 ft.',
+      'Challenge 3 (700 XP)',
+      'Devil’s Sight. Magical darkness doesn’t impede the',
+      'devil’s darkvision.',
+      'Magic Resistance. The devil has advantage on saving',
+      'throws against spells and other magical effects.',
+    ];
+    const [parsed] = parseCreatures([page(274, devil)]);
+    expect(parsed.traits?.map((t) => t.name)).toEqual([
+      'Devil’s Sight',
+      'Magic Resistance',
+    ]);
+    expect(parsed.traits?.[0].text).toBe(
+      'Magical darkness doesn’t impede the devil’s darkvision.',
+    );
+  });
+
+  it('strips a structural heading line (group heading) from the body by font height', () => {
+    // The SRD prints a creature-group heading ("Angels") between stat blocks at a
+    // larger font than body text; in extraction it lands as the last line of the
+    // preceding creature's body. A taller line is dropped so it cannot pollute
+    // the final entry. Body text is 9.84pt; the group heading is ~14pt.
+    const lines = [
+      'Aboleth',
+      'Large aberration, lawful evil',
+      'Armor Class 17 (natural armor)',
+      'Hit Points 135 (18d10 + 36)',
+      'Speed 10 ft., swim 40 ft.',
+      'STR DEX CON INT WIS CHA',
+      '21 (+5) 9 (−1) 15 (+2) 18 (+4) 15 (+2) 18 (+4)',
+      'Senses darkvision 120 ft., passive Perception 20',
+      'Languages Deep Speech, telepathy 120 ft.',
+      'Challenge 10 (5,900 XP)',
+      'Amphibious. The aboleth can breathe air and water.',
+      'Angels',
+    ];
+    const lineHeights = lines.map((l) => (l === 'Angels' ? 13.92 : 9.84));
+    const [parsed] = parseCreatures([{ pageNumber: 261, lines, lineHeights }]);
+    expect(parsed.traits?.map((t) => t.name)).toEqual(['Amphibious']);
+    // "Angels" was dropped, not appended to the Amphibious trait body.
+    expect(parsed.traits?.[0].text).toBe(
+      'The aboleth can breathe air and water.',
+    );
+  });
+});

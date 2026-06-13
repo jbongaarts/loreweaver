@@ -105,6 +105,27 @@ function optStrArray(parent: Obj, key: string, path: string): void {
   });
 }
 
+// Validate an optional array of `{ name, text }` stat-block entries (creature
+// traits / actions / reactions / legendary-action options). Each requires a
+// non-empty name and text; absent is allowed.
+function optNamedEntryArray(parent: Obj, key: string, path: string): void {
+  const value = parent[key];
+  if (value === undefined) {
+    return;
+  }
+  if (!Array.isArray(value)) {
+    throw new RulesPackError(`${path}.${key} must be an array when present`);
+  }
+  value.forEach((item, i) => {
+    if (typeof item !== 'object' || item === null || Array.isArray(item)) {
+      throw new RulesPackError(`${path}.${key}[${i}] must be an object`);
+    }
+    const entry = item as Obj;
+    reqStr(entry, 'name', `${path}.${key}[${i}]`);
+    reqStr(entry, 'text', `${path}.${key}[${i}]`);
+  });
+}
+
 function optBool(parent: Obj, key: string, path: string): void {
   const value = parent[key];
   if (value === undefined) {
@@ -252,6 +273,23 @@ function validateDnd5eCreature(record: RulesRecord, path: string): void {
   optStr(data, 'conditionImmunities', `${path}.data`);
   optStr(data, 'senses', `${path}.data`);
   optStr(data, 'languages', `${path}.data`);
+  // Optional narrative body sections (eshyra-yevt / eshyra-4a7.5): arrays of
+  // {name, text} entries, plus the legendary-actions object (optional intro
+  // description + entries array). A creature carries only the sections it prints.
+  optNamedEntryArray(data, 'traits', `${path}.data`);
+  optNamedEntryArray(data, 'actions', `${path}.data`);
+  optNamedEntryArray(data, 'reactions', `${path}.data`);
+  const legendary = data.legendaryActions;
+  if (legendary !== undefined) {
+    const obj = reqObj(data, 'legendaryActions', `${path}.data`);
+    optStr(obj, 'description', `${path}.data.legendaryActions`);
+    optNamedEntryArray(obj, 'entries', `${path}.data.legendaryActions`);
+    if (!Array.isArray(obj.entries)) {
+      throw new RulesPackError(
+        `${path}.data.legendaryActions.entries must be an array`,
+      );
+    }
+  }
 }
 
 // An abbreviated combat stat block defined INLINE under another entry — Avatar

@@ -292,6 +292,36 @@ function buildCreatureData(
     data.conditionImmunities = creature.conditionImmunities;
   if (creature.senses !== undefined) data.senses = creature.senses;
   if (creature.languages !== undefined) data.languages = creature.languages;
+  // Narrative body sections (eshyra-yevt / eshyra-4a7.5), appended after the
+  // keyed fields in stat-block print order. Each entry is a fresh {name, text}
+  // object so the emitted JSON is byte-stable; sections absent from the source
+  // produce no key.
+  if (creature.traits !== undefined) {
+    data.traits = creature.traits.map((e) => ({ name: e.name, text: e.text }));
+  }
+  if (creature.actions !== undefined) {
+    data.actions = creature.actions.map((e) => ({
+      name: e.name,
+      text: e.text,
+    }));
+  }
+  if (creature.reactions !== undefined) {
+    data.reactions = creature.reactions.map((e) => ({
+      name: e.name,
+      text: e.text,
+    }));
+  }
+  if (creature.legendaryActions !== undefined) {
+    const legendary: Record<string, unknown> = {};
+    if (creature.legendaryActions.description !== undefined) {
+      legendary.description = creature.legendaryActions.description;
+    }
+    legendary.entries = creature.legendaryActions.entries.map((e) => ({
+      name: e.name,
+      text: e.text,
+    }));
+    data.legendaryActions = legendary;
+  }
   return data;
 }
 
