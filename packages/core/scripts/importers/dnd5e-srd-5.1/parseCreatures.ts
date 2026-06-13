@@ -240,6 +240,113 @@ interface StatBlockFields {
   readonly abilityScores?: CreatureAbilityScores;
 }
 
+// ---------------------------------------------------------------------------
+// Keyed defensive / sense fields (Saving Throws … Languages). In a 5e stat
+// block these sit in a fixed-order run between the ability-score row and the
+// Challenge line; everything after Challenge is the trait / action body, owned
+// by a later slice (eshyra-4a7.5b). Two real SRD wrinkles make naive per-line
+// capture wrong:
+//   - A value WRAPS across extracted lines (Deva's "Damage Resistances radiant;
+//     bludgeoning, piercing," + "and slashing from nonmagical attacks").
+//   - The PDF column flow sometimes MERGES the next label onto the previous
+//     value's last line (Wereboar's "… silvered weapons Senses passive
+//     Perception 12"), so a label is not always at the start of a line.
+// Both are handled by joining the bounded region into one string and slicing on
+// label POSITIONS (mirrors `parseStatBlocks`' clean-text path), rather than
+// anchoring to line starts. Bounding to (abilityRow, Challenge) keeps the
+// ability table above and the trait prose below from contributing values.
+// ---------------------------------------------------------------------------
+
+/**
+ * Emitted field -> the source labels that introduce it, longest/most-specific
+ * first. Most fields use the SRD's plural label; a few stat blocks print the
+ * singular form for a conditional (the Archmage's "Damage Resistance … (from
+ * stoneskin)"), so the singular is accepted as an alias (eshyra-ez6v).
+ */
+const KEYED_FIELDS: ReadonlyArray<
+  readonly [field: string, labels: readonly string[]]
+> = [
+  ['savingThrows', ['Saving Throws']],
+  ['skills', ['Skills']],
+  ['damageVulnerabilities', ['Damage Vulnerabilities', 'Damage Vulnerability']],
+  ['damageResistances', ['Damage Resistances', 'Damage Resistance']],
+  ['damageImmunities', ['Damage Immunities', 'Damage Immunity']],
+  ['conditionImmunities', ['Condition Immunities', 'Condition Immunity']],
+  ['senses', ['Senses']],
+  ['languages', ['Languages']],
+];
+
+export interface CreatureKeyedFields {
+  readonly savingThrows?: string;
+  readonly skills?: string;
+  readonly damageVulnerabilities?: string;
+  readonly damageResistances?: string;
+  readonly damageImmunities?: string;
+  readonly conditionImmunities?: string;
+  readonly senses?: string;
+  readonly languages?: string;
+}
+
+/** First body line that is an ability-score row, or -1. */
+function findAbilityRowIdx(lines: readonly string[]): number {
+  for (let i = 0; i < lines.length; i++) {
+    if (parseAbilityScores(lines[i].trim()) !== null) return i;
+  }
+  return -1;
+}
+
+/**
+ * Extract the keyed defensive / sense fields from a confirmed stat-block body.
+ * The scan is bounded to the lines strictly between the ability-score row and
+ * the first following Challenge line, so neither the ability table above nor
+ * the trait/action prose below can contribute a spurious value. Within that
+ * region, each field's value runs from just after its label to the start of the
+ * next field's label (in source position order), so wrapped and merged lines
+ * are both reassembled correctly.
+ */
+export function extractCreatureKeyedFields(
+  body: readonly string[],
+): CreatureKeyedFields {
+  const abilityIdx = findAbilityRowIdx(body);
+  if (abilityIdx < 0) return {};
+  let challengeIdx = -1;
+  for (let i = abilityIdx + 1; i < body.length; i++) {
+    if (CHALLENGE_PATTERN.test(body[i].trim())) {
+      challengeIdx = i;
+      break;
+    }
+  }
+  const end = challengeIdx < 0 ? body.length : challengeIdx;
+
+  const region = body
+    .slice(abilityIdx + 1, end)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0)
+    .join(' ');
+
+  // Locate the earliest occurrence of each present field's label.
+  const found: Array<{ field: string; idx: number; labelLen: number }> = [];
+  for (const [field, labels] of KEYED_FIELDS) {
+    for (const label of labels) {
+      const idx = region.indexOf(label);
+      if (idx >= 0) {
+        found.push({ field, idx, labelLen: label.length });
+        break;
+      }
+    }
+  }
+  found.sort((a, b) => a.idx - b.idx);
+
+  const out: Record<string, string> = {};
+  for (let i = 0; i < found.length; i++) {
+    const { field, idx, labelLen } = found[i];
+    const valueEnd = i + 1 < found.length ? found[i + 1].idx : region.length;
+    const value = region.slice(idx + labelLen, valueEnd).trim();
+    if (value.length > 0) out[field] = value;
+  }
+  return out as CreatureKeyedFields;
+}
+
 /** Scan a stat-block body for the keyed stat lines. First match wins. */
 function readStatBlock(lines: readonly string[]): StatBlockFields {
   let armorClass: number | undefined;
@@ -359,6 +466,8 @@ export function parseCreatures(
       );
     }
 
+    const keyed = extractCreatureKeyedFields(body);
+
     out.push({
       name: candidate.name,
       category,
@@ -370,6 +479,7 @@ export function parseCreatures(
       speed: fields.speed,
       challengeRating: fields.challengeRating,
       abilityScores: fields.abilityScores,
+      ...keyed,
       sourcePage,
     });
   }

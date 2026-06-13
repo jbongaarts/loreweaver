@@ -274,6 +274,24 @@ function buildCreatureData(
     wisdom: creature.abilityScores.wisdom,
     charisma: creature.abilityScores.charisma,
   };
+  // Optional keyed defensive / sense fields, appended after abilityScores in
+  // stat-block print order (eshyra-ez6v / eshyra-4a7.5). Each is set only when
+  // the SRD prints that label for the creature, so records that lack a field
+  // (a beast with no saving throws) stay free of empty keys and the pre-existing
+  // header-only records gain only the labels their source actually carries.
+  if (creature.savingThrows !== undefined)
+    data.savingThrows = creature.savingThrows;
+  if (creature.skills !== undefined) data.skills = creature.skills;
+  if (creature.damageVulnerabilities !== undefined)
+    data.damageVulnerabilities = creature.damageVulnerabilities;
+  if (creature.damageResistances !== undefined)
+    data.damageResistances = creature.damageResistances;
+  if (creature.damageImmunities !== undefined)
+    data.damageImmunities = creature.damageImmunities;
+  if (creature.conditionImmunities !== undefined)
+    data.conditionImmunities = creature.conditionImmunities;
+  if (creature.senses !== undefined) data.senses = creature.senses;
+  if (creature.languages !== undefined) data.languages = creature.languages;
   return data;
 }
 

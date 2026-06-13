@@ -2442,7 +2442,11 @@
         "intelligence": 18,
         "wisdom": 15,
         "charisma": 18
-      }
+      },
+      "savingThrows": "Con +6, Int +8, Wis +6",
+      "skills": "History +12, Perception +10",
+      "senses": "darkvision 120 ft., passive Perception 20",
+      "languages": "Deep Speech, telepathy 120 ft."
     },
     "source": "SRD 5.1 p. 261",
     "license": {
@@ -2489,7 +2493,10 @@
         "intelligence": 10,
         "wisdom": 14,
         "charisma": 11
-      }
+      },
+      "skills": "Medicine +4, Religion +2",
+      "senses": "passive Perception 12",
+      "languages": "any one language (usually Common)"
     },
     "source": "SRD 5.1 p. 395",
     "license": {
@@ -2537,7 +2544,12 @@
         "intelligence": 14,
         "wisdom": 13,
         "charisma": 17
-      }
+      },
+      "savingThrows": "Dex +7, Con +10, Wis +6, Cha +8",
+      "skills": "Perception +11, Stealth +7",
+      "damageImmunities": "acid",
+      "senses": "blindsight 60 ft., darkvision 120 ft., passive Perception 21",
+      "languages": "Common, Draconic"
     },
     "source": "SRD 5.1 p. 281",
     "license": {
@@ -2585,7 +2597,12 @@
         "intelligence": 16,
         "wisdom": 15,
         "charisma": 19
-      }
+      },
+      "savingThrows": "Dex +5, Con +11, Wis +7, Cha +9",
+      "skills": "Perception +12, Stealth +5",
+      "damageImmunities": "lightning",
+      "senses": "blindsight 60 ft., darkvision 120 ft., passive Perception 22",
+      "languages": "Common, Draconic"
     },
     "source": "SRD 5.1 p. 283",
     "license": {
@@ -2633,7 +2650,12 @@
         "intelligence": 14,
         "wisdom": 13,
         "charisma": 17
-      }
+      },
+      "savingThrows": "Dex +5, Con +10, Wis +6, Cha +8",
+      "skills": "History +7, Perception +11, Persuasion +8, Stealth +5",
+      "damageImmunities": "fire",
+      "senses": "blindsight 60 ft., darkvision 120 ft., passive Perception 21",
+      "languages": "Common, Draconic"
     },
     "source": "SRD 5.1 p. 291",
     "license": {
@@ -2681,7 +2703,12 @@
         "intelligence": 16,
         "wisdom": 15,
         "charisma": 19
-      }
+      },
+      "savingThrows": "Dex +5, Con +11, Wis +7, Cha +9",
+      "skills": "Insight +7, Perception +12, Stealth +5",
+      "damageImmunities": "lightning",
+      "senses": "blindsight 60 ft., darkvision 120 ft., passive Perception 22",
+      "languages": "Common, Draconic"
     },
     "source": "SRD 5.1 p. 294",
     "license": {
@@ -2729,7 +2756,12 @@
         "intelligence": 18,
         "wisdom": 15,
         "charisma": 17
-      }
+      },
+      "savingThrows": "Dex +6, Con +10, Wis +7, Cha +8",
+      "skills": "Deception +8, Perception +12, Stealth +6",
+      "damageImmunities": "acid",
+      "senses": "blindsight 60 ft., darkvision 120 ft., passive Perception 22",
+      "languages": "Common, Draconic"
     },
     "source": "SRD 5.1 p. 296",
     "license": {
@@ -2777,7 +2809,12 @@
         "intelligence": 16,
         "wisdom": 15,
         "charisma": 24
-      }
+      },
+      "savingThrows": "Dex +8, Con +13, Wis +8, Cha +13",
+      "skills": "Insight +8, Perception +14, Persuasion +13, Stealth +8",
+      "damageImmunities": "fire",
+      "senses": "blindsight 60 ft., darkvision 120 ft., passive Perception 24",
+      "languages": "Common, Draconic"
     },
     "source": "SRD 5.1 p. 299",
     "license": {
@@ -2825,7 +2862,13 @@
         "intelligence": 18,
         "wisdom": 15,
         "charisma": 17
-      }
+      },
+      "savingThrows": "Dex +6, Con +10, Wis +7, Cha +8",
+      "skills": "Deception +8, Insight +7, Perception +12, Persuasion +8, Stealth +6",
+      "damageImmunities": "poison",
+      "conditionImmunities": "poisoned",
+      "senses": "blindsight 60 ft., darkvision 120 ft., passive Perception 22",
+      "languages": "Common, Draconic"
     },
     "source": "SRD 5.1 p. 285",
     "license": {
@@ -2873,7 +2916,12 @@
         "intelligence": 16,
         "wisdom": 13,
         "charisma": 21
-      }
+      },
+      "savingThrows": "Dex +6, Con +13, Wis +7, Cha +11",
+      "skills": "Perception +13, Stealth +6",
+      "damageImmunities": "fire",
+      "senses": "blindsight 60 ft., darkvision 120 ft., passive Perception 23",
+      "languages": "Common, Draconic"
     },
     "source": "SRD 5.1 p. 287",
     "license": {
@@ -2920,7 +2968,12 @@
         "intelligence": 16,
         "wisdom": 13,
         "charisma": 21
-      }
+      },
+      "savingThrows": "Dex +5, Con +12, Wis +6, Cha +10",
+      "skills": "Arcana +8, History +8, Perception +11, Stealth +5",
+      "damageImmunities": "cold",
+      "senses": "blindsight 60 ft., darkvision 120 ft., passive Perception 21",
+      "languages": "Common, Draconic"
     },
     "source": "SRD 5.1 p. 302",
     "license": {
@@ -2969,7 +3022,12 @@
         "intelligence": 8,
         "wisdom": 12,
         "charisma": 12
-      }
+      },
+      "savingThrows": "Dex +5, Con +11, Wis +6, Cha +6",
+      "skills": "Perception +11, Stealth +5",
+      "damageImmunities": "cold",
+      "senses": "blindsight 60 ft., darkvision 120 ft., passive Perception 21",
+      "languages": "Common, Draconic"
     },
     "source": "SRD 5.1 p. 289",
     "license": {
@@ -3016,7 +3074,12 @@
         "intelligence": 6,
         "wisdom": 10,
         "charisma": 6
-      }
+      },
+      "damageResistances": "lightning, thunder; bludgeoning, piercing, and slashing from nonmagical attacks",
+      "damageImmunities": "poison",
+      "conditionImmunities": "exhaustion, grappled, paralyzed, petrified, poisoned, prone, restrained, unconscious",
+      "senses": "darkvision 60 ft., passive Perception 10",
+      "languages": "Auran"
     },
     "source": "SRD 5.1 p. 305",
     "license": {
@@ -3064,7 +3127,12 @@
         "intelligence": 16,
         "wisdom": 15,
         "charisma": 19
-      }
+      },
+      "savingThrows": "Dex +9, Con +14, Wis +9, Cha +11",
+      "skills": "Perception +16, Stealth +9",
+      "damageImmunities": "acid",
+      "senses": "blindsight 60 ft., darkvision 120 ft., passive Perception 26",
+      "languages": "Common, Draconic"
     },
     "source": "SRD 5.1 p. 280",
     "license": {
@@ -3112,7 +3180,12 @@
         "intelligence": 18,
         "wisdom": 17,
         "charisma": 21
-      }
+      },
+      "savingThrows": "Dex +7, Con +15, Wis +10, Cha +12",
+      "skills": "Perception +17, Stealth +7",
+      "damageImmunities": "lightning",
+      "senses": "blindsight 60 ft., darkvision 120 ft., passive Perception 27",
+      "languages": "Common, Draconic"
     },
     "source": "SRD 5.1 p. 282",
     "license": {
@@ -3160,7 +3233,12 @@
         "intelligence": 16,
         "wisdom": 15,
         "charisma": 19
-      }
+      },
+      "savingThrows": "Dex +6, Con +13, Wis +8, Cha +10",
+      "skills": "History +9, Perception +14, Persuasion +10, Stealth +6",
+      "damageImmunities": "fire",
+      "senses": "blindsight 60 ft., darkvision 120 ft., passive Perception 24",
+      "languages": "Common, Draconic"
     },
     "source": "SRD 5.1 p. 290",
     "license": {
@@ -3208,7 +3286,12 @@
         "intelligence": 18,
         "wisdom": 17,
         "charisma": 21
-      }
+      },
+      "savingThrows": "Dex +7, Con +15, Wis +10, Cha +12",
+      "skills": "Insight +10, Perception +17, Stealth +7",
+      "damageImmunities": "lightning",
+      "senses": "blindsight 60 ft., darkvision 120 ft., passive Perception 27",
+      "languages": "Common, Draconic"
     },
     "source": "SRD 5.1 p. 293",
     "license": {
@@ -3256,7 +3339,12 @@
         "intelligence": 20,
         "wisdom": 17,
         "charisma": 19
-      }
+      },
+      "savingThrows": "Dex +8, Con +14, Wis +10, Cha +11",
+      "skills": "Deception +11, Perception +17, Stealth +8",
+      "damageImmunities": "acid",
+      "senses": "blindsight 60 ft., darkvision 120 ft., passive Perception 27",
+      "languages": "Common, Draconic"
     },
     "source": "SRD 5.1 p. 295",
     "license": {
@@ -3304,7 +3392,12 @@
         "intelligence": 18,
         "wisdom": 17,
         "charisma": 28
-      }
+      },
+      "savingThrows": "Dex +9, Con +16, Wis +10, Cha +16",
+      "skills": "Insight +10, Perception +17, Persuasion +16, Stealth +9",
+      "damageImmunities": "fire",
+      "senses": "blindsight 60 ft., darkvision 120 ft., passive Perception 27",
+      "languages": "Common, Draconic"
     },
     "source": "SRD 5.1 p. 298",
     "license": {
@@ -3352,7 +3445,13 @@
         "intelligence": 20,
         "wisdom": 17,
         "charisma": 19
-      }
+      },
+      "savingThrows": "Dex +8, Con +14, Wis +10, Cha +11",
+      "skills": "Deception +11, Insight +10, Perception +17, Persuasion +11, Stealth +8",
+      "damageImmunities": "poison",
+      "conditionImmunities": "poisoned",
+      "senses": "blindsight 60 ft., darkvision 120 ft., passive Perception 27",
+      "languages": "Common, Draconic"
     },
     "source": "SRD 5.1 p. 284",
     "license": {
@@ -3400,7 +3499,12 @@
         "intelligence": 18,
         "wisdom": 15,
         "charisma": 23
-      }
+      },
+      "savingThrows": "Dex +7, Con +16, Wis +9, Cha +13",
+      "skills": "Perception +16, Stealth +7",
+      "damageImmunities": "fire",
+      "senses": "blindsight 60 ft., darkvision 120 ft., passive Perception 26",
+      "languages": "Common, Draconic"
     },
     "source": "SRD 5.1 p. 286",
     "license": {
@@ -3447,7 +3551,12 @@
         "intelligence": 18,
         "wisdom": 15,
         "charisma": 23
-      }
+      },
+      "savingThrows": "Dex +7, Con +16, Wis +9, Cha +13",
+      "skills": "Arcana +11, History +11, Perception +16, Stealth +7",
+      "damageImmunities": "cold",
+      "senses": "blindsight 60 ft., darkvision 120 ft., passive Perception 26",
+      "languages": "Common, Draconic"
     },
     "source": "SRD 5.1 p. 301",
     "license": {
@@ -3496,7 +3605,12 @@
         "intelligence": 10,
         "wisdom": 13,
         "charisma": 14
-      }
+      },
+      "savingThrows": "Dex +6, Con +14, Wis +7, Cha +8",
+      "skills": "Perception +13, Stealth +6",
+      "damageImmunities": "cold",
+      "senses": "blindsight 60 ft., darkvision 120 ft., passive Perception 23",
+      "languages": "Common, Draconic"
     },
     "source": "SRD 5.1 p. 288",
     "license": {
@@ -3543,7 +3657,13 @@
         "intelligence": 16,
         "wisdom": 18,
         "charisma": 23
-      }
+      },
+      "savingThrows": "Dex +6, Con +11, Int +9, Wis +10",
+      "skills": "Arcana +9, Perception +10, Religion +15",
+      "damageImmunities": "psychic; bludgeoning, piercing, and slashing from nonmagical attacks",
+      "conditionImmunities": "charmed, frightened",
+      "senses": "truesight 120 ft., passive Perception 20",
+      "languages": "Common, Sphinx"
     },
     "source": "SRD 5.1 p. 347",
     "license": {
@@ -3589,7 +3709,11 @@
         "intelligence": 1,
         "wisdom": 3,
         "charisma": 1
-      }
+      },
+      "damageImmunities": "poison, psychic",
+      "conditionImmunities": "blinded, charmed, deafened, exhaustion, frightened, paralyzed, petrified, poisoned",
+      "senses": "blindsight 60 ft. (blind beyond this radius), passive Perception 6",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 263",
     "license": {
@@ -3636,7 +3760,9 @@
         "intelligence": 1,
         "wisdom": 13,
         "charisma": 6
-      }
+      },
+      "senses": "darkvision 60 ft., tremorsense 60 ft., passive Perception 11",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 264",
     "license": {
@@ -3683,7 +3809,10 @@
         "intelligence": 6,
         "wisdom": 12,
         "charisma": 7
-      }
+      },
+      "skills": "Athletics +5, Perception +3",
+      "senses": "passive Perception 13",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 366",
     "license": {
@@ -3730,7 +3859,12 @@
         "intelligence": 20,
         "wisdom": 15,
         "charisma": 16
-      }
+      },
+      "savingThrows": "Int +9, Wis +6",
+      "skills": "Arcana +13, History +13",
+      "damageResistances": "damage from spells; nonmagical bludgeoning, piercing, and slashing (from stoneskin)",
+      "senses": "passive Perception 12",
+      "languages": "any six languages"
     },
     "source": "SRD 5.1 p. 395",
     "license": {
@@ -3777,7 +3911,12 @@
         "intelligence": 13,
         "wisdom": 11,
         "charisma": 10
-      }
+      },
+      "savingThrows": "Dex +6, Int +4",
+      "skills": "Acrobatics +6, Deception +3, Perception +3, Stealth +9",
+      "damageResistances": "poison",
+      "senses": "passive Perception 13",
+      "languages": "Thieves’ cant plus any two languages"
     },
     "source": "SRD 5.1 p. 396",
     "license": {
@@ -3823,7 +3962,11 @@
         "intelligence": 10,
         "wisdom": 10,
         "charisma": 6
-      }
+      },
+      "damageVulnerabilities": "fire",
+      "damageResistances": "piercing",
+      "senses": "passive Perception 10",
+      "languages": "one language known by its creator"
     },
     "source": "SRD 5.1 p. 366",
     "license": {
@@ -3869,7 +4012,11 @@
         "intelligence": 10,
         "wisdom": 10,
         "charisma": 7
-      }
+      },
+      "damageVulnerabilities": "fire",
+      "damageResistances": "bludgeoning, piercing",
+      "senses": "passive Perception 10",
+      "languages": "one language known by its creator"
     },
     "source": "SRD 5.1 p. 366",
     "license": {
@@ -3915,7 +4062,9 @@
         "intelligence": 2,
         "wisdom": 10,
         "charisma": 5
-      }
+      },
+      "senses": "passive Perception 10",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 366",
     "license": {
@@ -3961,7 +4110,12 @@
         "intelligence": 12,
         "wisdom": 13,
         "charisma": 10
-      }
+      },
+      "savingThrows": "Con +4",
+      "damageImmunities": "fire, poison",
+      "conditionImmunities": "poisoned",
+      "senses": "passive Perception 11",
+      "languages": "Ignan"
     },
     "source": "SRD 5.1 p. 265",
     "license": {
@@ -4008,7 +4162,9 @@
         "intelligence": 4,
         "wisdom": 12,
         "charisma": 6
-      }
+      },
+      "senses": "passive Perception 11",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 367",
     "license": {
@@ -4055,7 +4211,9 @@
         "intelligence": 2,
         "wisdom": 12,
         "charisma": 5
-      }
+      },
+      "senses": "darkvision 30 ft., passive Perception 11",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 367",
     "license": {
@@ -4102,7 +4260,13 @@
         "intelligence": 20,
         "wisdom": 16,
         "charisma": 22
-      }
+      },
+      "savingThrows": "Str +14, Con +12, Wis +9, Cha +12",
+      "damageResistances": "cold, lightning; bludgeoning, piercing, and slashing from nonmagical attacks",
+      "damageImmunities": "fire, poison",
+      "conditionImmunities": "poisoned",
+      "senses": "truesight 120 ft., passive Perception 13",
+      "languages": "Abyssal, telepathy 120 ft."
     },
     "source": "SRD 5.1 p. 270",
     "license": {
@@ -4149,7 +4313,9 @@
         "intelligence": 10,
         "wisdom": 10,
         "charisma": 10
-      }
+      },
+      "senses": "passive Perception 10",
+      "languages": "any one language (usually Common)"
     },
     "source": "SRD 5.1 p. 396",
     "license": {
@@ -4196,7 +4362,11 @@
         "intelligence": 14,
         "wisdom": 11,
         "charisma": 14
-      }
+      },
+      "savingThrows": "Str +4, Dex +5, Wis +2",
+      "skills": "Athletics +4, Deception +4",
+      "senses": "passive Perception 10",
+      "languages": "any two languages"
     },
     "source": "SRD 5.1 p. 397",
     "license": {
@@ -4242,7 +4412,14 @@
         "intelligence": 12,
         "wisdom": 14,
         "charisma": 14
-      }
+      },
+      "savingThrows": "Str +6, Con +7, Wis +5, Cha +5",
+      "skills": "Deception +5, Insight +5, Perception +8",
+      "damageResistances": "cold; bludgeoning, piercing, and slashing from nonmagical attacks that aren’t silvered",
+      "damageImmunities": "fire, poison",
+      "conditionImmunities": "poisoned",
+      "senses": "darkvision 120 ft., passive Perception 18",
+      "languages": "Infernal, telepathy 120 ft."
     },
     "source": "SRD 5.1 p. 274",
     "license": {
@@ -4288,7 +4465,9 @@
         "intelligence": 2,
         "wisdom": 8,
         "charisma": 7
-      }
+      },
+      "senses": "darkvision 60 ft., passive Perception 9",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 265",
     "license": {
@@ -4335,7 +4514,9 @@
         "intelligence": 2,
         "wisdom": 12,
         "charisma": 4
-      }
+      },
+      "senses": "blindsight 60 ft., passive Perception 11",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 367",
     "license": {
@@ -4381,7 +4562,13 @@
         "intelligence": 9,
         "wisdom": 11,
         "charisma": 11
-      }
+      },
+      "savingThrows": "Str +5, Con +4, Wis +2",
+      "damageResistances": "cold; bludgeoning, piercing, and slashing from nonmagical attacks that aren’t silvered",
+      "damageImmunities": "fire, poison",
+      "conditionImmunities": "poisoned",
+      "senses": "darkvision 120 ft., passive Perception 10",
+      "languages": "Infernal, telepathy 120 ft."
     },
     "source": "SRD 5.1 p. 274",
     "license": {
@@ -4428,7 +4615,11 @@
         "intelligence": 7,
         "wisdom": 14,
         "charisma": 12
-      }
+      },
+      "skills": "Perception +6, Stealth +7",
+      "damageImmunities": "lightning",
+      "senses": "darkvision 90 ft., passive Perception 16",
+      "languages": "Draconic"
     },
     "source": "SRD 5.1 p. 265",
     "license": {
@@ -4475,7 +4666,9 @@
         "intelligence": 9,
         "wisdom": 11,
         "charisma": 9
-      }
+      },
+      "senses": "passive Perception 10",
+      "languages": "any one language (usually Common)"
     },
     "source": "SRD 5.1 p. 397",
     "license": {
@@ -4522,7 +4715,10 @@
         "intelligence": 2,
         "wisdom": 12,
         "charisma": 7
-      }
+      },
+      "skills": "Perception +3",
+      "senses": "passive Perception 13",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 367",
     "license": {
@@ -4570,7 +4766,12 @@
         "intelligence": 10,
         "wisdom": 11,
         "charisma": 13
-      }
+      },
+      "savingThrows": "Dex +4, Con +3, Wis +2, Cha +3",
+      "skills": "Perception +4, Stealth +4",
+      "damageImmunities": "acid",
+      "senses": "blindsight 10 ft., darkvision 60 ft., passive Perception 14",
+      "languages": "Draconic"
     },
     "source": "SRD 5.1 p. 282",
     "license": {
@@ -4617,7 +4818,11 @@
         "intelligence": 1,
         "wisdom": 6,
         "charisma": 1
-      }
+      },
+      "damageImmunities": "acid, cold, lightning, slashing",
+      "conditionImmunities": "blinded, charmed, deafened, exhaustion, frightened, prone",
+      "senses": "blindsight 60 ft. (blind beyond this radius), passive Perception 8",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 337",
     "license": {
@@ -4663,7 +4868,10 @@
         "intelligence": 10,
         "wisdom": 13,
         "charisma": 11
-      }
+      },
+      "skills": "Perception +3, Stealth +5",
+      "senses": "passive Perception 13",
+      "languages": "Blink Dog, understands Sylvan but can’t speak it"
     },
     "source": "SRD 5.1 p. 368",
     "license": {
@@ -4710,7 +4918,10 @@
         "intelligence": 3,
         "wisdom": 14,
         "charisma": 5
-      }
+      },
+      "skills": "Perception +4",
+      "senses": "passive Perception 14",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 368",
     "license": {
@@ -4758,7 +4969,12 @@
         "intelligence": 12,
         "wisdom": 11,
         "charisma": 15
-      }
+      },
+      "savingThrows": "Dex +2, Con +4, Wis +2, Cha +4",
+      "skills": "Perception +4, Stealth +2",
+      "damageImmunities": "lightning",
+      "senses": "blindsight 10 ft., darkvision 60 ft., passive Perception 14",
+      "languages": "Draconic"
     },
     "source": "SRD 5.1 p. 284",
     "license": {
@@ -4804,7 +5020,9 @@
         "intelligence": 2,
         "wisdom": 9,
         "charisma": 5
-      }
+      },
+      "senses": "passive Perception 9",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 368",
     "license": {
@@ -4851,7 +5069,14 @@
         "intelligence": 13,
         "wisdom": 14,
         "charisma": 16
-      }
+      },
+      "savingThrows": "Int +5, Wis +6, Cha +7",
+      "skills": "Deception +7, Insight +6",
+      "damageResistances": "cold; bludgeoning, piercing, and slashing from nonmagical attacks that aren’t silvered",
+      "damageImmunities": "fire, poison",
+      "conditionImmunities": "poisoned",
+      "senses": "darkvision 120 ft., passive Perception 12",
+      "languages": "Infernal, telepathy 120 ft."
     },
     "source": "SRD 5.1 p. 275",
     "license": {
@@ -4899,7 +5124,12 @@
         "intelligence": 10,
         "wisdom": 11,
         "charisma": 13
-      }
+      },
+      "savingThrows": "Dex +2, Con +3, Wis +2, Cha +3",
+      "skills": "Perception +4, Stealth +2",
+      "damageImmunities": "fire",
+      "senses": "blindsight 10 ft., darkvision 60 ft., passive Perception 14",
+      "languages": "Draconic"
     },
     "source": "SRD 5.1 p. 292",
     "license": {
@@ -4947,7 +5177,12 @@
         "intelligence": 12,
         "wisdom": 11,
         "charisma": 15
-      }
+      },
+      "savingThrows": "Dex +2, Con +4, Wis +2, Cha +4",
+      "skills": "Perception +4, Stealth +2",
+      "damageImmunities": "lightning",
+      "senses": "blindsight 10 ft., darkvision 60 ft., passive Perception 14",
+      "languages": "Draconic"
     },
     "source": "SRD 5.1 p. 295",
     "license": {
@@ -4994,7 +5229,10 @@
         "intelligence": 2,
         "wisdom": 13,
         "charisma": 7
-      }
+      },
+      "skills": "Perception +3",
+      "senses": "passive Perception 13",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 369",
     "license": {
@@ -5040,7 +5278,10 @@
         "intelligence": 8,
         "wisdom": 11,
         "charisma": 9
-      }
+      },
+      "skills": "Stealth +6, Survival +2",
+      "senses": "darkvision 60 ft., passive Perception 10",
+      "languages": "Common, Goblin"
     },
     "source": "SRD 5.1 p. 266",
     "license": {
@@ -5087,7 +5328,10 @@
         "intelligence": 2,
         "wisdom": 10,
         "charisma": 5
-      }
+      },
+      "skills": "Perception +6",
+      "senses": "darkvision 60 ft., tremorsense 60 ft., passive Perception 16",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 266",
     "license": {
@@ -5133,7 +5377,9 @@
         "intelligence": 2,
         "wisdom": 8,
         "charisma": 5
-      }
+      },
+      "senses": "passive Perception 9",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 369",
     "license": {
@@ -5180,7 +5426,10 @@
         "intelligence": 3,
         "wisdom": 12,
         "charisma": 7
-      }
+      },
+      "skills": "Perception +3, Stealth +4",
+      "senses": "passive Perception 13",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 369",
     "license": {
@@ -5226,7 +5475,10 @@
         "intelligence": 9,
         "wisdom": 13,
         "charisma": 11
-      }
+      },
+      "skills": "Athletics +6, Perception +3, Survival +3",
+      "senses": "passive Perception 13",
+      "languages": "Elvish, Sylvan"
     },
     "source": "SRD 5.1 p. 267",
     "license": {
@@ -5272,7 +5524,13 @@
         "intelligence": 11,
         "wisdom": 12,
         "charisma": 14
-      }
+      },
+      "savingThrows": "Con +7, Wis +4, Cha +5",
+      "damageResistances": "cold; bludgeoning, piercing, and slashing from nonmagical attacks that aren’t silvered",
+      "damageImmunities": "fire, poison",
+      "conditionImmunities": "poisoned",
+      "senses": "darkvision 120 ft., passive Perception 11",
+      "languages": "Infernal, telepathy 120 ft."
     },
     "source": "SRD 5.1 p. 275",
     "license": {
@@ -5319,7 +5577,10 @@
         "intelligence": 3,
         "wisdom": 14,
         "charisma": 10
-      }
+      },
+      "skills": "Perception +8",
+      "senses": "darkvision 60 ft., passive Perception 18",
+      "languages": "understands Draconic but can’t speak"
     },
     "source": "SRD 5.1 p. 267",
     "license": {
@@ -5366,7 +5627,12 @@
         "intelligence": 5,
         "wisdom": 11,
         "charisma": 5
-      }
+      },
+      "skills": "Perception +4",
+      "damageImmunities": "poison",
+      "conditionImmunities": "poisoned",
+      "senses": "darkvision 60 ft., passive Perception 14",
+      "languages": "understands Deep Speech but can’t speak"
     },
     "source": "SRD 5.1 p. 267",
     "license": {
@@ -5412,7 +5678,11 @@
         "intelligence": 3,
         "wisdom": 8,
         "charisma": 1
-      }
+      },
+      "damageImmunities": "acid, poison, psychic; bludgeoning, piercing, and slashing from nonmagical attacks that aren’t adamantine",
+      "conditionImmunities": "charmed, exhaustion, frightened, paralyzed, petrified, poisoned",
+      "senses": "darkvision 60 ft., passive Perception 9",
+      "languages": "understands the languages of its creator but can’t speak"
     },
     "source": "SRD 5.1 p. 315",
     "license": {
@@ -5459,7 +5729,10 @@
         "intelligence": 13,
         "wisdom": 12,
         "charisma": 14
-      }
+      },
+      "skills": "Stealth +5",
+      "senses": "darkvision 60 ft., passive Perception 11",
+      "languages": "Deep Speech, Undercommon"
     },
     "source": "SRD 5.1 p. 268",
     "license": {
@@ -5505,7 +5778,11 @@
         "intelligence": 12,
         "wisdom": 16,
         "charisma": 16
-      }
+      },
+      "savingThrows": "Con +10, Wis +7, Cha +7",
+      "skills": "Insight +7, Perception +7",
+      "senses": "passive Perception 17",
+      "languages": "Common, Giant"
     },
     "source": "SRD 5.1 p. 312",
     "license": {
@@ -5552,7 +5829,9 @@
         "intelligence": 2,
         "wisdom": 13,
         "charisma": 5
-      }
+      },
+      "senses": "darkvision 60 ft., passive Perception 11",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 268",
     "license": {
@@ -5599,7 +5878,9 @@
         "intelligence": 10,
         "wisdom": 10,
         "charisma": 10
-      }
+      },
+      "senses": "passive Perception 10",
+      "languages": "any one language (usually Common)"
     },
     "source": "SRD 5.1 p. 398",
     "license": {
@@ -5646,7 +5927,9 @@
         "intelligence": 1,
         "wisdom": 10,
         "charisma": 3
-      }
+      },
+      "senses": "blindsight 10 ft., passive Perception 10",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 369",
     "license": {
@@ -5694,7 +5977,12 @@
         "intelligence": 14,
         "wisdom": 11,
         "charisma": 13
-      }
+      },
+      "savingThrows": "Dex +3, Con +3, Wis +2, Cha +3",
+      "skills": "Perception +4, Stealth +3",
+      "damageImmunities": "acid",
+      "senses": "blindsight 10 ft., darkvision 60 ft., passive Perception 14",
+      "languages": "Draconic"
     },
     "source": "SRD 5.1 p. 298",
     "license": {
@@ -5741,7 +6029,12 @@
         "intelligence": 18,
         "wisdom": 20,
         "charisma": 18
-      }
+      },
+      "savingThrows": "Con +5, Wis +7, Cha +6",
+      "damageResistances": "radiant",
+      "damageImmunities": "psychic; bludgeoning, piercing, and slashing from nonmagical attacks",
+      "senses": "truesight 120 ft., passive Perception 15",
+      "languages": "all, telepathy 120 ft."
     },
     "source": "SRD 5.1 p. 269",
     "license": {
@@ -5788,7 +6081,10 @@
         "intelligence": 1,
         "wisdom": 8,
         "charisma": 2
-      }
+      },
+      "skills": "Stealth +2",
+      "senses": "blindsight 30 ft., passive Perception 9",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 370",
     "license": {
@@ -5835,7 +6131,10 @@
         "intelligence": 2,
         "wisdom": 10,
         "charisma": 5
-      }
+      },
+      "skills": "Stealth +2",
+      "senses": "passive Perception 10",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 370",
     "license": {
@@ -5882,7 +6181,10 @@
         "intelligence": 10,
         "wisdom": 13,
         "charisma": 14
-      }
+      },
+      "skills": "Deception +4, Persuasion +4, Religion +2",
+      "senses": "passive Perception 11",
+      "languages": "any one language (usually Common)"
     },
     "source": "SRD 5.1 p. 398",
     "license": {
@@ -5929,7 +6231,10 @@
         "intelligence": 10,
         "wisdom": 11,
         "charisma": 10
-      }
+      },
+      "skills": "Deception +2, Religion +2",
+      "senses": "passive Perception 10",
+      "languages": "any one language (usually Common)"
     },
     "source": "SRD 5.1 p. 398",
     "license": {
@@ -5976,7 +6281,10 @@
         "intelligence": 2,
         "wisdom": 10,
         "charisma": 5
-      }
+      },
+      "skills": "Stealth +3",
+      "senses": "blindsight 60 ft., passive Perception 10",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 269",
     "license": {
@@ -6022,7 +6330,10 @@
         "intelligence": 3,
         "wisdom": 13,
         "charisma": 6
-      }
+      },
+      "skills": "Perception +5, Stealth +4",
+      "senses": "darkvision 120 ft., passive Perception 15",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 370",
     "license": {
@@ -6068,7 +6379,9 @@
         "intelligence": 2,
         "wisdom": 14,
         "charisma": 5
-      }
+      },
+      "senses": "passive Perception 12",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 370",
     "license": {
@@ -6115,7 +6428,13 @@
         "intelligence": 17,
         "wisdom": 20,
         "charisma": 20
-      }
+      },
+      "savingThrows": "Wis +9, Cha +9",
+      "skills": "Insight +9, Perception +9",
+      "damageResistances": "radiant; bludgeoning, piercing, and slashing from nonmagical attacks",
+      "conditionImmunities": "charmed, exhaustion, frightened",
+      "senses": "darkvision 120 ft., passive Perception 19",
+      "languages": "all, telepathy 120 ft."
     },
     "source": "SRD 5.1 p. 261",
     "license": {
@@ -6161,7 +6480,10 @@
         "intelligence": 3,
         "wisdom": 12,
         "charisma": 7
-      }
+      },
+      "skills": "Perception +3, Stealth +4",
+      "senses": "passive Perception 13",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 371",
     "license": {
@@ -6208,7 +6530,11 @@
         "intelligence": 15,
         "wisdom": 16,
         "charisma": 20
-      }
+      },
+      "savingThrows": "Dex +6, Wis +7, Cha +9",
+      "damageImmunities": "lightning, thunder",
+      "senses": "darkvision 120 ft., passive Perception 13",
+      "languages": "Auran"
     },
     "source": "SRD 5.1 p. 310",
     "license": {
@@ -6254,7 +6580,11 @@
         "intelligence": 11,
         "wisdom": 12,
         "charisma": 14
-      }
+      },
+      "skills": "Deception +6, Insight +3",
+      "conditionImmunities": "charmed",
+      "senses": "darkvision 60 ft., passive Perception 11",
+      "languages": "Common"
     },
     "source": "SRD 5.1 p. 279",
     "license": {
@@ -6300,7 +6630,9 @@
         "intelligence": 2,
         "wisdom": 11,
         "charisma": 7
-      }
+      },
+      "senses": "passive Perception 10",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 371",
     "license": {
@@ -6347,7 +6679,11 @@
         "intelligence": 10,
         "wisdom": 12,
         "charisma": 12
-      }
+      },
+      "savingThrows": "Dex +6, Con +11, Wis +7",
+      "damageResistances": "fire",
+      "senses": "darkvision 120 ft., passive Perception 11",
+      "languages": "Aquan, Draconic"
     },
     "source": "SRD 5.1 p. 303",
     "license": {
@@ -6393,7 +6729,12 @@
         "intelligence": 5,
         "wisdom": 8,
         "charisma": 3
-      }
+      },
+      "damageResistances": "cold, fire, lightning",
+      "damageImmunities": "poison",
+      "conditionImmunities": "poisoned",
+      "senses": "darkvision 60 ft., passive Perception 9",
+      "languages": "Abyssal, telepathy 60 ft. (works only with creatures that understand Abyssal)"
     },
     "source": "SRD 5.1 p. 270",
     "license": {
@@ -6440,7 +6781,10 @@
         "intelligence": 13,
         "wisdom": 14,
         "charisma": 12
-      }
+      },
+      "skills": "Perception +5, Stealth +9",
+      "senses": "darkvision 120 ft., passive Perception 15",
+      "languages": "Elvish, Undercommon"
     },
     "source": "SRD 5.1 p. 304",
     "license": {
@@ -6487,7 +6831,10 @@
         "intelligence": 12,
         "wisdom": 15,
         "charisma": 11
-      }
+      },
+      "skills": "Medicine +4, Nature +3, Perception +4",
+      "senses": "passive Perception 14",
+      "languages": "Druidic plus any two languages"
     },
     "source": "SRD 5.1 p. 398",
     "license": {
@@ -6533,7 +6880,10 @@
         "intelligence": 14,
         "wisdom": 15,
         "charisma": 18
-      }
+      },
+      "skills": "Perception +4, Stealth +5",
+      "senses": "darkvision 60 ft., passive Perception 14",
+      "languages": "Elvish, Sylvan"
     },
     "source": "SRD 5.1 p. 304",
     "license": {
@@ -6579,7 +6929,10 @@
         "intelligence": 11,
         "wisdom": 10,
         "charisma": 9
-      }
+      },
+      "damageResistances": "poison",
+      "senses": "darkvision 120 ft., passive Perception 10",
+      "languages": "Dwarvish, Undercommon"
     },
     "source": "SRD 5.1 p. 305",
     "license": {
@@ -6626,7 +6979,13 @@
         "intelligence": 9,
         "wisdom": 11,
         "charisma": 10
-      }
+      },
+      "skills": "Perception +2, Stealth +4",
+      "damageVulnerabilities": "fire",
+      "damageImmunities": "poison",
+      "conditionImmunities": "poisoned",
+      "senses": "darkvision 60 ft., passive Perception 12",
+      "languages": "Auran, Terran"
     },
     "source": "SRD 5.1 p. 330",
     "license": {
@@ -6673,7 +7032,10 @@
         "intelligence": 2,
         "wisdom": 14,
         "charisma": 7
-      }
+      },
+      "skills": "Perception +4",
+      "senses": "passive Perception 14",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 371",
     "license": {
@@ -6720,7 +7082,13 @@
         "intelligence": 5,
         "wisdom": 10,
         "charisma": 5
-      }
+      },
+      "damageVulnerabilities": "thunder",
+      "damageResistances": "bludgeoning, piercing, and slashing from nonmagical attacks",
+      "damageImmunities": "poison",
+      "conditionImmunities": "exhaustion, paralyzed, petrified, poisoned, unconscious",
+      "senses": "darkvision 60 ft., tremorsense 60 ft., passive Perception 10",
+      "languages": "Terran"
     },
     "source": "SRD 5.1 p. 306",
     "license": {
@@ -6767,7 +7135,11 @@
         "intelligence": 16,
         "wisdom": 15,
         "charisma": 16
-      }
+      },
+      "savingThrows": "Int +7, Wis +6, Cha +7",
+      "damageImmunities": "fire",
+      "senses": "darkvision 120 ft., passive Perception 12",
+      "languages": "Ignan"
     },
     "source": "SRD 5.1 p. 310",
     "license": {
@@ -6813,7 +7185,9 @@
         "intelligence": 3,
         "wisdom": 11,
         "charisma": 6
-      }
+      },
+      "senses": "passive Perception 10",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 371",
     "license": {
@@ -6859,7 +7233,10 @@
         "intelligence": 11,
         "wisdom": 11,
         "charisma": 12
-      }
+      },
+      "skills": "Perception +2, Stealth +4",
+      "senses": "darkvision 120 ft., passive Perception 12",
+      "languages": "Elvish, Undercommon"
     },
     "source": "SRD 5.1 p. 307",
     "license": {
@@ -6905,7 +7282,9 @@
         "intelligence": 2,
         "wisdom": 10,
         "charisma": 6
-      }
+      },
+      "senses": "passive Perception 10",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 372",
     "license": {
@@ -6952,7 +7331,13 @@
         "intelligence": 14,
         "wisdom": 14,
         "charisma": 18
-      }
+      },
+      "savingThrows": "Dex +7, Con +8, Wis +6, Cha +8",
+      "damageResistances": "cold; bludgeoning, piercing, and slashing from nonmagical attacks that aren’t silvered",
+      "damageImmunities": "fire, poison",
+      "conditionImmunities": "poisoned",
+      "senses": "truesight 120 ft., passive Perception 12",
+      "languages": "Infernal, telepathy 120 ft."
     },
     "source": "SRD 5.1 p. 276",
     "license": {
@@ -6999,7 +7384,10 @@
         "intelligence": 7,
         "wisdom": 12,
         "charisma": 8
-      }
+      },
+      "skills": "Perception +3, Stealth +4, Survival +3",
+      "senses": "darkvision 60 ft., passive Perception 13",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 308",
     "license": {
@@ -7045,7 +7433,10 @@
         "intelligence": 6,
         "wisdom": 10,
         "charisma": 8
-      }
+      },
+      "skills": "Perception +4",
+      "senses": "darkvision 60 ft., passive Perception 14",
+      "languages": "Giant, Orc"
     },
     "source": "SRD 5.1 p. 308",
     "license": {
@@ -7091,7 +7482,12 @@
         "intelligence": 6,
         "wisdom": 10,
         "charisma": 7
-      }
+      },
+      "damageResistances": "bludgeoning, piercing, and slashing from nonmagical attacks",
+      "damageImmunities": "fire, poison",
+      "conditionImmunities": "exhaustion, grappled, paralyzed, petrified, poisoned, prone, restrained, unconscious",
+      "senses": "darkvision 60 ft., passive Perception 10",
+      "languages": "Ignan"
     },
     "source": "SRD 5.1 p. 306",
     "license": {
@@ -7137,7 +7533,12 @@
         "intelligence": 10,
         "wisdom": 14,
         "charisma": 13
-      }
+      },
+      "savingThrows": "Dex +3, Con +10, Cha +5",
+      "skills": "Athletics +11, Perception +6",
+      "damageImmunities": "fire",
+      "senses": "passive Perception 16",
+      "languages": "Giant"
     },
     "source": "SRD 5.1 p. 312",
     "license": {
@@ -7183,7 +7584,11 @@
         "intelligence": 6,
         "wisdom": 10,
         "charisma": 5
-      }
+      },
+      "damageImmunities": "lightning, poison; bludgeoning, piercing, and slashing from nonmagical attacks that aren’t adamantine",
+      "conditionImmunities": "charmed, exhaustion, frightened, paralyzed, petrified, poisoned",
+      "senses": "darkvision 60 ft., passive Perception 10",
+      "languages": "understands the languages of its creator but can’t speak"
     },
     "source": "SRD 5.1 p. 316",
     "license": {
@@ -7231,7 +7636,9 @@
         "intelligence": 2,
         "wisdom": 12,
         "charisma": 5
-      }
+      },
+      "senses": "blindsight 10 ft., passive Perception 11",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 372",
     "license": {
@@ -7278,7 +7685,12 @@
         "intelligence": 1,
         "wisdom": 5,
         "charisma": 1
-      }
+      },
+      "savingThrows": "Dex +4",
+      "damageImmunities": "poison, psychic",
+      "conditionImmunities": "blinded, charmed, deafened, frightened, paralyzed, petrified, poisoned",
+      "senses": "blindsight 60 ft. (blind beyond this radius), passive Perception 7",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 264",
     "license": {
@@ -7325,7 +7737,10 @@
         "intelligence": 1,
         "wisdom": 8,
         "charisma": 3
-      }
+      },
+      "skills": "Perception +1, Stealth +3",
+      "senses": "darkvision 30 ft., passive Perception 11",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 372",
     "license": {
@@ -7371,7 +7786,12 @@
         "intelligence": 9,
         "wisdom": 10,
         "charisma": 12
-      }
+      },
+      "savingThrows": "Con +8, Wis +3, Cha +4",
+      "skills": "Athletics +9, Perception +3",
+      "damageImmunities": "cold",
+      "senses": "passive Perception 13",
+      "languages": "Giant"
     },
     "source": "SRD 5.1 p. 313",
     "license": {
@@ -7418,7 +7838,12 @@
         "intelligence": 6,
         "wisdom": 11,
         "charisma": 7
-      }
+      },
+      "damageResistances": "bludgeoning, piercing, and slashing from nonmagical attacks that aren’t adamantine",
+      "damageImmunities": "poison",
+      "conditionImmunities": "exhaustion, petrified, poisoned",
+      "senses": "darkvision 60 ft., passive Perception 10",
+      "languages": "Terran"
     },
     "source": "SRD 5.1 p. 309",
     "license": {
@@ -7464,7 +7889,10 @@
         "intelligence": 1,
         "wisdom": 6,
         "charisma": 1
-      }
+      },
+      "conditionImmunities": "blinded, charmed, deafened, exhaustion, frightened, prone",
+      "senses": "blindsight 60 ft. (blind beyond this radius), passive Perception 8",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 337",
     "license": {
@@ -7510,7 +7938,12 @@
         "intelligence": 11,
         "wisdom": 10,
         "charisma": 8
-      }
+      },
+      "damageResistances": "necrotic",
+      "damageImmunities": "poison",
+      "conditionImmunities": "charmed, exhaustion, poisoned",
+      "senses": "darkvision 60 ft., passive Perception 10",
+      "languages": "Common"
     },
     "source": "SRD 5.1 p. 311",
     "license": {
@@ -7557,7 +7990,12 @@
         "intelligence": 10,
         "wisdom": 12,
         "charisma": 17
-      }
+      },
+      "damageResistances": "acid, fire, lightning, thunder; bludgeoning, piercing, and slashing from nonmagical attacks",
+      "damageImmunities": "cold, necrotic, poison",
+      "conditionImmunities": "charmed, exhaustion, frightened, grappled, paralyzed, petrified, poisoned, prone, restrained",
+      "senses": "darkvision 60 ft., passive Perception 11",
+      "languages": "any languages it knew in life"
     },
     "source": "SRD 5.1 p. 311",
     "license": {
@@ -7603,7 +8041,11 @@
         "intelligence": 7,
         "wisdom": 10,
         "charisma": 6
-      }
+      },
+      "damageImmunities": "poison",
+      "conditionImmunities": "charmed, exhaustion, poisoned",
+      "senses": "darkvision 60 ft., passive Perception 10",
+      "languages": "Common"
     },
     "source": "SRD 5.1 p. 312",
     "license": {
@@ -7650,7 +8092,10 @@
         "intelligence": 7,
         "wisdom": 12,
         "charisma": 7
-      }
+      },
+      "skills": "Athletics +9, Perception +4",
+      "senses": "passive Perception 14",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 373",
     "license": {
@@ -7697,7 +8142,9 @@
         "intelligence": 2,
         "wisdom": 12,
         "charisma": 5
-      }
+      },
+      "senses": "darkvision 30 ft., passive Perception 11",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 373",
     "license": {
@@ -7744,7 +8191,9 @@
         "intelligence": 2,
         "wisdom": 12,
         "charisma": 6
-      }
+      },
+      "senses": "blindsight 60 ft., passive Perception 11",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 373",
     "license": {
@@ -7790,7 +8239,9 @@
         "intelligence": 2,
         "wisdom": 7,
         "charisma": 5
-      }
+      },
+      "senses": "passive Perception 8",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 373",
     "license": {
@@ -7837,7 +8288,9 @@
         "intelligence": 1,
         "wisdom": 7,
         "charisma": 3
-      }
+      },
+      "senses": "blindsight 30 ft., passive Perception 8",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 374",
     "license": {
@@ -7884,7 +8337,10 @@
         "intelligence": 1,
         "wisdom": 10,
         "charisma": 3
-      }
+      },
+      "skills": "Perception +2",
+      "senses": "blindsight 10 ft., passive Perception 12",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 374",
     "license": {
@@ -7931,7 +8387,10 @@
         "intelligence": 1,
         "wisdom": 9,
         "charisma": 3
-      }
+      },
+      "skills": "Stealth +4",
+      "senses": "blindsight 30 ft., passive Perception 9",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 374",
     "license": {
@@ -7978,7 +8437,10 @@
         "intelligence": 2,
         "wisdom": 10,
         "charisma": 7
-      }
+      },
+      "skills": "Stealth +5",
+      "senses": "passive Perception 10",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 374",
     "license": {
@@ -8025,7 +8487,10 @@
         "intelligence": 8,
         "wisdom": 14,
         "charisma": 10
-      }
+      },
+      "skills": "Perception +4",
+      "senses": "passive Perception 14",
+      "languages": "Giant Eagle, understands Common and Auran but can’t speak them"
     },
     "source": "SRD 5.1 p. 375",
     "license": {
@@ -8071,7 +8536,10 @@
         "intelligence": 7,
         "wisdom": 14,
         "charisma": 10
-      }
+      },
+      "skills": "Perception +4",
+      "senses": "passive Perception 14",
+      "languages": "Giant Elk, understands Common, Elvish, and Sylvan but can’t speak them"
     },
     "source": "SRD 5.1 p. 375",
     "license": {
@@ -8117,7 +8585,9 @@
         "intelligence": 1,
         "wisdom": 7,
         "charisma": 3
-      }
+      },
+      "senses": "blindsight 30 ft., passive Perception 8",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 375",
     "license": {
@@ -8164,7 +8634,10 @@
         "intelligence": 2,
         "wisdom": 10,
         "charisma": 3
-      }
+      },
+      "skills": "Perception +2, Stealth +3",
+      "senses": "darkvision 30 ft., passive Perception 12",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 376",
     "license": {
@@ -8210,7 +8683,9 @@
         "intelligence": 3,
         "wisdom": 12,
         "charisma": 6
-      }
+      },
+      "senses": "passive Perception 11",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 376",
     "license": {
@@ -8256,7 +8731,10 @@
         "intelligence": 2,
         "wisdom": 12,
         "charisma": 7
-      }
+      },
+      "skills": "Perception +3",
+      "senses": "passive Perception 13",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 376",
     "license": {
@@ -8303,7 +8781,9 @@
         "intelligence": 2,
         "wisdom": 10,
         "charisma": 5
-      }
+      },
+      "senses": "darkvision 30 ft., passive Perception 10",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 377",
     "license": {
@@ -8350,7 +8830,10 @@
         "intelligence": 4,
         "wisdom": 10,
         "charisma": 4
-      }
+      },
+      "skills": "Perception +4, Stealth +5",
+      "senses": "darkvision 60 ft., passive Perception 14",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 377",
     "license": {
@@ -8397,7 +8880,10 @@
         "intelligence": 8,
         "wisdom": 13,
         "charisma": 10
-      }
+      },
+      "skills": "Perception +5, Stealth +4",
+      "senses": "darkvision 120 ft., passive Perception 15",
+      "languages": "Giant Owl, understands Common, Elvish, and Sylvan but can’t speak them"
     },
     "source": "SRD 5.1 p. 377",
     "license": {
@@ -8444,7 +8930,10 @@
         "intelligence": 2,
         "wisdom": 10,
         "charisma": 3
-      }
+      },
+      "skills": "Perception +2",
+      "senses": "blindsight 10 ft., passive Perception 12",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 378",
     "license": {
@@ -8490,7 +8979,9 @@
         "intelligence": 2,
         "wisdom": 10,
         "charisma": 4
-      }
+      },
+      "senses": "darkvision 60 ft., passive Perception 10",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 378",
     "license": {
@@ -8536,7 +9027,9 @@
         "intelligence": 1,
         "wisdom": 9,
         "charisma": 3
-      }
+      },
+      "senses": "blindsight 60 ft., passive Perception 9",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 378",
     "license": {
@@ -8583,7 +9076,9 @@
         "intelligence": 2,
         "wisdom": 12,
         "charisma": 5
-      }
+      },
+      "senses": "passive Perception 11",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 378",
     "license": {
@@ -8630,7 +9125,10 @@
         "intelligence": 1,
         "wisdom": 10,
         "charisma": 5
-      }
+      },
+      "skills": "Perception +3",
+      "senses": "blindsight 60 ft., passive Perception 13",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 379",
     "license": {
@@ -8677,7 +9175,10 @@
         "intelligence": 2,
         "wisdom": 11,
         "charisma": 4
-      }
+      },
+      "skills": "Stealth +7",
+      "senses": "blindsight 10 ft., darkvision 60 ft., passive Perception 10",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 379",
     "license": {
@@ -8724,7 +9225,9 @@
         "intelligence": 2,
         "wisdom": 10,
         "charisma": 3
-      }
+      },
+      "senses": "darkvision 30 ft., passive Perception 10",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 380",
     "license": {
@@ -8771,7 +9274,10 @@
         "intelligence": 6,
         "wisdom": 12,
         "charisma": 7
-      }
+      },
+      "skills": "Perception +3",
+      "senses": "passive Perception 13",
+      "languages": "understands Common but can’t speak"
     },
     "source": "SRD 5.1 p. 380",
     "license": {
@@ -8818,7 +9324,9 @@
         "intelligence": 1,
         "wisdom": 10,
         "charisma": 3
-      }
+      },
+      "senses": "passive Perception 10",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 380",
     "license": {
@@ -8864,7 +9372,10 @@
         "intelligence": 4,
         "wisdom": 12,
         "charisma": 5
-      }
+      },
+      "skills": "Perception +3, Stealth +5",
+      "senses": "darkvision 60 ft., passive Perception 13",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 381",
     "license": {
@@ -8911,7 +9422,10 @@
         "intelligence": 3,
         "wisdom": 12,
         "charisma": 4
-      }
+      },
+      "skills": "Perception +3, Stealth +7",
+      "senses": "blindsight 10 ft., darkvision 60 ft., passive Perception 13",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 381",
     "license": {
@@ -8958,7 +9472,10 @@
         "intelligence": 3,
         "wisdom": 10,
         "charisma": 6
-      }
+      },
+      "conditionImmunities": "prone",
+      "senses": "darkvision 60 ft., passive Perception 10",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 314",
     "license": {
@@ -9004,7 +9521,13 @@
         "intelligence": 19,
         "wisdom": 17,
         "charisma": 16
-      }
+      },
+      "savingThrows": "Str +9, Con +9, Wis +7, Cha +7",
+      "damageResistances": "cold, fire, lightning; bludgeoning, piercing, and slashing from nonmagical attacks",
+      "damageImmunities": "poison",
+      "conditionImmunities": "poisoned",
+      "senses": "truesight 120 ft., passive Perception 13",
+      "languages": "Abyssal, telepathy 120 ft."
     },
     "source": "SRD 5.1 p. 271",
     "license": {
@@ -9051,7 +9574,11 @@
         "intelligence": 10,
         "wisdom": 12,
         "charisma": 15
-      }
+      },
+      "savingThrows": "Str +7, Dex +5, Con +6",
+      "skills": "Athletics +10, Intimidation +5",
+      "senses": "passive Perception 11",
+      "languages": "any one language (usually Common)"
     },
     "source": "SRD 5.1 p. 399",
     "license": {
@@ -9097,7 +9624,9 @@
         "intelligence": 6,
         "wisdom": 10,
         "charisma": 7
-      }
+      },
+      "senses": "darkvision 60 ft., passive Perception 10",
+      "languages": "Gnoll"
     },
     "source": "SRD 5.1 p. 314",
     "license": {
@@ -9143,7 +9672,10 @@
         "intelligence": 12,
         "wisdom": 10,
         "charisma": 9
-      }
+      },
+      "skills": "Investigation +3, Perception +2, Stealth +4",
+      "senses": "darkvision 120 ft., passive Perception 12",
+      "languages": "Gnomish, Terran, Undercommon"
     },
     "source": "SRD 5.1 p. 315",
     "license": {
@@ -9189,7 +9721,9 @@
         "intelligence": 2,
         "wisdom": 10,
         "charisma": 5
-      }
+      },
+      "senses": "passive Perception 10",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 381",
     "license": {
@@ -9235,7 +9769,10 @@
         "intelligence": 10,
         "wisdom": 8,
         "charisma": 8
-      }
+      },
+      "skills": "Stealth +6",
+      "senses": "darkvision 60 ft., passive Perception 9",
+      "languages": "Common, Goblin"
     },
     "source": "SRD 5.1 p. 315",
     "license": {
@@ -9283,7 +9820,12 @@
         "intelligence": 14,
         "wisdom": 11,
         "charisma": 16
-      }
+      },
+      "savingThrows": "Dex +4, Con +5, Wis +2, Cha +5",
+      "skills": "Perception +4, Stealth +4",
+      "damageImmunities": "fire",
+      "senses": "blindsight 10 ft., darkvision 60 ft., passive Perception 14",
+      "languages": "Draconic"
     },
     "source": "SRD 5.1 p. 300",
     "license": {
@@ -9329,7 +9871,11 @@
         "intelligence": 2,
         "wisdom": 12,
         "charisma": 7
-      }
+      },
+      "skills": "Perception +4",
+      "conditionImmunities": "petrified",
+      "senses": "darkvision 60 ft., passive Perception 14",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 317",
     "license": {
@@ -9376,7 +9922,12 @@
         "intelligence": 1,
         "wisdom": 6,
         "charisma": 2
-      }
+      },
+      "skills": "Stealth +2",
+      "damageResistances": "acid, cold, fire",
+      "conditionImmunities": "blinded, charmed, deafened, exhaustion, frightened, prone",
+      "senses": "blindsight 60 ft. (blind beyond this radius), passive Perception 8",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 338",
     "license": {
@@ -9424,7 +9975,13 @@
         "intelligence": 14,
         "wisdom": 11,
         "charisma": 13
-      }
+      },
+      "savingThrows": "Dex +3, Con +3, Wis +2, Cha +3",
+      "skills": "Perception +4, Stealth +3",
+      "damageImmunities": "poison",
+      "conditionImmunities": "poisoned",
+      "senses": "blindsight 10 ft., darkvision 60 ft., passive Perception 14",
+      "languages": "Draconic"
     },
     "source": "SRD 5.1 p. 286",
     "license": {
@@ -9470,7 +10027,10 @@
         "intelligence": 13,
         "wisdom": 14,
         "charisma": 14
-      }
+      },
+      "skills": "Arcana +3, Deception +4, Perception +4, Stealth +3",
+      "senses": "darkvision 60 ft., passive Perception 14",
+      "languages": "Common, Draconic, Sylvan"
     },
     "source": "SRD 5.1 p. 319",
     "license": {
@@ -9517,7 +10077,10 @@
         "intelligence": 3,
         "wisdom": 14,
         "charisma": 5
-      }
+      },
+      "damageResistances": "bludgeoning, piercing, and slashing from nonmagical attacks",
+      "senses": "darkvision 60 ft., passive Perception 12",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 318",
     "license": {
@@ -9564,7 +10127,10 @@
         "intelligence": 2,
         "wisdom": 13,
         "charisma": 8
-      }
+      },
+      "skills": "Perception +5",
+      "senses": "darkvision 60 ft., passive Perception 15",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 318",
     "license": {
@@ -9610,7 +10176,11 @@
         "intelligence": 9,
         "wisdom": 8,
         "charisma": 6
-      }
+      },
+      "skills": "Athletics +5, Perception +3, Stealth +3",
+      "conditionImmunities": "blinded",
+      "senses": "blindsight 30 ft. or 10 ft. while deafened (blind beyond this radius), passive Perception 13",
+      "languages": "Undercommon"
     },
     "source": "SRD 5.1 p. 318",
     "license": {
@@ -9657,7 +10227,10 @@
         "intelligence": 10,
         "wisdom": 11,
         "charisma": 10
-      }
+      },
+      "skills": "Perception +2",
+      "senses": "passive Perception 12",
+      "languages": "any one language (usually Common)"
     },
     "source": "SRD 5.1 p. 399",
     "license": {
@@ -9703,7 +10276,12 @@
         "intelligence": 16,
         "wisdom": 19,
         "charisma": 18
-      }
+      },
+      "savingThrows": "Dex +8, Con +7, Int +7, Wis +8, Cha +8",
+      "damageImmunities": "poison",
+      "conditionImmunities": "charmed, poisoned",
+      "senses": "darkvision 60 ft., passive Perception 14",
+      "languages": "Celestial, Common"
     },
     "source": "SRD 5.1 p. 335",
     "license": {
@@ -9750,7 +10328,13 @@
         "intelligence": 18,
         "wisdom": 18,
         "charisma": 18
-      }
+      },
+      "skills": "Arcana +12, History +12, Perception +8, Religion +8",
+      "damageResistances": "bludgeoning, piercing, and slashing from nonmagical attacks",
+      "damageImmunities": "psychic",
+      "conditionImmunities": "charmed, frightened",
+      "senses": "truesight 120 ft., passive Perception 18",
+      "languages": "Common, Sphinx"
     },
     "source": "SRD 5.1 p. 348",
     "license": {
@@ -9796,7 +10380,11 @@
         "intelligence": 10,
         "wisdom": 11,
         "charisma": 10
-      }
+      },
+      "skills": "Athletics +5, Perception +2",
+      "damageResistances": "fire",
+      "senses": "blindsight 10 ft., darkvision 60 ft., passive Perception 12",
+      "languages": "Common, Draconic"
     },
     "source": "SRD 5.1 p. 321",
     "license": {
@@ -9843,7 +10431,9 @@
         "intelligence": 7,
         "wisdom": 10,
         "charisma": 13
-      }
+      },
+      "senses": "passive Perception 10",
+      "languages": "Common"
     },
     "source": "SRD 5.1 p. 321",
     "license": {
@@ -9890,7 +10480,10 @@
         "intelligence": 2,
         "wisdom": 14,
         "charisma": 6
-      }
+      },
+      "skills": "Perception +4",
+      "senses": "passive Perception 14",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 382",
     "license": {
@@ -9936,7 +10529,11 @@
         "intelligence": 6,
         "wisdom": 13,
         "charisma": 6
-      }
+      },
+      "skills": "Perception +5",
+      "damageImmunities": "fire",
+      "senses": "darkvision 60 ft., passive Perception 15",
+      "languages": "understands Infernal but can’t speak it"
     },
     "source": "SRD 5.1 p. 321",
     "license": {
@@ -9982,7 +10579,13 @@
         "intelligence": 5,
         "wisdom": 12,
         "charisma": 13
-      }
+      },
+      "savingThrows": "Str +7, Con +8, Wis +4",
+      "damageResistances": "cold, fire, lightning; bludgeoning, piercing, and slashing from nonmagical attacks",
+      "damageImmunities": "poison",
+      "conditionImmunities": "poisoned",
+      "senses": "darkvision 120 ft., passive Perception 11",
+      "languages": "Abyssal, telepathy 120 ft."
     },
     "source": "SRD 5.1 p. 271",
     "license": {
@@ -10028,7 +10631,10 @@
         "intelligence": 5,
         "wisdom": 9,
         "charisma": 6
-      }
+      },
+      "skills": "Perception +2",
+      "senses": "passive Perception 12",
+      "languages": "Giant"
     },
     "source": "SRD 5.1 p. 313",
     "license": {
@@ -10075,7 +10681,10 @@
         "intelligence": 2,
         "wisdom": 12,
         "charisma": 8
-      }
+      },
+      "skills": "Perception +5",
+      "senses": "passive Perception 15",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 322",
     "license": {
@@ -10121,7 +10730,9 @@
         "intelligence": 10,
         "wisdom": 10,
         "charisma": 9
-      }
+      },
+      "senses": "darkvision 60 ft., passive Perception 10",
+      "languages": "Common, Goblin"
     },
     "source": "SRD 5.1 p. 322",
     "license": {
@@ -10168,7 +10779,11 @@
         "intelligence": 10,
         "wisdom": 10,
         "charisma": 7
-      }
+      },
+      "damageImmunities": "poison",
+      "conditionImmunities": "charmed, poisoned",
+      "senses": "darkvision 60 ft., passive Perception 10",
+      "languages": "understands the languages of its creator but can’t speak"
     },
     "source": "SRD 5.1 p. 322",
     "license": {
@@ -10215,7 +10830,13 @@
         "intelligence": 12,
         "wisdom": 16,
         "charisma": 17
-      }
+      },
+      "savingThrows": "Str +10, Dex +7, Wis +7, Cha +7",
+      "damageResistances": "cold; bludgeoning, piercing, and slashing from nonmagical attacks not made with silvered weapons",
+      "damageImmunities": "fire, poison",
+      "conditionImmunities": "poisoned",
+      "senses": "darkvision 120 ft., passive Perception 13",
+      "languages": "Infernal, telepathy 120 ft."
     },
     "source": "SRD 5.1 p. 276",
     "license": {
@@ -10262,7 +10883,10 @@
         "intelligence": 1,
         "wisdom": 10,
         "charisma": 4
-      }
+      },
+      "skills": "Perception +2",
+      "senses": "blindsight 30 ft., passive Perception 12",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 382",
     "license": {
@@ -10309,7 +10933,10 @@
         "intelligence": 2,
         "wisdom": 10,
         "charisma": 7
-      }
+      },
+      "skills": "Perception +6",
+      "senses": "darkvision 60 ft., passive Perception 16",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 323",
     "license": {
@@ -10355,7 +10982,10 @@
         "intelligence": 2,
         "wisdom": 12,
         "charisma": 5
-      }
+      },
+      "skills": "Perception +3",
+      "senses": "passive Perception 13",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 382",
     "license": {
@@ -10401,7 +11031,13 @@
         "intelligence": 18,
         "wisdom": 15,
         "charisma": 18
-      }
+      },
+      "savingThrows": "Dex +7, Con +9, Wis +7, Cha +9",
+      "damageResistances": "bludgeoning, piercing, and slashing from nonmagical attacks that aren’t silvered",
+      "damageImmunities": "cold, fire, poison",
+      "conditionImmunities": "poisoned",
+      "senses": "blindsight 60 ft., darkvision 120 ft., passive Perception 12",
+      "languages": "Infernal, telepathy 120 ft."
     },
     "source": "SRD 5.1 p. 277",
     "license": {
@@ -10448,7 +11084,13 @@
         "intelligence": 9,
         "wisdom": 11,
         "charisma": 12
-      }
+      },
+      "skills": "Perception +2, Stealth +3",
+      "damageVulnerabilities": "bludgeoning, fire",
+      "damageImmunities": "cold, poison",
+      "conditionImmunities": "poisoned",
+      "senses": "darkvision 60 ft., passive Perception 12",
+      "languages": "Aquan, Auran"
     },
     "source": "SRD 5.1 p. 331",
     "license": {
@@ -10495,7 +11137,13 @@
         "intelligence": 11,
         "wisdom": 12,
         "charisma": 14
-      }
+      },
+      "skills": "Deception +4, Insight +3, Persuasion +4, Stealth +5",
+      "damageResistances": "cold; bludgeoning, piercing, and slashing from nonmagical attacks that aren’t silvered",
+      "damageImmunities": "fire, poison",
+      "conditionImmunities": "poisoned",
+      "senses": "darkvision 120 ft., passive Perception 11",
+      "languages": "Infernal, Common"
     },
     "source": "SRD 5.1 p. 277",
     "license": {
@@ -10542,7 +11190,13 @@
         "intelligence": 10,
         "wisdom": 15,
         "charisma": 11
-      }
+      },
+      "skills": "Perception +8, Stealth +10",
+      "damageResistances": "bludgeoning, piercing, and slashing from nonmagical attacks",
+      "damageImmunities": "poison",
+      "conditionImmunities": "exhaustion, grappled, paralyzed, petrified, poisoned, prone, restrained, unconscious",
+      "senses": "darkvision 60 ft., passive Perception 18",
+      "languages": "Auran, understands Common but doesn’t speak it"
     },
     "source": "SRD 5.1 p. 323",
     "license": {
@@ -10588,7 +11242,11 @@
         "intelligence": 3,
         "wisdom": 11,
         "charisma": 1
-      }
+      },
+      "damageImmunities": "fire, poison, psychic; bludgeoning, piercing, and slashing from nonmagical attacks that aren’t adamantine",
+      "conditionImmunities": "charmed, exhaustion, frightened, paralyzed, petrified, poisoned",
+      "senses": "darkvision 120 ft., passive Perception 10",
+      "languages": "understands the languages of its creator but can’t speak"
     },
     "source": "SRD 5.1 p. 317",
     "license": {
@@ -10634,7 +11292,10 @@
         "intelligence": 3,
         "wisdom": 12,
         "charisma": 6
-      }
+      },
+      "skills": "Perception +3",
+      "senses": "passive Perception 13",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 382",
     "license": {
@@ -10681,7 +11342,10 @@
         "intelligence": 3,
         "wisdom": 12,
         "charisma": 7
-      }
+      },
+      "skills": "Perception +3",
+      "senses": "blindsight 120 ft., passive Perception 13",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 383",
     "license": {
@@ -10728,7 +11392,10 @@
         "intelligence": 11,
         "wisdom": 11,
         "charisma": 15
-      }
+      },
+      "savingThrows": "Con +4, Wis +2",
+      "senses": "passive Perception 10",
+      "languages": "any one language (usually Common)"
     },
     "source": "SRD 5.1 p. 400",
     "license": {
@@ -10774,7 +11441,9 @@
         "intelligence": 8,
         "wisdom": 7,
         "charisma": 8
-      }
+      },
+      "senses": "darkvision 60 ft., passive Perception 8",
+      "languages": "Common, Draconic"
     },
     "source": "SRD 5.1 p. 324",
     "license": {
@@ -10821,7 +11490,12 @@
         "intelligence": 22,
         "wisdom": 18,
         "charisma": 20
-      }
+      },
+      "savingThrows": "Str +17, Dex +7, Con +14, Int +13, Wis +11",
+      "damageImmunities": "lightning; bludgeoning, piercing, and slashing from nonmagical attacks",
+      "conditionImmunities": "frightened, paralyzed",
+      "senses": "truesight 120 ft., passive Perception 14",
+      "languages": "understands Abyssal, Celestial, Infernal, and Primordial but can’t speak, telepathy 120 ft."
     },
     "source": "SRD 5.1 p. 324",
     "license": {
@@ -10867,7 +11541,10 @@
         "intelligence": 14,
         "wisdom": 15,
         "charisma": 16
-      }
+      },
+      "skills": "Deception +7, Insight +4, Stealth +3",
+      "senses": "darkvision 60 ft., passive Perception 12",
+      "languages": "Abyssal, Common"
     },
     "source": "SRD 5.1 p. 325",
     "license": {
@@ -10913,7 +11590,12 @@
         "intelligence": 1,
         "wisdom": 11,
         "charisma": 3
-      }
+      },
+      "damageResistances": "cold",
+      "damageImmunities": "fire, poison",
+      "conditionImmunities": "charmed, frightened, poisoned",
+      "senses": "darkvision 120 ft., passive Perception 10",
+      "languages": "understands Infernal but can’t speak"
     },
     "source": "SRD 5.1 p. 278",
     "license": {
@@ -10959,7 +11641,14 @@
         "intelligence": 20,
         "wisdom": 14,
         "charisma": 16
-      }
+      },
+      "savingThrows": "Con +10, Int +12, Wis +9",
+      "skills": "Arcana +18, History +12, Insight +9, Perception +9",
+      "damageResistances": "cold, lightning, necrotic",
+      "damageImmunities": "poison; bludgeoning, piercing, and slashing from nonmagical attacks",
+      "conditionImmunities": "charmed, exhaustion, frightened, paralyzed, poisoned",
+      "senses": "truesight 120 ft., passive Perception 19",
+      "languages": "Common plus up to five other languages"
     },
     "source": "SRD 5.1 p. 325",
     "license": {
@@ -11005,7 +11694,10 @@
         "intelligence": 3,
         "wisdom": 12,
         "charisma": 8
-      }
+      },
+      "skills": "Perception +3, Stealth +6",
+      "senses": "passive Perception 13",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 383",
     "license": {
@@ -11052,7 +11744,9 @@
         "intelligence": 1,
         "wisdom": 8,
         "charisma": 3
-      }
+      },
+      "senses": "darkvision 30 ft., passive Perception 9",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 383",
     "license": {
@@ -11099,7 +11793,10 @@
         "intelligence": 7,
         "wisdom": 12,
         "charisma": 7
-      }
+      },
+      "skills": "Perception +3, Stealth +4, Survival +5",
+      "senses": "passive Perception 13",
+      "languages": "Draconic"
     },
     "source": "SRD 5.1 p. 326",
     "license": {
@@ -11146,7 +11843,11 @@
         "intelligence": 17,
         "wisdom": 12,
         "charisma": 11
-      }
+      },
+      "savingThrows": "Int +6, Wis +4",
+      "skills": "Arcana +6, History +6",
+      "senses": "passive Perception 11",
+      "languages": "any four languages"
     },
     "source": "SRD 5.1 p. 400",
     "license": {
@@ -11193,7 +11894,13 @@
         "intelligence": 7,
         "wisdom": 10,
         "charisma": 10
-      }
+      },
+      "skills": "Stealth +3",
+      "damageVulnerabilities": "cold",
+      "damageImmunities": "fire, poison",
+      "conditionImmunities": "poisoned",
+      "senses": "darkvision 60 ft., passive Perception 10",
+      "languages": "Ignan, Terran"
     },
     "source": "SRD 5.1 p. 331",
     "license": {
@@ -11239,7 +11946,11 @@
         "intelligence": 8,
         "wisdom": 11,
         "charisma": 10
-      }
+      },
+      "damageResistances": "bludgeoning, piercing, and slashing from nonmagical attacks",
+      "damageImmunities": "fire",
+      "senses": "darkvision 60 ft., passive Perception 10",
+      "languages": "Ignan"
     },
     "source": "SRD 5.1 p. 329",
     "license": {
@@ -11285,7 +11996,9 @@
         "intelligence": 3,
         "wisdom": 11,
         "charisma": 6
-      }
+      },
+      "senses": "passive Perception 10",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 384",
     "license": {
@@ -11332,7 +12045,9 @@
         "intelligence": 7,
         "wisdom": 12,
         "charisma": 8
-      }
+      },
+      "senses": "darkvision 60 ft., passive Perception 11",
+      "languages": "Common"
     },
     "source": "SRD 5.1 p. 329",
     "license": {
@@ -11378,7 +12093,13 @@
         "intelligence": 18,
         "wisdom": 16,
         "charisma": 20
-      }
+      },
+      "savingThrows": "Str +9, Con +10, Wis +8, Cha +10",
+      "damageResistances": "cold, fire, lightning; bludgeoning, piercing, and slashing from nonmagical attacks",
+      "damageImmunities": "poison",
+      "conditionImmunities": "poisoned",
+      "senses": "truesight 120 ft., passive Perception 13",
+      "languages": "Abyssal, telepathy 120 ft."
     },
     "source": "SRD 5.1 p. 272",
     "license": {
@@ -11424,7 +12145,10 @@
         "intelligence": 3,
         "wisdom": 12,
         "charisma": 7
-      }
+      },
+      "skills": "Perception +3",
+      "senses": "passive Perception 13",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 384",
     "license": {
@@ -11470,7 +12194,10 @@
         "intelligence": 12,
         "wisdom": 13,
         "charisma": 15
-      }
+      },
+      "skills": "Deception +5, Insight +4, Perception +4, Stealth +5",
+      "senses": "darkvision 60 ft., passive Perception 14",
+      "languages": "Common"
     },
     "source": "SRD 5.1 p. 330",
     "license": {
@@ -11517,7 +12244,10 @@
         "intelligence": 11,
         "wisdom": 11,
         "charisma": 12
-      }
+      },
+      "skills": "Perception +2",
+      "senses": "passive Perception 12",
+      "languages": "Aquan, Common"
     },
     "source": "SRD 5.1 p. 332",
     "license": {
@@ -11564,7 +12294,9 @@
         "intelligence": 8,
         "wisdom": 10,
         "charisma": 9
-      }
+      },
+      "senses": "darkvision 60 ft., passive Perception 10",
+      "languages": "Abyssal, Aquan"
     },
     "source": "SRD 5.1 p. 332",
     "license": {
@@ -11610,7 +12342,12 @@
         "intelligence": 5,
         "wisdom": 13,
         "charisma": 8
-      }
+      },
+      "skills": "Stealth +5",
+      "damageImmunities": "acid",
+      "conditionImmunities": "prone",
+      "senses": "darkvision 60 ft., passive Perception 11",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 332",
     "license": {
@@ -11656,7 +12393,10 @@
         "intelligence": 6,
         "wisdom": 16,
         "charisma": 9
-      }
+      },
+      "skills": "Perception +7",
+      "senses": "darkvision 60 ft., passive Perception 17",
+      "languages": "Abyssal"
     },
     "source": "SRD 5.1 p. 333",
     "license": {
@@ -11702,7 +12442,12 @@
         "intelligence": 6,
         "wisdom": 8,
         "charisma": 5
-      }
+      },
+      "damageVulnerabilities": "bludgeoning",
+      "damageImmunities": "poison",
+      "conditionImmunities": "exhaustion, poisoned",
+      "senses": "darkvision 60 ft., passive Perception 9",
+      "languages": "understands Abyssal but can’t speak"
     },
     "source": "SRD 5.1 p. 346",
     "license": {
@@ -11748,7 +12493,9 @@
         "intelligence": 2,
         "wisdom": 10,
         "charisma": 5
-      }
+      },
+      "senses": "passive Perception 10",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 384",
     "license": {
@@ -11794,7 +12541,14 @@
         "intelligence": 6,
         "wisdom": 10,
         "charisma": 12
-      }
+      },
+      "savingThrows": "Wis +2",
+      "damageVulnerabilities": "fire",
+      "damageResistances": "bludgeoning, piercing, and slashing from nonmagical attacks",
+      "damageImmunities": "necrotic, poison",
+      "conditionImmunities": "charmed, exhaustion, frightened, paralyzed, poisoned",
+      "senses": "darkvision 60 ft., passive Perception 10",
+      "languages": "the languages it knew in life"
     },
     "source": "SRD 5.1 p. 333",
     "license": {
@@ -11840,7 +12594,14 @@
         "intelligence": 11,
         "wisdom": 18,
         "charisma": 16
-      }
+      },
+      "savingThrows": "Con +8, Int +5, Wis +9, Cha +8",
+      "skills": "History +5, Religion +5",
+      "damageVulnerabilities": "fire",
+      "damageImmunities": "necrotic, poison; bludgeoning, piercing, and slashing from nonmagical attacks",
+      "conditionImmunities": "charmed, exhaustion, frightened, paralyzed, poisoned",
+      "senses": "darkvision 60 ft., passive Perception 14",
+      "languages": "the languages it knew in life"
     },
     "source": "SRD 5.1 p. 334",
     "license": {
@@ -11887,7 +12648,13 @@
         "intelligence": 19,
         "wisdom": 12,
         "charisma": 15
-      }
+      },
+      "savingThrows": "Con +11, Int +9, Wis +6, Cha +7",
+      "damageResistances": "cold, fire, lightning; bludgeoning, piercing, and slashing from nonmagical attacks",
+      "damageImmunities": "poison",
+      "conditionImmunities": "poisoned",
+      "senses": "truesight 120 ft., passive Perception 11",
+      "languages": "Abyssal, telepathy 120 ft."
     },
     "source": "SRD 5.1 p. 272",
     "license": {
@@ -11933,7 +12700,12 @@
         "intelligence": 16,
         "wisdom": 14,
         "charisma": 16
-      }
+      },
+      "skills": "Deception +7, Insight +6, Perception +6, Stealth +6",
+      "damageResistances": "cold, fire; bludgeoning, piercing, and slashing from nonmagical attacks not made with silvered weapons",
+      "conditionImmunities": "charmed",
+      "senses": "darkvision 120 ft., passive Perception 16",
+      "languages": "Abyssal, Common, Infernal, Primordial"
     },
     "source": "SRD 5.1 p. 319",
     "license": {
@@ -11980,7 +12752,10 @@
         "intelligence": 10,
         "wisdom": 13,
         "charisma": 15
-      }
+      },
+      "damageImmunities": "fire",
+      "senses": "passive Perception 11",
+      "languages": "understands Abyssal, Common, and Infernal but can’t speak"
     },
     "source": "SRD 5.1 p. 336",
     "license": {
@@ -12027,7 +12802,10 @@
         "intelligence": 12,
         "wisdom": 14,
         "charisma": 16
-      }
+      },
+      "skills": "Deception +5, Insight +4, Persuasion +5",
+      "senses": "passive Perception 12",
+      "languages": "any two languages"
     },
     "source": "SRD 5.1 p. 401",
     "license": {
@@ -12074,7 +12852,12 @@
         "intelligence": 2,
         "wisdom": 6,
         "charisma": 1
-      }
+      },
+      "damageResistances": "acid",
+      "damageImmunities": "lightning, slashing",
+      "conditionImmunities": "blinded, charmed, deafened, exhaustion, frightened, prone",
+      "senses": "blindsight 60 ft. (blind beyond this radius), passive Perception 8",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 338",
     "license": {
@@ -12121,7 +12904,10 @@
         "intelligence": 3,
         "wisdom": 10,
         "charisma": 4
-      }
+      },
+      "skills": "Perception +2, Stealth +4",
+      "senses": "darkvision 30 ft., passive Perception 12",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 384",
     "license": {
@@ -12167,7 +12953,9 @@
         "intelligence": 5,
         "wisdom": 7,
         "charisma": 7
-      }
+      },
+      "senses": "darkvision 60 ft., passive Perception 8",
+      "languages": "Common, Giant"
     },
     "source": "SRD 5.1 p. 336",
     "license": {
@@ -12213,7 +13001,12 @@
         "intelligence": 3,
         "wisdom": 6,
         "charisma": 5
-      }
+      },
+      "savingThrows": "Wis +0",
+      "damageImmunities": "poison",
+      "conditionImmunities": "poisoned",
+      "senses": "darkvision 60 ft., passive Perception 8",
+      "languages": "understands Common and Giant but can’t speak"
     },
     "source": "SRD 5.1 p. 357",
     "license": {
@@ -12260,7 +13053,11 @@
         "intelligence": 14,
         "wisdom": 12,
         "charisma": 15
-      }
+      },
+      "savingThrows": "Dex +3, Con +6, Wis +4, Cha +5",
+      "skills": "Arcana +5, Deception +8, Perception +4",
+      "senses": "darkvision 60 ft., passive Perception 14",
+      "languages": "Common, Giant"
     },
     "source": "SRD 5.1 p. 336",
     "license": {
@@ -12306,7 +13103,10 @@
         "intelligence": 7,
         "wisdom": 11,
         "charisma": 10
-      }
+      },
+      "skills": "Intimidation +2",
+      "senses": "darkvision 60 ft., passive Perception 10",
+      "languages": "Common, Orc"
     },
     "source": "SRD 5.1 p. 339",
     "license": {
@@ -12352,7 +13152,10 @@
         "intelligence": 6,
         "wisdom": 13,
         "charisma": 6
-      }
+      },
+      "savingThrows": "Con +7",
+      "senses": "darkvision 120 ft., passive Perception 11",
+      "languages": "Otyugh"
     },
     "source": "SRD 5.1 p. 339",
     "license": {
@@ -12399,7 +13202,10 @@
         "intelligence": 2,
         "wisdom": 12,
         "charisma": 7
-      }
+      },
+      "skills": "Perception +3, Stealth +3",
+      "senses": "darkvision 120 ft., passive Perception 13",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 385",
     "license": {
@@ -12445,7 +13251,10 @@
         "intelligence": 3,
         "wisdom": 12,
         "charisma": 7
-      }
+      },
+      "skills": "Perception +3",
+      "senses": "darkvision 60 ft., passive Perception 13",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 339",
     "license": {
@@ -12492,7 +13301,10 @@
         "intelligence": 3,
         "wisdom": 14,
         "charisma": 7
-      }
+      },
+      "skills": "Perception +4, Stealth +6",
+      "senses": "passive Perception 14",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 385",
     "license": {
@@ -12539,7 +13351,11 @@
         "intelligence": 10,
         "wisdom": 15,
         "charisma": 13
-      }
+      },
+      "savingThrows": "Dex +4, Wis +4, Cha +3",
+      "skills": "Perception +6",
+      "senses": "passive Perception 16",
+      "languages": "understands Celestial, Common, Elvish, and Sylvan but can’t speak"
     },
     "source": "SRD 5.1 p. 340",
     "license": {
@@ -12586,7 +13402,10 @@
         "intelligence": 6,
         "wisdom": 10,
         "charisma": 6
-      }
+      },
+      "skills": "Stealth +6",
+      "senses": "darkvision 60 ft., passive Perception 10",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 385",
     "license": {
@@ -12633,7 +13452,13 @@
         "intelligence": 22,
         "wisdom": 18,
         "charisma": 24
-      }
+      },
+      "savingThrows": "Dex +8, Con +13, Wis +10",
+      "damageResistances": "cold; bludgeoning, piercing, and slashing from nonmagical attacks that aren’t silvered",
+      "damageImmunities": "fire, poison",
+      "conditionImmunities": "poisoned",
+      "senses": "truesight 120 ft., passive Perception 14",
+      "languages": "Infernal, telepathy 120 ft."
     },
     "source": "SRD 5.1 p. 278",
     "license": {
@@ -12680,7 +13505,13 @@
         "intelligence": 19,
         "wisdom": 22,
         "charisma": 25
-      }
+      },
+      "savingThrows": "Con +12, Wis +11, Cha +12",
+      "skills": "Perception +11",
+      "damageResistances": "radiant; bludgeoning, piercing, and slashing from nonmagical attacks",
+      "conditionImmunities": "charmed, exhaustion, frightened",
+      "senses": "truesight 120 ft., passive Perception 21",
+      "languages": "all, telepathy 120 ft."
     },
     "source": "SRD 5.1 p. 262",
     "license": {
@@ -12727,7 +13558,10 @@
         "intelligence": 2,
         "wisdom": 12,
         "charisma": 5
-      }
+      },
+      "skills": "Perception +3, Stealth +4",
+      "senses": "passive Perception 13",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 279",
     "license": {
@@ -12774,7 +13608,9 @@
         "intelligence": 1,
         "wisdom": 10,
         "charisma": 3
-      }
+      },
+      "senses": "blindsight 10 ft., passive Perception 10",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 386",
     "license": {
@@ -12821,7 +13657,10 @@
         "intelligence": 2,
         "wisdom": 13,
         "charisma": 7
-      }
+      },
+      "skills": "Perception +3",
+      "senses": "passive Perception 13",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 386",
     "license": {
@@ -12867,7 +13706,9 @@
         "intelligence": 2,
         "wisdom": 11,
         "charisma": 7
-      }
+      },
+      "senses": "passive Perception 10",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 386",
     "license": {
@@ -12914,7 +13755,10 @@
         "intelligence": 13,
         "wisdom": 16,
         "charisma": 13
-      }
+      },
+      "skills": "Medicine +7, Persuasion +3, Religion +4",
+      "senses": "passive Perception 13",
+      "languages": "any two languages"
     },
     "source": "SRD 5.1 p. 401",
     "license": {
@@ -12961,7 +13805,10 @@
         "intelligence": 10,
         "wisdom": 12,
         "charisma": 10
-      }
+      },
+      "skills": "Perception +3, Stealth +4",
+      "senses": "blindsight 10 ft., darkvision 60 ft., passive Perception 13",
+      "languages": "understands Common and Draconic but can’t speak"
     },
     "source": "SRD 5.1 p. 340",
     "license": {
@@ -13008,7 +13855,10 @@
         "intelligence": 1,
         "wisdom": 8,
         "charisma": 4
-      }
+      },
+      "savingThrows": "Con +11, Wis +4",
+      "senses": "blindsight 30 ft., tremorsense 60 ft., passive Perception 9",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 340",
     "license": {
@@ -13054,7 +13904,13 @@
         "intelligence": 7,
         "wisdom": 10,
         "charisma": 10
-      }
+      },
+      "skills": "Stealth +5",
+      "damageResistances": "cold, fire, lightning; bludgeoning, piercing, and slashing from nonmagical attacks",
+      "damageImmunities": "poison",
+      "conditionImmunities": "poisoned",
+      "senses": "darkvision 120 ft., passive Perception 10",
+      "languages": "Abyssal, Common"
     },
     "source": "SRD 5.1 p. 273",
     "license": {
@@ -13101,7 +13957,9 @@
         "intelligence": 1,
         "wisdom": 7,
         "charisma": 2
-      }
+      },
+      "senses": "darkvision 60 ft., passive Perception 8",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 387",
     "license": {
@@ -13147,7 +14005,12 @@
         "intelligence": 13,
         "wisdom": 16,
         "charisma": 20
-      }
+      },
+      "skills": "Deception +10, Insight +8",
+      "damageVulnerabilities": "piercing from magic weapons wielded by good creatures",
+      "damageImmunities": "bludgeoning, piercing, and slashing from nonmagical attacks",
+      "senses": "darkvision 60 ft., passive Perception 13",
+      "languages": "Common, Infernal"
     },
     "source": "SRD 5.1 p. 341",
     "license": {
@@ -13193,7 +14056,9 @@
         "intelligence": 2,
         "wisdom": 10,
         "charisma": 4
-      }
+      },
+      "senses": "darkvision 30 ft., passive Perception 10",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 387",
     "license": {
@@ -13240,7 +14105,10 @@
         "intelligence": 2,
         "wisdom": 12,
         "charisma": 6
-      }
+      },
+      "skills": "Perception +3",
+      "senses": "passive Perception 13",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 387",
     "license": {
@@ -13288,7 +14156,12 @@
         "intelligence": 12,
         "wisdom": 11,
         "charisma": 15
-      }
+      },
+      "savingThrows": "Dex +2, Con +5, Wis +2, Cha +4",
+      "skills": "Perception +4, Stealth +2",
+      "damageImmunities": "fire",
+      "senses": "blindsight 10 ft., darkvision 60 ft., passive Perception 14",
+      "languages": "Draconic"
     },
     "source": "SRD 5.1 p. 288",
     "license": {
@@ -13335,7 +14208,10 @@
         "intelligence": 1,
         "wisdom": 10,
         "charisma": 4
-      }
+      },
+      "skills": "Perception +2",
+      "senses": "blindsight 30 ft., passive Perception 12",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 387",
     "license": {
@@ -13382,7 +14258,10 @@
         "intelligence": 4,
         "wisdom": 10,
         "charisma": 5
-      }
+      },
+      "damageImmunities": "cold, fire",
+      "senses": "darkvision 60 ft., tremorsense 60 ft., passive Perception 10",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 341",
     "license": {
@@ -13428,7 +14307,9 @@
         "intelligence": 2,
         "wisdom": 12,
         "charisma": 6
-      }
+      },
+      "senses": "passive Perception 11",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 388",
     "license": {
@@ -13474,7 +14355,9 @@
         "intelligence": 2,
         "wisdom": 11,
         "charisma": 7
-      }
+      },
+      "senses": "passive Perception 10",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 388",
     "license": {
@@ -13521,7 +14404,11 @@
         "intelligence": 3,
         "wisdom": 10,
         "charisma": 9
-      }
+      },
+      "savingThrows": "Dex +4, Con +9, Wis +4, Cha +3",
+      "skills": "Perception +4",
+      "senses": "passive Perception 14",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 342",
     "license": {
@@ -13568,7 +14455,10 @@
         "intelligence": 7,
         "wisdom": 16,
         "charisma": 6
-      }
+      },
+      "skills": "Perception +6, Stealth +5",
+      "senses": "darkvision 60 ft., passive Perception 16",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 342",
     "license": {
@@ -13614,7 +14504,11 @@
         "intelligence": 1,
         "wisdom": 3,
         "charisma": 1
-      }
+      },
+      "damageImmunities": "poison, psychic",
+      "conditionImmunities": "blinded, charmed, deafened, frightened, paralyzed, petrified, poisoned",
+      "senses": "blindsight 60 ft. (blind beyond this radius), passive Perception 6",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 264",
     "license": {
@@ -13660,7 +14554,9 @@
         "intelligence": 2,
         "wisdom": 13,
         "charisma": 6
-      }
+      },
+      "senses": "darkvision 60 ft., passive Perception 11",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 343",
     "license": {
@@ -13706,7 +14602,10 @@
         "intelligence": 3,
         "wisdom": 12,
         "charisma": 8
-      }
+      },
+      "skills": "Perception +3, Stealth +6",
+      "senses": "passive Perception 13",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 388",
     "license": {
@@ -13753,7 +14652,10 @@
         "intelligence": 12,
         "wisdom": 13,
         "charisma": 9
-      }
+      },
+      "skills": "Perception +5",
+      "senses": "darkvision 120 ft., passive Perception 15",
+      "languages": "Sahuagin"
     },
     "source": "SRD 5.1 p. 343",
     "license": {
@@ -13799,7 +14701,12 @@
         "intelligence": 11,
         "wisdom": 10,
         "charisma": 12
-      }
+      },
+      "damageVulnerabilities": "cold",
+      "damageResistances": "bludgeoning, piercing, and slashing from nonmagical attacks",
+      "damageImmunities": "fire",
+      "senses": "darkvision 60 ft., passive Perception 10",
+      "languages": "Ignan"
     },
     "source": "SRD 5.1 p. 344",
     "license": {
@@ -13845,7 +14752,10 @@
         "intelligence": 12,
         "wisdom": 10,
         "charisma": 14
-      }
+      },
+      "skills": "Perception +2, Performance +6, Stealth +5",
+      "senses": "passive Perception 12",
+      "languages": "Common, Elvish, Sylvan"
     },
     "source": "SRD 5.1 p. 344",
     "license": {
@@ -13891,7 +14801,9 @@
         "intelligence": 1,
         "wisdom": 8,
         "charisma": 2
-      }
+      },
+      "senses": "blindsight 10 ft., passive Perception 9",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 388",
     "license": {
@@ -13938,7 +14850,10 @@
         "intelligence": 11,
         "wisdom": 13,
         "charisma": 11
-      }
+      },
+      "skills": "Nature +4, Perception +5, Stealth +6, Survival +5",
+      "senses": "passive Perception 15",
+      "languages": "any one language (usually Common)"
     },
     "source": "SRD 5.1 p. 401",
     "license": {
@@ -13985,7 +14900,9 @@
         "intelligence": 12,
         "wisdom": 12,
         "charisma": 13
-      }
+      },
+      "senses": "darkvision 60 ft., passive Perception 11",
+      "languages": "Aquan, Common, Giant"
     },
     "source": "SRD 5.1 p. 320",
     "license": {
@@ -14032,7 +14949,9 @@
         "intelligence": 1,
         "wisdom": 10,
         "charisma": 2
-      }
+      },
+      "senses": "passive Perception 10",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 389",
     "license": {
@@ -14078,7 +14997,14 @@
         "intelligence": 6,
         "wisdom": 10,
         "charisma": 8
-      }
+      },
+      "skills": "Stealth +4 (+6 in dim light or darkness)",
+      "damageVulnerabilities": "radiant",
+      "damageResistances": "acid, cold, fire, lightning, thunder; bludgeoning, piercing, and slashing from nonmagical attacks",
+      "damageImmunities": "necrotic, poison",
+      "conditionImmunities": "exhaustion, frightened, grappled, paralyzed, petrified, poisoned, prone, restrained",
+      "senses": "darkvision 60 ft., passive Perception 10",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 344",
     "license": {
@@ -14125,7 +15051,13 @@
         "intelligence": 5,
         "wisdom": 10,
         "charisma": 5
-      }
+      },
+      "skills": "Stealth +2",
+      "damageResistances": "cold, fire",
+      "damageImmunities": "lightning",
+      "conditionImmunities": "blinded, deafened, exhaustion",
+      "senses": "blindsight 60 ft. (blind beyond this radius), passive Perception 10",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 345",
     "license": {
@@ -14171,7 +15103,11 @@
         "intelligence": 7,
         "wisdom": 10,
         "charisma": 3
-      }
+      },
+      "damageImmunities": "poison",
+      "conditionImmunities": "charmed, exhaustion, frightened, paralyzed, poisoned",
+      "senses": "blindsight 10 ft., darkvision 60 ft., passive Perception 10",
+      "languages": "understands commands given in any language but can’t speak"
     },
     "source": "SRD 5.1 p. 345",
     "license": {
@@ -14217,7 +15153,10 @@
         "intelligence": 1,
         "wisdom": 3,
         "charisma": 1
-      }
+      },
+      "conditionImmunities": "blinded, deafened, frightened",
+      "senses": "blindsight 30 ft. (blind beyond this radius), passive Perception 6",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 309",
     "license": {
@@ -14264,7 +15203,12 @@
         "intelligence": 12,
         "wisdom": 11,
         "charisma": 15
-      }
+      },
+      "savingThrows": "Dex +2, Con +5, Wis +2, Cha +4",
+      "skills": "Perception +4, Stealth +2",
+      "damageImmunities": "cold",
+      "senses": "blindsight 10 ft., darkvision 60 ft., passive Perception 14",
+      "languages": "Draconic"
     },
     "source": "SRD 5.1 p. 303",
     "license": {
@@ -14310,7 +15254,12 @@
         "intelligence": 6,
         "wisdom": 8,
         "charisma": 5
-      }
+      },
+      "damageVulnerabilities": "bludgeoning",
+      "damageImmunities": "poison",
+      "conditionImmunities": "exhaustion, poisoned",
+      "senses": "darkvision 60 ft., passive Perception 9",
+      "languages": "understands all languages it knew in life but can’t speak"
     },
     "source": "SRD 5.1 p. 346",
     "license": {
@@ -14357,7 +15306,14 @@
         "intelligence": 25,
         "wisdom": 25,
         "charisma": 30
-      }
+      },
+      "savingThrows": "Int +14, Wis +14, Cha +17",
+      "skills": "Perception +14",
+      "damageResistances": "radiant; bludgeoning, piercing, and slashing from nonmagical attacks",
+      "damageImmunities": "necrotic, poison",
+      "conditionImmunities": "charmed, exhaustion, frightened, poisoned",
+      "senses": "truesight 120 ft., passive Perception 24",
+      "languages": "all, telepathy 120 ft."
     },
     "source": "SRD 5.1 p. 262",
     "license": {
@@ -14404,7 +15360,12 @@
         "intelligence": 10,
         "wisdom": 10,
         "charisma": 11
-      }
+      },
+      "damageResistances": "acid, cold, fire, lightning, thunder; bludgeoning, piercing, and slashing from nonmagical attacks",
+      "damageImmunities": "necrotic, poison",
+      "conditionImmunities": "charmed, exhaustion, grappled, paralyzed, petrified, poisoned, prone, restrained, unconscious",
+      "senses": "darkvision 60 ft., passive Perception 10",
+      "languages": "understands all languages it knew in life but can’t speak"
     },
     "source": "SRD 5.1 p. 346",
     "license": {
@@ -14451,7 +15412,10 @@
         "intelligence": 1,
         "wisdom": 10,
         "charisma": 2
-      }
+      },
+      "skills": "Stealth +4",
+      "senses": "darkvision 30 ft., passive Perception 10",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 389",
     "license": {
@@ -14497,7 +15461,12 @@
         "intelligence": 16,
         "wisdom": 15,
         "charisma": 16
-      }
+      },
+      "savingThrows": "Dex +6, Con +5, Wis +5, Cha +6",
+      "damageImmunities": "poison",
+      "conditionImmunities": "charmed, poisoned",
+      "senses": "darkvision 60 ft., passive Perception 12",
+      "languages": "Abyssal, Common"
     },
     "source": "SRD 5.1 p. 335",
     "license": {
@@ -14544,7 +15513,10 @@
         "intelligence": 14,
         "wisdom": 13,
         "charisma": 11
-      }
+      },
+      "skills": "Perception +3, Stealth +8",
+      "senses": "passive Perception 13",
+      "languages": "Common, Elvish, Sylvan"
     },
     "source": "SRD 5.1 p. 348",
     "license": {
@@ -14591,7 +15563,10 @@
         "intelligence": 12,
         "wisdom": 14,
         "charisma": 16
-      }
+      },
+      "skills": "Deception +5, Insight +4, Investigation +5, Perception +6, Persuasion +5, Sleight of Hand +4, Stealth +4",
+      "senses": "passive Perception 16",
+      "languages": "any two languages"
     },
     "source": "SRD 5.1 p. 402",
     "license": {
@@ -14638,7 +15613,11 @@
         "intelligence": 11,
         "wisdom": 10,
         "charisma": 12
-      }
+      },
+      "damageImmunities": "fire, poison",
+      "conditionImmunities": "poisoned",
+      "senses": "darkvision 60 ft., passive Perception 10",
+      "languages": "Aquan, Ignan"
     },
     "source": "SRD 5.1 p. 331",
     "license": {
@@ -14685,7 +15664,9 @@
         "intelligence": 2,
         "wisdom": 8,
         "charisma": 6
-      }
+      },
+      "senses": "darkvision 60 ft., passive Perception 9",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 349",
     "license": {
@@ -14731,7 +15712,11 @@
         "intelligence": 10,
         "wisdom": 12,
         "charisma": 9
-      }
+      },
+      "savingThrows": "Dex +5, Con +8, Wis +4",
+      "skills": "Athletics +12, Perception +4",
+      "senses": "darkvision 60 ft., passive Perception 14",
+      "languages": "Giant"
     },
     "source": "SRD 5.1 p. 313",
     "license": {
@@ -14777,7 +15762,11 @@
         "intelligence": 3,
         "wisdom": 11,
         "charisma": 1
-      }
+      },
+      "damageImmunities": "poison, psychic; bludgeoning, piercing, and slashing from nonmagical attacks that aren’t adamantine",
+      "conditionImmunities": "charmed, exhaustion, frightened, paralyzed, petrified, poisoned",
+      "senses": "darkvision 120 ft., passive Perception 10",
+      "languages": "understands the languages of its creator but can’t speak"
     },
     "source": "SRD 5.1 p. 317",
     "license": {
@@ -14824,7 +15813,13 @@
         "intelligence": 16,
         "wisdom": 18,
         "charisma": 18
-      }
+      },
+      "savingThrows": "Str +14, Con +10, Wis +9, Cha +9",
+      "skills": "Arcana +8, Athletics +14, History +8, Perception +9",
+      "damageResistances": "cold",
+      "damageImmunities": "lightning, thunder",
+      "senses": "passive Perception 19",
+      "languages": "Common, Giant"
     },
     "source": "SRD 5.1 p. 313",
     "license": {
@@ -14871,7 +15866,11 @@
         "intelligence": 15,
         "wisdom": 12,
         "charisma": 20
-      }
+      },
+      "skills": "Deception +9, Insight +5, Perception +5, Persuasion +9, Stealth +7",
+      "damageResistances": "cold, fire, lightning, poison; bludgeoning, piercing, and slashing from nonmagical attacks",
+      "senses": "darkvision 60 ft., passive Perception 15",
+      "languages": "Abyssal, Common, Infernal, telepathy 60 ft."
     },
     "source": "SRD 5.1 p. 349",
     "license": {
@@ -14918,7 +15917,11 @@
         "intelligence": 2,
         "wisdom": 12,
         "charisma": 4
-      }
+      },
+      "damageResistances": "bludgeoning, piercing, slashing",
+      "conditionImmunities": "charmed, frightened, grappled, paralyzed, petrified, prone, restrained, stunned",
+      "senses": "blindsight 60 ft., passive Perception 11",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 389",
     "license": {
@@ -14965,7 +15968,11 @@
         "intelligence": 1,
         "wisdom": 7,
         "charisma": 1
-      }
+      },
+      "damageResistances": "bludgeoning, piercing, slashing",
+      "conditionImmunities": "charmed, frightened, grappled, paralyzed, petrified, prone, restrained, stunned",
+      "senses": "blindsight 10 ft., passive Perception 8",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 389",
     "license": {
@@ -15012,7 +16019,11 @@
         "intelligence": 1,
         "wisdom": 10,
         "charisma": 3
-      }
+      },
+      "damageResistances": "bludgeoning, piercing, slashing",
+      "conditionImmunities": "charmed, frightened, grappled, paralyzed, petrified, prone, restrained, stunned",
+      "senses": "blindsight 10 ft., passive Perception 10",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 390",
     "license": {
@@ -15059,7 +16070,11 @@
         "intelligence": 1,
         "wisdom": 7,
         "charisma": 2
-      }
+      },
+      "damageResistances": "bludgeoning, piercing, slashing",
+      "conditionImmunities": "charmed, frightened, grappled, paralyzed, petrified, prone, restrained, stunned",
+      "senses": "darkvision 60 ft., passive Perception 8",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 390",
     "license": {
@@ -15105,7 +16120,11 @@
         "intelligence": 2,
         "wisdom": 10,
         "charisma": 3
-      }
+      },
+      "damageResistances": "bludgeoning, piercing, slashing",
+      "conditionImmunities": "charmed, frightened, grappled, paralyzed, petrified, prone, restrained, stunned",
+      "senses": "darkvision 30 ft., passive Perception 10",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 390",
     "license": {
@@ -15152,7 +16171,12 @@
         "intelligence": 3,
         "wisdom": 12,
         "charisma": 6
-      }
+      },
+      "skills": "Perception +5",
+      "damageResistances": "bludgeoning, piercing, slashing",
+      "conditionImmunities": "charmed, frightened, grappled, paralyzed, petrified, prone, restrained, stunned",
+      "senses": "passive Perception 15",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 391",
     "license": {
@@ -15198,7 +16222,12 @@
         "intelligence": 3,
         "wisdom": 11,
         "charisma": 11
-      }
+      },
+      "savingThrows": "Int +5, Wis +9, Cha +9",
+      "damageImmunities": "fire, poison; bludgeoning, piercing, and slashing from nonmagical attacks",
+      "conditionImmunities": "charmed, frightened, paralyzed, poisoned",
+      "senses": "blindsight 120 ft., passive Perception 10",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 350",
     "license": {
@@ -15245,7 +16274,10 @@
         "intelligence": 10,
         "wisdom": 10,
         "charisma": 11
-      }
+      },
+      "skills": "Intimidation +2",
+      "senses": "passive Perception 10",
+      "languages": "any one language (usually Common)"
     },
     "source": "SRD 5.1 p. 402",
     "license": {
@@ -15291,7 +16323,10 @@
         "intelligence": 3,
         "wisdom": 12,
         "charisma": 8
-      }
+      },
+      "skills": "Perception +3, Stealth +6",
+      "senses": "darkvision 60 ft., passive Perception 13",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 391",
     "license": {
@@ -15337,7 +16372,11 @@
         "intelligence": 12,
         "wisdom": 16,
         "charisma": 12
-      }
+      },
+      "damageVulnerabilities": "fire",
+      "damageResistances": "bludgeoning, piercing",
+      "senses": "passive Perception 13",
+      "languages": "Common, Druidic, Elvish, Sylvan"
     },
     "source": "SRD 5.1 p. 351",
     "license": {
@@ -15384,7 +16423,9 @@
         "intelligence": 8,
         "wisdom": 11,
         "charisma": 8
-      }
+      },
+      "senses": "passive Perception 10",
+      "languages": "any one language"
     },
     "source": "SRD 5.1 p. 402",
     "license": {
@@ -15430,7 +16471,9 @@
         "intelligence": 2,
         "wisdom": 11,
         "charisma": 5
-      }
+      },
+      "senses": "passive Perception 10",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 279",
     "license": {
@@ -15476,7 +16519,10 @@
         "intelligence": 7,
         "wisdom": 9,
         "charisma": 7
-      }
+      },
+      "skills": "Perception +2",
+      "senses": "darkvision 60 ft., passive Perception 12",
+      "languages": "Giant"
     },
     "source": "SRD 5.1 p. 351",
     "license": {
@@ -15522,7 +16568,10 @@
         "intelligence": 2,
         "wisdom": 12,
         "charisma": 9
-      }
+      },
+      "skills": "Perception +4",
+      "senses": "passive Perception 14",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 279",
     "license": {
@@ -15568,7 +16617,11 @@
         "intelligence": 11,
         "wisdom": 17,
         "charisma": 16
-      }
+      },
+      "damageImmunities": "poison",
+      "conditionImmunities": "charmed, paralyzed, poisoned",
+      "senses": "darkvision 60 ft., passive Perception 13",
+      "languages": "Celestial, Elvish, Sylvan, telepathy 60 ft."
     },
     "source": "SRD 5.1 p. 351",
     "license": {
@@ -15614,7 +16667,12 @@
         "intelligence": 17,
         "wisdom": 15,
         "charisma": 18
-      }
+      },
+      "savingThrows": "Dex +9, Wis +7, Cha +9",
+      "skills": "Perception +7, Stealth +9",
+      "damageResistances": "necrotic; bludgeoning, piercing, and slashing from nonmagical attacks",
+      "senses": "darkvision 120 ft., passive Perception 17",
+      "languages": "the languages it knew in life"
     },
     "source": "SRD 5.1 p. 352",
     "license": {
@@ -15660,7 +16718,12 @@
         "intelligence": 11,
         "wisdom": 10,
         "charisma": 12
-      }
+      },
+      "savingThrows": "Dex +6, Wis +3",
+      "skills": "Perception +3, Stealth +6",
+      "damageResistances": "necrotic; bludgeoning, piercing, and slashing from nonmagical attacks",
+      "senses": "darkvision 60 ft., passive Perception 13",
+      "languages": "the languages it knew in life"
     },
     "source": "SRD 5.1 p. 354",
     "license": {
@@ -15707,7 +16770,10 @@
         "intelligence": 10,
         "wisdom": 11,
         "charisma": 10
-      }
+      },
+      "skills": "Athletics +5, Perception +2",
+      "senses": "passive Perception 12",
+      "languages": "any one language (usually Common)"
     },
     "source": "SRD 5.1 p. 403",
     "license": {
@@ -15753,7 +16819,10 @@
         "intelligence": 1,
         "wisdom": 3,
         "charisma": 1
-      }
+      },
+      "conditionImmunities": "blinded, deafened, frightened",
+      "senses": "blindsight 30 ft. (blind beyond this radius), passive Perception 6",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 309",
     "license": {
@@ -15800,7 +16869,13 @@
         "intelligence": 8,
         "wisdom": 13,
         "charisma": 8
-      }
+      },
+      "savingThrows": "Dex +5, Wis +4, Cha +2",
+      "damageResistances": "cold, fire, lightning; bludgeoning, piercing, and slashing from nonmagical attacks",
+      "damageImmunities": "poison",
+      "conditionImmunities": "poisoned",
+      "senses": "darkvision 120 ft., passive Perception 11",
+      "languages": "Abyssal, telepathy 120 ft."
     },
     "source": "SRD 5.1 p. 273",
     "license": {
@@ -15847,7 +16922,10 @@
         "intelligence": 2,
         "wisdom": 12,
         "charisma": 4
-      }
+      },
+      "skills": "Perception +3",
+      "senses": "passive Perception 13",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 392",
     "license": {
@@ -15893,7 +16971,9 @@
         "intelligence": 2,
         "wisdom": 12,
         "charisma": 7
-      }
+      },
+      "senses": "passive Perception 11",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 392",
     "license": {
@@ -15939,7 +17019,12 @@
         "intelligence": 2,
         "wisdom": 8,
         "charisma": 5
-      }
+      },
+      "damageVulnerabilities": "bludgeoning",
+      "damageImmunities": "poison",
+      "conditionImmunities": "exhaustion, poisoned",
+      "senses": "darkvision 60 ft., passive Perception 9",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 346",
     "license": {
@@ -15986,7 +17071,12 @@
         "intelligence": 5,
         "wisdom": 10,
         "charisma": 8
-      }
+      },
+      "damageResistances": "acid; bludgeoning, piercing, and slashing from nonmagical attacks",
+      "damageImmunities": "poison",
+      "conditionImmunities": "exhaustion, grappled, paralyzed, petrified, poisoned, prone, restrained, unconscious",
+      "senses": "darkvision 60 ft., passive Perception 10",
+      "languages": "Aquan"
     },
     "source": "SRD 5.1 p. 307",
     "license": {
@@ -16032,7 +17122,10 @@
         "intelligence": 2,
         "wisdom": 12,
         "charisma": 3
-      }
+      },
+      "skills": "Perception +3, Stealth +5",
+      "senses": "passive Perception 13",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 392",
     "license": {
@@ -16079,7 +17172,11 @@
         "intelligence": 11,
         "wisdom": 12,
         "charisma": 12
-      }
+      },
+      "skills": "Perception +7",
+      "damageImmunities": "bludgeoning, piercing, and slashing from nonmagical attacks not made with silvered weapons",
+      "senses": "passive Perception 17",
+      "languages": "Common (can’t speak in bear form)"
     },
     "source": "SRD 5.1 p. 326",
     "license": {
@@ -16125,7 +17222,11 @@
         "intelligence": 10,
         "wisdom": 11,
         "charisma": 8
-      }
+      },
+      "skills": "Perception +2",
+      "damageImmunities": "bludgeoning, piercing, and slashing from nonmagical attacks not made with silvered weapons",
+      "senses": "passive Perception 12",
+      "languages": "Common (can’t speak in boar form)"
     },
     "source": "SRD 5.1 p. 327",
     "license": {
@@ -16171,7 +17272,11 @@
         "intelligence": 11,
         "wisdom": 10,
         "charisma": 8
-      }
+      },
+      "skills": "Perception +2, Stealth +4",
+      "damageImmunities": "bludgeoning, piercing, and slashing from nonmagical attacks not made with silvered weapons",
+      "senses": "darkvision 60 ft. (rat form only), passive Perception 12",
+      "languages": "Common (can’t speak in rat form)"
     },
     "source": "SRD 5.1 p. 327",
     "license": {
@@ -16217,7 +17322,11 @@
         "intelligence": 10,
         "wisdom": 13,
         "charisma": 11
-      }
+      },
+      "skills": "Perception +5, Stealth +4",
+      "damageImmunities": "bludgeoning, piercing, and slashing from nonmagical attacks not made with silvered weapons",
+      "senses": "darkvision 60 ft., passive Perception 15",
+      "languages": "Common (can’t speak in tiger form)"
     },
     "source": "SRD 5.1 p. 328",
     "license": {
@@ -16263,7 +17372,11 @@
         "intelligence": 10,
         "wisdom": 11,
         "charisma": 10
-      }
+      },
+      "skills": "Perception +4, Stealth +3",
+      "damageImmunities": "bludgeoning, piercing, and slashing from nonmagical attacks not made with silvered weapons",
+      "senses": "passive Perception 14",
+      "languages": "Common (can’t speak in wolf form)"
     },
     "source": "SRD 5.1 p. 328",
     "license": {
@@ -16312,7 +17425,12 @@
         "intelligence": 5,
         "wisdom": 10,
         "charisma": 11
-      }
+      },
+      "savingThrows": "Dex +2, Con +4, Wis +2, Cha +2",
+      "skills": "Perception +4, Stealth +2",
+      "damageImmunities": "cold",
+      "senses": "blindsight 10 ft., darkvision 60 ft., passive Perception 14",
+      "languages": "Draconic"
     },
     "source": "SRD 5.1 p. 290",
     "license": {
@@ -16358,7 +17476,13 @@
         "intelligence": 10,
         "wisdom": 13,
         "charisma": 15
-      }
+      },
+      "skills": "Perception +3, Stealth +4",
+      "damageResistances": "necrotic; bludgeoning, piercing, and slashing from nonmagical attacks that aren’t silvered",
+      "damageImmunities": "poison",
+      "conditionImmunities": "exhaustion, poisoned",
+      "senses": "darkvision 60 ft., passive Perception 13",
+      "languages": "the languages it knew in life"
     },
     "source": "SRD 5.1 p. 354",
     "license": {
@@ -16405,7 +17529,12 @@
         "intelligence": 13,
         "wisdom": 14,
         "charisma": 11
-      }
+      },
+      "damageResistances": "acid, cold, fire, necrotic, thunder; bludgeoning, piercing, and slashing from nonmagical attacks",
+      "damageImmunities": "lightning, poison",
+      "conditionImmunities": "exhaustion, grappled, paralyzed, poisoned, prone, restrained, unconscious",
+      "senses": "darkvision 120 ft., passive Perception 12",
+      "languages": "the languages it knew in life"
     },
     "source": "SRD 5.1 p. 355",
     "license": {
@@ -16451,7 +17580,11 @@
         "intelligence": 7,
         "wisdom": 12,
         "charisma": 8
-      }
+      },
+      "skills": "Perception +5, Stealth +3",
+      "damageImmunities": "cold",
+      "senses": "passive Perception 15",
+      "languages": "Common, Giant, Winter Wolf"
     },
     "source": "SRD 5.1 p. 392",
     "license": {
@@ -16497,7 +17630,10 @@
         "intelligence": 3,
         "wisdom": 12,
         "charisma": 6
-      }
+      },
+      "skills": "Perception +3, Stealth +4",
+      "senses": "passive Perception 13",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 393",
     "license": {
@@ -16543,7 +17679,10 @@
         "intelligence": 7,
         "wisdom": 11,
         "charisma": 8
-      }
+      },
+      "skills": "Perception +4",
+      "senses": "darkvision 60 ft., passive Perception 14",
+      "languages": "Goblin, Worg"
     },
     "source": "SRD 5.1 p. 393",
     "license": {
@@ -16590,7 +17729,12 @@
         "intelligence": 12,
         "wisdom": 14,
         "charisma": 15
-      }
+      },
+      "damageResistances": "acid, cold, fire, lightning, thunder; bludgeoning, piercing, and slashing from nonmagical attacks that aren’t silvered",
+      "damageImmunities": "necrotic, poison",
+      "conditionImmunities": "charmed, exhaustion, grappled, paralyzed, petrified, poisoned, prone, restrained",
+      "senses": "darkvision 60 ft., passive Perception 12",
+      "languages": "the languages it knew in life"
     },
     "source": "SRD 5.1 p. 355",
     "license": {
@@ -16637,7 +17781,10 @@
         "intelligence": 5,
         "wisdom": 12,
         "charisma": 6
-      }
+      },
+      "skills": "Perception +4",
+      "senses": "darkvision 60 ft., passive Perception 14",
+      "languages": "—"
     },
     "source": "SRD 5.1 p. 356",
     "license": {
@@ -16684,7 +17831,11 @@
         "intelligence": 11,
         "wisdom": 10,
         "charisma": 11
-      }
+      },
+      "skills": "Perception +6, Stealth +3",
+      "damageResistances": "piercing and slashing from nonmagical attacks that aren’t adamantine",
+      "senses": "darkvision 60 ft., tremorsense 60 ft., passive Perception 16",
+      "languages": "Terran"
     },
     "source": "SRD 5.1 p. 356",
     "license": {
@@ -16732,7 +17883,12 @@
         "intelligence": 12,
         "wisdom": 11,
         "charisma": 15
-      }
+      },
+      "savingThrows": "Dex +5, Con +6, Wis +3, Cha +5",
+      "skills": "Perception +6, Stealth +5",
+      "damageImmunities": "acid",
+      "senses": "blindsight 30 ft., darkvision 120 ft., passive Perception 16",
+      "languages": "Common, Draconic"
     },
     "source": "SRD 5.1 p. 281",
     "license": {
@@ -16780,7 +17936,12 @@
         "intelligence": 14,
         "wisdom": 13,
         "charisma": 17
-      }
+      },
+      "savingThrows": "Dex +4, Con +8, Wis +5, Cha +7",
+      "skills": "Perception +9, Stealth +4",
+      "damageImmunities": "lightning",
+      "senses": "blindsight 30 ft., darkvision 120 ft., passive Perception 19",
+      "languages": "Common, Draconic"
     },
     "source": "SRD 5.1 p. 283",
     "license": {
@@ -16828,7 +17989,12 @@
         "intelligence": 12,
         "wisdom": 11,
         "charisma": 15
-      }
+      },
+      "savingThrows": "Dex +3, Con +6, Wis +3, Cha +5",
+      "skills": "Perception +6, Persuasion +5, Stealth +3",
+      "damageImmunities": "fire",
+      "senses": "blindsight 30 ft., darkvision 120 ft., passive Perception 16",
+      "languages": "Common, Draconic"
     },
     "source": "SRD 5.1 p. 292",
     "license": {
@@ -16876,7 +18042,12 @@
         "intelligence": 14,
         "wisdom": 13,
         "charisma": 17
-      }
+      },
+      "savingThrows": "Dex +3, Con +7, Wis +4, Cha +6",
+      "skills": "Insight +4, Perception +7, Stealth +3",
+      "damageImmunities": "lightning",
+      "senses": "blindsight 30 ft., darkvision 120 ft., passive Perception 17",
+      "languages": "Common, Draconic"
     },
     "source": "SRD 5.1 p. 295",
     "license": {
@@ -16924,7 +18095,12 @@
         "intelligence": 16,
         "wisdom": 13,
         "charisma": 15
-      }
+      },
+      "savingThrows": "Dex +4, Con +6, Wis +4, Cha +5",
+      "skills": "Deception +5, Perception +7, Stealth +4",
+      "damageImmunities": "acid",
+      "senses": "blindsight 30 ft., darkvision 120 ft., passive Perception 17",
+      "languages": "Common, Draconic"
     },
     "source": "SRD 5.1 p. 297",
     "license": {
@@ -16972,7 +18148,12 @@
         "intelligence": 16,
         "wisdom": 13,
         "charisma": 20
-      }
+      },
+      "savingThrows": "Dex +6, Con +9, Wis +5, Cha +9",
+      "skills": "Insight +5, Perception +9, Persuasion +9, Stealth +6",
+      "damageImmunities": "fire",
+      "senses": "blindsight 30 ft., darkvision 120 ft., passive Perception 19",
+      "languages": "Common, Draconic"
     },
     "source": "SRD 5.1 p. 300",
     "license": {
@@ -17020,7 +18201,13 @@
         "intelligence": 16,
         "wisdom": 13,
         "charisma": 15
-      }
+      },
+      "savingThrows": "Dex +4, Con +6, Wis +4, Cha +5",
+      "skills": "Deception +5, Perception +7, Stealth +4",
+      "damageImmunities": "poison",
+      "conditionImmunities": "poisoned",
+      "senses": "blindsight 30 ft., darkvision 120 ft., passive Perception 17",
+      "languages": "Common, Draconic"
     },
     "source": "SRD 5.1 p. 285",
     "license": {
@@ -17068,7 +18255,12 @@
         "intelligence": 14,
         "wisdom": 11,
         "charisma": 19
-      }
+      },
+      "savingThrows": "Dex +4, Con +9, Wis +4, Cha +8",
+      "skills": "Perception +8, Stealth +4",
+      "damageImmunities": "fire",
+      "senses": "blindsight 30 ft., darkvision 120 ft., passive Perception 18",
+      "languages": "Common, Draconic"
     },
     "source": "SRD 5.1 p. 288",
     "license": {
@@ -17115,7 +18307,12 @@
         "intelligence": 14,
         "wisdom": 11,
         "charisma": 19
-      }
+      },
+      "savingThrows": "Dex +4, Con +9, Wis +4, Cha +8",
+      "skills": "Arcana +6, History +6, Perception +8, Stealth +4",
+      "damageImmunities": "cold",
+      "senses": "blindsight 30 ft., darkvision 120 ft., passive Perception 18",
+      "languages": "Common, Draconic"
     },
     "source": "SRD 5.1 p. 303",
     "license": {
@@ -17164,7 +18361,12 @@
         "intelligence": 6,
         "wisdom": 11,
         "charisma": 12
-      }
+      },
+      "savingThrows": "Dex +3, Con +7, Wis +3, Cha +4",
+      "skills": "Perception +6, Stealth +3",
+      "damageImmunities": "cold",
+      "senses": "blindsight 30 ft., darkvision 120 ft., passive Perception 16",
+      "languages": "Common, Draconic"
     },
     "source": "SRD 5.1 p. 290",
     "license": {
@@ -17210,7 +18412,12 @@
         "intelligence": 3,
         "wisdom": 6,
         "charisma": 5
-      }
+      },
+      "savingThrows": "Wis +0",
+      "damageImmunities": "poison",
+      "conditionImmunities": "poisoned",
+      "senses": "darkvision 60 ft., passive Perception 8",
+      "languages": "understands the languages it knew in life but can’t speak"
     },
     "source": "SRD 5.1 p. 356",
     "license": {

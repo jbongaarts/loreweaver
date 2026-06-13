@@ -240,6 +240,18 @@ function validateDnd5eCreature(record: RulesRecord, path: string): void {
   ]) {
     reqInt(abilities, key, `${path}.data.abilityScores`, 1);
   }
+  // Optional keyed defensive / sense fields preserved verbatim from the stat
+  // block (eshyra-ez6v / eshyra-4a7.5). A creature carries only the labels the
+  // SRD prints for it, so each is optional; the required header stats above are
+  // unchanged (integer AC/HP, required CR).
+  optStr(data, 'savingThrows', `${path}.data`);
+  optStr(data, 'skills', `${path}.data`);
+  optStr(data, 'damageVulnerabilities', `${path}.data`);
+  optStr(data, 'damageResistances', `${path}.data`);
+  optStr(data, 'damageImmunities', `${path}.data`);
+  optStr(data, 'conditionImmunities', `${path}.data`);
+  optStr(data, 'senses', `${path}.data`);
+  optStr(data, 'languages', `${path}.data`);
 }
 
 // An abbreviated combat stat block defined INLINE under another entry — Avatar
