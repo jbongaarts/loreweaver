@@ -416,6 +416,31 @@ export interface CreatureAbilityScores {
 }
 
 /**
+ * One named entry in a creature stat block's narrative body — a trait, action,
+ * reaction, or legendary action (eshyra-yevt / eshyra-4a7.5). The `name` is the
+ * SRD's bold lead-in (including any usage parenthetical it prints, e.g.
+ * "Enslave (3/Day)", "Fire Breath (Recharge 5-6)"); `text` is the entry body
+ * with wrapped lines re-flowed and multi-paragraph entries joined on blank
+ * lines. Attack bonuses, damage expressions, save DCs, and recharge/usage text
+ * are preserved verbatim in `text` — nothing is discarded.
+ */
+export interface CreatureStatBlockEntry {
+  readonly name: string;
+  readonly text: string;
+}
+
+/**
+ * A creature's Legendary Actions section. The SRD prints an intro paragraph
+ * ("The aboleth can take 3 legendary actions, …") before the named options, so
+ * it is preserved as `description`; `entries` are the individual options
+ * (Detect, Tail Swipe, …). Only legendary creatures carry this (eshyra-yevt).
+ */
+export interface CreatureLegendaryActions {
+  readonly description?: string;
+  readonly entries: readonly CreatureStatBlockEntry[];
+}
+
+/**
  * A creature (monster) entry as extracted from the SRD source, before
  * conversion to a `kind=creature` `RulesRecord`. Mirrors the fields the
  * `dnd5e-srd` creature kindSchema requires (see `kindSchemas.ts`):
@@ -461,6 +486,14 @@ export interface CreatureExtraction {
   readonly conditionImmunities?: string;
   readonly senses?: string;
   readonly languages?: string;
+  // Narrative body sections after the keyed fields (eshyra-yevt / eshyra-4a7.5).
+  // Each is the SRD's bold-lead-in named entries, in source order; all optional
+  // because a stat block carries only the sections it prints (a simple beast may
+  // have only traits, a non-legendary creature no legendaryActions).
+  readonly traits?: readonly CreatureStatBlockEntry[];
+  readonly actions?: readonly CreatureStatBlockEntry[];
+  readonly reactions?: readonly CreatureStatBlockEntry[];
+  readonly legendaryActions?: CreatureLegendaryActions;
   /** 1-based page in the source PDF where the creature stat block begins. */
   readonly sourcePage: number;
 }

@@ -453,6 +453,63 @@ describe('creatureExtractionsToRecords — keyed defensive / sense fields', () =
     ]);
   });
 
+  it('emits narrative sections as {name,text} arrays and a legendary object', () => {
+    const aboleth: CreatureExtraction = {
+      ...ABOLETH,
+      traits: [{ name: 'Amphibious', text: 'It can breathe air and water.' }],
+      actions: [
+        { name: 'Multiattack', text: 'It makes three tentacle attacks.' },
+        { name: 'Enslave (3/Day)', text: 'It targets one creature.' },
+      ],
+      reactions: [{ name: 'Parry', text: 'It adds 2 to its AC.' }],
+      legendaryActions: {
+        description: 'It can take 3 legendary actions.',
+        entries: [{ name: 'Detect', text: 'It makes a Wisdom check.' }],
+      },
+    };
+    const data = creatureExtractionsToRecords([aboleth])[0].data as Record<
+      string,
+      unknown
+    >;
+    expect(data.traits).toEqual([
+      { name: 'Amphibious', text: 'It can breathe air and water.' },
+    ]);
+    expect(
+      (data.actions as Array<{ name: string }>).map((a) => a.name),
+    ).toEqual(['Multiattack', 'Enslave (3/Day)']);
+    expect(data.reactions).toEqual([
+      { name: 'Parry', text: 'It adds 2 to its AC.' },
+    ]);
+    expect(data.legendaryActions).toEqual({
+      description: 'It can take 3 legendary actions.',
+      entries: [{ name: 'Detect', text: 'It makes a Wisdom check.' }],
+    });
+    // Narrative sections follow the keyed fields in print order.
+    const keys = Object.keys(data);
+    expect(keys.slice(-4)).toEqual([
+      'traits',
+      'actions',
+      'reactions',
+      'legendaryActions',
+    ]);
+  });
+
+  it('emits a legendary-actions object without description when none is present', () => {
+    const creature: CreatureExtraction = {
+      ...ABOLETH,
+      legendaryActions: {
+        entries: [{ name: 'Detect', text: 'It makes a check.' }],
+      },
+    };
+    const data = creatureExtractionsToRecords([creature])[0].data as Record<
+      string,
+      unknown
+    >;
+    expect(data.legendaryActions).toEqual({
+      entries: [{ name: 'Detect', text: 'It makes a check.' }],
+    });
+  });
+
   it('omits keyed fields the creature does not carry (no empty keys)', () => {
     const beast: CreatureExtraction = {
       name: 'Black Bear',
