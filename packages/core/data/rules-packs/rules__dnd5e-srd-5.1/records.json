@@ -41950,6 +41950,89 @@
   {
     "systemId": "dnd5e-srd",
     "kind": "magic-item",
+    "key": "magic-item:figurine-of-wondrous-power",
+    "name": "Figurine of Wondrous Power",
+    "data": {
+      "itemType": "Wondrous item",
+      "rarity": "rarity by figurine",
+      "requiresAttunement": false,
+      "description": "A figurine of wondrous power is a statuette of a beast small enough to fit in a pocket. If you use an action to speak the command word and throw the figurine to a point on the ground within 60 feet of you, the figurine becomes a living creature. If the space where the creature would appear is occupied by other creatures or objects, or if there isn’t enough space for the creature, the figurine doesn’t become a creature. The creature is friendly to you and your companions. It understands your languages and obeys your spoken commands. If you issue no commands, the creature defends itself but takes no other actions. The creature exists for a duration specific to each figurine. At the end of the duration, the creature reverts to its figurine form. It reverts to a figurine early if it drops to 0 hit points or if you use an action to speak the command word again while touching it. When the creature becomes a figurine again, its property can’t be used again until a certain amount of time has passed, as specified in the figurine’s description. Bronze Griffon (Rare). This bronze statuette is of a griffon rampant. It can become a griffon for up to 6 hours. Once it has been used, it can’t be used again until 5 days have passed. Ebony Fly (Rare). This ebony statuette is carved in the likeness of a horsefly. It can become a giant fly for up to 12 hours and can be ridden as a mount. Once it has been used, it can’t be used again until 2 days have passed. Giant Fly Large beast, unaligned Armor Class 11 Hit Points 19 (3d10 + 3) Speed 30 ft., fly 60 ft. STR DEX CON INT WIS CHA 14 (+2) 13 (+1) 13 (+1) 2 (−4) 10 (+0) 3 (−4) Senses darkvision 60 ft., passive Perception 10 Languages — Golden Lions (Rare). These gold statuettes of lions are always created in pairs. You can use one figurine or both simultaneously. Each can become a lion for up to 1 hour. Once a lion has been used, it can’t be used again until 7 days have passed. Ivory Goats (Rare). These ivory statuettes of goats are always created in sets of three. Each goat looks unique and functions differently from the others. Their properties are as follows: • The goat of traveling can become a Large goat with the same statistics as a riding horse. It has 24 charges, and each hour or portion thereof it spends in beast form costs 1 charge. While it has charges, you can use it as often as you wish. When it runs out of charges, it reverts to a figurine and can’t be used again until 7 days have passed, when it regains all its charges. • The goat of travail becomes a giant goat for up to 3 hours. Once it has been used, it can’t be used again until 30 days have passed. • The goat of terror becomes a giant goat for up to 3 hours. The goat can’t attack, but you can remove its horns and use them as weapons. One horn becomes a +1 lance, and the other becomes a +2 longsword. Removing a horn requires an action, and the weapons disappear and the horns return when the goat reverts to figurine form. In addition, the goat radiates a 30-foot-radius aura of terror while you are riding it. Any creature hostile to you that starts its turn in the aura must succeed on a DC 15 Wisdom saving throw or be frightened of the goat for 1 minute, or until the goat reverts to figurine form. The frightened creature can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success. Once it successfully saves against the effect, a creature is immune to the goat’s aura for the next 24 hours. Once the figurine has been used, it can’t be used again until 15 days have passed. Marble Elephant (Rare). This marble statuette is about 4 inches high and long. It can become an elephant for up to 24 hours. Once it has been used, it can’t be used again until 7 days have passed. Obsidian Steed (Very Rare). This polished obsidian horse can become a nightmare for up to 24 hours. The nightmare fights only to defend itself. Once it has been used, it can’t be used again until 5 days have passed. If you have a good alignment, the figurine has a 10 percent chance each time you use it to ignore your orders, including a command to revert to figurine form. If you mount the nightmare while it is ignoring your orders, you and the nightmare are instantly transported to a random location on the plane of Hades, where the nightmare reverts to figurine form. Onyx Dog (Rare). This onyx statuette of a dog can become a mastiff for up to 6 hours. The mastiff has an Intelligence of 8 and can speak Common. It also has darkvision out to a range of 60 feet and can see invisible creatures and objects within that range. Once it has been used, it can’t be used again until 7 days have passed. Serpentine Owl (Rare). This serpentine statuette of an owl can become a giant owl for up to 8 hours. Once it has been used, it can’t be used again until 2 days have passed. The owl can telepathically communicate with you at any range if you and it are on the same plane of existence. Silver Raven (Uncommon). This silver statuette of a raven can become a raven for up to 12 hours. Once it has been used, it can’t be used again until 2 days have passed. While in raven form, the figurine allows you to cast the animal messenger spell on it at will.",
+      "variants": [
+        {
+          "name": "Bronze Griffon",
+          "rarity": "Rare",
+          "text": "This bronze statuette is of a griffon rampant. It can become a griffon for up to 6 hours. Once it has been used, it can’t be used again until 5 days have passed."
+        },
+        {
+          "name": "Ebony Fly",
+          "rarity": "Rare",
+          "text": "This ebony statuette is carved in the likeness of a horsefly. It can become a giant fly for up to 12 hours and can be ridden as a mount. Once it has been used, it can’t be used again until 2 days have passed."
+        },
+        {
+          "name": "Golden Lions",
+          "rarity": "Rare",
+          "text": "These gold statuettes of lions are always created in pairs. You can use one figurine or both simultaneously. Each can become a lion for up to 1 hour. Once a lion has been used, it can’t be used again until 7 days have passed."
+        },
+        {
+          "name": "Ivory Goats",
+          "rarity": "Rare",
+          "text": "These ivory statuettes of goats are always created in sets of three. Each goat looks unique and functions differently from the others. Their properties are as follows: • The goat of traveling can become a Large goat with the same statistics as a riding horse. It has 24 charges, and each hour or portion thereof it spends in beast form costs 1 charge. While it has charges, you can use it as often as you wish. When it runs out of charges, it reverts to a figurine and can’t be used again until 7 days have passed, when it regains all its charges. • The goat of travail becomes a giant goat for up to 3 hours. Once it has been used, it can’t be used again until 30 days have passed. • The goat of terror becomes a giant goat for up to 3 hours. The goat can’t attack, but you can remove its horns and use them as weapons. One horn becomes a +1 lance, and the other becomes a +2 longsword. Removing a horn requires an action, and the weapons disappear and the horns return when the goat reverts to figurine form. In addition, the goat radiates a 30-foot-radius aura of terror while you are riding it. Any creature hostile to you that starts its turn in the aura must succeed on a DC 15 Wisdom saving throw or be frightened of the goat for 1 minute, or until the goat reverts to figurine form. The frightened creature can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success. Once it successfully saves against the effect, a creature is immune to the goat’s aura for the next 24 hours. Once the figurine has been used, it can’t be used again until 15 days have passed."
+        },
+        {
+          "name": "Marble Elephant",
+          "rarity": "Rare",
+          "text": "This marble statuette is about 4 inches high and long. It can become an elephant for up to 24 hours. Once it has been used, it can’t be used again until 7 days have passed."
+        },
+        {
+          "name": "Obsidian Steed",
+          "rarity": "Very Rare",
+          "text": "This polished obsidian horse can become a nightmare for up to 24 hours. The nightmare fights only to defend itself. Once it has been used, it can’t be used again until 5 days have passed. If you have a good alignment, the figurine has a 10 percent chance each time you use it to ignore your orders, including a command to revert to figurine form. If you mount the nightmare while it is ignoring your orders, you and the nightmare are instantly transported to a random location on the plane of Hades, where the nightmare reverts to figurine form."
+        },
+        {
+          "name": "Onyx Dog",
+          "rarity": "Rare",
+          "text": "This onyx statuette of a dog can become a mastiff for up to 6 hours. The mastiff has an Intelligence of 8 and can speak Common. It also has darkvision out to a range of 60 feet and can see invisible creatures and objects within that range. Once it has been used, it can’t be used again until 7 days have passed."
+        },
+        {
+          "name": "Serpentine Owl",
+          "rarity": "Rare",
+          "text": "This serpentine statuette of an owl can become a giant owl for up to 8 hours. Once it has been used, it can’t be used again until 2 days have passed. The owl can telepathically communicate with you at any range if you and it are on the same plane of existence."
+        },
+        {
+          "name": "Silver Raven",
+          "rarity": "Uncommon",
+          "text": "This silver statuette of a raven can become a raven for up to 12 hours. Once it has been used, it can’t be used again until 2 days have passed. While in raven form, the figurine allows you to cast the animal messenger spell on it at will."
+        }
+      ],
+      "statBlockRefs": [
+        "stat-block:giant-fly"
+      ]
+    },
+    "source": "SRD 5.1 p. 221",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 221"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "magic-item",
     "key": "magic-item:flame-tongue",
     "name": "Flame Tongue",
     "data": {
@@ -69531,6 +69614,22 @@
       "languages": "all languages known to its summoner",
       "challengeRating": "—",
       "experiencePoints": 0,
+      "traits": [
+        {
+          "name": "Incorporeal Movement",
+          "text": "The avatar can move through other creatures and objects as if they were difficult terrain. It takes 5 (1d10) force damage if it ends its turn inside an object."
+        },
+        {
+          "name": "Turning Immunity",
+          "text": "The avatar is immune to features that turn undead."
+        }
+      ],
+      "actions": [
+        {
+          "name": "Reaping Scythe",
+          "text": "The avatar sweeps its spectral scythe through a creature within 5 feet of it, dealing 7 (1d8 + 3) slashing damage plus 4 (1d8) necrotic damage."
+        }
+      ],
       "inlineSource": {
         "containingItem": "Deck of Many Things",
         "page": 218
@@ -70331,6 +70430,167 @@
   {
     "systemId": "dnd5e-srd",
     "kind": "table",
+    "key": "table:apparatus-of-the-crab-levers",
+    "name": "Apparatus of the Crab Levers",
+    "data": {
+      "columns": [
+        "Lever",
+        "Up",
+        "Down"
+      ],
+      "rows": [
+        [
+          1,
+          "Legs and tail extend, allowing the apparatus to walk and swim.",
+          "Legs and tail retract, reducing the apparatus’s speed to 0 and making it unable to benefit from bonuses to speed."
+        ],
+        [
+          2,
+          "Forward window shutter opens.",
+          "Forward window shutter closes."
+        ],
+        [
+          3,
+          "Side window shutters open (two per side).",
+          "Side window shutters close (two per side)."
+        ],
+        [
+          4,
+          "Two claws extend from the front sides of the apparatus.",
+          "The claws retract."
+        ],
+        [
+          5,
+          "Each extended claw makes the following melee weapon attack: +8 to hit, reach 5 ft., one target. Hit: 7 (2d6) bludgeoning damage.",
+          "Each extended claw makes the following melee weapon attack: +8 to hit, reach 5 ft., one target. Hit: The target is grappled (escape DC 15)."
+        ],
+        [
+          6,
+          "The apparatus walks or swims forward.",
+          "The apparatus walks or swims backward."
+        ],
+        [
+          7,
+          "The apparatus turns 90 degrees left.",
+          "The apparatus turns 90 degrees right."
+        ],
+        [
+          8,
+          "Eyelike fixtures emit bright light in a 30-foot radius and dim light for an additional 30 feet.",
+          "The light turns off."
+        ],
+        [
+          9,
+          "The apparatus sinks as much as 20 feet in liquid.",
+          "The apparatus rises up to 20 feet in liquid."
+        ],
+        [
+          10,
+          "The rear hatch unseals and opens.",
+          "The rear hatch closes and seals."
+        ]
+      ]
+    },
+    "source": "SRD 5.1 p. 208",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 208"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "table",
+    "key": "table:armor-of-resistance",
+    "name": "Armor of Resistance",
+    "data": {
+      "columns": [
+        "d10",
+        "Damage Type"
+      ],
+      "rows": [
+        [
+          1,
+          "Acid"
+        ],
+        [
+          2,
+          "Cold"
+        ],
+        [
+          3,
+          "Fire"
+        ],
+        [
+          4,
+          "Force"
+        ],
+        [
+          5,
+          "Lightning"
+        ],
+        [
+          6,
+          "Necrotic"
+        ],
+        [
+          7,
+          "Poison"
+        ],
+        [
+          8,
+          "Psychic"
+        ],
+        [
+          9,
+          "Radiant"
+        ],
+        [
+          10,
+          "Thunder"
+        ]
+      ]
+    },
+    "source": "SRD 5.1 p. 209",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 209"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "table",
     "key": "table:bag-of-beans",
     "name": "Bag of Beans",
     "data": {
@@ -70470,6 +70730,138 @@
     "provenance": {
       "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
       "locator": "p. 211"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "table",
+    "key": "table:candle-of-invocation",
+    "name": "Candle of Invocation",
+    "data": {
+      "columns": [
+        "d20",
+        "Alignment"
+      ],
+      "rows": [
+        [
+          "1–2",
+          "Chaotic evil"
+        ],
+        [
+          "3–4",
+          "Chaotic neutral"
+        ],
+        [
+          "5–7",
+          "Chaotic good"
+        ],
+        [
+          "8–9",
+          "Neutral evil"
+        ],
+        [
+          "10–11",
+          "Neutral"
+        ],
+        [
+          "12–13",
+          "Neutral good"
+        ],
+        [
+          "14–15",
+          "Lawful evil"
+        ],
+        [
+          "16–17",
+          "Lawful neutral"
+        ],
+        [
+          "18–20",
+          "Lawful good"
+        ]
+      ]
+    },
+    "source": "SRD 5.1 p. 213",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 213"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "table",
+    "key": "table:carpet-of-flying",
+    "name": "Carpet of Flying",
+    "data": {
+      "columns": [
+        "d100",
+        "Size",
+        "Capacity",
+        "Flying Speed"
+      ],
+      "rows": [
+        [
+          "01–20",
+          "3 ft. × 5 ft.",
+          "200 lb.",
+          "80 feet"
+        ],
+        [
+          "21–55",
+          "4 ft. × 6 ft.",
+          "400 lb.",
+          "60 feet"
+        ],
+        [
+          "56–80",
+          "5 ft. × 7 ft.",
+          "600 lb.",
+          "40 feet"
+        ],
+        [
+          "81–100",
+          "6 ft. × 9 ft.",
+          "800 lb.",
+          "30 feet"
+        ]
+      ]
+    },
+    "source": "SRD 5.1 p. 213",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 213"
     }
   },
   {
@@ -71023,6 +71415,127 @@
   {
     "systemId": "dnd5e-srd",
     "kind": "table",
+    "key": "table:cube-of-force-charges-lost",
+    "name": "Cube of Force Charges Lost",
+    "data": {
+      "columns": [
+        "Spell or Item",
+        "Charges Lost"
+      ],
+      "rows": [
+        [
+          "Disintegrate",
+          "1d12"
+        ],
+        [
+          "Horn of blasting",
+          "1d10"
+        ],
+        [
+          "Passwall",
+          "1d6"
+        ],
+        [
+          "Prismatic spray",
+          "1d20"
+        ],
+        [
+          "Wall of fire",
+          "1d4"
+        ]
+      ]
+    },
+    "source": "SRD 5.1 p. 215",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 215"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "table",
+    "key": "table:cube-of-force-faces",
+    "name": "Cube of Force Faces",
+    "data": {
+      "columns": [
+        "Face",
+        "Charges",
+        "Effect"
+      ],
+      "rows": [
+        [
+          "1",
+          "1",
+          "Gases, wind, and fog can’t pass through the barrier."
+        ],
+        [
+          "2",
+          "2",
+          "Nonliving matter can’t pass through the barrier. Walls, floors, and ceilings can pass through at your discretion."
+        ],
+        [
+          "3",
+          "3",
+          "Living matter can’t pass through the barrier."
+        ],
+        [
+          "4",
+          "4",
+          "Spell effects can’t pass through the barrier."
+        ],
+        [
+          "5",
+          "5",
+          "Nothing can pass through the barrier. Walls, floors, and ceilings can pass through at your discretion."
+        ],
+        [
+          "6",
+          "0",
+          "The barrier deactivates."
+        ]
+      ]
+    },
+    "source": "SRD 5.1 p. 215",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 215"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "table",
     "key": "table:damage-severity-by-level",
     "name": "Damage Severity by Level",
     "data": {
@@ -71079,6 +71592,296 @@
     "provenance": {
       "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
       "locator": "p. 196"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "table",
+    "key": "table:deck-of-illusions",
+    "name": "Deck of Illusions",
+    "data": {
+      "columns": [
+        "Playing Card",
+        "Illusion"
+      ],
+      "rows": [
+        [
+          "Ace of hearts",
+          "Red dragon"
+        ],
+        [
+          "King of hearts",
+          "Knight and four guards"
+        ],
+        [
+          "Queen of hearts",
+          "Succubus or incubus"
+        ],
+        [
+          "Jack of hearts",
+          "Druid"
+        ],
+        [
+          "Ten of hearts",
+          "Cloud giant"
+        ],
+        [
+          "Nine of hearts",
+          "Ettin"
+        ],
+        [
+          "Eight of hearts",
+          "Bugbear"
+        ],
+        [
+          "Two of hearts",
+          "Goblin"
+        ],
+        [
+          "Ace of diamonds",
+          "Beholder"
+        ],
+        [
+          "King of diamonds",
+          "Archmage and mage apprentice"
+        ],
+        [
+          "Queen of diamonds",
+          "Night hag"
+        ],
+        [
+          "Jack of diamonds",
+          "Assassin"
+        ],
+        [
+          "Ten of diamonds",
+          "Fire giant"
+        ],
+        [
+          "Nine of diamonds",
+          "Ogre mage"
+        ],
+        [
+          "Eight of diamonds",
+          "Gnoll"
+        ],
+        [
+          "Two of diamonds",
+          "Kobold"
+        ],
+        [
+          "Ace of spades",
+          "Lich"
+        ],
+        [
+          "King of spades",
+          "Priest and two acolytes"
+        ],
+        [
+          "Queen of spades",
+          "Medusa"
+        ],
+        [
+          "Jack of spades",
+          "Veteran"
+        ],
+        [
+          "Ten of spades",
+          "Frost giant"
+        ],
+        [
+          "Nine of spades",
+          "Troll"
+        ],
+        [
+          "Eight of spades",
+          "Hobgoblin"
+        ],
+        [
+          "Two of spades",
+          "Goblin"
+        ],
+        [
+          "Ace of clubs",
+          "Iron golem"
+        ],
+        [
+          "King of clubs",
+          "Bandit captain and three bandits"
+        ],
+        [
+          "Queen of clubs",
+          "Erinyes"
+        ],
+        [
+          "Jack of clubs",
+          "Berserker"
+        ],
+        [
+          "Ten of clubs",
+          "Hill giant"
+        ],
+        [
+          "Nine of clubs",
+          "Ogre"
+        ],
+        [
+          "Eight of clubs",
+          "Orc"
+        ],
+        [
+          "Two of clubs",
+          "Kobold"
+        ],
+        [
+          "Jokers (2)",
+          "You (the deck’s owner)"
+        ]
+      ]
+    },
+    "source": "SRD 5.1 p. 216",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 216"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "table",
+    "key": "table:deck-of-many-things",
+    "name": "Deck of Many Things",
+    "data": {
+      "columns": [
+        "Playing Card",
+        "Card"
+      ],
+      "rows": [
+        [
+          "Ace of diamonds",
+          "Vizier*"
+        ],
+        [
+          "King of diamonds",
+          "Sun"
+        ],
+        [
+          "Queen of diamonds",
+          "Moon"
+        ],
+        [
+          "Jack of diamonds",
+          "Star"
+        ],
+        [
+          "Two of diamonds",
+          "Comet*"
+        ],
+        [
+          "Ace of hearts",
+          "The Fates*"
+        ],
+        [
+          "King of hearts",
+          "Throne"
+        ],
+        [
+          "Queen of hearts",
+          "Key"
+        ],
+        [
+          "Jack of hearts",
+          "Knight"
+        ],
+        [
+          "Two of hearts",
+          "Gem*"
+        ],
+        [
+          "Ace of clubs",
+          "Talons*"
+        ],
+        [
+          "King of clubs",
+          "The Void"
+        ],
+        [
+          "Queen of clubs",
+          "Flames"
+        ],
+        [
+          "Jack of clubs",
+          "Skull"
+        ],
+        [
+          "Two of clubs",
+          "Idiot*"
+        ],
+        [
+          "Ace of spades",
+          "Donjon*"
+        ],
+        [
+          "King of spades",
+          "Ruin"
+        ],
+        [
+          "Queen of spades",
+          "Euryale"
+        ],
+        [
+          "Jack of spades",
+          "Rogue"
+        ],
+        [
+          "Two of spades",
+          "Balance*"
+        ],
+        [
+          "Joker (with TM)",
+          "Fool*"
+        ],
+        [
+          "Joker (without TM)",
+          "Jester"
+        ]
+      ]
+    },
+    "source": "SRD 5.1 p. 217",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 217"
     }
   },
   {
@@ -71360,6 +72163,179 @@
   {
     "systemId": "dnd5e-srd",
     "kind": "table",
+    "key": "table:dragon-scale-mail",
+    "name": "Dragon Scale Mail",
+    "data": {
+      "columns": [
+        "Dragon",
+        "Resistance"
+      ],
+      "rows": [
+        [
+          "Black",
+          "Acid"
+        ],
+        [
+          "Blue",
+          "Lightning"
+        ],
+        [
+          "Brass",
+          "Fire"
+        ],
+        [
+          "Bronze",
+          "Lightning"
+        ],
+        [
+          "Copper",
+          "Acid"
+        ],
+        [
+          "Gold",
+          "Fire"
+        ],
+        [
+          "Green",
+          "Poison"
+        ],
+        [
+          "Red",
+          "Fire"
+        ],
+        [
+          "Silver",
+          "Cold"
+        ],
+        [
+          "White",
+          "Cold"
+        ]
+      ]
+    },
+    "source": "SRD 5.1 p. 219",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 219"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "table",
+    "key": "table:efreeti-bottle",
+    "name": "Efreeti Bottle",
+    "data": {
+      "columns": [
+        "d100",
+        "Effect"
+      ],
+      "rows": [
+        [
+          "01–10",
+          "The efreeti attacks you. After fighting for 5 rounds, the efreeti disappears, and the bottle loses its magic."
+        ],
+        [
+          "11–90",
+          "The efreeti serves you for 1 hour, doing as you command. Then the efreeti returns to the bottle, and a new stopper contains it. The stopper can’t be removed for 24 hours. The next two times the bottle is opened, the same effect occurs. If the bottle is opened a fourth time, the efreeti escapes and disappears, and the bottle loses its magic."
+        ],
+        [
+          "91–00",
+          "The efreeti can cast the wish spell three times for you. It disappears when it grants the final wish or after 1 hour, and the bottle loses its magic."
+        ]
+      ]
+    },
+    "source": "SRD 5.1 p. 220",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 220"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "table",
+    "key": "table:elemental-gem",
+    "name": "Elemental Gem",
+    "data": {
+      "columns": [
+        "Gem",
+        "Summoned Elemental"
+      ],
+      "rows": [
+        [
+          "Blue sapphire",
+          "Air elemental"
+        ],
+        [
+          "Yellow diamond",
+          "Earth elemental"
+        ],
+        [
+          "Red corundum",
+          "Fire elemental"
+        ],
+        [
+          "Emerald",
+          "Water elemental"
+        ]
+      ]
+    },
+    "source": "SRD 5.1 p. 220",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 220"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "table",
     "key": "table:exotic-languages",
     "name": "Exotic Languages",
     "data": {
@@ -71602,6 +72578,65 @@
     "provenance": {
       "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
       "locator": "p. 258"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "table",
+    "key": "table:feather-token",
+    "name": "Feather Token",
+    "data": {
+      "columns": [
+        "d100",
+        "Feather Token"
+      ],
+      "rows": [
+        [
+          "01–20",
+          "Anchor"
+        ],
+        [
+          "21–35",
+          "Bird"
+        ],
+        [
+          "36–50",
+          "Fan"
+        ],
+        [
+          "51–65",
+          "Swan boat"
+        ],
+        [
+          "66–90",
+          "Tree"
+        ],
+        [
+          "91–00",
+          "Whip"
+        ]
+      ]
+    },
+    "source": "SRD 5.1 p. 221",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 221"
     }
   },
   {
@@ -71910,6 +72945,67 @@
   {
     "systemId": "dnd5e-srd",
     "kind": "table",
+    "key": "table:horn-of-valhalla",
+    "name": "Horn of Valhalla",
+    "data": {
+      "columns": [
+        "d100",
+        "Horn Type",
+        "Berserkers Summoned",
+        "Requirement"
+      ],
+      "rows": [
+        [
+          "01–40",
+          "Silver",
+          "2d4 + 2",
+          "None"
+        ],
+        [
+          "41–75",
+          "Brass",
+          "3d4 + 3",
+          "Proficiency with all simple weapons"
+        ],
+        [
+          "76–90",
+          "Bronze",
+          "4d4 + 4",
+          "Proficiency with all medium armor"
+        ],
+        [
+          "91–00",
+          "Iron",
+          "5d4 + 5",
+          "Proficiency with all martial weapons"
+        ]
+      ]
+    },
+    "source": "SRD 5.1 p. 226",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 226"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "table",
     "key": "table:indefinite-madness",
     "name": "Indefinite Madness",
     "data": {
@@ -71988,6 +73084,121 @@
     "provenance": {
       "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
       "locator": "p. 202"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "table",
+    "key": "table:iron-flask",
+    "name": "Iron Flask",
+    "data": {
+      "columns": [
+        "d100",
+        "Contents"
+      ],
+      "rows": [
+        [
+          "01–50",
+          "Empty"
+        ],
+        [
+          "51–54",
+          "Demon (type 1)"
+        ],
+        [
+          "55–58",
+          "Demon (type 2)"
+        ],
+        [
+          "59–62",
+          "Demon (type 3)"
+        ],
+        [
+          "63–64",
+          "Demon (type 4)"
+        ],
+        [
+          "65",
+          "Demon (type 5)"
+        ],
+        [
+          "66",
+          "Demon (type 6)"
+        ],
+        [
+          "67",
+          "Deva"
+        ],
+        [
+          "68–69",
+          "Devil (greater)"
+        ],
+        [
+          "70–73",
+          "Devil (lesser)"
+        ],
+        [
+          "74–75",
+          "Djinni"
+        ],
+        [
+          "76–77",
+          "Efreeti"
+        ],
+        [
+          "78–83",
+          "Elemental (any)"
+        ],
+        [
+          "84–86",
+          "Invisible stalker"
+        ],
+        [
+          "87–90",
+          "Night hag"
+        ],
+        [
+          "91",
+          "Planetar"
+        ],
+        [
+          "92–95",
+          "Salamander"
+        ],
+        [
+          "96",
+          "Solar"
+        ],
+        [
+          "97–99",
+          "Succubus/incubus"
+        ],
+        [
+          "100",
+          "Xorn"
+        ]
+      ]
+    },
+    "source": "SRD 5.1 p. 228",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 228"
     }
   },
   {
@@ -72189,6 +73400,67 @@
     "provenance": {
       "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
       "locator": "p. 201"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "table",
+    "key": "table:manual-of-golems",
+    "name": "Manual of Golems",
+    "data": {
+      "columns": [
+        "d20",
+        "Golem",
+        "Time",
+        "Cost"
+      ],
+      "rows": [
+        [
+          "1–5",
+          "Clay",
+          "30 days",
+          "65,000 gp"
+        ],
+        [
+          "6–17",
+          "Flesh",
+          "60 days",
+          "50,000 gp"
+        ],
+        [
+          "18",
+          "Iron",
+          "120 days",
+          "100,000 gp"
+        ],
+        [
+          "19–20",
+          "Stone",
+          "90 days",
+          "80,000 gp"
+        ]
+      ]
+    },
+    "source": "SRD 5.1 p. 229",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 229"
     }
   },
   {
@@ -72643,6 +73915,72 @@
   {
     "systemId": "dnd5e-srd",
     "kind": "table",
+    "key": "table:necklace-of-prayer-beads",
+    "name": "Necklace of Prayer Beads",
+    "data": {
+      "columns": [
+        "d20",
+        "Bead of …",
+        "Spell"
+      ],
+      "rows": [
+        [
+          "1–6",
+          "Blessing",
+          "Bless"
+        ],
+        [
+          "7–12",
+          "Curing",
+          "Cure wounds (2nd level) or lesser restoration"
+        ],
+        [
+          "13–16",
+          "Favor",
+          "Greater restoration"
+        ],
+        [
+          "17–18",
+          "Smiting",
+          "Branding smite"
+        ],
+        [
+          "19",
+          "Summons",
+          "Planar ally"
+        ],
+        [
+          "20",
+          "Wind walking",
+          "Wind walk"
+        ]
+      ]
+    },
+    "source": "SRD 5.1 p. 231",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 231"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "table",
     "key": "table:oath-of-devotion-spells",
     "name": "Oath of Devotion Spells",
     "data": {
@@ -72878,6 +74216,81 @@
   {
     "systemId": "dnd5e-srd",
     "kind": "table",
+    "key": "table:potion-of-resistance",
+    "name": "Potion of Resistance",
+    "data": {
+      "columns": [
+        "d10",
+        "Damage Type"
+      ],
+      "rows": [
+        [
+          1,
+          "Acid"
+        ],
+        [
+          2,
+          "Cold"
+        ],
+        [
+          3,
+          "Fire"
+        ],
+        [
+          4,
+          "Force"
+        ],
+        [
+          5,
+          "Lightning"
+        ],
+        [
+          6,
+          "Necrotic"
+        ],
+        [
+          7,
+          "Poison"
+        ],
+        [
+          8,
+          "Psychic"
+        ],
+        [
+          9,
+          "Radiant"
+        ],
+        [
+          10,
+          "Thunder"
+        ]
+      ]
+    },
+    "source": "SRD 5.1 p. 235",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 235"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "table",
     "key": "table:potions-of-healing",
     "name": "Potions of Healing",
     "data": {
@@ -73105,6 +74518,143 @@
   {
     "systemId": "dnd5e-srd",
     "kind": "table",
+    "key": "table:ring-of-resistance",
+    "name": "Ring of Resistance",
+    "data": {
+      "columns": [
+        "d10",
+        "Damage Type",
+        "Gem"
+      ],
+      "rows": [
+        [
+          1,
+          "Acid",
+          "Pearl"
+        ],
+        [
+          2,
+          "Cold",
+          "Tourmaline"
+        ],
+        [
+          3,
+          "Fire",
+          "Garnet"
+        ],
+        [
+          4,
+          "Force",
+          "Sapphire"
+        ],
+        [
+          5,
+          "Lightning",
+          "Citrine"
+        ],
+        [
+          6,
+          "Necrotic",
+          "Jet"
+        ],
+        [
+          7,
+          "Poison",
+          "Amethyst"
+        ],
+        [
+          8,
+          "Psychic",
+          "Jade"
+        ],
+        [
+          9,
+          "Radiant",
+          "Topaz"
+        ],
+        [
+          10,
+          "Thunder",
+          "Spinel"
+        ]
+      ]
+    },
+    "source": "SRD 5.1 p. 237",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 237"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "table",
+    "key": "table:ring-of-shooting-stars",
+    "name": "Ring of Shooting Stars",
+    "data": {
+      "columns": [
+        "Spheres",
+        "Lightning Damage"
+      ],
+      "rows": [
+        [
+          4,
+          "2d4"
+        ],
+        [
+          3,
+          "2d6"
+        ],
+        [
+          2,
+          "5d4"
+        ],
+        [
+          1,
+          "4d12"
+        ]
+      ]
+    },
+    "source": "SRD 5.1 p. 237",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 237"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "table",
     "key": "table:robe-of-useful-items",
     "name": "Robe of Useful Items",
     "data": {
@@ -73254,6 +74804,250 @@
     "provenance": {
       "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
       "locator": "p. 211"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "table",
+    "key": "table:sentient-magic-item-alignment",
+    "name": "Sentient Magic Item Alignment",
+    "data": {
+      "columns": [
+        "d100",
+        "Alignment"
+      ],
+      "rows": [
+        [
+          "01–15",
+          "Lawful good"
+        ],
+        [
+          "16–35",
+          "Neutral good"
+        ],
+        [
+          "36–50",
+          "Chaotic good"
+        ],
+        [
+          "51–63",
+          "Lawful neutral"
+        ],
+        [
+          "64–73",
+          "Neutral"
+        ],
+        [
+          "74–85",
+          "Chaotic neutral"
+        ],
+        [
+          "86–89",
+          "Lawful evil"
+        ],
+        [
+          "90–96",
+          "Neutral evil"
+        ],
+        [
+          "97–00",
+          "Chaotic evil"
+        ]
+      ]
+    },
+    "source": "SRD 5.1 p. 251",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 251"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "table",
+    "key": "table:sentient-magic-item-communication",
+    "name": "Sentient Magic Item Communication",
+    "data": {
+      "columns": [
+        "d100",
+        "Communication"
+      ],
+      "rows": [
+        [
+          "01–60",
+          "The item communicates by transmitting emotion to the creature carrying or wielding it."
+        ],
+        [
+          "61–90",
+          "The item can speak, read, and understand one or more languages."
+        ],
+        [
+          "91–00",
+          "The item can speak, read, and understand one or more languages. In addition, the item can communicate telepathically with any character that carries or wields it."
+        ]
+      ]
+    },
+    "source": "SRD 5.1 p. 251",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 251"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "table",
+    "key": "table:sentient-magic-item-senses",
+    "name": "Sentient Magic Item Senses",
+    "data": {
+      "columns": [
+        "d4",
+        "Senses"
+      ],
+      "rows": [
+        [
+          1,
+          "Hearing and normal vision out to 30 feet."
+        ],
+        [
+          2,
+          "Hearing and normal vision out to 60 feet"
+        ],
+        [
+          3,
+          "Hearing and normal vision out to 120 feet."
+        ],
+        [
+          4,
+          "Hearing and darkvision out to 120 feet."
+        ]
+      ]
+    },
+    "source": "SRD 5.1 p. 251",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 251"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "table",
+    "key": "table:sentient-magic-item-special-purpose",
+    "name": "Sentient Magic Item Special Purpose",
+    "data": {
+      "columns": [
+        "d10",
+        "Purpose"
+      ],
+      "rows": [
+        [
+          "1",
+          "Aligned: The item seeks to defeat or destroy those of a diametrically opposed alignment. (Such an item is never neutral.)"
+        ],
+        [
+          "2",
+          "Bane: The item seeks to defeat or destroy creatures of a particular kind, such as fiends, shapechangers, trolls, or wizards."
+        ],
+        [
+          "3",
+          "Protector: The item seeks to defend a particular race or kind of creature, such as elves or druids."
+        ],
+        [
+          "4",
+          "Crusader: The item seeks to defeat, weaken, or destroy the servants of a particular deity."
+        ],
+        [
+          "5",
+          "Templar: The item seeks to defend the servants and interests of a particular deity."
+        ],
+        [
+          "6",
+          "Destroyer: The item craves destruction and goads its user to fight arbitrarily."
+        ],
+        [
+          "7",
+          "Glory Seeker: The item seeks renown as the greatest magic item in the world, by establishing its user as a famous or notorious figure."
+        ],
+        [
+          "8",
+          "Lore Seeker: The item craves knowledge or is determined to solve a mystery, learn a secret, or unravel a cryptic prophecy."
+        ],
+        [
+          "9",
+          "Destiny Seeker: The item is convinced that it and its wielder have key roles to play in future events."
+        ],
+        [
+          "10",
+          "Creator Seeker: The item seeks its creator and wants to understand why it was created."
+        ]
+      ]
+    },
+    "source": "SRD 5.1 p. 252",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 252"
     }
   },
   {
@@ -73458,6 +75252,244 @@
     "provenance": {
       "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
       "locator": "p. 254"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "table",
+    "key": "table:spell-scroll",
+    "name": "Spell Scroll",
+    "data": {
+      "columns": [
+        "Spell Level",
+        "Rarity",
+        "Save DC",
+        "Attack Bonus"
+      ],
+      "rows": [
+        [
+          "Cantrip",
+          "Common",
+          13,
+          "+5"
+        ],
+        [
+          "1st",
+          "Common",
+          13,
+          "+5"
+        ],
+        [
+          "2nd",
+          "Uncommon",
+          13,
+          "+5"
+        ],
+        [
+          "3rd",
+          "Uncommon",
+          15,
+          "+7"
+        ],
+        [
+          "4th",
+          "Rare",
+          15,
+          "+7"
+        ],
+        [
+          "5th",
+          "Rare",
+          17,
+          "+9"
+        ],
+        [
+          "6th",
+          "Very rare",
+          17,
+          "+9"
+        ],
+        [
+          "7th",
+          "Very rare",
+          18,
+          "+10"
+        ],
+        [
+          "8th",
+          "Very rare",
+          18,
+          "+10"
+        ],
+        [
+          "9th",
+          "Legendary",
+          19,
+          "+11"
+        ]
+      ]
+    },
+    "source": "SRD 5.1 p. 242",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 242"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "table",
+    "key": "table:sphere-of-annihilation",
+    "name": "Sphere of Annihilation",
+    "data": {
+      "columns": [
+        "d100",
+        "Result"
+      ],
+      "rows": [
+        [
+          "01–50",
+          "The sphere is destroyed."
+        ],
+        [
+          "51–85",
+          "The sphere moves through the portal or into the extradimensional space."
+        ],
+        [
+          "86–00",
+          "A spatial rift sends each creature and object within 180 feet of the sphere, including the sphere, to a random plane of existence."
+        ]
+      ]
+    },
+    "source": "SRD 5.1 p. 243",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 243"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "table",
+    "key": "table:staff-of-power",
+    "name": "Staff of Power",
+    "data": {
+      "columns": [
+        "Distance from Origin",
+        "Damage"
+      ],
+      "rows": [
+        [
+          "10 ft. away or closer",
+          "8 × the number of charges in the staff"
+        ],
+        [
+          "11 to 20 ft. away",
+          "6 × the number of charges in the staff"
+        ],
+        [
+          "21 to 30 ft. away",
+          "4 × the number of charges in the staff"
+        ]
+      ]
+    },
+    "source": "SRD 5.1 p. 244",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 244"
+    }
+  },
+  {
+    "systemId": "dnd5e-srd",
+    "kind": "table",
+    "key": "table:staff-of-the-magi",
+    "name": "Staff of the Magi",
+    "data": {
+      "columns": [
+        "Distance from Origin",
+        "Damage"
+      ],
+      "rows": [
+        [
+          "10 ft. away or closer",
+          "8 × the number of charges in the staff"
+        ],
+        [
+          "11 to 20 ft. away",
+          "6 × the number of charges in the staff"
+        ],
+        [
+          "21 to 30 ft. away",
+          "4 × the number of charges in the staff"
+        ]
+      ]
+    },
+    "source": "SRD 5.1 p. 245",
+    "license": {
+      "licenseClass": "open",
+      "licenseName": "Creative Commons Attribution 4.0 International",
+      "attributionText": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+      "requiresAttribution": true,
+      "commercialUseAllowed": true,
+      "hostedUseAllowed": true,
+      "redistributionAllowed": true,
+      "publicSharingAllowed": true,
+      "derivativeAllowed": true,
+      "containsUserSuppliedText": false,
+      "containsTrademarkedSettingMaterial": false,
+      "sourceMaterialDescription": "System Reference Document 5.1 at https://dnd.wizards.com/resources/systems-reference-document",
+      "provenancePolicy": "Every record names the SRD page it was extracted from.",
+      "outputRestrictions": "Preserve the SRD 5.1 attribution text on redistributed records and derivatives."
+    },
+    "provenance": {
+      "sourceRef": "https://dnd.wizards.com/resources/systems-reference-document",
+      "locator": "p. 245"
     }
   },
   {

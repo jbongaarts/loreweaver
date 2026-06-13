@@ -46,6 +46,7 @@ function dedupe(values: readonly string[]): readonly string[] {
  * source truth so a regression that dropped it is still caught.
  */
 export const SRD_5_1_SOURCE_MAGIC_ITEM_GAPS: readonly string[] = [
+  'Figurine of Wondrous Power',
   'Orb of Dragonkind',
 ];
 
@@ -105,6 +106,33 @@ export const SRD_5_1_SOURCE_TABLE_GAPS: readonly string[] = [
   'Tan Bag of Tricks',
   'The Barbarian',
   'Wand of Wonder',
+  'Apparatus of the Crab Levers',
+  'Armor of Resistance',
+  'Candle of Invocation',
+  'Carpet of Flying',
+  'Cube of Force Charges Lost',
+  'Cube of Force Faces',
+  'Deck of Illusions',
+  'Deck of Many Things',
+  'Dragon Scale Mail',
+  'Efreeti Bottle',
+  'Elemental Gem',
+  'Feather Token',
+  'Horn of Valhalla',
+  'Iron Flask',
+  'Manual of Golems',
+  'Necklace of Prayer Beads',
+  'Potion of Resistance',
+  'Ring of Resistance',
+  'Ring of Shooting Stars',
+  'Sentient Magic Item Alignment',
+  'Sentient Magic Item Communication',
+  'Sentient Magic Item Senses',
+  'Sentient Magic Item Special Purpose',
+  'Spell Scroll',
+  'Sphere of Annihilation',
+  'Staff of Power',
+  'Staff of the Magi',
 ];
 
 /**

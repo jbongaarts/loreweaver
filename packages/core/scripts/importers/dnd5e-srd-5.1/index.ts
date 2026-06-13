@@ -614,15 +614,15 @@ export const EXPECTED_SRD_5_1_POISON_NAMES: readonly string[] = [
 ];
 
 /**
- * Reviewed count for the vendored SRD 5.1 magic items: the 238 entries in the
+ * Reviewed count for the vendored SRD 5.1 magic items: the 239 entries in the
  * "Magic Items A-Z" section plus the lone "Artifacts"-subsection entry, Orb of
- * Dragonkind (eshyra-0m9.16), for 239 total. The real import is gated on the
+ * Dragonkind (eshyra-0m9.16), for 240 total. The real import is gated on the
  * stronger exact name set below (`EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES`), whose
  * length a test cross-checks against this constant so the two cannot drift. It
  * remains a coarse opt-in floor (`minMagicItemCount`) for fixture pipelines that
  * exercise a reduced Magic Items section without the full name set.
  */
-export const MIN_EXPECTED_SRD_5_1_MAGIC_ITEMS = 239;
+export const MIN_EXPECTED_SRD_5_1_MAGIC_ITEMS = 240;
 
 /**
  * Reviewed, checked-in SRD 5.1 Magic Items A-Z name-set baseline
@@ -706,6 +706,7 @@ export const EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES: readonly string[] = [
   'Eyes of Minute Seeing',
   'Eyes of the Eagle',
   'Feather Token',
+  'Figurine of Wondrous Power',
   'Flame Tongue',
   'Folding Boat',
   'Frost Brand',
@@ -899,12 +900,9 @@ export const EXPECTED_SRD_5_1_STAT_BLOCK_NAMES: readonly string[] = [
  * Reviewed map from each inline stat block to the SRD entry it is printed under
  * (eshyra-4a7.4). `parseStatBlocks` requires every emitted block to appear here,
  * so a novel inline block fails closed for review. The containing item also
- * gains a `data.statBlockRefs` pointer — but only when that item is itself
- * emitted: Deck of Many Things IS an emitted magic item, so its reference is
- * wired now; Figurine of Wondrous Power is still swallowed by Feather Token and
- * owned by eshyra-4a7.8, so the Giant Fly record + provenance land now while the
- * Figurine -> Giant Fly reference is deferred to 4a7.8 (required before the 4a7
- * epic line closes).
+ * gains a `data.statBlockRefs` pointer. Both Deck of Many Things and Figurine
+ * of Wondrous Power are emitted magic items, so their inline stat blocks are
+ * linked from the containing records.
  */
 export const SRD_5_1_STAT_BLOCK_CONTAINING_ITEMS: ReadonlyMap<string, string> =
   new Map([
@@ -1351,6 +1349,36 @@ export const EXPECTED_SRD_5_1_TABLE_NAMES: readonly string[] = [
   'Tan Bag of Tricks',
   'The Barbarian',
   'Wand of Wonder',
+  // Magic Items chapter embedded tables (eshyra-4a7.8). Names are
+  // the printed caption when present; caption-less tables use their owning
+  // item, and sentient-item construction tables are parent-qualified.
+  'Apparatus of the Crab Levers',
+  'Armor of Resistance',
+  'Candle of Invocation',
+  'Carpet of Flying',
+  'Cube of Force Charges Lost',
+  'Cube of Force Faces',
+  'Deck of Illusions',
+  'Deck of Many Things',
+  'Dragon Scale Mail',
+  'Efreeti Bottle',
+  'Elemental Gem',
+  'Feather Token',
+  'Horn of Valhalla',
+  'Iron Flask',
+  'Manual of Golems',
+  'Necklace of Prayer Beads',
+  'Potion of Resistance',
+  'Ring of Resistance',
+  'Ring of Shooting Stars',
+  'Sentient Magic Item Alignment',
+  'Sentient Magic Item Communication',
+  'Sentient Magic Item Senses',
+  'Sentient Magic Item Special Purpose',
+  'Spell Scroll',
+  'Sphere of Annihilation',
+  'Staff of Power',
+  'Staff of the Magi',
 ];
 
 /**

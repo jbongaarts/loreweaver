@@ -36,6 +36,12 @@ const AVATAR_OF_DEATH_LINES = [
   'Senses darkvision 60 ft., truesight 60 ft., passive Perception 13',
   'Languages all languages known to its summoner',
   'Challenge — (0 XP)',
+  'Incorporeal Movement. The avatar can move through other creatures and objects as if they were difficult terrain.',
+  'It takes 5 (1d10) force damage if it ends its turn inside an object.',
+  'Turning Immunity. The avatar is immune to features that turn undead.',
+  'Actions',
+  'Reaping Scythe. The avatar sweeps its spectral scythe through a creature within 5 feet of it, dealing 7 (1d8 +',
+  '3) slashing damage plus 4 (1d8) necrotic damage.',
 ];
 
 // Giant Fly (SRD p222, inside the Figurine of Wondrous Power). Abbreviated: a
@@ -95,6 +101,22 @@ describe('parseStatBlocks', () => {
     // The "—" CR token is preserved verbatim with its XP, not dropped.
     expect(avatar.challengeRating).toBe('—');
     expect(avatar.experiencePoints).toBe(0);
+    expect(avatar.traits).toEqual([
+      {
+        name: 'Incorporeal Movement',
+        text: 'The avatar can move through other creatures and objects as if they were difficult terrain. It takes 5 (1d10) force damage if it ends its turn inside an object.',
+      },
+      {
+        name: 'Turning Immunity',
+        text: 'The avatar is immune to features that turn undead.',
+      },
+    ]);
+    expect(avatar.actions).toEqual([
+      {
+        name: 'Reaping Scythe',
+        text: 'The avatar sweeps its spectral scythe through a creature within 5 feet of it, dealing 7 (1d8 + 3) slashing damage plus 4 (1d8) necrotic damage.',
+      },
+    ]);
     expect(avatar.speed).toEqual({ walk: 60, fly: 60 });
     expect(avatar.abilityScores).toEqual({
       strength: 16,

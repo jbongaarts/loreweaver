@@ -520,19 +520,50 @@ const CIRCLE_OF_THE_LAND_TABLE_TERRAINS: ReadonlyArray<
 ];
 
 /**
- * Caption-less magic-item tables emitted under their owning item's name
- * (eshyra-4a7.3): each surfaces in the inventory as a `table-shape` run whose
- * text is its column-header line, located by the owning item heading the
- * inventory records as `context`.
+ * Magic-item tables emitted from reviewed document-wide specifications
+ * (eshyra-4a7.3, eshyra-4a7.8). Each surfaces in the inventory as a table
+ * structure whose text is either its printed caption or its column-header
+ * line, located by the owning item heading recorded as `context`.
  */
-const CAPTIONLESS_MAGIC_ITEM_TABLE_RECORDS: ReadonlyArray<
-  readonly [string, string]
+const MAGIC_ITEM_TABLE_INVENTORY_RECORDS: ReadonlyArray<
+  readonly [page: number, text: string, key: string]
 > = [
-  ['Belt of Giant Strength', 'table:belt-of-giant-strength'],
-  ['Potion of Giant Strength', 'table:potion-of-giant-strength'],
-  ['Bag of Beans', 'table:bag-of-beans'],
-  ['Robe of Useful Items', 'table:robe-of-useful-items'],
-  ['Wand of Wonder', 'table:wand-of-wonder'],
+  [208, 'Apparatus of the Crab Levers', 'table:apparatus-of-the-crab-levers'],
+  [209, 'd10 Damage Type d10 Damage Type', 'table:armor-of-resistance'],
+  [209, 'd100 Effect', 'table:bag-of-beans'],
+  [210, 'Gray Bag of Tricks', 'table:gray-bag-of-tricks'],
+  [211, 'Rust Bag of Tricks', 'table:rust-bag-of-tricks'],
+  [211, 'Tan Bag of Tricks', 'table:tan-bag-of-tricks'],
+  [211, 'Type Strength Rarity', 'table:belt-of-giant-strength'],
+  [213, 'd20 Alignment', 'table:candle-of-invocation'],
+  [213, 'd100 Size Capacity Flying Speed', 'table:carpet-of-flying'],
+  [215, 'Cube of Force Faces', 'table:cube-of-force-faces'],
+  [215, 'Spell or Item Charges Lost', 'table:cube-of-force-charges-lost'],
+  [216, 'Playing Card Illusion', 'table:deck-of-illusions'],
+  [217, 'Playing Card Card', 'table:deck-of-many-things'],
+  [219, 'Dragon Resistance Dragon Resistance', 'table:dragon-scale-mail'],
+  [220, 'd100 Effect', 'table:efreeti-bottle'],
+  [220, 'Gem Summoned Elemental', 'table:elemental-gem'],
+  [221, 'd100 Feather Token d100 Feather Token', 'table:feather-token'],
+  [226, 'd100 Horn Berserkers Requirement', 'table:horn-of-valhalla'],
+  [228, 'd100 Contents', 'table:iron-flask'],
+  [229, 'd20 Golem Time Cost', 'table:manual-of-golems'],
+  [231, 'd20 Bead of … Spell', 'table:necklace-of-prayer-beads'],
+  [234, 'Type of Giant Strength Rarity', 'table:potion-of-giant-strength'],
+  [234, 'Potions of Healing', 'table:potions-of-healing'],
+  [235, 'd10 Damage Type d10 Damage Type', 'table:potion-of-resistance'],
+  [237, 'd10 Damage Type Gem', 'table:ring-of-resistance'],
+  [237, 'Spheres Lightning Damage', 'table:ring-of-shooting-stars'],
+  [239, 'd100 Patch', 'table:robe-of-useful-items'],
+  [242, 'Spell Scroll', 'table:spell-scroll'],
+  [243, 'd100 Result', 'table:sphere-of-annihilation'],
+  [244, 'Distance from Origin Damage', 'table:staff-of-power'],
+  [245, 'Distance from Origin Damage', 'table:staff-of-the-magi'],
+  [250, 'd100 Effect', 'table:wand-of-wonder'],
+  [251, 'd100 Communication', 'table:sentient-magic-item-communication'],
+  [251, 'd4 Senses', 'table:sentient-magic-item-senses'],
+  [251, 'd100 Alignment d100 Alignment', 'table:sentient-magic-item-alignment'],
+  [252, 'd10 Purpose', 'table:sentient-magic-item-special-purpose'],
 ];
 
 /**
@@ -616,10 +647,10 @@ export const SRD_5_1_COVERAGE_RULES: readonly CoverageRule[] = [
         i.text === terrain,
     ),
   ),
-  ...CAPTIONLESS_MAGIC_ITEM_TABLE_RECORDS.map(([itemHeading, key]) =>
+  ...MAGIC_ITEM_TABLE_INVENTORY_RECORDS.map(([page, text, key]) =>
     recordRule(
       key,
-      (i) => i.structure === 'table-shape' && i.context === itemHeading,
+      (i) => i.section === 'Magic Items' && i.page === page && i.text === text,
     ),
   ),
   // "<Race> Traits" subsection headings — traits are child data on the
@@ -627,9 +658,6 @@ export const SRD_5_1_COVERAGE_RULES: readonly CoverageRule[] = [
   ...RACE_TRAIT_HEADINGS.map(([heading, key]) =>
     childOfRule(key, (i) => i.section === 'Races' && i.text === heading),
   ),
-  // Figurine of Wondrous Power is currently swallowed by Feather Token; the
-  // magic-item boundary bead emits it as its own record.
-  knownGapRule('eshyra-4a7.8', (i) => i.text === 'Figurine of Wondrous Power'),
   // Embedded stat blocks outside the monster chapters (Avatar of Death p218,
   // Giant Fly p222) are now emitted as `stat-block` records (eshyra-4a7.4), so
   // the name auto-match claims their `structure: 'stat-block'` inventory items —
@@ -708,23 +736,6 @@ export const SRD_5_1_COVERAGE_RULES: readonly CoverageRule[] = [
       i.section === 'Equipment' &&
       (EQUIPMENT_ROWS_AS_RECORDS_CAPTIONS.has(i.text) ||
         i.structure === 'table-shape'),
-  ),
-  // Remaining Magic-Items-chapter embedded tables (eshyra-4a7.3 emitted the
-  // representative set — Bags of Tricks, Giant Strength varieties, Potions of
-  // Healing, Bag of Beans, Robe of Useful Items, Wand of Wonder, all claimed
-  // above by auto-match or the caption-less record rules before this rule):
-  // option/dice tables still flattened into their item descriptions
-  // (Apparatus of the Crab Levers, Cube of Force Faces, Deck of
-  // Illusions/Many Things cards, Dragon Scale Mail, Carpet of Flying, Feather
-  // Token, Horn of Valhalla, Iron Flask, Manual of Golems, Necklace of Prayer
-  // Beads, resistance tables, Staff retributive-strike tables, scroll-mishap
-  // table) plus the four sentient-item property tables (p251-252). The
-  // magic-item embedded-content bead owns their structured representation.
-  knownGapRule(
-    'eshyra-4a7.8',
-    (i) =>
-      i.section === 'Magic Items' &&
-      (i.structure === 'table-caption' || i.structure === 'table-shape'),
   ),
   // Spell-embedded tables (Animated Object Statistics p116, Confusion d10
   // Behavior p127, Control Weather Precipitation/Temperature/Wind p131,

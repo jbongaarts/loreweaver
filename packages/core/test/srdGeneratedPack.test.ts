@@ -179,9 +179,10 @@ const EXPECTED_COUNTS_BY_KIND: Readonly<Record<string, number>> = {
   // environmental hazards. Traps carry a `trapType` discriminator; diseases and
   // poisons carry `data.category` ('disease' / 'poison').
   hazard: 25,
-  // 238 Magic Items A-Z entries plus Orb of Dragonkind from the Artifacts
-  // subsection (eshyra-0m9.16).
-  'magic-item': 239,
+  // 239 Magic Items A-Z entries plus Orb of Dragonkind from the Artifacts
+  // subsection. Figurine of Wondrous Power is no longer swallowed by Feather
+  // Token (eshyra-4a7.8).
+  'magic-item': 240,
   // Nesting-aware core-rules parse: one rule per heading across the Using
   // Ability Scores, Adventuring, and Combat chapters (loreweaver-yli, 127),
   // plus 34 general Spellcasting rules, five Madness/Objects rules, five
@@ -235,7 +236,9 @@ const EXPECTED_COUNTS_BY_KIND: Readonly<Record<string, number>> = {
   // Armor, and nine representative magic-item tables (Gray/Rust/Tan Bag of
   // Tricks, Belt/Potion of Giant Strength, Potions of Healing, Bag of Beans,
   // Robe of Useful Items, Wand of Wonder).
-  table: 53,
+  // 53 -> 80 (eshyra-4a7.8): every remaining Magic Items chapter option,
+  // variety, card, dice-result, and sentient-item construction table.
+  table: 80,
 };
 
 /**
@@ -274,6 +277,7 @@ const EXPECTED_STABLE_KEYS: readonly string[] = [
   'magic-item:adamantine-armor',
   'magic-item:ammunition-1-2-or-3',
   'magic-item:amulet-of-health',
+  'magic-item:figurine-of-wondrous-power',
   // Lone "Artifacts"-subsection magic item, parsed from its own slice
   // (eshyra-0m9.16).
   'magic-item:orb-of-dragonkind',
@@ -367,7 +371,11 @@ const EXPECTED_STABLE_KEYS: readonly string[] = [
  *     still carries the required `description`.
  *   - magic-item.attunementRequirement: only the 26 items whose category line
  *     restricts attunement by class, ancestry, alignment, or spellcasting carry
- *     this text; all 239 records still carry the boolean `requiresAttunement`.
+ *     this text; all 240 records still carry the boolean `requiresAttunement`.
+ *   - magic-item.variants: only Figurine of Wondrous Power carries the nine
+ *     named figurine variants.
+ *   - stat-block.{traits,actions}: Avatar of Death carries both; Giant Fly is
+ *     the abbreviated no-action block.
  *   - spell.componentMaterials: only spells with a material (M) component.
  *   - spell.higherLevels: only spells with an "At Higher Levels" entry.
  *   - spell.ritual: only spells tagged as rituals.
@@ -506,16 +514,22 @@ const EXPECTED_PARTIAL_FIELDS: ReadonlyArray<{
   {
     kind: 'magic-item',
     field: 'attunementRequirement',
-    missingCount: 213,
-    totalInKind: 239,
+    missingCount: 214,
+    totalInKind: 240,
   },
-  // Only the Deck of Many Things references an inline stat block (Avatar of
-  // Death) via statBlockRefs (eshyra-4a7.4); the other 238 magic items have none.
+  // Deck of Many Things and Figurine of Wondrous Power reference their inline
+  // stat blocks; the other 238 magic items have none.
   {
     kind: 'magic-item',
     field: 'statBlockRefs',
     missingCount: 238,
-    totalInKind: 239,
+    totalInKind: 240,
+  },
+  {
+    kind: 'magic-item',
+    field: 'variants',
+    missingCount: 239,
+    totalInKind: 240,
   },
   {
     kind: 'spell',
@@ -529,6 +543,12 @@ const EXPECTED_PARTIAL_FIELDS: ReadonlyArray<{
   // fields: Avatar of Death has damage/condition immunities and a "—"
   // challengeRating with 0 XP; Giant Fly (abbreviated) has neither. senses and
   // languages are present on both, so they are not partial.
+  {
+    kind: 'stat-block',
+    field: 'actions',
+    missingCount: 1,
+    totalInKind: 2,
+  },
   {
     kind: 'stat-block',
     field: 'challengeRating',
@@ -550,6 +570,12 @@ const EXPECTED_PARTIAL_FIELDS: ReadonlyArray<{
   {
     kind: 'stat-block',
     field: 'experiencePoints',
+    missingCount: 1,
+    totalInKind: 2,
+  },
+  {
+    kind: 'stat-block',
+    field: 'traits',
     missingCount: 1,
     totalInKind: 2,
   },
@@ -1187,6 +1213,33 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
       expect(armorOfResistance.description).toContain('1 Acid 6 Necrotic');
     });
 
+    it('emits Figurine of Wondrous Power with variants and Giant Fly linkage', () => {
+      const figurine = magicItemData('magic-item:figurine-of-wondrous-power');
+      expect(figurine).toMatchObject({
+        itemType: 'Wondrous item',
+        rarity: 'rarity by figurine',
+        requiresAttunement: false,
+        statBlockRefs: ['stat-block:giant-fly'],
+      });
+      const variants = figurine.variants as Array<Record<string, unknown>>;
+      expect(variants).toHaveLength(9);
+      expect(variants.map((variant) => variant.name)).toEqual([
+        'Bronze Griffon',
+        'Ebony Fly',
+        'Golden Lions',
+        'Ivory Goats',
+        'Marble Elephant',
+        'Obsidian Steed',
+        'Onyx Dog',
+        'Serpentine Owl',
+        'Silver Raven',
+      ]);
+      expect(variants[1].text).not.toContain('Giant Fly');
+      expect(magicItemDescription('magic-item:feather-token')).not.toContain(
+        'Figurine of Wondrous Power',
+      );
+    });
+
     it('imports Orb of Dragonkind from the Artifacts subsection (eshyra-0m9.16)', () => {
       // The lone artifact magic item (SRD 5.1 p252-253) sits after the "Sentient
       // Magic Items" guidance that ends the A-Z slice, so it is parsed from its
@@ -1390,6 +1443,17 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
       expect(deck).toContain('Avatar of Death');
       expect(deck).toContain('Reaping Scythe');
       expect(deck).toContain('The Void');
+
+      const avatar = pack.records.find(
+        (record) => record.key === 'stat-block:avatar-of-death',
+      );
+      expect(avatar?.data).toMatchObject({
+        traits: [
+          { name: 'Incorporeal Movement' },
+          { name: 'Turning Immunity' },
+        ],
+        actions: [{ name: 'Reaping Scythe' }],
+      });
     });
 
     it('parses wrapped category attunement parentheticals into item metadata', () => {
@@ -2048,6 +2112,8 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
         'table:acolyte-flaws',
         'table:acolyte-ideals',
         'table:acolyte-personality-traits',
+        'table:apparatus-of-the-crab-levers',
+        'table:armor-of-resistance',
         // Document-wide tables (eshyra-4a7.3), reconstructed by
         // parseDocumentTables from typography anchors. Caption-less tables
         // carry synthesized names: the magic-item variety/dice tables take
@@ -2056,6 +2122,8 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
         // Draconic Ancestry copy is "Draconic Bloodline Draconic Ancestry".
         'table:bag-of-beans',
         'table:belt-of-giant-strength',
+        'table:candle-of-invocation',
+        'table:carpet-of-flying',
         'table:character-advancement',
         'table:circle-of-the-land-arctic',
         'table:circle-of-the-land-coast',
@@ -2065,35 +2133,58 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
         'table:circle-of-the-land-mountain',
         'table:circle-of-the-land-swamp',
         'table:creating-spell-slots',
+        'table:cube-of-force-charges-lost',
+        'table:cube-of-force-faces',
         'table:damage-severity-by-level',
+        'table:deck-of-illusions',
+        'table:deck-of-many-things',
         'table:difficulty-classes',
         'table:donning-and-doffing-armor',
         'table:draconic-ancestry',
         'table:draconic-bloodline-draconic-ancestry',
+        'table:dragon-scale-mail',
+        'table:efreeti-bottle',
+        'table:elemental-gem',
         'table:exotic-languages',
         'table:experience-points-by-challenge-rating',
+        'table:feather-token',
         'table:fiend-expanded-spells',
         'table:food-drink-and-lodging',
         'table:gray-bag-of-tricks',
         'table:hit-dice-by-size',
+        'table:horn-of-valhalla',
         'table:indefinite-madness',
+        'table:iron-flask',
         'table:life-domain-spells',
         'table:lifestyle-expenses',
         'table:long-term-madness',
+        'table:manual-of-golems',
         'table:multiclass-spellcaster-spell-slots-per-spell-level',
         'table:multiclassing-prerequisites',
         'table:multiclassing-proficiencies',
+        'table:necklace-of-prayer-beads',
         'table:oath-of-devotion-spells',
         'table:object-armor-class',
         'table:object-hit-points',
         'table:potion-of-giant-strength',
+        'table:potion-of-resistance',
         'table:potions-of-healing',
         'table:proficiency-bonus-by-challenge-rating',
+        'table:ring-of-resistance',
+        'table:ring-of-shooting-stars',
         'table:robe-of-useful-items',
         'table:rust-bag-of-tricks',
+        'table:sentient-magic-item-alignment',
+        'table:sentient-magic-item-communication',
+        'table:sentient-magic-item-senses',
+        'table:sentient-magic-item-special-purpose',
         'table:services',
         'table:short-term-madness',
         'table:size-categories',
+        'table:spell-scroll',
+        'table:sphere-of-annihilation',
+        'table:staff-of-power',
+        'table:staff-of-the-magi',
         'table:standard-exchange-rates',
         'table:standard-languages',
         'table:tan-bag-of-tricks',
@@ -2117,6 +2208,27 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
 
     it('the table count matches the per-kind baseline', () => {
       expect(tables).toHaveLength(EXPECTED_COUNTS_BY_KIND.table);
+    });
+
+    it('structures representative magic-item option and dice-result tables', () => {
+      expect(table('table:deck-of-illusions')?.data).toMatchObject({
+        columns: ['Playing Card', 'Illusion'],
+        rows: expect.arrayContaining([
+          ['Ace of hearts', 'Red dragon'],
+          ['Jokers (2)', 'You (the deck’s owner)'],
+        ]),
+      });
+      expect(table('table:feather-token')?.data).toMatchObject({
+        columns: ['d100', 'Feather Token'],
+        rows: [
+          ['01–20', 'Anchor'],
+          ['21–35', 'Bird'],
+          ['36–50', 'Fan'],
+          ['51–65', 'Swan boat'],
+          ['66–90', 'Tree'],
+          ['91–00', 'Whip'],
+        ],
+      });
     });
 
     it('pins Madness table row counts, representative data, and source pages', () => {

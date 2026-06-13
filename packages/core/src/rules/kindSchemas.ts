@@ -353,6 +353,8 @@ function validateDnd5eStatBlock(record: RulesRecord, path: string): void {
   optStr(data, 'languages', `${path}.data`);
   optStr(data, 'challengeRating', `${path}.data`);
   optInt(data, 'experiencePoints', `${path}.data`, 0);
+  optNamedEntryArray(data, 'traits', `${path}.data`);
+  optNamedEntryArray(data, 'actions', `${path}.data`);
   const inlineSource = reqObj(data, 'inlineSource', `${path}.data`);
   reqStr(inlineSource, 'containingItem', `${path}.data.inlineSource`);
   reqInt(inlineSource, 'page', `${path}.data.inlineSource`, 1);
@@ -448,6 +450,25 @@ function validateDnd5eMagicItem(record: RulesRecord, path: string): void {
   }
   optStr(data, 'attunementRequirement', `${path}.data`);
   reqStr(data, 'description', `${path}.data`);
+  const variants = data.variants;
+  if (variants !== undefined) {
+    if (!Array.isArray(variants)) {
+      throw new RulesPackError(
+        `${path}.data.variants must be an array when present`,
+      );
+    }
+    variants.forEach((item, index) => {
+      if (typeof item !== 'object' || item === null || Array.isArray(item)) {
+        throw new RulesPackError(
+          `${path}.data.variants[${index}] must be an object`,
+        );
+      }
+      const variant = item as Obj;
+      reqStr(variant, 'name', `${path}.data.variants[${index}]`);
+      reqStr(variant, 'rarity', `${path}.data.variants[${index}]`);
+      reqStr(variant, 'text', `${path}.data.variants[${index}]`);
+    });
+  }
   // An item that defines an inline combat stat block (Deck of Many Things ->
   // Avatar of Death) points at the emitted `stat-block` record(s) it summons or
   // becomes via `statBlockRefs` (eshyra-4a7.4). Optional: most items have none.

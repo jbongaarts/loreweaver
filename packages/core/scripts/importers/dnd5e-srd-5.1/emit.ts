@@ -403,6 +403,18 @@ function buildStatBlockData(
     data.challengeRating = statBlock.challengeRating;
   if (statBlock.experiencePoints !== undefined)
     data.experiencePoints = statBlock.experiencePoints;
+  if (statBlock.traits !== undefined) {
+    data.traits = statBlock.traits.map((entry) => ({
+      name: entry.name,
+      text: entry.text,
+    }));
+  }
+  if (statBlock.actions !== undefined) {
+    data.actions = statBlock.actions.map((entry) => ({
+      name: entry.name,
+      text: entry.text,
+    }));
+  }
   data.inlineSource = {
     containingItem: statBlock.containingItem,
     page: statBlock.sourcePage,
@@ -910,6 +922,13 @@ function buildMagicItemData(
     data.attunementRequirement = item.attunementRequirement;
   }
   data.description = item.description;
+  if (item.variants !== undefined && item.variants.length > 0) {
+    data.variants = item.variants.map((variant) => ({
+      name: variant.name,
+      rarity: variant.rarity,
+      text: variant.text,
+    }));
+  }
   // An item that defines an inline stat block (Deck of Many Things -> Avatar of
   // Death) points at the emitted `stat-block` record(s) via `statBlockRefs`
   // (eshyra-4a7.4). Sorted for byte-stable JSON.
@@ -1113,10 +1132,8 @@ export function buildPack(input: BuildPackInput): RulesPack {
   const ruleRecords = ruleExtractionsToRecords(input.rules ?? []);
   const tableRecords = tableExtractionsToRecords(input.tables ?? []);
   const equipmentRecords = equipmentExtractionsToRecords(input.equipment ?? []);
-  // Inline stat blocks (eshyra-4a7.4) and the container -> stat-block reference
-  // map. A container that is not itself an emitted magic item (Figurine of
-  // Wondrous Power, still owned by eshyra-4a7.8) simply never matches in
-  // `magicItemExtractionsToRecords`, so its reference is naturally deferred.
+  // Inline stat blocks (eshyra-4a7.4) and the containing magic-item reference
+  // map. Both reviewed containers are emitted and link to their embedded block.
   const statBlockRecords = statBlockExtractionsToRecords(
     input.statBlocks ?? [],
   );

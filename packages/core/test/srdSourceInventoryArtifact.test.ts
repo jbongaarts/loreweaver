@@ -142,10 +142,8 @@ describe('committed SRD source-coverage artifacts — integrity', () => {
     expect(inventory).toHaveLength(2258);
     // record 1849 -> 1873 (eshyra-4a7.3): the 24 document-wide table records
     // claim their captions / caption-less runs. The eshyra-4a7.3 catch-all
-    // known-gap rule is gone; its remaining items moved to scoped owners —
-    // the 26 still-flattened Magic-Items-chapter embedded tables joined
-    // Figurine of Wondrous Power under eshyra-4a7.8 (1 -> 27), the 9
-    // spell-embedded tables are tracked by eshyra-o4j7, and the deity tables
+    // known-gap rule is gone; its remaining items moved to scoped owners. The
+    // 9 spell-embedded tables are tracked by eshyra-o4j7, and the deity tables
     // (5 items), Half-Dragon Template tables (2), and the Self-Sufficiency
     // prose sidebar (1) joined their regions under eshyra-4a7.10 (62 -> 70).
     // eshyra-4a7.6 dropped 128 -> 116 (the Barbarian progression caption,
@@ -157,7 +155,11 @@ describe('committed SRD source-coverage artifacts — integrity', () => {
     // emitted `stat-block` records, so the name auto-match claims their two
     // `structure: 'stat-block'` inventory items and the `known-gap:eshyra-4a7.4`
     // rule (2 items) was removed per the known-gap lifecycle.
-    expect(coverage.summary.record).toBe(1875);
+    // record 1875 -> 1902 (eshyra-4a7.8): Figurine of Wondrous Power and all 26
+    // formerly deferred Magic Items table structures are now records. The
+    // Spell Scroll structure also resolves explicitly to its table record
+    // instead of the same-name magic item.
+    expect(coverage.summary.record).toBe(1902);
     // childOf 12 -> 14 (eshyra-70xr): the two creature variant sidebars
     // (Diseased Giant Rats p378, Insect Swarms p391) are now `variants` child
     // data on the Giant Rat and Swarm of Insects, so the `known-gap:eshyra-4a7.5`
@@ -175,7 +177,6 @@ describe('committed SRD source-coverage artifacts — integrity', () => {
     });
     expect(coverage.summary.knownGap).toEqual({
       'eshyra-4a7.6': 116,
-      'eshyra-4a7.8': 27,
       'eshyra-4a7.10': 70,
       'eshyra-o4j7': 9,
     });
@@ -183,9 +184,9 @@ describe('committed SRD source-coverage artifacts — integrity', () => {
 });
 
 describe('committed SRD source-coverage artifacts — known-gap sentinels', () => {
-  it('Figurine of Wondrous Power (p221, swallowed by Feather Token) is tracked by eshyra-4a7.8', () => {
+  it('Figurine of Wondrous Power (p221) is emitted as a magic-item record', () => {
     const entry = entryFor(221, 'Figurine of Wondrous Power');
-    expect(entry.status).toBe('known-gap:eshyra-4a7.8');
+    expect(entry.status).toBe('record:magic-item:figurine-of-wondrous-power');
   });
 
   it('embedded stat blocks Avatar of Death (p218) and Giant Fly (p222) are detected and emitted as stat-block records (eshyra-4a7.4)', () => {
@@ -223,16 +224,16 @@ describe('committed SRD source-coverage artifacts — known-gap sentinels', () =
     expect(berserker[0].status).toBe('record:creature:berserker');
   });
 
-  it('the Ring of Resistance embedded d10 table (p237) is a caption-less table run tracked by eshyra-4a7.8', () => {
+  it('the Ring of Resistance embedded d10 table (p237) is emitted as a table record', () => {
     const entry = entryFor(237, 'd10 Damage Type Gem');
     expect(entry.structure).toBe('table-shape');
-    expect(entry.status).toBe('known-gap:eshyra-4a7.8');
+    expect(entry.status).toBe('record:table:ring-of-resistance');
   });
 
-  it('the Carpet of Flying embedded size table (p213) is tracked by eshyra-4a7.8', () => {
+  it('the Carpet of Flying embedded size table (p213) is emitted as a table record', () => {
     const entry = entryFor(213, 'd100 Size Capacity Flying Speed');
     expect(entry.structure).toBe('table-shape');
-    expect(entry.status).toBe('known-gap:eshyra-4a7.8');
+    expect(entry.status).toBe('record:table:carpet-of-flying');
   });
 
   it('the Teleport familiarity matrix (p186) is a spell-embedded table tracked by eshyra-o4j7', () => {
@@ -274,8 +275,11 @@ describe('committed SRD source-coverage artifacts — ambiguous-match diagnostic
     // When a bead closes a name collision (e.g. by adding an explicit
     // recordRule that disambiguates a duplicate, or by renaming a record),
     // these counts should drop and the test should be updated in the same change.
-    expect(coverage.ambiguous.shadowedRecords).toHaveLength(62);
-    expect(coverage.ambiguous.collapsedSourceItems).toHaveLength(60);
+    // Same-name magic-item/table records add 19 reviewed shadowed-record
+    // diagnostics. Explicit Spell Scroll table accounting removes its former
+    // two-source-item collapse.
+    expect(coverage.ambiguous.shadowedRecords).toHaveLength(81);
+    expect(coverage.ambiguous.collapsedSourceItems).toHaveLength(59);
   });
 
   it('surfaces the 12-way Ability Score Improvement feature collapse (one per class, all map to barbarian key)', () => {
