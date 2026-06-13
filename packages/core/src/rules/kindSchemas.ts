@@ -155,6 +155,10 @@ const BASE_KIND_VALIDATORS: Record<RulesRecordKind, Validator> = {
     reqStr(data, 'text', `${path}.data`);
   },
   spell: baseObjectKind,
+  // An abbreviated inline combat stat block (eshyra-4a7.4); baseline only
+  // requires an object payload, the dnd5e validator enforces the stat-block
+  // shape (permissive hit points, optional challenge rating).
+  'stat-block': baseObjectKind,
   // An addressable subclass (Champion, Life domain, ...); baseline only
   // requires an object payload, the dnd5e validator enforces the parent-class
   // linkage. See ADR 0009.
@@ -223,6 +227,58 @@ function validateDnd5eCreature(record: RulesRecord, path: string): void {
   ]) {
     reqInt(abilities, key, `${path}.data.abilityScores`, 1);
   }
+}
+
+// An abbreviated combat stat block defined INLINE under another entry — Avatar
+// of Death inside the Deck of Many Things, Giant Fly inside the Figurine of
+// Wondrous Power (eshyra-4a7.4). It shares a creature's core combat shape (size,
+// type, alignment, armor class, speed, ability scores) but is deliberately
+// permissive where the SRD's abbreviated inline blocks diverge from a full
+// creature stat block, so the strict `creature` schema stays untouched:
+//   - `hitPoints` is an object, not an integer: real blocks print a fixed value
+//     (`{ value: 19, formula: "3d10 + 3" }` for Giant Fly) OR a derived/textual
+//     amount (`{ special: "half the hit point maximum of its summoner" }` for
+//     Avatar of Death). At least one of value/formula/special must be present.
+//   - `challengeRating` is OPTIONAL: Giant Fly has no Challenge line and Avatar
+//     of Death prints "—", so an abbreviated block legitimately omits it.
+//   - `inlineSource` records the containing item and page so the block's
+//     provenance is explicit; source placement does not gate discoverability
+//     (the record is name-resolvable like a creature). Containers point back at
+//     the block via `magic-item` `data.statBlockRefs`.
+function validateDnd5eStatBlock(record: RulesRecord, path: string): void {
+  const data = dataObj(record, path);
+  reqStr(data, 'size', `${path}.data`);
+  reqStr(data, 'type', `${path}.data`);
+  reqStr(data, 'alignment', `${path}.data`);
+  reqInt(data, 'armorClass', `${path}.data`, 0);
+  const hp = reqObj(data, 'hitPoints', `${path}.data`);
+  const hasValue = hp.value !== undefined;
+  const hasFormula = hp.formula !== undefined;
+  const hasSpecial = hp.special !== undefined;
+  if (!hasValue && !hasFormula && !hasSpecial) {
+    throw new RulesPackError(
+      `${path}.data.hitPoints must carry at least one of value, formula, or special`,
+    );
+  }
+  if (hasValue) reqInt(hp, 'value', `${path}.data.hitPoints`, 0);
+  if (hasFormula) reqStr(hp, 'formula', `${path}.data.hitPoints`);
+  if (hasSpecial) reqStr(hp, 'special', `${path}.data.hitPoints`);
+  reqObj(data, 'speed', `${path}.data`);
+  optStr(data, 'challengeRating', `${path}.data`);
+  const abilities = reqObj(data, 'abilityScores', `${path}.data`);
+  for (const key of [
+    'strength',
+    'dexterity',
+    'constitution',
+    'intelligence',
+    'wisdom',
+    'charisma',
+  ]) {
+    reqInt(abilities, key, `${path}.data.abilityScores`, 1);
+  }
+  const inlineSource = reqObj(data, 'inlineSource', `${path}.data`);
+  reqStr(inlineSource, 'containingItem', `${path}.data.inlineSource`);
+  reqInt(inlineSource, 'page', `${path}.data.inlineSource`, 1);
 }
 
 function validateDnd5eClass(record: RulesRecord, path: string): void {
@@ -315,6 +371,10 @@ function validateDnd5eMagicItem(record: RulesRecord, path: string): void {
   }
   optStr(data, 'attunementRequirement', `${path}.data`);
   reqStr(data, 'description', `${path}.data`);
+  // An item that defines an inline combat stat block (Deck of Many Things ->
+  // Avatar of Death) points at the emitted `stat-block` record(s) it summons or
+  // becomes via `statBlockRefs` (eshyra-4a7.4). Optional: most items have none.
+  optStrArray(data, 'statBlockRefs', `${path}.data`);
 }
 
 function validatePf2eAncestry(record: RulesRecord, path: string): void {
@@ -404,6 +464,7 @@ const SYSTEM_KIND_VALIDATORS: Record<
     hazard: validateDnd5eHazard,
     action: validateDnd5eAction,
     'magic-item': validateDnd5eMagicItem,
+    'stat-block': validateDnd5eStatBlock,
   },
   'pathfinder2e-remaster': {
     ancestry: validatePf2eAncestry,

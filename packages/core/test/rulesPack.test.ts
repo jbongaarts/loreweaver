@@ -621,3 +621,125 @@ describe('rules pack validation', () => {
     );
   });
 });
+
+// Inline abbreviated stat blocks (eshyra-4a7.4) ride a dedicated `stat-block`
+// kind whose schema is permissive where these blocks diverge from a full
+// creature: hit points may be derived/textual and the challenge rating is
+// optional. The strict `creature` schema is unchanged.
+describe('stat-block kind validation (dnd5e-srd)', () => {
+  function statBlockRecord(
+    data: Record<string, unknown>,
+    keySuffix = 'avatar-of-death',
+  ): RulesRecord {
+    return record(`stat-block:${keySuffix}`, {
+      kind: 'stat-block',
+      name: 'Avatar of Death',
+      data,
+    });
+  }
+
+  const abilityScores = {
+    strength: 16,
+    dexterity: 16,
+    constitution: 16,
+    intelligence: 16,
+    wisdom: 16,
+    charisma: 16,
+  };
+
+  it('accepts a derived (special) hit-point block with no challenge rating', () => {
+    const pack = validRulesPack({
+      records: [
+        statBlockRecord({
+          size: 'Medium',
+          type: 'undead',
+          alignment: 'neutral evil',
+          armorClass: 20,
+          hitPoints: { special: 'half the hit point maximum of its summoner' },
+          speed: { walk: 60, fly: 60 },
+          abilityScores,
+          inlineSource: { containingItem: 'Deck of Many Things', page: 218 },
+        }),
+      ],
+    });
+    expect(() => validateRulesPack(pack)).not.toThrow();
+  });
+
+  it('accepts a fixed value+formula hit-point block', () => {
+    const pack = validRulesPack({
+      records: [
+        statBlockRecord(
+          {
+            size: 'Large',
+            type: 'beast',
+            alignment: 'unaligned',
+            armorClass: 11,
+            hitPoints: { value: 19, formula: '3d10 + 3' },
+            speed: { walk: 30, fly: 60 },
+            abilityScores,
+            inlineSource: {
+              containingItem: 'Figurine of Wondrous Power',
+              page: 222,
+            },
+          },
+          'giant-fly',
+        ),
+      ],
+    });
+    expect(() => validateRulesPack(pack)).not.toThrow();
+  });
+
+  it('rejects a stat block whose hitPoints carries none of value/formula/special', () => {
+    const pack = validRulesPack({
+      records: [
+        statBlockRecord({
+          size: 'Medium',
+          type: 'undead',
+          alignment: 'neutral evil',
+          armorClass: 20,
+          hitPoints: {},
+          speed: { walk: 60 },
+          abilityScores,
+          inlineSource: { containingItem: 'Deck of Many Things', page: 218 },
+        }),
+      ],
+    });
+    expect(() => validateRulesPack(pack)).toThrow(/hitPoints/);
+  });
+
+  it('rejects a stat block missing its inlineSource provenance', () => {
+    const pack = validRulesPack({
+      records: [
+        statBlockRecord({
+          size: 'Medium',
+          type: 'undead',
+          alignment: 'neutral evil',
+          armorClass: 20,
+          hitPoints: { value: 10 },
+          speed: { walk: 60 },
+          abilityScores,
+        }),
+      ],
+    });
+    expect(() => validateRulesPack(pack)).toThrow(/inlineSource/);
+  });
+
+  it('accepts a magic item that references an inline stat block via statBlockRefs', () => {
+    const pack = validRulesPack({
+      records: [
+        record('magic-item:deck-of-many-things', {
+          kind: 'magic-item',
+          name: 'Deck of Many Things',
+          data: {
+            itemType: 'Wondrous item',
+            rarity: 'legendary',
+            requiresAttunement: false,
+            description: 'A deck of ivory or vellum cards.',
+            statBlockRefs: ['stat-block:avatar-of-death'],
+          },
+        }),
+      ],
+    });
+    expect(() => validateRulesPack(pack)).not.toThrow();
+  });
+});

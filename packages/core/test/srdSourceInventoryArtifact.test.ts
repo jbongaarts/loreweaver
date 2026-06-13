@@ -153,7 +153,11 @@ describe('committed SRD source-coverage artifacts — integrity', () => {
     // Fiend Expanded spell tables, and Creating Spell Slots are now records);
     // eshyra-4a7.7's two Draconic Ancestry captions are now records, so its
     // rule was removed per the known-gap lifecycle.
-    expect(coverage.summary.record).toBe(1873);
+    // record 1873 -> 1875 (eshyra-4a7.4): Avatar of Death and Giant Fly are now
+    // emitted `stat-block` records, so the name auto-match claims their two
+    // `structure: 'stat-block'` inventory items and the `known-gap:eshyra-4a7.4`
+    // rule (2 items) was removed per the known-gap lifecycle.
+    expect(coverage.summary.record).toBe(1875);
     expect(coverage.summary.childOf).toBe(12);
     expect(coverage.summary.unaccounted).toBe(0);
     expect(coverage.summary.ignored).toEqual({
@@ -166,7 +170,6 @@ describe('committed SRD source-coverage artifacts — integrity', () => {
       'variant-rule-excluded': 2,
     });
     expect(coverage.summary.knownGap).toEqual({
-      'eshyra-4a7.4': 2,
       'eshyra-4a7.5': 2,
       'eshyra-4a7.6': 116,
       'eshyra-4a7.8': 27,
@@ -182,13 +185,39 @@ describe('committed SRD source-coverage artifacts — known-gap sentinels', () =
     expect(entry.status).toBe('known-gap:eshyra-4a7.8');
   });
 
-  it('embedded stat blocks Avatar of Death (p218) and Giant Fly (p222) are classified and tracked by eshyra-4a7.4', () => {
+  it('embedded stat blocks Avatar of Death (p218) and Giant Fly (p222) are detected and emitted as stat-block records (eshyra-4a7.4)', () => {
+    // Detected by typography (still `structure: 'stat-block'`) AND now accounted
+    // for as emitted `stat-block` records, claimed by the name auto-match — they
+    // no longer disappear into magic-item prose as a known gap.
     const avatar = entryFor(218, 'Avatar of Death');
     expect(avatar.structure).toBe('stat-block');
-    expect(avatar.status).toBe('known-gap:eshyra-4a7.4');
+    expect(avatar.status).toBe('record:stat-block:avatar-of-death');
     const fly = entryFor(222, 'Giant Fly');
     expect(fly.structure).toBe('stat-block');
-    expect(fly.status).toBe('known-gap:eshyra-4a7.4');
+    expect(fly.status).toBe('record:stat-block:giant-fly');
+  });
+
+  it('an ordinary Monsters-chapter stat block (Aboleth) is detected and accounted as a creature record', () => {
+    // Regression contract (eshyra-4a7.4): the document-wide stat-block work must
+    // NOT disturb the strict-creature accounting. The monster/NPC inventory
+    // items stay `structure: 'stat-block'` and resolve to their `creature`
+    // records via the name auto-match, never the inline `stat-block` kind.
+    const aboleth = coverage.entries.filter(
+      (e) => e.text === 'Aboleth' && e.structure === 'stat-block',
+    );
+    expect(aboleth).toHaveLength(1);
+    expect(aboleth[0].status).toBe('record:creature:aboleth');
+  });
+
+  it('an Appendix MM-B NPC stat block (Berserker) is detected and accounted as a creature record', () => {
+    // Berserker is chosen because it has no cross-kind name collision; the SRD's
+    // Acolyte NPC shares its name with the Acolyte background, whose record sorts
+    // first and legitimately claims that shared inventory item.
+    const berserker = coverage.entries.filter(
+      (e) => e.text === 'Berserker' && e.structure === 'stat-block',
+    );
+    expect(berserker).toHaveLength(1);
+    expect(berserker[0].status).toBe('record:creature:berserker');
   });
 
   it('the Ring of Resistance embedded d10 table (p237) is a caption-less table run tracked by eshyra-4a7.8', () => {

@@ -68,6 +68,7 @@ import { parsePoisons } from './parsePoisons.js';
 import { parseRules } from './parseRules.js';
 import { parseSpellcastingServices } from './parseSpellcastingServices.js';
 import { parseSpellClassLists, parseSpells } from './parseSpells.js';
+import { parseStatBlocks } from './parseStatBlocks.js';
 import { parseSubclasses } from './parseSubclasses.js';
 import { parseTables } from './parseTables.js';
 import { parseTraps } from './parseTraps.js';
@@ -95,6 +96,7 @@ import type {
   MagicItemExtraction,
   PoisonExtraction,
   RuleExtraction,
+  StatBlockExtraction,
   TableExtraction,
   TrapExtraction,
 } from './types.js';
@@ -875,6 +877,42 @@ export const EXPECTED_SRD_5_1_MAGIC_ITEM_NAMES: readonly string[] = [
 ];
 
 /**
+ * Reviewed, checked-in SRD 5.1 inline stat-block name-set baseline
+ * (eshyra-4a7.4). These are abbreviated combat stat blocks the SRD prints INLINE
+ * under another entry, NOT full creatures: Avatar of Death (p218, inside the
+ * Deck of Many Things) and Giant Fly (p222, inside the Figurine of Wondrous
+ * Power). They were previously swallowed into magic-item prose; the source
+ * inventory flags them (`structure: 'stat-block'`) and `parseStatBlocks` now
+ * emits them under the `stat-block` kind. The real import validates the parsed
+ * inline-block names against this exact set, so a dropped, renamed, or newly
+ * appearing inline block fails closed by name. They ride the permissive
+ * `stat-block` kindSchema because their hit points are derived/textual (Avatar
+ * of Death) and their challenge rating is absent or "—"; the strict `creature`
+ * schema is intentionally left untouched.
+ */
+export const EXPECTED_SRD_5_1_STAT_BLOCK_NAMES: readonly string[] = [
+  'Avatar of Death',
+  'Giant Fly',
+];
+
+/**
+ * Reviewed map from each inline stat block to the SRD entry it is printed under
+ * (eshyra-4a7.4). `parseStatBlocks` requires every emitted block to appear here,
+ * so a novel inline block fails closed for review. The containing item also
+ * gains a `data.statBlockRefs` pointer — but only when that item is itself
+ * emitted: Deck of Many Things IS an emitted magic item, so its reference is
+ * wired now; Figurine of Wondrous Power is still swallowed by Feather Token and
+ * owned by eshyra-4a7.8, so the Giant Fly record + provenance land now while the
+ * Figurine -> Giant Fly reference is deferred to 4a7.8 (required before the 4a7
+ * epic line closes).
+ */
+export const SRD_5_1_STAT_BLOCK_CONTAINING_ITEMS: ReadonlyMap<string, string> =
+  new Map([
+    ['Avatar of Death', 'Deck of Many Things'],
+    ['Giant Fly', 'Figurine of Wondrous Power'],
+  ]);
+
+/**
  * Reviewed, checked-in SRD 5.1 combined implemented `rule`-key baseline.
  * The nesting-aware `parseRules` emits one `rule` record per heading across the
  * Using Ability Scores, Adventuring, and Combat chapters — subsection (font
@@ -1345,6 +1383,20 @@ export class NpcCoverageError extends Error {
 }
 
 /**
+ * Thrown when the parsed inline stat-block set fails the coverage check
+ * (eshyra-4a7.4): any missing or unexpected inline stat block relative to the
+ * exact `EXPECTED_SRD_5_1_STAT_BLOCK_NAMES` baseline. Distinct from
+ * `CreatureCoverageError` so a drift in the abbreviated inline blocks cannot be
+ * confused with a Monsters-chapter regression.
+ */
+export class StatBlockCoverageError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'StatBlockCoverageError';
+  }
+}
+
+/**
  * Thrown when the parsed class set fails the coverage check (empty result, or
  * fewer classes than `minClassCount`). Distinct from `SectionNotFoundError` so
  * callers can tell "the Classes section was found but produced too few classes"
@@ -1602,6 +1654,23 @@ export interface RunImporterInput {
    */
   readonly expectedMagicItemNames?: readonly string[];
   /**
+   * Exact set of inline stat-block names the import must yield for the run to be
+   * accepted (eshyra-4a7.4). When provided and the parsed names don't match it
+   * exactly, the importer throws `StatBlockCoverageError` naming the missing
+   * and/or unexpected blocks, and writes nothing. The real-import CLI passes
+   * `EXPECTED_SRD_5_1_STAT_BLOCK_NAMES`; fixture pipelines omit this (the
+   * document-wide scan degrades to empty when no inline blocks are present).
+   * Inline blocks emit under the `stat-block` kind.
+   */
+  readonly expectedStatBlockNames?: readonly string[];
+  /**
+   * Reviewed map from an inline stat-block name to the entry it is printed under
+   * (eshyra-4a7.4). Required for any inline block the document-wide scan emits;
+   * an unmapped block fails closed. The real-import CLI passes
+   * `SRD_5_1_STAT_BLOCK_CONTAINING_ITEMS`.
+   */
+  readonly statBlockContainingItems?: ReadonlyMap<string, string>;
+  /**
    * Exact combined set of implemented `rule` record keys the import must yield
    * for the run to be accepted. When provided and the parsed rule keys don't
    * match it exactly, the importer throws `RuleCoverageError` naming the missing
@@ -1725,6 +1794,40 @@ function validateNpcCoverage(
   }
   throw new NpcCoverageError(
     `SRD 5.1 NPC coverage check failed: parsed ${npcs.length} Appendix MM-B NPC stat block(s), expected exactly ${expectedNpcNames.length}. ${parts.join('; ')}. The Nonplayer Characters appendix may have been truncated, an NPC renamed, or unrelated stat blocks bled in. Refusing to write a pack with a drifted NPC set.`,
+  );
+}
+
+/**
+ * Fail closed on an inline stat-block result that can't be a faithful SRD 5.1
+ * import (eshyra-4a7.4). When the exact `expectedStatBlockNames` set is supplied
+ * (the real import via the CLI), the parsed inline-block names must match it
+ * exactly — any missing or unexpected block is rejected, naming the specific
+ * offenders so a dropped block or a newly-detected inline block trips by name.
+ * Fixture pipelines that omit the set run no check (the document-wide scan
+ * already degrades to empty when no inline blocks are present).
+ */
+function validateStatBlockCoverage(
+  statBlocks: readonly StatBlockExtraction[],
+  expectedStatBlockNames: readonly string[] | undefined,
+): void {
+  if (expectedStatBlockNames === undefined) return;
+  const parsedNames = new Set(statBlocks.map((sb) => sb.name));
+  const expectedSet = new Set(expectedStatBlockNames);
+  const missing = expectedStatBlockNames.filter(
+    (name) => !parsedNames.has(name),
+  );
+  const unexpected = [...parsedNames].filter((name) => !expectedSet.has(name));
+  if (missing.length === 0 && unexpected.length === 0) return;
+
+  const parts: string[] = [];
+  if (missing.length > 0) {
+    parts.push(`missing expected stat block(s): ${missing.join(', ')}`);
+  }
+  if (unexpected.length > 0) {
+    parts.push(`unexpected stat block(s): ${unexpected.join(', ')}`);
+  }
+  throw new StatBlockCoverageError(
+    `SRD 5.1 inline stat-block coverage check failed: parsed ${statBlocks.length} inline stat block(s), expected exactly ${expectedStatBlockNames.length}. ${parts.join('; ')}. An inline stat block may have been dropped, renamed, or newly detected. Refusing to write a pack with a drifted stat-block set.`,
   );
 }
 
@@ -2118,6 +2221,21 @@ export async function runImporter(
   const npcPages = sliceSectionOrEmptyPages(pages, anchors.nonplayerCharacters);
   const npcs = parseCreatures(npcPages, 'npc');
   validateNpcCoverage(npcs, input.expectedNpcNames);
+  // Inline stat blocks (eshyra-4a7.4): scan the WHOLE document for abbreviated
+  // stat-block-shaped content (Avatar of Death p218, Giant Fly p222) that is not
+  // already emitted as a monster/NPC `creature`, and emit it under the permissive
+  // `stat-block` kind. `excludeNames` keeps the monster/NPC blocks owned by
+  // `parseCreatures` from being re-emitted here.
+  const emittedCreatureNames = new Set<string>([
+    ...creatures.map((c) => c.name),
+    ...npcs.map((c) => c.name),
+  ]);
+  const statBlocks = parseStatBlocks(pages, {
+    excludeNames: emittedCreatureNames,
+    containingItemByName:
+      input.statBlockContainingItems ?? new Map<string, string>(),
+  });
+  validateStatBlockCoverage(statBlocks, input.expectedStatBlockNames);
   const conditions = parseConditions(conditionPages);
   const actions = parseActions(combatActionPages);
   const featPages = sliceSection(pages, anchors.feats);
@@ -2519,6 +2637,7 @@ export async function runImporter(
     // affect the output. NPC records carry `data.category: 'npc'`
     // (loreweaver-bn0).
     creatures: [...creatures, ...npcs],
+    statBlocks,
     classes,
     subclasses,
     features,
@@ -2576,6 +2695,7 @@ export async function runImporter(
       spells: spells.length,
       creatures: creatures.length,
       npcs: npcs.length,
+      statBlocks: statBlocks.length,
       classes: classes.length,
       subclasses: subclasses.length,
       features: features.length,

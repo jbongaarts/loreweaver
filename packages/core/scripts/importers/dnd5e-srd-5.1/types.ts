@@ -453,6 +453,59 @@ export interface CreatureExtraction {
 }
 
 /**
+ * Hit points of an abbreviated inline stat block (eshyra-4a7.4). The SRD prints
+ * these two forms, both of which the strict integer `creature.hitPoints` cannot
+ * represent:
+ *   - a fixed amount with its dice expression — Giant Fly's "19 (3d10 + 3)"
+ *     yields `{ value: 19, formula: "3d10 + 3" }`;
+ *   - a derived/textual amount — Avatar of Death's "half the hit point maximum
+ *     of its summoner" yields `{ special: "half the hit point maximum of its
+ *     summoner" }`.
+ * At least one field is always present.
+ */
+export interface StatBlockHitPoints {
+  readonly value?: number;
+  readonly formula?: string;
+  readonly special?: string;
+}
+
+/**
+ * Provenance for an inline stat block: the containing entry it was printed under
+ * and the page it begins on. Source placement is recorded but does NOT gate
+ * discoverability — the stat block is a top-level, name-resolvable record.
+ */
+export interface StatBlockInlineSource {
+  readonly containingItem: string;
+  readonly page: number;
+}
+
+/**
+ * An abbreviated combat stat block defined INLINE under another entry — Avatar
+ * of Death inside the Deck of Many Things, Giant Fly inside the Figurine of
+ * Wondrous Power (eshyra-4a7.4) — extracted before conversion to a
+ * `kind=stat-block` `RulesRecord`. These are NOT full creatures: their hit
+ * points may be derived/textual and their challenge rating may be absent, so
+ * they ride the permissive `stat-block` kindSchema instead of the strict
+ * `creature` one. The shared combat fields mirror `CreatureExtraction`.
+ */
+export interface StatBlockExtraction {
+  readonly name: string;
+  readonly size: string;
+  readonly type: string;
+  readonly alignment: string;
+  readonly armorClass: number;
+  readonly hitPoints: StatBlockHitPoints;
+  readonly speed: Readonly<Record<string, number>>;
+  /** Bare CR string when present ("1/4", "6"); absent for blocks with no/"—" CR. */
+  readonly challengeRating?: string;
+  readonly abilityScores: CreatureAbilityScores;
+  /** 1-based page in the source PDF where the stat block begins. */
+  readonly sourcePage: number;
+  /** The entry this block was printed inline under (e.g. "Deck of Many Things"). */
+  readonly containingItem: string;
+}
+
+/**
  * A base-class entry as extracted from the SRD source, before conversion to a
  * `kind=class` `RulesRecord`. Mirrors the fields the `dnd5e-srd` class
  * kindSchema requires (see `validateDnd5eClass` in `kindSchemas.ts`):
@@ -593,6 +646,12 @@ export interface ImporterCounts {
    * legible in the importer's count output.
    */
   readonly npcs: number;
+  /**
+   * Count of abbreviated inline stat blocks (Avatar of Death, Giant Fly;
+   * eshyra-4a7.4). These emit under the `stat-block` record kind, separate from
+   * `creature`, so they are reported on their own line.
+   */
+  readonly statBlocks: number;
   readonly classes: number;
   readonly subclasses: number;
   readonly features: number;

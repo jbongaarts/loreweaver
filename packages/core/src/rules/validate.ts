@@ -30,6 +30,7 @@ const RULES_RECORD_KINDS: readonly RulesRecordKind[] = [
   'magic-item',
   'rule',
   'spell',
+  'stat-block',
   'subclass',
   'table',
 ];

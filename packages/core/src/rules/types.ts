@@ -19,6 +19,15 @@ export type RulesRecordKind =
   | 'magic-item'
   | 'rule'
   | 'spell'
+  // `stat-block` is an abbreviated, canonical combat stat block defined INLINE
+  // under another entry (e.g. Avatar of Death inside the Deck of Many Things
+  // magic item, Giant Fly inside the Figurine of Wondrous Power). It is its own
+  // addressable kind — name-resolvable like a `creature` — but its schema is
+  // deliberately permissive where these abbreviated blocks diverge from a full
+  // creature: derived/textual hit points and an optional challenge rating. Full
+  // creatures stay on the strict `creature` kind; containers point at a
+  // stat-block via `magic-item` `data.statBlockRefs`. See eshyra-4a7.4.
+  | 'stat-block'
   // `subclass` (Champion, Life domain, School of Evocation, ...) is its own
   // addressable kind; it links to its parent base `class` via
   // `data.parentClass`. See ADR 0009.
