@@ -436,6 +436,62 @@ describe('parseDocumentTables — sidebar boxes and integer cells', () => {
   });
 });
 
+describe('parseDocumentTables — magic-item embedded content', () => {
+  it('reconstructs both halves of a paired resistance option table', () => {
+    const page = tieredPage(209, [
+      ['Armor of Resistance', LEAF],
+      ['Armor (light, medium, or heavy), rare', BODY],
+      ['d10 Damage Type d10 Damage Type', CELL],
+      ['1 Acid 6 Necrotic', CELL],
+      ['2 Cold 7 Poison', CELL],
+      ['3 Fire 8 Psychic', CELL],
+      ['4 Force 9 Radiant', CELL],
+      ['5 Lightning 10 Thunder', CELL],
+      ['Armor of Vulnerability', LEAF],
+    ]);
+
+    const table = byName([page]).get('Armor of Resistance');
+    expect(table?.columns).toEqual(['d10', 'Damage Type']);
+    expect(table?.rows).toEqual([
+      [1, 'Acid'],
+      [2, 'Cold'],
+      [3, 'Fire'],
+      [4, 'Force'],
+      [5, 'Lightning'],
+      [6, 'Necrotic'],
+      [7, 'Poison'],
+      [8, 'Psychic'],
+      [9, 'Radiant'],
+      [10, 'Thunder'],
+    ]);
+  });
+
+  it('emits a card option table under its owning magic item', () => {
+    const page = tieredPage(216, [
+      ['Deck of Illusions', LEAF],
+      ['Wondrous item, uncommon', BODY],
+      ['Playing Card Illusion', CELL],
+      ['Ace of hearts Red dragon', CELL],
+      ['King of hearts Knight and four guards', CELL],
+      ['Jokers (2) You (the deck’s owner)', CELL],
+      ['Deck of Many Things', LEAF],
+    ]);
+
+    const table = parseDocumentTables(
+      [page],
+      SRD_5_1_DOCUMENT_TABLE_SPECS.map((spec) =>
+        spec.name === 'Deck of Illusions' ? { ...spec, expectedRows: 3 } : spec,
+      ),
+    ).find((candidate) => candidate.name === 'Deck of Illusions');
+    expect(table?.columns).toEqual(['Playing Card', 'Illusion']);
+    expect(table?.rows).toEqual([
+      ['Ace of hearts', 'Red dragon'],
+      ['King of hearts', 'Knight and four guards'],
+      ['Jokers (2)', 'You (the deck’s owner)'],
+    ]);
+  });
+});
+
 // ---------------------------------------------------------------------------
 // spec hygiene
 // ---------------------------------------------------------------------------

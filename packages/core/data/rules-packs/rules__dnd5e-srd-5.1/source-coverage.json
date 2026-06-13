@@ -1,6 +1,6 @@
 {
   "summary": {
-    "record": 1875,
+    "record": 1902,
     "childOf": 14,
     "ignored": {
       "document-structure": 41,
@@ -14,7 +14,6 @@
     "knownGap": {
       "eshyra-4a7.10": 70,
       "eshyra-4a7.6": 116,
-      "eshyra-4a7.8": 27,
       "eshyra-o4j7": 9
     },
     "unaccounted": 0
@@ -67,6 +66,13 @@
         ]
       },
       {
+        "normalizedName": "armor of resistance",
+        "winnerKey": "magic-item:armor-of-resistance",
+        "shadowedKeys": [
+          "table:armor-of-resistance"
+        ]
+      },
+      {
         "normalizedName": "attack",
         "winnerKey": "action:attack",
         "shadowedKeys": [
@@ -116,6 +122,13 @@
         ]
       },
       {
+        "normalizedName": "candle of invocation",
+        "winnerKey": "magic-item:candle-of-invocation",
+        "shadowedKeys": [
+          "table:candle-of-invocation"
+        ]
+      },
+      {
         "normalizedName": "cantrips",
         "winnerKey": "feature:cleric:cantrips",
         "shadowedKeys": [
@@ -123,6 +136,13 @@
           "feature:sorcerer:cantrips",
           "feature:wizard:cantrips",
           "rule:cantrips"
+        ]
+      },
+      {
+        "normalizedName": "carpet of flying",
+        "winnerKey": "magic-item:carpet-of-flying",
+        "shadowedKeys": [
+          "table:carpet-of-flying"
         ]
       },
       {
@@ -156,6 +176,20 @@
         ]
       },
       {
+        "normalizedName": "deck of illusions",
+        "winnerKey": "magic-item:deck-of-illusions",
+        "shadowedKeys": [
+          "table:deck-of-illusions"
+        ]
+      },
+      {
+        "normalizedName": "deck of many things",
+        "winnerKey": "magic-item:deck-of-many-things",
+        "shadowedKeys": [
+          "table:deck-of-many-things"
+        ]
+      },
+      {
         "normalizedName": "difficult terrain",
         "winnerKey": "rule:movement-and-position-difficult-terrain",
         "shadowedKeys": [
@@ -177,10 +211,31 @@
         ]
       },
       {
+        "normalizedName": "dragon scale mail",
+        "winnerKey": "magic-item:dragon-scale-mail",
+        "shadowedKeys": [
+          "table:dragon-scale-mail"
+        ]
+      },
+      {
         "normalizedName": "druid",
         "winnerKey": "class:druid",
         "shadowedKeys": [
           "creature:druid"
+        ]
+      },
+      {
+        "normalizedName": "efreeti bottle",
+        "winnerKey": "magic-item:efreeti-bottle",
+        "shadowedKeys": [
+          "table:efreeti-bottle"
+        ]
+      },
+      {
+        "normalizedName": "elemental gem",
+        "winnerKey": "magic-item:elemental-gem",
+        "shadowedKeys": [
+          "table:elemental-gem"
         ]
       },
       {
@@ -230,6 +285,13 @@
         ]
       },
       {
+        "normalizedName": "feather token",
+        "winnerKey": "magic-item:feather-token",
+        "shadowedKeys": [
+          "table:feather-token"
+        ]
+      },
+      {
         "normalizedName": "fighting style",
         "winnerKey": "feature:fighter:fighting-style",
         "shadowedKeys": [
@@ -268,10 +330,24 @@
         ]
       },
       {
+        "normalizedName": "horn of valhalla",
+        "winnerKey": "magic-item:horn-of-valhalla",
+        "shadowedKeys": [
+          "table:horn-of-valhalla"
+        ]
+      },
+      {
         "normalizedName": "initiative",
         "winnerKey": "rule:dexterity-initiative",
         "shadowedKeys": [
           "rule:the-order-of-combat-initiative"
+        ]
+      },
+      {
+        "normalizedName": "iron flask",
+        "winnerKey": "magic-item:iron-flask",
+        "shadowedKeys": [
+          "table:iron-flask"
         ]
       },
       {
@@ -297,6 +373,13 @@
         ]
       },
       {
+        "normalizedName": "manual of golems",
+        "winnerKey": "magic-item:manual-of-golems",
+        "shadowedKeys": [
+          "table:manual-of-golems"
+        ]
+      },
+      {
         "normalizedName": "mastiff",
         "winnerKey": "creature:mastiff",
         "shadowedKeys": [
@@ -308,6 +391,13 @@
         "winnerKey": "feature:hunter:multiattack",
         "shadowedKeys": [
           "rule:multiattack"
+        ]
+      },
+      {
+        "normalizedName": "necklace of prayer beads",
+        "winnerKey": "magic-item:necklace-of-prayer-beads",
+        "shadowedKeys": [
+          "table:necklace-of-prayer-beads"
         ]
       },
       {
@@ -329,6 +419,13 @@
         "winnerKey": "equipment:potion-of-healing",
         "shadowedKeys": [
           "magic-item:potion-of-healing"
+        ]
+      },
+      {
+        "normalizedName": "potion of resistance",
+        "winnerKey": "magic-item:potion-of-resistance",
+        "shadowedKeys": [
+          "table:potion-of-resistance"
         ]
       },
       {
@@ -365,6 +462,20 @@
         "winnerKey": "action:ready",
         "shadowedKeys": [
           "rule:ready"
+        ]
+      },
+      {
+        "normalizedName": "ring of resistance",
+        "winnerKey": "magic-item:ring-of-resistance",
+        "shadowedKeys": [
+          "table:ring-of-resistance"
+        ]
+      },
+      {
+        "normalizedName": "ring of shooting stars",
+        "winnerKey": "magic-item:ring-of-shooting-stars",
+        "shadowedKeys": [
+          "table:ring-of-shooting-stars"
         ]
       },
       {
@@ -411,6 +522,13 @@
         ]
       },
       {
+        "normalizedName": "spell scroll",
+        "winnerKey": "magic-item:spell-scroll",
+        "shadowedKeys": [
+          "table:spell-scroll"
+        ]
+      },
+      {
         "normalizedName": "spellbook",
         "winnerKey": "equipment:spellbook",
         "shadowedKeys": [
@@ -443,7 +561,22 @@
         "normalizedName": "sphere of annihilation",
         "winnerKey": "hazard:sphere-of-annihilation",
         "shadowedKeys": [
-          "magic-item:sphere-of-annihilation"
+          "magic-item:sphere-of-annihilation",
+          "table:sphere-of-annihilation"
+        ]
+      },
+      {
+        "normalizedName": "staff of power",
+        "winnerKey": "magic-item:staff-of-power",
+        "shadowedKeys": [
+          "table:staff-of-power"
+        ]
+      },
+      {
+        "normalizedName": "staff of the magi",
+        "winnerKey": "magic-item:staff-of-the-magi",
+        "shadowedKeys": [
+          "table:staff-of-the-magi"
         ]
       },
       {
@@ -574,11 +707,6 @@
       {
         "text": "Sphere of Annihilation",
         "resolvedKey": "hazard:sphere-of-annihilation",
-        "count": 2
-      },
-      {
-        "text": "Spell Scroll",
-        "resolvedKey": "magic-item:spell-scroll",
         "count": 2
       },
       {
@@ -11214,7 +11342,7 @@
       "structure": "table-caption",
       "text": "Apparatus of the Crab Levers",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.8"
+      "status": "record:table:apparatus-of-the-crab-levers"
     },
     {
       "page": 208,
@@ -11250,7 +11378,7 @@
       "structure": "table-shape",
       "text": "d10 Damage Type d10 Damage Type",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.8"
+      "status": "record:table:armor-of-resistance"
     },
     {
       "page": 209,
@@ -11511,7 +11639,7 @@
       "structure": "table-shape",
       "text": "d20 Alignment",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.8"
+      "status": "record:table:candle-of-invocation"
     },
     {
       "page": 213,
@@ -11538,7 +11666,7 @@
       "structure": "table-shape",
       "text": "d100 Size Capacity Flying Speed",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.8"
+      "status": "record:table:carpet-of-flying"
     },
     {
       "page": 213,
@@ -11646,7 +11774,7 @@
       "structure": "table-caption",
       "text": "Cube of Force Faces",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.8"
+      "status": "record:table:cube-of-force-faces"
     },
     {
       "page": 215,
@@ -11655,7 +11783,7 @@
       "structure": "table-shape",
       "text": "Spell or Item Charges Lost",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.8"
+      "status": "record:table:cube-of-force-charges-lost"
     },
     {
       "page": 215,
@@ -11709,7 +11837,7 @@
       "structure": "table-shape",
       "text": "Playing Card Illusion",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.8"
+      "status": "record:table:deck-of-illusions"
     },
     {
       "page": 216,
@@ -11727,7 +11855,7 @@
       "structure": "table-shape",
       "text": "Playing Card Card",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.8"
+      "status": "record:table:deck-of-many-things"
     },
     {
       "page": 218,
@@ -11790,7 +11918,7 @@
       "structure": "table-shape",
       "text": "Dragon Resistance Dragon Resistance",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.8"
+      "status": "record:table:dragon-scale-mail"
     },
     {
       "page": 219,
@@ -11871,7 +11999,7 @@
       "structure": "table-shape",
       "text": "d100 Effect",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.8"
+      "status": "record:table:efreeti-bottle"
     },
     {
       "page": 220,
@@ -11889,7 +12017,7 @@
       "structure": "table-shape",
       "text": "Gem Summoned Elemental",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.8"
+      "status": "record:table:elemental-gem"
     },
     {
       "page": 220,
@@ -11952,7 +12080,7 @@
       "structure": "table-shape",
       "text": "d100 Feather Token d100 Feather Token",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.8"
+      "status": "record:table:feather-token"
     },
     {
       "page": 221,
@@ -11961,7 +12089,7 @@
       "structure": "heading",
       "text": "Figurine of Wondrous Power",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.8"
+      "status": "record:magic-item:figurine-of-wondrous-power"
     },
     {
       "page": 222,
@@ -12177,7 +12305,7 @@
       "structure": "table-shape",
       "text": "d100 Horn Berserkers Requirement",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.8"
+      "status": "record:table:horn-of-valhalla"
     },
     {
       "page": 226,
@@ -12249,7 +12377,7 @@
       "structure": "table-shape",
       "text": "d100 Contents",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.8"
+      "status": "record:table:iron-flask"
     },
     {
       "page": 228,
@@ -12348,7 +12476,7 @@
       "structure": "table-shape",
       "text": "d20 Golem Time Cost",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.8"
+      "status": "record:table:manual-of-golems"
     },
     {
       "page": 230,
@@ -12429,7 +12557,7 @@
       "structure": "table-shape",
       "text": "d20 Bead of … Spell",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.8"
+      "status": "record:table:necklace-of-prayer-beads"
     },
     {
       "page": 231,
@@ -12708,7 +12836,7 @@
       "structure": "table-shape",
       "text": "d10 Damage Type d10 Damage Type",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.8"
+      "status": "record:table:potion-of-resistance"
     },
     {
       "page": 235,
@@ -12852,7 +12980,7 @@
       "structure": "table-shape",
       "text": "d10 Damage Type Gem",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.8"
+      "status": "record:table:ring-of-resistance"
     },
     {
       "page": 237,
@@ -12870,7 +12998,7 @@
       "structure": "table-shape",
       "text": "Spheres Lightning Damage",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.8"
+      "status": "record:table:ring-of-shooting-stars"
     },
     {
       "page": 237,
@@ -13131,7 +13259,7 @@
       "structure": "heading",
       "text": "Spell Scroll",
       "section": "Magic Items",
-      "status": "record:magic-item:spell-scroll"
+      "status": "record:table:spell-scroll"
     },
     {
       "page": 242,
@@ -13140,7 +13268,7 @@
       "structure": "table-caption",
       "text": "Spell Scroll",
       "section": "Magic Items",
-      "status": "record:magic-item:spell-scroll"
+      "status": "record:table:spell-scroll"
     },
     {
       "page": 242,
@@ -13167,7 +13295,7 @@
       "structure": "table-shape",
       "text": "d100 Result",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.8"
+      "status": "record:table:sphere-of-annihilation"
     },
     {
       "page": 243,
@@ -13221,7 +13349,7 @@
       "structure": "table-shape",
       "text": "Distance from Origin Damage",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.8"
+      "status": "record:table:staff-of-power"
     },
     {
       "page": 244,
@@ -13257,7 +13385,7 @@
       "structure": "table-shape",
       "text": "Distance from Origin Damage",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.8"
+      "status": "record:table:staff-of-the-magi"
     },
     {
       "page": 245,
@@ -13653,7 +13781,7 @@
       "structure": "table-shape",
       "text": "d100 Communication",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.8"
+      "status": "record:table:sentient-magic-item-communication"
     },
     {
       "page": 251,
@@ -13671,7 +13799,7 @@
       "structure": "table-shape",
       "text": "d4 Senses",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.8"
+      "status": "record:table:sentient-magic-item-senses"
     },
     {
       "page": 251,
@@ -13689,7 +13817,7 @@
       "structure": "table-shape",
       "text": "d100 Alignment d100 Alignment",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.8"
+      "status": "record:table:sentient-magic-item-alignment"
     },
     {
       "page": 251,
@@ -13707,7 +13835,7 @@
       "structure": "table-shape",
       "text": "d10 Purpose",
       "section": "Magic Items",
-      "status": "known-gap:eshyra-4a7.8"
+      "status": "record:table:sentient-magic-item-special-purpose"
     },
     {
       "page": 252,

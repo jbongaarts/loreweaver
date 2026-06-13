@@ -8,29 +8,28 @@
  *   Adamantine Armor
  *   Armor (medium or heavy, but not hide), uncommon
  *
- * The parser deliberately keeps embedded item tables inside `description`
- * text. The A-Z tables are item-specific mechanics, not freestanding reference
- * tables, and preserving them in the parent item avoids inventing linked table
- * semantics not present elsewhere in the pack.
+ * The parser preserves embedded item tables inside `description` text while
+ * the document-wide table parser also emits reviewed structured table records.
  *
  * Bounded spans (eshyra-4a7.2): every magic-item NAME renders at the leaf
  * heading tier (h≈12.0 in the real SRD), one tier above the h≈9.8 body. An
  * item body therefore ends at the next leaf-tier heading whose following line
- * has the shape of a category line — even when that next item's own category
- * does not parse and so is not emitted. SRD 5.1 "Figurine of Wondrous Power"
- * (p221) prints its category as "Wondrous item, rarity by figurine"; the bare
- * word "figurine" is not a recognized rarity, so `findEntries` skips it, and
- * before this bound the preceding "Feather Token" body swallowed the entire
- * Figurine entry (its variants and the embedded Giant Fly stat block). The
- * font-tier bound stops Feather Token at the Figurine heading regardless; the
- * Figurine record itself is emitted by a later magic-item bead (eshyra-4a7.8).
+ * has the shape of a category line. SRD 5.1 "Figurine of Wondrous Power"
+ * (p221) prints its category as "Wondrous item, rarity by figurine"; that
+ * source-specific rarity is accepted and its named figurines are emitted as
+ * structured variants. The font-tier bound also guarantees that the preceding
+ * Feather Token body stops before the Figurine heading.
  * The bound is gated on a genuinely multi-tier slice (`hasHeadingTiers`):
  * uniform-font fixture PDFs render every line at one body size, so they retain
  * the conservative bound-at-next-detected-entry fallback.
  */
 
 import { hasHeadingTiers } from './parseSubclasses.js';
-import type { MagicItemExtraction, PageText } from './types.js';
+import type {
+  MagicItemExtraction,
+  MagicItemVariant,
+  PageText,
+} from './types.js';
 
 interface FlatLine {
   readonly line: string;
@@ -61,7 +60,7 @@ const ITEM_TYPE_WORD =
   /\b(Armor|Potion|Ring|Rod|Scroll|Staff|Wand|Weapon|Wondrous item)\b/gi;
 
 const RARITY_WORD =
-  /\b(common|uncommon|rare|very rare|legendary|artifact|rarity varies|varies)\b/i;
+  /\b(common|uncommon|rare|very rare|legendary|artifact|rarity varies|rarity by figurine|varies)\b/i;
 
 // Leaf-tier band (PDF user-space points) of a magic-item NAME heading in the
 // real SRD (h≈12.0). Used only to bound an item body at the next item heading;
@@ -154,6 +153,31 @@ function joinParagraphs(lines: readonly string[]): string {
 
 function normalizeSpaces(text: string): string {
   return text.replace(/\s+/g, ' ').trim();
+}
+
+const FIGURINE_VARIANT =
+  /\b(Bronze Griffon|Ebony Fly|Golden Lions|Ivory Goats|Marble Elephant|Obsidian Steed|Onyx Dog|Serpentine Owl|Silver Raven) \((Uncommon|Rare|Very Rare)\)\.\s*/g;
+
+function extractFigurineVariants(description: string): MagicItemVariant[] {
+  const matches = [...description.matchAll(FIGURINE_VARIANT)];
+  return matches.map((match, index) => {
+    const start = (match.index ?? 0) + match[0].length;
+    const end = matches[index + 1]?.index ?? description.length;
+    let text = description.slice(start, end).trim();
+    if (match[1] === 'Ebony Fly') {
+      text = text
+        .replace(
+          /\s+Giant Fly Large beast, unaligned Armor Class 11 Hit Points 19 \(3d10 \+ 3\) Speed 30 ft\., fly 60 ft\. STR DEX CON INT WIS CHA 14 \(\+2\) 13 \(\+1\) 13 \(\+1\) 2 \(−4\) 10 \(\+0\) 3 \(−4\) Senses darkvision 60 ft\., passive Perception 10 Languages —$/,
+          '',
+        )
+        .trim();
+    }
+    return {
+      name: match[1],
+      rarity: match[2],
+      text,
+    };
+  });
 }
 
 function categoryTextFromLine(line: string): string | undefined {
@@ -453,6 +477,10 @@ export function parseMagicItems(
     const description = joinParagraphs(
       flat.slice(bodyStart, bodyEnd).map((f) => f.line),
     );
+    const variants =
+      entry.name === 'Figurine of Wondrous Power'
+        ? extractFigurineVariants(description)
+        : [];
     out.push({
       name: entry.name,
       itemType: entry.itemType,
@@ -462,6 +490,7 @@ export function parseMagicItems(
         ? {}
         : { attunementRequirement: entry.attunementRequirement }),
       description: description.length > 0 ? description : entry.name,
+      ...(variants.length === 0 ? {} : { variants }),
       sourcePage: flat[entry.nameStart].page,
     });
   }

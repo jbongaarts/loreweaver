@@ -328,8 +328,9 @@ export interface EquipmentExtraction {
  * line (for example, "Armor (medium or heavy, but not hide)" or "Wondrous
  * item"). `rarity` is the remaining rarity text after removing any attunement
  * parenthetical; variant items keep the full source rarity expression, such as
- * "uncommon (+1), rare (+2), or very rare (+3)". Embedded tables are preserved
- * in `description` rather than emitted as separate `table` records.
+ * "uncommon (+1), rare (+2), or very rare (+3)". Embedded tables remain in
+ * `description` for source fidelity and are also emitted as reviewed structured
+ * `table` records by the document-wide parser.
  */
 export interface MagicItemExtraction {
   readonly name: string;
@@ -338,8 +339,19 @@ export interface MagicItemExtraction {
   readonly requiresAttunement: boolean;
   readonly attunementRequirement?: string;
   readonly description: string;
+  /**
+   * Named source variants that belong to this item rather than standalone
+   * magic-item records (for example the Figurines of Wondrous Power).
+   */
+  readonly variants?: readonly MagicItemVariant[];
   /** 1-based page in the source PDF where the item entry begins. */
   readonly sourcePage: number;
+}
+
+export interface MagicItemVariant {
+  readonly name: string;
+  readonly rarity: string;
+  readonly text: string;
 }
 
 /**
@@ -580,6 +592,8 @@ export interface StatBlockExtraction {
   readonly challengeRating?: string;
   /** XP from the "Challenge … (N XP)" line when present. */
   readonly experiencePoints?: number;
+  readonly traits?: readonly CreatureStatBlockEntry[];
+  readonly actions?: readonly CreatureStatBlockEntry[];
   /** 1-based page in the source PDF where the stat block begins. */
   readonly sourcePage: number;
   /** The entry this block was printed inline under (e.g. "Deck of Many Things"). */

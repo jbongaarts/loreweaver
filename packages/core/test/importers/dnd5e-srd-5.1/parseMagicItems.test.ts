@@ -453,7 +453,7 @@ describe('parseMagicItems', () => {
   // recognized rarity — so before this bound, the preceding "Feather Token"
   // swallowed the whole Figurine entry (its variants and the embedded Giant Fly
   // stat block). The font-tier bound stops Feather Token at the Figurine
-  // heading; Figurine itself is emitted by a later magic-item bead (4a7.8).
+  // heading; eshyra-4a7.8 also accepts its source-defined rarity expression.
   // -------------------------------------------------------------------------
   it('bounds an item body at the next item heading whose category does not parse', () => {
     const parsed = parseMagicItems([
@@ -484,6 +484,10 @@ describe('parseMagicItems', () => {
           'Bronze Griffon (Rare). This bronze statuette is of a griffon rampant.',
           9.84,
         ],
+        [
+          'Ebony Fly (Rare). This ebony statuette is carved in the likeness of a horsefly.',
+          9.84,
+        ],
         ['Giant Fly', 12],
         ['Large beast, unaligned', 9.84],
         ['Armor Class 11', 9.84],
@@ -506,10 +510,32 @@ describe('parseMagicItems', () => {
     expect(feather?.description).not.toContain('Bronze Griffon');
     expect(feather?.description).not.toContain('Giant Fly');
 
-    // Figurine's category does not parse, so it is not (yet) emitted — that is
-    // eshyra-4a7.8. The next item whose category DOES parse is still detected.
+    const figurine = byTieredName.get('Figurine of Wondrous Power');
+    expect(figurine).toMatchObject({
+      itemType: 'Wondrous item',
+      rarity: 'rarity by figurine',
+      requiresAttunement: false,
+      sourcePage: 221,
+    });
+    expect(figurine?.description).toContain(
+      'A figurine of wondrous power is a statuette',
+    );
+    expect(figurine?.description).toContain('Bronze Griffon (Rare).');
+    expect(figurine?.description).toContain('Giant Fly');
+    expect(figurine?.description).not.toContain('Flame Tongue');
+    expect(figurine?.variants?.[0]).toEqual({
+      name: 'Bronze Griffon',
+      rarity: 'Rare',
+      text: 'This bronze statuette is of a griffon rampant.',
+    });
+    expect(figurine?.variants?.map((variant) => variant.name)).toEqual([
+      'Bronze Griffon',
+      'Ebony Fly',
+    ]);
+
     expect(parsed.map((item) => item.name)).toEqual([
       'Feather Token',
+      'Figurine of Wondrous Power',
       'Flame Tongue',
     ]);
     expect(byTieredName.get('Flame Tongue')?.description).toContain(

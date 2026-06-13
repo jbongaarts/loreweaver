@@ -74,6 +74,27 @@ type RowRule =
        */
       readonly kind: 'wrapped-features-column';
       readonly start: RegExp;
+    }
+  | {
+      /**
+       * One physical line carries two logical rows side by side. The pattern
+       * captures `columnCount` cells for the left row followed by the same
+       * number for the right row; the right captures may be optional for a
+       * final unpaired row.
+       */
+      readonly kind: 'paired-line-per-row';
+      readonly pattern: RegExp;
+      readonly columnCount: number;
+      readonly integerColumns?: readonly number[];
+    }
+  | {
+      /**
+       * The PDF has discarded the internal column boundary. Verify the exact
+       * extracted cell run, then return the reviewed source reconstruction.
+       */
+      readonly kind: 'reviewed-reconstruction';
+      readonly sourceLines: readonly string[];
+      readonly rows: readonly (readonly unknown[])[];
     };
 
 export interface DocumentTableSpec {
@@ -90,6 +111,8 @@ export interface DocumentTableSpec {
    * the anchor heading text repeats in the document.
    */
   readonly headerLines: readonly string[];
+  /** Search later cell runs within the same anchored entry for this header. */
+  readonly searchPastCellRuns?: boolean;
   readonly rows: RowRule;
   /** Exact source row count; any drift fails the table closed. */
   readonly expectedRows: number;
@@ -358,6 +381,488 @@ export const SRD_5_1_DOCUMENT_TABLE_SPECS: readonly DocumentTableSpec[] = [
     rows: { kind: 'wrapped-last-column', start: D100_WRAPPED_ROW_START },
     expectedRows: 22,
   },
+  {
+    name: 'Apparatus of the Crab Levers',
+    columns: ['Lever', 'Up', 'Down'],
+    anchorHeading: 'Apparatus of the Crab Levers',
+    anchor: 'caption',
+    headerLines: ['Lever Up Down'],
+    rows: {
+      kind: 'reviewed-reconstruction',
+      sourceLines: [
+        '1 Legs and tail extend, Legs and tail retract,',
+        'allowing the apparatus reducing the apparatus’s',
+        'to walk and swim. speed to 0 and making it',
+        'unable to benefit from',
+        'bonuses to speed.',
+        '2 Forward window shutter Forward window shutter',
+        'opens. closes.',
+        '3 Side window shutters Side window shutters',
+        'open (two per side). close (two per side).',
+        '4 Two claws extend from The claws retract.',
+        'the front sides of the',
+        'apparatus.',
+        '5 Each extended claw Each extended claw',
+        'makes the following makes the following',
+        'melee weapon attack: melee weapon attack: +8',
+        '+8 to hit, reach 5 ft., one to hit, reach 5 ft., one',
+        'target. Hit: 7 (2d6) target. Hit: The target is',
+        'bludgeoning damage. grappled (escape DC 15).',
+        '6 The apparatus walks or The apparatus walks or',
+        'swims forward. swims backward.',
+        '7 The apparatus turns 90 The apparatus turns 90',
+        'degrees left. degrees right.',
+        '8 Eyelike fixtures emit The light turns off.',
+        'bright light in a 30-foot',
+        'radius and dim light for',
+        'an additional 30 feet.',
+        '9 The apparatus sinks as The apparatus rises up',
+        'much as 20 feet in to 20 feet in liquid.',
+        'liquid.',
+        '10 The rear hatch unseals The rear hatch closes',
+        'and opens. and seals.',
+      ],
+      rows: [
+        [
+          1,
+          'Legs and tail extend, allowing the apparatus to walk and swim.',
+          'Legs and tail retract, reducing the apparatus’s speed to 0 and making it unable to benefit from bonuses to speed.',
+        ],
+        [2, 'Forward window shutter opens.', 'Forward window shutter closes.'],
+        [
+          3,
+          'Side window shutters open (two per side).',
+          'Side window shutters close (two per side).',
+        ],
+        [
+          4,
+          'Two claws extend from the front sides of the apparatus.',
+          'The claws retract.',
+        ],
+        [
+          5,
+          'Each extended claw makes the following melee weapon attack: +8 to hit, reach 5 ft., one target. Hit: 7 (2d6) bludgeoning damage.',
+          'Each extended claw makes the following melee weapon attack: +8 to hit, reach 5 ft., one target. Hit: The target is grappled (escape DC 15).',
+        ],
+        [
+          6,
+          'The apparatus walks or swims forward.',
+          'The apparatus walks or swims backward.',
+        ],
+        [
+          7,
+          'The apparatus turns 90 degrees left.',
+          'The apparatus turns 90 degrees right.',
+        ],
+        [
+          8,
+          'Eyelike fixtures emit bright light in a 30-foot radius and dim light for an additional 30 feet.',
+          'The light turns off.',
+        ],
+        [
+          9,
+          'The apparatus sinks as much as 20 feet in liquid.',
+          'The apparatus rises up to 20 feet in liquid.',
+        ],
+        [
+          10,
+          'The rear hatch unseals and opens.',
+          'The rear hatch closes and seals.',
+        ],
+      ],
+    },
+    expectedRows: 10,
+  },
+  {
+    name: 'Armor of Resistance',
+    columns: ['d10', 'Damage Type'],
+    anchorHeading: 'Armor of Resistance',
+    anchor: 'item',
+    headerLines: ['d10 Damage Type d10 Damage Type'],
+    rows: {
+      kind: 'paired-line-per-row',
+      pattern:
+        /^(\d+) (Acid|Cold|Fire|Force|Lightning) (\d+) (Necrotic|Poison|Psychic|Radiant|Thunder)$/,
+      columnCount: 2,
+      integerColumns: [0],
+    },
+    expectedRows: 10,
+  },
+  {
+    name: 'Candle of Invocation',
+    columns: ['d20', 'Alignment'],
+    anchorHeading: 'Candle of Invocation',
+    anchor: 'item',
+    headerLines: ['d20 Alignment'],
+    rows: {
+      kind: 'line-per-row',
+      pattern: /^(\d+(?:–\d+)?) (.+)$/,
+    },
+    expectedRows: 9,
+  },
+  {
+    name: 'Carpet of Flying',
+    columns: ['d100', 'Size', 'Capacity', 'Flying Speed'],
+    anchorHeading: 'Carpet of Flying',
+    anchor: 'item',
+    headerLines: ['d100 Size Capacity Flying Speed'],
+    rows: {
+      kind: 'line-per-row',
+      pattern: /^(\d+–\d+) (.+?) (\d+ lb\.) (\d+ feet)$/,
+    },
+    expectedRows: 4,
+  },
+  {
+    name: 'Cube of Force Faces',
+    columns: ['Face', 'Charges', 'Effect'],
+    anchorHeading: 'Cube of Force Faces',
+    anchor: 'caption',
+    headerLines: ['Face Charges Effect'],
+    rows: {
+      kind: 'wrapped-last-column',
+      start: /^([1-6]) (\d) (.+)$/,
+    },
+    expectedRows: 6,
+  },
+  {
+    name: 'Cube of Force Charges Lost',
+    columns: ['Spell or Item', 'Charges Lost'],
+    anchorHeading: 'Cube of Force Faces',
+    anchor: 'item',
+    headerLines: ['Spell or Item Charges Lost'],
+    searchPastCellRuns: true,
+    rows: {
+      kind: 'line-per-row',
+      pattern: /^(.+?) (1d(?:4|6|10|12|20))$/,
+    },
+    expectedRows: 5,
+  },
+  {
+    name: 'Deck of Illusions',
+    columns: ['Playing Card', 'Illusion'],
+    anchorHeading: 'Deck of Illusions',
+    anchor: 'item',
+    headerLines: ['Playing Card Illusion'],
+    rows: {
+      kind: 'line-per-row',
+      pattern:
+        /^((?:(?:Ace|King|Queen|Jack|Ten|Nine|Eight|Two) of (?:hearts|diamonds|spades|clubs))|Jokers \(2\)) (.+)$/,
+    },
+    expectedRows: 33,
+  },
+  {
+    name: 'Deck of Many Things',
+    columns: ['Playing Card', 'Card'],
+    anchorHeading: 'Deck of Many Things',
+    anchor: 'item',
+    headerLines: ['Playing Card Card'],
+    rows: {
+      kind: 'line-per-row',
+      pattern:
+        /^((?:(?:Ace|King|Queen|Jack|Two) of (?:diamonds|hearts|clubs|spades))|Joker \((?:with|without) TM\)) (.+)$/,
+    },
+    expectedRows: 22,
+  },
+  {
+    name: 'Dragon Scale Mail',
+    columns: ['Dragon', 'Resistance'],
+    anchorHeading: 'Dragon Scale Mail',
+    anchor: 'item',
+    headerLines: ['Dragon Resistance Dragon Resistance'],
+    rows: {
+      kind: 'paired-line-per-row',
+      pattern: new RegExp(
+        `^(${DRAGON_COLOR}) (${DRAGON_DAMAGE}) (${DRAGON_COLOR}) (${DRAGON_DAMAGE})$`,
+      ),
+      columnCount: 2,
+    },
+    expectedRows: 10,
+  },
+  {
+    name: 'Efreeti Bottle',
+    columns: ['d100', 'Effect'],
+    anchorHeading: 'Efreeti Bottle',
+    anchor: 'item',
+    headerLines: ['d100 Effect'],
+    rows: { kind: 'wrapped-last-column', start: D100_WRAPPED_ROW_START },
+    expectedRows: 3,
+  },
+  {
+    name: 'Elemental Gem',
+    columns: ['Gem', 'Summoned Elemental'],
+    anchorHeading: 'Elemental Gem',
+    anchor: 'item',
+    headerLines: ['Gem Summoned Elemental'],
+    rows: {
+      kind: 'line-per-row',
+      pattern:
+        /^(Blue sapphire|Yellow diamond|Red corundum|Emerald) (.+ elemental)$/,
+    },
+    expectedRows: 4,
+  },
+  {
+    name: 'Feather Token',
+    columns: ['d100', 'Feather Token'],
+    anchorHeading: 'Feather Token',
+    anchor: 'item',
+    headerLines: ['d100 Feather Token d100 Feather Token'],
+    rows: {
+      kind: 'paired-line-per-row',
+      pattern: /^(\d+–\d+) (.+?) (\d+–\d+) (.+)$/,
+      columnCount: 2,
+    },
+    expectedRows: 6,
+  },
+  {
+    name: 'Horn of Valhalla',
+    columns: ['d100', 'Horn Type', 'Berserkers Summoned', 'Requirement'],
+    anchorHeading: 'Horn of Valhalla',
+    anchor: 'item',
+    headerLines: ['d100 Horn Berserkers Requirement', 'Type Summoned'],
+    rows: {
+      kind: 'wrapped-last-column',
+      start: /^(\d+–\d+) (Silver|Brass|Bronze|Iron) (\dd4 \+ \d) (.+)$/,
+    },
+    expectedRows: 4,
+  },
+  {
+    name: 'Iron Flask',
+    columns: ['d100', 'Contents'],
+    anchorHeading: 'Iron Flask',
+    anchor: 'item',
+    headerLines: ['d100 Contents'],
+    rows: {
+      kind: 'reviewed-reconstruction',
+      sourceLines: [
+        'Empty',
+        '1 50',
+        'Demon (type 1)',
+        '51 54',
+        'Demon (type 2)',
+        '55 58',
+        'Demon (type 3)',
+        '59 62',
+        'Demon (type 4)',
+        '63 64',
+        '65 Demon (type 5)',
+        '66 Demon (type 6)',
+        '67 Deva',
+        'Devil (greater)',
+        '68 69',
+        'Devil (lesser)',
+        '70 73',
+        'Djinni',
+        '74 75',
+        'Efreeti',
+        '76 77',
+        'Elemental (any)',
+        '78 83',
+        'Invisible stalker',
+        '84 86',
+        'Night hag',
+        '87 90',
+        '91 Planetar',
+        'Salamander',
+        '92 95',
+        '96 Solar',
+        'Succubus/incubus',
+        '97 99',
+        '100 Xorn',
+      ],
+      rows: [
+        ['01–50', 'Empty'],
+        ['51–54', 'Demon (type 1)'],
+        ['55–58', 'Demon (type 2)'],
+        ['59–62', 'Demon (type 3)'],
+        ['63–64', 'Demon (type 4)'],
+        ['65', 'Demon (type 5)'],
+        ['66', 'Demon (type 6)'],
+        ['67', 'Deva'],
+        ['68–69', 'Devil (greater)'],
+        ['70–73', 'Devil (lesser)'],
+        ['74–75', 'Djinni'],
+        ['76–77', 'Efreeti'],
+        ['78–83', 'Elemental (any)'],
+        ['84–86', 'Invisible stalker'],
+        ['87–90', 'Night hag'],
+        ['91', 'Planetar'],
+        ['92–95', 'Salamander'],
+        ['96', 'Solar'],
+        ['97–99', 'Succubus/incubus'],
+        ['100', 'Xorn'],
+      ],
+    },
+    expectedRows: 20,
+  },
+  {
+    name: 'Manual of Golems',
+    columns: ['d20', 'Golem', 'Time', 'Cost'],
+    anchorHeading: 'Manual of Golems',
+    anchor: 'item',
+    headerLines: ['d20 Golem Time Cost'],
+    rows: {
+      kind: 'line-per-row',
+      pattern:
+        /^(\d+(?:–\d+)?) (Clay|Flesh|Iron|Stone) (\d+ days) ([\d,]+ gp)$/,
+    },
+    expectedRows: 4,
+  },
+  {
+    name: 'Necklace of Prayer Beads',
+    columns: ['d20', 'Bead of …', 'Spell'],
+    anchorHeading: 'Necklace of Prayer Beads',
+    anchor: 'item',
+    headerLines: ['d20 Bead of … Spell'],
+    rows: {
+      kind: 'reviewed-reconstruction',
+      sourceLines: [
+        '1–6 Blessing Bless',
+        '7–12 Curing Cure wounds (2nd level) or lesser',
+        'restoration',
+        '13–16 Favor Greater restoration',
+        '17–18 Smiting Branding smite',
+        '19 Summons Planar ally',
+        '20 Wind Wind walk',
+        'walking',
+      ],
+      rows: [
+        ['1–6', 'Blessing', 'Bless'],
+        ['7–12', 'Curing', 'Cure wounds (2nd level) or lesser restoration'],
+        ['13–16', 'Favor', 'Greater restoration'],
+        ['17–18', 'Smiting', 'Branding smite'],
+        ['19', 'Summons', 'Planar ally'],
+        ['20', 'Wind walking', 'Wind walk'],
+      ],
+    },
+    expectedRows: 6,
+  },
+  {
+    name: 'Potion of Resistance',
+    columns: ['d10', 'Damage Type'],
+    anchorHeading: 'Potion of Resistance',
+    anchor: 'item',
+    headerLines: ['d10 Damage Type d10 Damage Type'],
+    rows: {
+      kind: 'paired-line-per-row',
+      pattern:
+        /^(\d+) (Acid|Cold|Fire|Force|Lightning) (\d+) (Necrotic|Poison|Psychic|Radiant|Thunder)$/,
+      columnCount: 2,
+      integerColumns: [0],
+    },
+    expectedRows: 10,
+  },
+  {
+    name: 'Ring of Resistance',
+    columns: ['d10', 'Damage Type', 'Gem'],
+    anchorHeading: 'Ring of Resistance',
+    anchor: 'item',
+    headerLines: ['d10 Damage Type Gem'],
+    rows: {
+      kind: 'line-per-row',
+      pattern: /^(\d+) (\S+) (.+)$/,
+      integerColumns: [0],
+    },
+    expectedRows: 10,
+  },
+  {
+    name: 'Ring of Shooting Stars',
+    columns: ['Spheres', 'Lightning Damage'],
+    anchorHeading: 'Ring of Shooting Stars',
+    anchor: 'item',
+    headerLines: ['Spheres Lightning Damage'],
+    rows: {
+      kind: 'line-per-row',
+      pattern: /^(\d+) (\dd\d+)$/,
+      integerColumns: [0],
+    },
+    expectedRows: 4,
+  },
+  {
+    name: 'Spell Scroll',
+    columns: ['Spell Level', 'Rarity', 'Save DC', 'Attack Bonus'],
+    anchorHeading: 'Spell Scroll',
+    anchor: 'caption',
+    headerLines: ['Spell Level Rarity Save DC Attack Bonus'],
+    rows: {
+      kind: 'line-per-row',
+      pattern:
+        /^(Cantrip|[1-9](?:st|nd|rd|th)) (Common|Uncommon|Rare|Very rare|Legendary) (\d+) (\+\d+)$/,
+      integerColumns: [2],
+    },
+    expectedRows: 10,
+  },
+  {
+    name: 'Sphere of Annihilation',
+    columns: ['d100', 'Result'],
+    anchorHeading: 'Sphere of Annihilation',
+    anchor: 'item',
+    headerLines: ['d100 Result'],
+    rows: { kind: 'wrapped-last-column', start: D100_WRAPPED_ROW_START },
+    expectedRows: 3,
+  },
+  ...['Staff of Power', 'Staff of the Magi'].map(
+    (name): DocumentTableSpec => ({
+      name,
+      columns: ['Distance from Origin', 'Damage'],
+      anchorHeading: name,
+      anchor: 'item',
+      headerLines: ['Distance from Origin Damage'],
+      rows: {
+        kind: 'line-per-row',
+        pattern:
+          /^(.+? away(?: or closer)?) ([468] × the number of charges in the staff)$/,
+      },
+      expectedRows: 3,
+    }),
+  ),
+  {
+    name: 'Sentient Magic Item Communication',
+    columns: ['d100', 'Communication'],
+    anchorHeading: 'Communication',
+    anchor: 'item',
+    headerLines: ['d100 Communication'],
+    rows: { kind: 'wrapped-last-column', start: D100_WRAPPED_ROW_START },
+    expectedRows: 3,
+  },
+  {
+    name: 'Sentient Magic Item Senses',
+    columns: ['d4', 'Senses'],
+    anchorHeading: 'Senses',
+    anchor: 'item',
+    headerLines: ['d4 Senses'],
+    rows: {
+      kind: 'line-per-row',
+      pattern: /^([1-4]) (.+)$/,
+      integerColumns: [0],
+    },
+    expectedRows: 4,
+  },
+  {
+    name: 'Sentient Magic Item Alignment',
+    columns: ['d100', 'Alignment'],
+    anchorHeading: 'Alignment',
+    anchor: 'item',
+    headerLines: ['d100 Alignment d100 Alignment'],
+    rows: {
+      kind: 'paired-line-per-row',
+      pattern:
+        /^(\d+–\d+) (Lawful good|Neutral good|Chaotic good|Lawful neutral|Neutral)(?: (\d+–\d+) (Chaotic neutral|Lawful evil|Neutral evil|Chaotic evil))?$/,
+      columnCount: 2,
+    },
+    expectedRows: 9,
+  },
+  {
+    name: 'Sentient Magic Item Special Purpose',
+    columns: ['d10', 'Purpose'],
+    anchorHeading: 'Special Purpose',
+    anchor: 'item',
+    headerLines: ['d10 Purpose'],
+    rows: {
+      kind: 'wrapped-last-column',
+      start: /^(\d+) (.+)$/,
+    },
+    expectedRows: 10,
+  },
 ];
 
 function flatten(pages: readonly PageText[]): readonly Row[] {
@@ -423,8 +928,13 @@ function findHeaderAt(
     for (let i = anchorIdx + 1; i < end; i++) {
       if (isHeadingTier(rows[i].height)) return undefined; // next entry began
       if (isTableCell(rows[i].height)) {
-        headerIdx = i;
-        break;
+        const firstHeaderMatches =
+          normalizeWhitespace(rows[i].text) === spec.headerLines[0];
+        if (firstHeaderMatches) {
+          headerIdx = i;
+          break;
+        }
+        if (!spec.searchPastCellRuns) return undefined;
       }
     }
   }
@@ -506,6 +1016,42 @@ function collectRows(
         last[2] = joinWrappedCell([last[2], text]);
       }
       return out;
+    }
+    case 'paired-line-per-row': {
+      const left: (readonly unknown[])[] = [];
+      const right: (readonly unknown[])[] = [];
+      for (const row of run) {
+        const match = rule.pattern.exec(normalizeWhitespace(row.text));
+        if (match === null) break;
+        const captures = match.slice(1);
+        for (
+          let offset = 0;
+          offset < captures.length;
+          offset += rule.columnCount
+        ) {
+          const cells = captures.slice(offset, offset + rule.columnCount);
+          if (cells[0] === undefined) continue;
+          const parsed = cells.map((cell, columnIdx) =>
+            (rule.integerColumns ?? []).includes(columnIdx)
+              ? Number.parseInt(cell, 10)
+              : cell,
+          );
+          (offset === 0 ? left : right).push(parsed);
+        }
+      }
+      return [...left, ...right];
+    }
+    case 'reviewed-reconstruction': {
+      const actual = run
+        .slice(0, rule.sourceLines.length)
+        .map((row) => normalizeWhitespace(row.text));
+      if (
+        actual.length !== rule.sourceLines.length ||
+        actual.some((line, index) => line !== rule.sourceLines[index])
+      ) {
+        return [];
+      }
+      return rule.rows.map((row) => [...row]);
     }
   }
 }

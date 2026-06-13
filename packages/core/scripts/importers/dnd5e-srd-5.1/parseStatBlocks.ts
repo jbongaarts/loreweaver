@@ -38,6 +38,7 @@ import {
   flatten,
   parseAbilityScores,
   parseMetaLine,
+  parseNarrativeSections,
   parseSpeed,
   SPEED_PATTERN,
 } from './parseCreatures.js';
@@ -142,6 +143,9 @@ const RAW_KEYED_WINDOW = 40;
 
 /** A real CR token starts with a digit or a dash (em/en/hyphen for "no CR"). */
 const CR_TOKEN = /^(?:\d|[—–-])/;
+const CLEAN_TEXT_END_MARKERS = new Map<string, string>([
+  ['Giant Fly', 'Golden Lions (Rare).'],
+]);
 
 export interface StatBlockKeyedFields {
   readonly savingThrows?: string;
@@ -195,7 +199,12 @@ function extractKeyedFields(
   const raw: Record<string, string> = {};
   if (cleanText !== undefined) {
     const startIdx = cleanText.indexOf(name);
-    const text = startIdx >= 0 ? cleanText.slice(startIdx) : cleanText;
+    let text = startIdx >= 0 ? cleanText.slice(startIdx) : cleanText;
+    const endMarker = CLEAN_TEXT_END_MARKERS.get(name);
+    if (endMarker !== undefined) {
+      const endIdx = text.indexOf(endMarker);
+      if (endIdx >= 0) text = text.slice(0, endIdx);
+    }
     const positions = KEYED_LABELS.map((label) => ({
       label,
       idx: text.indexOf(label),
@@ -246,6 +255,38 @@ interface Candidate {
   readonly size: string;
   readonly type: string;
   readonly alignment: string;
+}
+
+const INLINE_NARRATIVE_END = new Map<string, RegExp>([
+  // The Deck of Many Things resumes with the Star card immediately after the
+  // Avatar's lone action. Without this reviewed boundary, subsequent card
+  // paragraphs look like additional bold-lead-in stat-block actions.
+  ['Avatar of Death', /^Star\./],
+]);
+
+function narrativeBodyFor(
+  name: string,
+  body: readonly FlatLine[],
+): readonly FlatLine[] {
+  const endPattern = INLINE_NARRATIVE_END.get(name);
+  if (endPattern === undefined) return body;
+  const end = body.findIndex((line) => endPattern.test(line.line.trim()));
+  return end < 0 ? body : body.slice(0, end);
+}
+
+function narrativeInput(
+  meta: FlatLine,
+  name: string,
+  body: readonly FlatLine[],
+): readonly FlatLine[] {
+  return [
+    meta,
+    ...narrativeBodyFor(name, body).map((line) =>
+      /^Challenge [—–-]/.test(line.line.trim())
+        ? { ...line, line: 'Challenge 0' }
+        : line,
+    ),
+  ];
 }
 
 export interface ParseStatBlocksOptions {
@@ -302,7 +343,8 @@ export function parseStatBlocks(
 
     const next = candidates[i + 1];
     const bodyEnd = next?.nameIdx ?? flat.length;
-    const body = flat.slice(candidate.metaIdx + 1, bodyEnd).map((f) => f.line);
+    const bodyFlat = flat.slice(candidate.metaIdx + 1, bodyEnd);
+    const body = bodyFlat.map((f) => f.line);
     const fields = readStatBlock(body);
 
     // A stat block is confirmed by armor class + ability scores + some hit-point
@@ -334,6 +376,9 @@ export function parseStatBlocks(
       candidate.name,
       options.cleanTextByName?.get(candidate.name),
     );
+    const narrative = parseNarrativeSections(
+      narrativeInput(flat[candidate.metaIdx], candidate.name, bodyFlat),
+    );
 
     out.push({
       name: candidate.name,
@@ -345,6 +390,10 @@ export function parseStatBlocks(
       speed: fields.speed,
       abilityScores: fields.abilityScores,
       ...keyed,
+      ...(narrative.traits === undefined ? {} : { traits: narrative.traits }),
+      ...(narrative.actions === undefined
+        ? {}
+        : { actions: narrative.actions }),
       sourcePage,
       containingItem,
     });
