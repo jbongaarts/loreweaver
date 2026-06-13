@@ -2221,21 +2221,6 @@ export async function runImporter(
   const npcPages = sliceSectionOrEmptyPages(pages, anchors.nonplayerCharacters);
   const npcs = parseCreatures(npcPages, 'npc');
   validateNpcCoverage(npcs, input.expectedNpcNames);
-  // Inline stat blocks (eshyra-4a7.4): scan the WHOLE document for abbreviated
-  // stat-block-shaped content (Avatar of Death p218, Giant Fly p222) that is not
-  // already emitted as a monster/NPC `creature`, and emit it under the permissive
-  // `stat-block` kind. `excludeNames` keeps the monster/NPC blocks owned by
-  // `parseCreatures` from being re-emitted here.
-  const emittedCreatureNames = new Set<string>([
-    ...creatures.map((c) => c.name),
-    ...npcs.map((c) => c.name),
-  ]);
-  const statBlocks = parseStatBlocks(pages, {
-    excludeNames: emittedCreatureNames,
-    containingItemByName:
-      input.statBlockContainingItems ?? new Map<string, string>(),
-  });
-  validateStatBlockCoverage(statBlocks, input.expectedStatBlockNames);
   const conditions = parseConditions(conditionPages);
   const actions = parseActions(combatActionPages);
   const featPages = sliceSection(pages, anchors.feats);
@@ -2314,6 +2299,39 @@ export async function runImporter(
     input.minMagicItemCount,
     input.expectedMagicItemNames,
   );
+  // Inline stat blocks (eshyra-4a7.4): scan the WHOLE document for abbreviated
+  // stat-block-shaped content (Avatar of Death p218, Giant Fly p222) not already
+  // emitted as a monster/NPC `creature`, and emit it under the permissive
+  // `stat-block` kind. `excludeNames` keeps the monster/NPC blocks owned by
+  // `parseCreatures` from being re-emitted here. The keyed trailing fields of a
+  // block whose values WRAP across the two-column layout (Avatar of Death's
+  // Condition Immunities / Senses) are recovered from the containing magic
+  // item's already-reflowed description; `cleanTextByName` maps each block to
+  // the emitted item description that embeds it (Deck of Many Things for Avatar
+  // of Death; Giant Fly's container is unemitted, so it falls back to the
+  // single-line raw parse, which is complete for its abbreviated block).
+  const emittedCreatureNames = new Set<string>([
+    ...creatures.map((c) => c.name),
+    ...npcs.map((c) => c.name),
+  ]);
+  const cleanTextByName = new Map<string, string>();
+  for (const [blockName] of input.statBlockContainingItems ??
+    new Map<string, string>()) {
+    const holder = magicItems.find(
+      (item) =>
+        item.description.includes(blockName) &&
+        item.description.includes('Armor Class'),
+    );
+    if (holder !== undefined)
+      cleanTextByName.set(blockName, holder.description);
+  }
+  const statBlocks = parseStatBlocks(pages, {
+    excludeNames: emittedCreatureNames,
+    containingItemByName:
+      input.statBlockContainingItems ?? new Map<string, string>(),
+    cleanTextByName,
+  });
+  validateStatBlockCoverage(statBlocks, input.expectedStatBlockNames);
   // SRD 5.1 has no standalone treasure-tables chapter either. Best-effort.
   const treasureTablePages = sliceSectionOrEmptyPages(
     pages,

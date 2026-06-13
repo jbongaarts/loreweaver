@@ -81,7 +81,7 @@ const META_PATTERN = new RegExp(
 export const AC_PATTERN = /^Armor Class\s+(\d+)/;
 const HP_PATTERN = /^Hit Points\s+(\d+)/;
 export const SPEED_PATTERN = /^Speed\s+(.+)$/;
-export const CHALLENGE_PATTERN = /^Challenge\s+([0-9/]+)/;
+const CHALLENGE_PATTERN = /^Challenge\s+([0-9/]+)/;
 const ABILITY_HEADER_PATTERN = /^STR\s+DEX\s+CON\s+INT\s+WIS\s+CHA$/i;
 // Six "score (modifier)" cells, e.g. "8 (−1) 14 (+2) 10 (+0) …". Only the
 // scores are captured; the parenthesized modifier may use a Unicode minus.

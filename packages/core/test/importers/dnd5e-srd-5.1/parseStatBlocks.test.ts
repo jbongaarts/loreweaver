@@ -87,7 +87,14 @@ describe('parseStatBlocks', () => {
     expect(avatar.hitPoints).toEqual({
       special: 'half the hit point maximum of its summoner',
     });
-    expect(avatar.challengeRating).toBeUndefined();
+    expect(avatar.damageImmunities).toBe('necrotic, poison');
+    expect(avatar.senses).toBe(
+      'darkvision 60 ft., truesight 60 ft., passive Perception 13',
+    );
+    expect(avatar.languages).toBe('all languages known to its summoner');
+    // The "—" CR token is preserved verbatim with its XP, not dropped.
+    expect(avatar.challengeRating).toBe('—');
+    expect(avatar.experiencePoints).toBe(0);
     expect(avatar.speed).toEqual({ walk: 60, fly: 60 });
     expect(avatar.abilityScores).toEqual({
       strength: 16,
@@ -110,7 +117,11 @@ describe('parseStatBlocks', () => {
     const fly = result[0];
     expect(fly.name).toBe('Giant Fly');
     expect(fly.hitPoints).toEqual({ value: 19, formula: '3d10 + 3' });
+    expect(fly.senses).toBe('darkvision 60 ft., passive Perception 10');
+    expect(fly.languages).toBe('—');
+    // Giant Fly has no Challenge line; nothing must be invented for it.
     expect(fly.challengeRating).toBeUndefined();
+    expect(fly.experiencePoints).toBeUndefined();
     expect(fly.speed).toEqual({ walk: 30, fly: 60 });
     expect(fly.containingItem).toBe('Figurine of Wondrous Power');
     expect(fly.sourcePage).toBe(222);
@@ -146,6 +157,62 @@ describe('parseStatBlocks', () => {
         containingItemByName: new Map(),
       }),
     ).toThrow(/not in the reviewed containing-item map/);
+  });
+
+  it('recovers wrapped keyed values from the containing item clean text', () => {
+    // In the raw two-column lines Avatar of Death's Condition Immunities and
+    // Senses wrap across interleaved column prose, so per-line parsing would
+    // truncate them. parseMagicItems has already reflowed the Deck of Many Things
+    // description into clean contiguous text; cleanTextByName feeds it back so the
+    // full values are recovered.
+    const wrappedRaw = [
+      'Avatar of Death',
+      'Medium undead, neutral evil',
+      'Armor Class 20',
+      'Hit Points half the hit point maximum of its summoner',
+      'Speed 60 ft., fly 60 ft. (hover)',
+      'STR DEX CON INT WIS CHA',
+      '16 (+3) 16 (+3) 16 (+3) 16 (+3) 16 (+3) 16 (+3)',
+      'Condition Immunities charmed, frightened, paralyzed,', // wraps below
+      'petrified, poisoned, unconscious',
+    ];
+    const cleanText =
+      'Avatar of Death Medium undead, neutral evil Armor Class 20 ' +
+      'Hit Points half the hit point maximum of its summoner ' +
+      'Speed 60 ft., fly 60 ft. (hover) STR DEX CON INT WIS CHA ' +
+      '16 (+3) 16 (+3) 16 (+3) 16 (+3) 16 (+3) 16 (+3) ' +
+      'Damage Immunities necrotic, poison ' +
+      'Condition Immunities charmed, frightened, paralyzed, petrified, poisoned, unconscious ' +
+      'Senses darkvision 60 ft., truesight 60 ft., passive Perception 13 ' +
+      'Languages all languages known to its summoner Challenge — (0 XP) ' +
+      'Incorporeal Movement. The avatar can move through other creatures.';
+    const result = parseStatBlocks([page(218, wrappedRaw)], {
+      excludeNames: new Set(),
+      containingItemByName: CONTAINING_ITEMS,
+      cleanTextByName: new Map([['Avatar of Death', cleanText]]),
+    });
+    expect(result).toHaveLength(1);
+    expect(result[0].conditionImmunities).toBe(
+      'charmed, frightened, paralyzed, petrified, poisoned, unconscious',
+    );
+    expect(result[0].senses).toBe(
+      'darkvision 60 ft., truesight 60 ft., passive Perception 13',
+    );
+  });
+
+  it('does not mistake a distant "Challenge Rating" line for a challenge value', () => {
+    // Giant Fly has no Challenge line; a far-off Monsters-chapter "Challenge
+    // Rating" heading in the body window must not be read as its CR.
+    const fly = page(222, [
+      ...GIANT_FLY_LINES,
+      ...Array(30).fill('filler line of unrelated figurine prose'),
+      'Challenge Rating', // distant heading, not a real CR line
+    ]);
+    const result = parseStatBlocks([fly], {
+      excludeNames: new Set(),
+      containingItemByName: CONTAINING_ITEMS,
+    });
+    expect(result[0].challengeRating).toBeUndefined();
   });
 
   it('ignores prose that merely resembles a meta line (no stat-block signature)', () => {

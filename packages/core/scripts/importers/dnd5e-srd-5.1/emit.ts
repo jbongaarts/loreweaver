@@ -321,9 +321,6 @@ function buildStatBlockData(
     hp.special = statBlock.hitPoints.special;
   data.hitPoints = hp;
   data.speed = { ...statBlock.speed };
-  if (statBlock.challengeRating !== undefined) {
-    data.challengeRating = statBlock.challengeRating;
-  }
   data.abilityScores = {
     strength: statBlock.abilityScores.strength,
     dexterity: statBlock.abilityScores.dexterity,
@@ -332,6 +329,25 @@ function buildStatBlockData(
     wisdom: statBlock.abilityScores.wisdom,
     charisma: statBlock.abilityScores.charisma,
   };
+  // Keyed trailing fields in stat-block print order; each emitted only when the
+  // source block carries it (eshyra-4a7.4).
+  if (statBlock.savingThrows !== undefined)
+    data.savingThrows = statBlock.savingThrows;
+  if (statBlock.skills !== undefined) data.skills = statBlock.skills;
+  if (statBlock.damageVulnerabilities !== undefined)
+    data.damageVulnerabilities = statBlock.damageVulnerabilities;
+  if (statBlock.damageResistances !== undefined)
+    data.damageResistances = statBlock.damageResistances;
+  if (statBlock.damageImmunities !== undefined)
+    data.damageImmunities = statBlock.damageImmunities;
+  if (statBlock.conditionImmunities !== undefined)
+    data.conditionImmunities = statBlock.conditionImmunities;
+  if (statBlock.senses !== undefined) data.senses = statBlock.senses;
+  if (statBlock.languages !== undefined) data.languages = statBlock.languages;
+  if (statBlock.challengeRating !== undefined)
+    data.challengeRating = statBlock.challengeRating;
+  if (statBlock.experiencePoints !== undefined)
+    data.experiencePoints = statBlock.experiencePoints;
   data.inlineSource = {
     containingItem: statBlock.containingItem,
     page: statBlock.sourcePage,

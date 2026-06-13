@@ -61072,6 +61072,12 @@
         "wisdom": 16,
         "charisma": 16
       },
+      "damageImmunities": "necrotic, poison",
+      "conditionImmunities": "charmed, frightened, paralyzed, petrified, poisoned, unconscious",
+      "senses": "darkvision 60 ft., truesight 60 ft., passive Perception 13",
+      "languages": "all languages known to its summoner",
+      "challengeRating": "—",
+      "experiencePoints": 0,
       "inlineSource": {
         "containingItem": "Deck of Many Things",
         "page": 218
@@ -61125,6 +61131,8 @@
         "wisdom": 10,
         "charisma": 3
       },
+      "senses": "darkvision 60 ft., passive Perception 10",
+      "languages": "—",
       "inlineSource": {
         "containingItem": "Figurine of Wondrous Power",
         "page": 222

@@ -115,6 +115,19 @@ function optBool(parent: Obj, key: string, path: string): void {
   }
 }
 
+function optInt(parent: Obj, key: string, path: string, min?: number): void {
+  const value = parent[key];
+  if (value === undefined) {
+    return;
+  }
+  if (typeof value !== 'number' || !Number.isInteger(value)) {
+    throw new RulesPackError(`${path}.${key} must be an integer when present`);
+  }
+  if (min !== undefined && value < min) {
+    throw new RulesPackError(`${path}.${key} must be >= ${min} when present`);
+  }
+}
+
 function isScalar(value: unknown): value is Scalar {
   return (
     value === null ||
@@ -264,7 +277,6 @@ function validateDnd5eStatBlock(record: RulesRecord, path: string): void {
   if (hasFormula) reqStr(hp, 'formula', `${path}.data.hitPoints`);
   if (hasSpecial) reqStr(hp, 'special', `${path}.data.hitPoints`);
   reqObj(data, 'speed', `${path}.data`);
-  optStr(data, 'challengeRating', `${path}.data`);
   const abilities = reqObj(data, 'abilityScores', `${path}.data`);
   for (const key of [
     'strength',
@@ -276,6 +288,19 @@ function validateDnd5eStatBlock(record: RulesRecord, path: string): void {
   ]) {
     reqInt(abilities, key, `${path}.data.abilityScores`, 1);
   }
+  // Optional keyed fields preserved verbatim from the source stat block. An
+  // abbreviated block carries only the ones the SRD prints; challengeRating may
+  // be the literal "—" and experiencePoints may be 0.
+  optStr(data, 'savingThrows', `${path}.data`);
+  optStr(data, 'skills', `${path}.data`);
+  optStr(data, 'damageVulnerabilities', `${path}.data`);
+  optStr(data, 'damageResistances', `${path}.data`);
+  optStr(data, 'damageImmunities', `${path}.data`);
+  optStr(data, 'conditionImmunities', `${path}.data`);
+  optStr(data, 'senses', `${path}.data`);
+  optStr(data, 'languages', `${path}.data`);
+  optStr(data, 'challengeRating', `${path}.data`);
+  optInt(data, 'experiencePoints', `${path}.data`, 0);
   const inlineSource = reqObj(data, 'inlineSource', `${path}.data`);
   reqStr(inlineSource, 'containingItem', `${path}.data.inlineSource`);
   reqInt(inlineSource, 'page', `${path}.data.inlineSource`, 1);

@@ -496,9 +496,26 @@ export interface StatBlockExtraction {
   readonly armorClass: number;
   readonly hitPoints: StatBlockHitPoints;
   readonly speed: Readonly<Record<string, number>>;
-  /** Bare CR string when present ("1/4", "6"); absent for blocks with no/"—" CR. */
-  readonly challengeRating?: string;
   readonly abilityScores: CreatureAbilityScores;
+  // Keyed trailing fields, preserved verbatim from the source so the record is
+  // not silently incomplete (eshyra-4a7.4). All optional — an abbreviated block
+  // carries only the ones the SRD prints.
+  readonly savingThrows?: string;
+  readonly skills?: string;
+  readonly damageVulnerabilities?: string;
+  readonly damageResistances?: string;
+  readonly damageImmunities?: string;
+  readonly conditionImmunities?: string;
+  readonly senses?: string;
+  readonly languages?: string;
+  /**
+   * The CR token verbatim, INCLUDING the "—" the SRD prints for a creature with
+   * no meaningful challenge rating (Avatar of Death). Absent when the block has
+   * no Challenge line at all (Giant Fly).
+   */
+  readonly challengeRating?: string;
+  /** XP from the "Challenge … (N XP)" line when present. */
+  readonly experiencePoints?: number;
   /** 1-based page in the source PDF where the stat block begins. */
   readonly sourcePage: number;
   /** The entry this block was printed inline under (e.g. "Deck of Many Things"). */
