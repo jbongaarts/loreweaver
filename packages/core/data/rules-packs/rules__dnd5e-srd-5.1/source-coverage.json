@@ -1,7 +1,7 @@
 {
   "summary": {
     "record": 1875,
-    "childOf": 12,
+    "childOf": 14,
     "ignored": {
       "document-structure": 41,
       "equipment-category-heading": 3,
@@ -13,7 +13,6 @@
     },
     "knownGap": {
       "eshyra-4a7.10": 70,
-      "eshyra-4a7.5": 2,
       "eshyra-4a7.6": 116,
       "eshyra-4a7.8": 27,
       "eshyra-o4j7": 9
@@ -19783,7 +19782,7 @@
       "structure": "table-caption",
       "text": "Variant: Diseased Giant Rats",
       "section": "Appendix MM-A: Miscellaneous Creatures",
-      "status": "known-gap:eshyra-4a7.5"
+      "status": "child-of:creature:giant-rat"
     },
     {
       "page": 378,
@@ -20557,7 +20556,7 @@
       "structure": "table-caption",
       "text": "Variant: Insect Swarms",
       "section": "Appendix MM-A: Miscellaneous Creatures",
-      "status": "known-gap:eshyra-4a7.5"
+      "status": "child-of:creature:swarm-of-insects"
     },
     {
       "page": 391,

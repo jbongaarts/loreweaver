@@ -337,6 +337,8 @@ const EXPECTED_STABLE_KEYS: readonly string[] = [
  *   - creature.{traits,actions,reactions,legendaryActions}: optional narrative
  *     body sections emitted only when the creature prints that section
  *     (eshyra-yevt / eshyra-4a7.5).
+ *   - creature.variants: only the Giant Rat and Swarm of Insects carry a
+ *     "Variant: …" sidebar (eshyra-70xr / eshyra-4a7.5).
  *   - condition.effects: present on all conditions except Exhaustion, whose
  *     mechanics live in its per-level `levels` table.
  *   - condition.levels: only Exhaustion has graded levels.
@@ -441,6 +443,7 @@ const EXPECTED_PARTIAL_FIELDS: ReadonlyArray<{
   },
   { kind: 'creature', field: 'skills', missingCount: 129, totalInKind: 317 },
   { kind: 'creature', field: 'traits', missingCount: 55, totalInKind: 317 },
+  { kind: 'creature', field: 'variants', missingCount: 315, totalInKind: 317 },
   { kind: 'equipment', field: 'ac', missingCount: 205, totalInKind: 218 },
   {
     kind: 'equipment',

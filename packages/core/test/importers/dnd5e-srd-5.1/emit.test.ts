@@ -494,6 +494,25 @@ describe('creatureExtractionsToRecords — keyed defensive / sense fields', () =
     ]);
   });
 
+  it('emits variant sidebars as a {name,text} array after the narrative sections', () => {
+    const rat: CreatureExtraction = {
+      ...ABOLETH,
+      actions: [{ name: 'Bite', text: 'It bites.' }],
+      variants: [
+        { name: 'Diseased Giant Rats', text: 'A diseased giant rat …' },
+      ],
+    };
+    const data = creatureExtractionsToRecords([rat])[0].data as Record<
+      string,
+      unknown
+    >;
+    expect(data.variants).toEqual([
+      { name: 'Diseased Giant Rats', text: 'A diseased giant rat …' },
+    ]);
+    // `variants` is the last data key (after the narrative sections).
+    expect(Object.keys(data).at(-1)).toBe('variants');
+  });
+
   it('emits a legendary-actions object without description when none is present', () => {
     const creature: CreatureExtraction = {
       ...ABOLETH,

@@ -441,6 +441,20 @@ export interface CreatureLegendaryActions {
 }
 
 /**
+ * A creature variant sidebar (eshyra-70xr / eshyra-4a7.5). The SRD prints two
+ * boxed "Variant: …" notes in the creature chapters — Diseased Giant Rats
+ * (p378, an alternate bite + CR for the Giant Rat) and Insect Swarms (p391,
+ * per-insect additions for the Swarm of Insects). `name` is the caption without
+ * its "Variant: " label; `text` is the box body, verbatim with wrapped lines
+ * re-joined. A variant box sits in the body of whatever creature precedes it,
+ * but is attached to the creature it modifies via a reviewed target map.
+ */
+export interface CreatureVariant {
+  readonly name: string;
+  readonly text: string;
+}
+
+/**
  * A creature (monster) entry as extracted from the SRD source, before
  * conversion to a `kind=creature` `RulesRecord`. Mirrors the fields the
  * `dnd5e-srd` creature kindSchema requires (see `kindSchemas.ts`):
@@ -494,6 +508,10 @@ export interface CreatureExtraction {
   readonly actions?: readonly CreatureStatBlockEntry[];
   readonly reactions?: readonly CreatureStatBlockEntry[];
   readonly legendaryActions?: CreatureLegendaryActions;
+  // Boxed "Variant: …" sidebars that modify this creature (eshyra-70xr). Only
+  // the Giant Rat and Swarm of Insects carry one in SRD 5.1; all other creatures
+  // omit the field.
+  readonly variants?: readonly CreatureVariant[];
   /** 1-based page in the source PDF where the creature stat block begins. */
   readonly sourcePage: number;
 }

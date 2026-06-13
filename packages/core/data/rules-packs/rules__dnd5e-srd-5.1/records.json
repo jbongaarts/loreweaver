@@ -12193,11 +12193,13 @@
       "actions": [
         {
           "name": "Bite",
-          "text": "Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 4 (1d4 + 2) piercing damage. Variant: Diseased Giant Rats Some giant rats carry vile diseases that they spread with their bites. A diseased giant rat has a challenge rating of 1/8 (25 XP) and the following action instead of its normal bite attack."
-        },
+          "text": "Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 4 (1d4 + 2) piercing damage."
+        }
+      ],
+      "variants": [
         {
-          "name": "Bite",
-          "text": "Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 4 (1d4 + 2) piercing damage. If the target is a creature, it must succeed on a DC 10 Constitution saving throw or contract a disease. Until the disease is cured, the target can’t regain hit points except by magical means, and the target’s hit point maximum decreases by 3 (1d6) every 24 hours. If the target’s hit point maximum drops to 0 as a result of this disease, the target dies."
+          "name": "Diseased Giant Rats",
+          "text": "Some giant rats carry vile diseases that they spread with their bites. A diseased giant rat has a challenge rating of 1/8 (25 XP) and the following action instead of its normal bite attack. Bite. Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 4 (1d4 + 2) piercing damage. If the target is a creature, it must succeed on a DC 10 Constitution saving throw or contract a disease. Until the disease is cured, the target can’t regain hit points except by magical means, and the target’s hit point maximum decreases by 3 (1d6) every 24 hours. If the target’s hit point maximum drops to 0 as a result of this disease, the target dies."
         }
       ]
     },
@@ -22055,6 +22057,12 @@
           "name": "Bites",
           "text": "Melee Weapon Attack: +3 to hit, reach 0 ft., one target in the swarm’s space. Hit: 10 (4d4) piercing damage, or 5 (2d4) piercing damage if the swarm has half of its hit points or fewer."
         }
+      ],
+      "variants": [
+        {
+          "name": "Insect Swarms",
+          "text": "Different kinds of insects can gather in swarms, and each swarm has the special characteristics described below. Swarm of Beetles. A swarm of beetles gains a burrowing speed of 5 feet. Swarm of Centipedes. A creature reduced to 0 hit points by a swarm of centipedes is stable but poisoned for 1 hour, even after regaining hit points, and paralyzed while poisoned in this way. Swarm of Spiders. A swarm of spiders has the following additional traits. Spider Climb. The swarm can climb difficult surfaces, including upside down on ceilings, without needing to make an ability check. Web Sense. While in contact with a web, the swarm knows the exact location of any other creature in contact with the same web. Web Walker. The swarm ignores movement restrictions caused by webbing. Swarm of Wasps. A swarm of wasps has a walking speed of 5 feet, a flying speed of 30 feet, and no climbing speed."
+        }
       ]
     },
     "source": "SRD 5.1 p. 389",
@@ -22317,35 +22325,7 @@
       "actions": [
         {
           "name": "Beaks",
-          "text": "Melee Weapon Attack: +4 to hit, reach 5 ft., one target in the swarm’s space. Hit: 7 (2d6) piercing damage, or 3 (1d6) piercing damage if the swarm has half of its hit points or fewer. Variant: Insect Swarms Different kinds of insects can gather in swarms, and each swarm has the special characteristics described below."
-        },
-        {
-          "name": "Swarm of Beetles",
-          "text": "A swarm of beetles gains a burrowing speed of 5 feet."
-        },
-        {
-          "name": "Swarm of Centipedes",
-          "text": "A creature reduced to 0 hit points by a swarm of centipedes is stable but poisoned for 1 hour, even after regaining hit points, and paralyzed while poisoned in this way."
-        },
-        {
-          "name": "Swarm of Spiders",
-          "text": "A swarm of spiders has the following additional traits."
-        },
-        {
-          "name": "Spider Climb",
-          "text": "The swarm can climb difficult surfaces, including upside down on ceilings, without needing to make an ability check."
-        },
-        {
-          "name": "Web Sense",
-          "text": "While in contact with a web, the swarm knows the exact location of any other creature in contact with the same web."
-        },
-        {
-          "name": "Web Walker",
-          "text": "The swarm ignores movement restrictions caused by webbing."
-        },
-        {
-          "name": "Swarm of Wasps",
-          "text": "A swarm of wasps has a walking speed of 5 feet, a flying speed of 30 feet, and no climbing speed."
+          "text": "Melee Weapon Attack: +4 to hit, reach 5 ft., one target in the swarm’s space. Hit: 7 (2d6) piercing damage, or 3 (1d6) piercing damage if the swarm has half of its hit points or fewer."
         }
       ]
     },
