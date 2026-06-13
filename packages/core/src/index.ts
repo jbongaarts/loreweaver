@@ -113,6 +113,7 @@ export type {
   ModelResponseFormat,
   ModelStopReason,
   ModelToolCall,
+  ModelToolResult,
   ModelTraceMetadata,
 } from './model/client.js';
 

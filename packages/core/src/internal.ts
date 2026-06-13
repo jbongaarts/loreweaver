@@ -151,6 +151,10 @@ export {
   ProfileConfigError,
   resolveProfileRegistry,
 } from './model/profiles.js';
+export {
+  validateJsonSchema,
+  validateToolInput,
+} from './model/toolSchemaValidation.js';
 export type {
   AssembledContext,
   AssembledSceneRef,
@@ -206,8 +210,8 @@ export type {
   ToolRequest,
   ToolRequestSource,
 } from './orchestrator/toolRequest.js';
-// Transport-neutral model-requested tool action abstraction (eshyra-0jq.16).
-export { hasNativeToolRequests } from './orchestrator/toolRequest.js';
+// Transport-neutral model-requested tool action abstraction.
+export { normalizeNativeToolCalls } from './orchestrator/toolRequest.js';
 export type { MarkSceneToolData } from './orchestrator/tools.js';
 // Tool-data helpers (the registry itself is stable; these are internals).
 export { isMarkSceneToolData } from './orchestrator/tools.js';

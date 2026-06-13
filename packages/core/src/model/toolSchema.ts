@@ -2,11 +2,10 @@
  * Provider-neutral tool schema vocabulary (eshyra-0jq.10).
  *
  * The deterministic tool layer is the canonical owner of a tool's input
- * contract; the DM model speaks to tools through fenced text today and may
- * speak through native provider tool channels tomorrow. To make both routes
- * possible without coupling the core to any provider SDK, every bundled tool
- * publishes a JSON-Schema-shaped {@link ToolInputSchema} alongside its name
- * and description.
+ * contract; the DM model may speak to tools through fenced text or native
+ * provider tool channels. To support both routes without coupling the core to
+ * any provider SDK, every bundled tool publishes a JSON-Schema-shaped
+ * {@link ToolInputSchema} alongside its name and description.
  *
  * The dialect here is a deliberate, conservative subset of JSON Schema Draft
  * 2020-12 chosen so it can be lifted directly into:

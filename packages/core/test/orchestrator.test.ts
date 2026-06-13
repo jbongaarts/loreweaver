@@ -41,17 +41,16 @@ class FailingModel implements ModelClient {
   }
 }
 
-/**
- * A ModelClient that returns a native tool-use result — the seam a future
- * native-tool adapter would populate (eshyra-0jq.25). The runtime does not
- * consume `toolCalls`/`stopReason` yet, so the loop must reject this loudly
- * rather than drop the mechanical action. Defaults to populating both signals;
- * a single signal can be exercised by overriding the result.
- */
-class NativeToolModel implements ModelClient {
-  constructor(private readonly result: ModelCompleteResult) {}
-  complete(): Promise<ModelCompleteResult> {
-    return Promise.resolve(this.result);
+/** A ModelClient that replays structured provider results. */
+class StructuredScriptedModel implements ModelClient {
+  private index = 0;
+  readonly seen: ModelCompleteInput[] = [];
+  constructor(private readonly results: ModelCompleteResult[]) {}
+  complete(input: ModelCompleteInput): Promise<ModelCompleteResult> {
+    this.seen.push(input);
+    const result = this.results[this.index] ?? { text: '' };
+    this.index += 1;
+    return Promise.resolve(result);
   }
 }
 
@@ -219,45 +218,217 @@ describe('orchestrator turn loop', () => {
     db.close();
   });
 
-  it('rejects a native toolCalls result instead of dropping the mechanical action (eshyra-0jq.25)', async () => {
+  it.each([
+    { provider: 'Anthropic', callId: 'toolu_01ABC' },
+    { provider: 'OpenAI', callId: 'call_01XYZ' },
+  ])('executes a representative $provider native tool call and returns a correlated result', async ({
+    callId,
+  }) => {
     const db = freshDbWithSession();
     withOpenScene(db);
     db.prepare(
       `UPDATE character SET hp_max = 20, hp_current = 15 WHERE id = 'pc-1'`,
     ).run();
-    // A native-tool adapter signals "run adjust_hp" through the structured
-    // channel. The narration text carries NO fenced tool_call, so without the
-    // guard the loop would treat this text as final narration and succeed —
-    // silently losing the HP change. `stopReason` is deliberately left unset so
-    // this test isolates the `toolCalls` rejection branch.
-    const model = new NativeToolModel({
-      text: 'You bandage your wounds.',
-      toolCalls: [{ name: 'adjust_hp', args: { amount: -3 } }],
-    });
+    const model = new StructuredScriptedModel([
+      {
+        text: 'You take a hard hit.',
+        toolCalls: [{ id: callId, name: 'adjust_hp', args: { amount: -3 } }],
+        stopReason: 'tool_use',
+      },
+      {
+        text: 'Pain flashes through you, but you remain standing.',
+        stopReason: 'end_turn',
+      },
+    ]);
 
     const result = await runTurn(
       { db, model, registry: createDefaultToolRegistry() },
       baseInput(),
     );
 
-    expect(result.ok).toBe(false);
-    expect(result.error).toContain('native tool-use');
-    // The HP was NOT changed — the turn rolled back rather than partially
-    // applying or silently dropping the native call.
+    expect(result.ok).toBe(true);
+    expect(result.narration).toContain('remain standing');
+    expect(result.toolCalls).toMatchObject([
+      {
+        tool: 'adjust_hp',
+        args: { amount: -3 },
+        source: 'native',
+        callId,
+        stopReason: 'tool_use',
+        result: { ok: true },
+      },
+    ]);
     const row = db
       .prepare(`SELECT hp_current FROM character WHERE id = 'pc-1'`)
       .get() as { hp_current: number };
-    expect(row.hp_current).toBe(15);
+    expect(row.hp_current).toBe(12);
+
+    const secondCall = model.seen[1];
+    expect(secondCall.messages.at(-2)).toMatchObject({
+      role: 'assistant',
+      content: 'You take a hard hit.',
+      stopReason: 'tool_use',
+      toolCalls: [{ id: callId, name: 'adjust_hp' }],
+    });
+    expect(secondCall.messages.at(-1)).toMatchObject({
+      role: 'user',
+      toolResults: [
+        {
+          callId,
+          name: 'adjust_hp',
+          result: { ok: true },
+        },
+      ],
+    });
+
+    const trace = getTurnTrace(db, {
+      campaignId: CAMPAIGN,
+      sessionId: SESSION,
+      turnId: 'turn-1',
+    });
+    expect(trace?.toolCalls[0]).toMatchObject({
+      tool: 'adjust_hp',
+      source: 'native',
+      callId,
+      stopReason: 'tool_use',
+    });
     db.close();
   });
 
-  it('rejects a stopReason="tool_use" result even with no toolCalls array (eshyra-0jq.25)', async () => {
+  it('does not accept narration when native toolCalls are present without a stop reason', async () => {
     const db = freshDbWithSession();
     withOpenScene(db);
-    const model = new NativeToolModel({
-      text: 'You ready your blade.',
-      stopReason: 'tool_use',
+    const model = new StructuredScriptedModel([
+      {
+        text: 'This is not final narration because a roll is still pending.',
+        toolCalls: [
+          {
+            id: 'call_without_stop',
+            name: 'roll',
+            args: { dice: '1d20', reason: 'notice danger' },
+          },
+        ],
+      },
+      { text: 'You notice movement in the shadows.' },
+    ]);
+
+    const result = await runTurn(
+      { db, model, registry: createDefaultToolRegistry() },
+      baseInput(),
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.narration).toBe('You notice movement in the shadows.');
+    expect(result.toolCalls).toMatchObject([
+      {
+        tool: 'roll',
+        source: 'native',
+        callId: 'call_without_stop',
+        result: { ok: true },
+      },
+    ]);
+    expect(model.seen).toHaveLength(2);
+    db.close();
+  });
+
+  it('executes native and fenced requests in one response before accepting narration', async () => {
+    const db = freshDbWithSession();
+    withOpenScene(db);
+    db.prepare(
+      `UPDATE character SET hp_max = 20, hp_current = 15 WHERE id = 'pc-1'`,
+    ).run();
+    const model = new StructuredScriptedModel([
+      {
+        text: [
+          'The exchange is still being resolved.',
+          toolCall('roll', { dice: '1d20+2', reason: 'resistance' }),
+        ].join('\n'),
+        toolCalls: [
+          {
+            id: 'call_mixed',
+            name: 'adjust_hp',
+            args: { amount: -2 },
+          },
+        ],
+        stopReason: 'tool_use',
+      },
+      { text: 'You absorb the blow and recover your footing.' },
+    ]);
+
+    const result = await runTurn(
+      { db, model, registry: createDefaultToolRegistry() },
+      baseInput(),
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.toolCalls.map((call) => call.source)).toEqual([
+      'native',
+      'fenced',
+    ]);
+    expect(result.toolCalls.map((call) => call.tool)).toEqual([
+      'adjust_hp',
+      'roll',
+    ]);
+    expect(model.seen[1].messages.at(-1)?.content).toContain('tool_result');
+    expect(model.seen[1].messages.at(-1)?.toolResults).toMatchObject([
+      { callId: 'call_mixed', name: 'adjust_hp' },
+    ]);
+    const row = db
+      .prepare(`SELECT hp_current FROM character WHERE id = 'pc-1'`)
+      .get() as { hp_current: number };
+    expect(row.hp_current).toBe(13);
+    db.close();
+  });
+
+  it('feeds malformed native arguments through the normal recoverable tool error path', async () => {
+    const db = freshDbWithSession();
+    withOpenScene(db);
+    const model = new StructuredScriptedModel([
+      {
+        text: '',
+        toolCalls: [
+          {
+            id: 'call_bad_args',
+            name: 'adjust_hp',
+            args: '{"amount":-3}',
+          },
+        ],
+        stopReason: 'tool_use',
+      },
+      { text: 'You reconsider and hold your position.' },
+    ]);
+
+    const result = await runTurn(
+      { db, model, registry: createDefaultToolRegistry() },
+      baseInput(),
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.toolCalls[0]).toMatchObject({
+      tool: 'adjust_hp',
+      source: 'native',
+      callId: 'call_bad_args',
+      result: { ok: false, code: 'invalid_args' },
     });
+    expect(model.seen[1].messages.at(-1)?.toolResults).toMatchObject([
+      {
+        callId: 'call_bad_args',
+        name: 'adjust_hp',
+        result: { ok: false, code: 'invalid_args' },
+      },
+    ]);
+    db.close();
+  });
+
+  it('rejects a stopReason="tool_use" result with no consumable native calls', async () => {
+    const db = freshDbWithSession();
+    withOpenScene(db);
+    const model = new StructuredScriptedModel([
+      {
+        text: 'You ready your blade.',
+        stopReason: 'tool_use',
+      },
+    ]);
 
     const result = await runTurn(
       { db, model, registry: createDefaultToolRegistry() },
@@ -265,7 +436,9 @@ describe('orchestrator turn loop', () => {
     );
 
     expect(result.ok).toBe(false);
-    expect(result.error).toContain('native tool-use');
+    expect(result.error).toContain(
+      'stopReason="tool_use" without any consumable native tool calls',
+    );
     db.close();
   });
 

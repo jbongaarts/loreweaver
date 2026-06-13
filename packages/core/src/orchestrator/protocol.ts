@@ -8,9 +8,9 @@ import type { ToolRegistry, ToolResult } from './tools.js';
  * blocks, this parser turns them into the transport-neutral {@link ToolRequest}
  * shape the orchestrator executes, and `renderToolResults` feeds ```tool_result
  * blocks back. When the model replies with no tool_call block, that reply is the
- * final narration. Native provider tool use (eshyra-1q5) is a separate producer
- * of the same {@link ToolRequest} shape; the loop does not care which transport
- * a request arrived through once it has been normalized.
+ * final narration. Native provider tool use is a separate producer of the same
+ * {@link ToolRequest} shape; the loop does not care which transport a request
+ * arrived through once it has been normalized.
  */
 
 const TOOL_CALL_FENCE = /```tool_call[^\S\n]*\n([\s\S]*?)```/g;

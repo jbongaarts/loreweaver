@@ -1,10 +1,5 @@
 import type { ModelToolDefinition } from './toolSchema.js';
 
-export interface ModelMessage {
-  role: 'user' | 'assistant';
-  content: string;
-}
-
 /**
  * Hint to the provider about the expected response shape. `text` is the
  * default; `json` asks the provider for a JSON-shaped response when its API
@@ -80,6 +75,26 @@ export interface ModelToolCall {
 }
 
 /**
+ * Provider-neutral result for a native tool call. Adapters render this into
+ * their provider's required history shape (for example, Anthropic
+ * `tool_result` blocks or OpenAI `tool` messages).
+ */
+export interface ModelToolResult {
+  /** Provider-assigned id copied from the corresponding tool call. */
+  readonly callId?: string;
+  /** Tool name, retained for providers and traces that use name correlation. */
+  readonly name: string;
+  /** Deterministic Eshyra tool outcome. */
+  readonly result:
+    | { readonly ok: true; readonly data: unknown }
+    | {
+        readonly ok: false;
+        readonly code: string;
+        readonly message: string;
+      };
+}
+
+/**
  * Normalized reason the model stopped. Adapters map provider-specific values:
  *  - `end_turn`: model is done; `text` holds the final response.
  *  - `tool_use`: model emitted structured `toolCalls` and is awaiting results.
@@ -91,18 +106,25 @@ export interface ModelToolCall {
 export type ModelStopReason = 'end_turn' | 'tool_use' | 'max_tokens' | 'other';
 
 /**
+ * Provider-neutral conversation message. Plain-text adapters use `content`
+ * only. Native-tool adapters also render `toolCalls` on assistant messages and
+ * `toolResults` on user messages into the provider-specific wire format.
+ */
+export interface ModelMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  readonly toolCalls?: readonly ModelToolCall[];
+  readonly toolResults?: readonly ModelToolResult[];
+  readonly stopReason?: ModelStopReason;
+}
+
+/**
  * Structured result of a ModelClient call (eshyra-0jq.11). `text` is
  * always populated (possibly empty) so callers that only care about narration
- * can ignore the structured fields entirely. Adapters that produce native
- * tool calls populate {@link toolCalls} / {@link stopReason}, but the
- * orchestrator runtime does NOT consume them yet: it drives tools solely
- * through the fenced-text `tool_call` protocol parsed out of `text`. To keep
- * that gap from silently dropping mechanical actions, `runModelLoop` rejects
- * any result that carries native tool calls or `stopReason: 'tool_use'` with a
- * loud `OrchestratorError` (that guard/audit work is eshyra-0jq.25 / PR #169).
- * Native consumption — normalizing these fields into the same internal
- * tool-request path as the fenced protocol — is planned under epic eshyra-1q5;
- * until that lands, adapters MUST leave `toolCalls` / `stopReason` unset.
+ * can ignore the structured fields entirely. Native tool calls are normalized
+ * by the orchestrator into the same deterministic execution path as fenced
+ * `tool_call` blocks. A `tool_use` stop reason without consumable calls is a
+ * provider-contract error and fails the turn loudly.
  */
 export interface ModelCompleteResult {
   /** Free-text assistant response. Always present, possibly empty. */

@@ -77,4 +77,56 @@ describe('ModelClient contract', () => {
     });
     expect(seen.trace).toEqual({ turnId: 'turn-1' });
   });
+
+  it('carries native tool calls and correlated results through message history', async () => {
+    const fake = new FakeModelClient();
+
+    await fake.complete({
+      messages: [
+        { role: 'user', content: 'open the door' },
+        {
+          role: 'assistant',
+          content: '',
+          toolCalls: [
+            {
+              id: 'call_123',
+              name: 'roll',
+              args: { dice: '1d20' },
+            },
+          ],
+          stopReason: 'tool_use',
+        },
+        {
+          role: 'user',
+          content: 'Tool results are attached.',
+          toolResults: [
+            {
+              callId: 'call_123',
+              name: 'roll',
+              result: { ok: true, data: { total: 17 } },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(fake.seen[0].messages).toMatchObject([
+      { role: 'user', content: 'open the door' },
+      {
+        role: 'assistant',
+        toolCalls: [{ id: 'call_123', name: 'roll' }],
+        stopReason: 'tool_use',
+      },
+      {
+        role: 'user',
+        toolResults: [
+          {
+            callId: 'call_123',
+            name: 'roll',
+            result: { ok: true, data: { total: 17 } },
+          },
+        ],
+      },
+    ]);
+  });
 });
