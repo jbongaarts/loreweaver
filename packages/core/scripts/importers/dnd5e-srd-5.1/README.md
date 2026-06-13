@@ -365,13 +365,22 @@ pins the exact contiguous source block(s) in document order
 (`locateClassProgression` finds them past the interleaving prose, bounded to the
 class's own chapter) and carries the reviewed row reconstruction, with every
 block line required to match verbatim at table-cell tier or the table fails
-closed. The reconstructed rows preserve source tokens verbatim ("—", "+2",
-"1d6", "Unlimited", "+10 ft.", and extraction artifacts like "Land s Stride")
-and expose each class's resource columns (Rages, Sneak Attack, Ki Points,
-Sorcery Points, Pact Magic Spell Slots / Slot Level / Invocations Known,
-cantrips/spells known, and the per-level spell-slot progression). Structured
-per-level `class.data.progression` is a separate follow-up; this layer only
-preserves the source tables as reviewed `table` records.
+closed. The reconstructed rows preserve source tokens verbatim ("+2", "1d6",
+"Unlimited", "+10 ft.", and extraction artifacts like "Land s Stride") and
+expose each class's resource columns (Rages, Sneak Attack, Ki Points, Sorcery
+Points, Pact Magic Spell Slots / Slot Level / Invocations Known, cantrips/spells
+known, and the per-level spell-slot progression). Structured per-level
+`class.data.progression` is a separate follow-up; this layer only preserves the
+source tables as reviewed `table` records.
+
+Blank vs. dash cells: SRD 5.1 leaves an unavailable cell BLANK and does not
+print a dash there. Verified against the source text layer, the only genuine
+table-cell em dashes in the entire Classes chapter are the Monk's level-1 Ki
+Points / Unarmored Movement and the Beast Shapes level-8 Limitations cell —
+those are emitted as "—". Every unavailable spell-slot cell and empty Features
+row (Bard L7/L11, Cleric L3, the half-caster slots before they come online, …)
+carries no glyph in the source, so it is emitted as "" rather than a fabricated
+"—" (ADR 0007). `srdGeneratedPack.test.ts` pins both conventions.
 
 Source-table accounting (the rest of the eshyra-4a7.3 scope) lives in the
 coverage gate: every `table-caption` / `table-shape` inventory item now

@@ -2843,6 +2843,75 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
       expect(destroy?.provenance.locator).toBe('p. 17');
     });
 
+    it('distinguishes source-blank cells from genuine em-dash cells (eshyra-4a7.6)', () => {
+      // SRD 5.1 leaves an unavailable cell BLANK; it does NOT print a dash
+      // there. Verified against the source text layer: across the whole
+      // Classes chapter the only genuine table-cell em dashes are Monk L1
+      // (Ki Points / Unarmored Movement) and Beast Shapes L8 (Limitations).
+      // Every unavailable spell-slot cell and empty Features row carries no
+      // glyph in the source, so it is emitted as "" — emitting "—" there would
+      // fabricate a token the source does not print (ADR 0007). This test pins
+      // both conventions so a future change that fabricates or drops a dash
+      // fails loudly. (Raised in PR #205 review.)
+      const rowsOf = (key: string) =>
+        (table(key)?.data as { rows: string[][] }).rows;
+
+      // --- genuine source em dashes are preserved verbatim ---
+      // Monk L1: no Ki Points, no Unarmored Movement bonus yet.
+      expect(rowsOf('table:the-monk')[0]).toEqual([
+        '1st',
+        '+2',
+        '1d4',
+        '—',
+        '—',
+        'Unarmored Defense, Martial Arts',
+      ]);
+      // Beast Shapes L8: no movement limitation.
+      expect(rowsOf('table:beast-shapes')[2]).toEqual([
+        '8th',
+        '1',
+        '—',
+        'Giant eagle',
+      ]);
+
+      // --- source-blank cells are emitted as "" (NOT "—") ---
+      // Bard empty Features rows (L7 index 6, L11 index 10) and the unavailable
+      // high-level spell-slot columns at L1.
+      const bard = rowsOf('table:the-bard');
+      expect(bard[6][2]).toBe(''); // L7 Features: blank in source
+      expect(bard[10][2]).toBe(''); // L11 Features: blank in source
+      expect(bard[0].slice(6)).toEqual(['', '', '', '', '', '', '', '']); // L1 2nd–9th slots blank
+      // Cleric L3 (index 2) Features blank; trailing slot columns blank.
+      const cleric = rowsOf('table:the-cleric');
+      expect(cleric[2][2]).toBe('');
+      expect(cleric[0].slice(5)).toEqual(['', '', '', '', '', '', '', '']); // L1 2nd–9th slots blank
+      // Half-casters: Paladin L1 (no spells at all) and Ranger L1 (no Spells
+      // Known and no slots) leave those cells blank, not dashed.
+      const paladin = rowsOf('table:the-paladin');
+      expect(paladin[0]).toEqual([
+        '1st',
+        '+2',
+        'Divine Sense, Lay on Hands',
+        '',
+        '',
+        '',
+        '',
+        '',
+      ]);
+      const ranger = rowsOf('table:the-ranger');
+      expect(ranger[0]).toEqual([
+        '1st',
+        '+2',
+        'Favored Enemy, Natural Explorer',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+      ]);
+    });
+
     it('pins the subclass spell tables (eshyra-4a7.3)', () => {
       const oath = table('table:oath-of-devotion-spells');
       expect(oath?.data).toMatchObject({

@@ -28,9 +28,23 @@
  * The reconstruction `rows` were derived from the vendored SRD PDF and verified
  * against the printed tables (cantrips/spells known, spell-slot progression,
  * class resources such as Rages, Sneak Attack, Ki Points, Sorcery Points, and
- * Pact Magic slots). Source tokens are preserved verbatim ("—", "+2", "1d6",
+ * Pact Magic slots). Source tokens are preserved verbatim ("+2", "1d6",
  * "Unlimited", "+10 ft.", lost apostrophes like "Land s Stride"). The pinned
  * `sourceBlocks` make any re-extraction drift fail the table closed.
+ *
+ * Blank vs. dash cells (verified against the source text layer): SRD 5.1 leaves
+ * an unavailable cell BLANK — it does NOT print a dash there. Across the whole
+ * Classes chapter the only genuine table-cell em dashes are the Monk's level-1
+ * Ki Points and Unarmored Movement ("1st +2 1d4 — —") and the Beast Shapes
+ * level-8 Limitations cell ("8th 1 — Giant"); those are emitted as "—". Every
+ * unavailable spell-slot cell and every empty Features row (e.g. Bard levels 7
+ * and 11, Cleric level 3, the Paladin/Ranger half-caster slots before they come
+ * online) carries no glyph in the source — the columns are simply blank, and
+ * the rows extract with VARIABLE token counts — so they are emitted as "" rather
+ * than a fabricated "—" (ADR 0007: the importer never supplies a token the
+ * source does not print). The regression tests in srdGeneratedPack.test.ts pin
+ * both conventions so a future change that fabricates or drops a dash fails
+ * loudly.
  */
 
 import type { DocumentTableSpec } from './parseDocumentTables.js';
