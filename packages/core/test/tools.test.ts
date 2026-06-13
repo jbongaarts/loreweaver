@@ -137,6 +137,31 @@ describe('ToolRegistry', () => {
       ].sort(),
     );
   });
+
+  it('rejects schema-invalid arguments before invoking a tool', () => {
+    let invoked = false;
+    const registry = new ToolRegistry().register({
+      name: 'strict_tool',
+      description: 'Test schema enforcement.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          count: { type: 'integer', minimum: 1 },
+        },
+        required: ['count'],
+        additionalProperties: false,
+      },
+      run: () => {
+        invoked = true;
+        return { ok: true, data: null };
+      },
+    });
+
+    const result = registry.invoke('strict_tool', { count: 1.5 }, ctx());
+
+    expect(result).toMatchObject({ ok: false, code: 'invalid_args' });
+    expect(invoked).toBe(false);
+  });
 });
 
 describe('roll tool', () => {

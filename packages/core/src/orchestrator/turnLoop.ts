@@ -2,10 +2,12 @@ import type {
   ModelClient,
   ModelCompleteResult,
   ModelMessage,
+  ModelStopReason,
+  ModelToolResult,
 } from '../model/client.js';
 import { parseToolCalls, renderToolResults } from './protocol.js';
 import {
-  hasNativeToolRequests,
+  normalizeNativeToolCalls,
   type ToolRequest,
   type ToolRequestSource,
 } from './toolRequest.js';
@@ -21,10 +23,10 @@ export interface RunModelLoopTrace {
  * Model/tool round loop (E5).
  *
  * One "loop" is the inner mechanic of a turn: hand the model an initial user
- * message, parse any tool_call blocks it emits, execute them against the
- * deterministic tool layer, and feed the structured tool_result back. The
- * loop terminates when the model replies with no tool_call (that reply is the
- * final narration) or when the round budget is exhausted.
+ * message, normalize native or fenced tool requests, execute them against the
+ * deterministic tool layer, and feed structured results back. The loop
+ * terminates when the model replies with no pending tool request (that reply is
+ * the final narration) or when the round budget is exhausted.
  *
  * The loop does not own a transaction. Tool invocations mutate canon as they
  * run; the caller wraps the loop in a SAVEPOINT so a mid-loop failure rolls
@@ -46,37 +48,52 @@ export interface ExecutedToolCall {
   args: unknown;
   result: ToolResult;
   /**
-   * Transport the request arrived through (eshyra-0jq.16). Always `'fenced'`
-   * today; native provider tool use (eshyra-1q5) will produce `'native'`
-   * without changing this shape. Carried for tracing/debugging provenance.
+   * Transport the request arrived through, carried for tracing/debugging
+   * provenance.
    */
   source: ToolRequestSource;
+  /** Provider-assigned id for native calls; absent for fenced calls. */
+  callId?: string;
+  /** Normalized provider stop reason for the response containing this call. */
+  stopReason?: ModelStopReason;
 }
 
 /**
  * Collect the model-requested tool actions from a single model response as
  * transport-neutral {@link ToolRequest}s.
  *
- * The fenced-text parser is the only producer wired today. Native provider tool
- * use (eshyra-1q5) is a planned second producer of the same shape; the
- * detection lives behind {@link hasNativeToolRequests} so this is the one place
- * native consumption gets switched on. Until it is, a native tool-use response
- * is rejected loudly rather than silently dropped: treating it as final
- * narration would lose the mechanical actions the model asked for, exactly the
- * canon-integrity failure the hybrid contract exists to prevent (state changes
- * asserted without a tool call do not change the game — eshyra-0jq.25).
+ * Native requests are ordered before fenced requests because the normalized
+ * ModelClient result does not retain interleaving positions between structured
+ * calls and free text. Providers normally use only one transport in a response;
+ * the deterministic ordering makes mixed responses explicit and auditable.
  */
 function collectToolRequests(result: ModelCompleteResult): ToolRequest[] {
-  if (hasNativeToolRequests(result)) {
+  const nativeCalls = result.toolCalls ?? [];
+  if (result.stopReason === 'tool_use' && nativeCalls.length === 0) {
     throw new OrchestratorError(
-      'model returned a native tool-use response ' +
-        '(toolCalls / stopReason="tool_use"), but the runtime only consumes ' +
-        'the fenced-text tool-call protocol. Native tool-request consumption ' +
-        'is wired in eshyra-1q5; no adapter should populate the native tool ' +
-        'channel until then.',
+      'model returned stopReason="tool_use" without any consumable native tool calls',
     );
   }
-  return parseToolCalls(result.text);
+  return [
+    ...normalizeNativeToolCalls(nativeCalls),
+    ...parseToolCalls(result.text),
+  ];
+}
+
+function nativeToolResults(
+  results: ReadonlyArray<{
+    request: ToolRequest;
+    tool: string;
+    result: ToolResult;
+  }>,
+): ModelToolResult[] {
+  return results
+    .filter(({ request }) => request.source === 'native')
+    .map(({ request, tool, result }) => ({
+      ...(request.callId ? { callId: request.callId } : {}),
+      name: tool,
+      result,
+    }));
 }
 
 export interface RunModelLoopInput {
@@ -133,7 +150,7 @@ export async function runModelLoop(
   while (rounds < maxToolRounds) {
     rounds += 1;
     onRoundStart?.();
-    const result = await model.complete({
+    const completion = await model.complete({
       system,
       messages,
       // Provider-neutral tool definitions (eshyra-0jq.10) — adapters with
@@ -142,20 +159,19 @@ export async function runModelLoop(
       tools,
       ...(trace ? { trace } : {}),
     });
-    // Normalize the model's tool requests into the transport-neutral
-    // ToolRequest shape before doing anything with them. `collectToolRequests`
-    // is the single seam where the fenced parser (today) and native provider
-    // tool use (eshyra-1q5) feed the same execution path below; it also holds
-    // the eshyra-0jq.25 guard that rejects native responses until that wiring
-    // lands.
-    const requests = collectToolRequests(result);
-    const modelText = result.text;
+    // Normalize every transport into ToolRequest before validation/execution.
+    const requests = collectToolRequests(completion);
+    const modelText = completion.text;
     if (requests.length === 0) {
       narration = modelText.trim();
       break;
     }
 
-    const roundResults: Array<{ tool: string; result: ToolResult }> = [];
+    const roundResults: Array<{
+      request: ToolRequest;
+      tool: string;
+      result: ToolResult;
+    }> = [];
     for (const req of requests) {
       if (req.ok) {
         const result = registry.invoke(req.tool, req.args, toolCtx);
@@ -164,8 +180,12 @@ export async function runModelLoop(
           args: req.args,
           result,
           source: req.source,
+          ...(req.callId ? { callId: req.callId } : {}),
+          ...(completion.stopReason
+            ? { stopReason: completion.stopReason }
+            : {}),
         });
-        roundResults.push({ tool: req.tool, result });
+        roundResults.push({ request: req, tool: req.tool, result });
       } else {
         const result: ToolResult = {
           ok: false,
@@ -177,12 +197,34 @@ export async function runModelLoop(
           args: req.raw,
           result,
           source: req.source,
+          ...(req.callId ? { callId: req.callId } : {}),
+          ...(completion.stopReason
+            ? { stopReason: completion.stopReason }
+            : {}),
         });
-        roundResults.push({ tool: 'unknown', result });
+        roundResults.push({ request: req, tool: 'unknown', result });
       }
     }
-    messages.push({ role: 'assistant', content: modelText });
-    messages.push({ role: 'user', content: renderToolResults(roundResults) });
+    const nativeResults = nativeToolResults(roundResults);
+    const fencedResults = roundResults
+      .filter(({ request }) => request.source === 'fenced')
+      .map(({ tool, result }) => ({ tool, result }));
+    messages.push({
+      role: 'assistant',
+      content: modelText,
+      ...(completion.toolCalls && completion.toolCalls.length > 0
+        ? { toolCalls: completion.toolCalls }
+        : {}),
+      ...(completion.stopReason ? { stopReason: completion.stopReason } : {}),
+    });
+    messages.push({
+      role: 'user',
+      content:
+        fencedResults.length > 0
+          ? renderToolResults(fencedResults)
+          : 'Tool results are attached. Continue the turn: call more tools if needed, otherwise reply with final narration only.',
+      ...(nativeResults.length > 0 ? { toolResults: nativeResults } : {}),
+    });
   }
 
   if (narration === undefined) {

@@ -1,20 +1,17 @@
-import type { ModelCompleteResult } from '../model/client.js';
+import type { ModelToolCall } from '../model/client.js';
 
 /**
  * Transport-neutral model-requested tool action (eshyra-0jq.16, prep for
  * eshyra-1q5).
  *
  * The orchestrator drives tools through a single internal representation of "the
- * model asked to run a tool", independent of how that request reached us. Today
- * the only producer is the fenced-text protocol parser (`parseToolCalls` in
- * protocol.ts), which tags its requests `source: 'fenced'`. The planned native
- * provider tool-use transport (eshyra-1q5) will become a second producer
- * (`source: 'native'`) without changing how `runModelLoop` validates and
- * executes requests: the loop consumes {@link ToolRequest}, not a fenced shape.
+ * model asked to run a tool", independent of how that request reached us. The
+ * fenced-text protocol parser tags requests `source: 'fenced'`; native provider
+ * calls are normalized here with `source: 'native'`. The loop consumes
+ * {@link ToolRequest}, not either transport's original shape.
  *
  * Keeping this abstraction free of any dependency on the turn loop (it does not
- * import `OrchestratorError`) lets both the fenced parser and a future native
- * adapter produce it without a cycle.
+ * import `OrchestratorError`) lets both transports produce it without a cycle.
  */
 export type ToolRequestSource = 'fenced' | 'native';
 
@@ -42,17 +39,63 @@ export type ToolRequest =
       readonly raw: string;
     };
 
+function renderRawNativeCall(call: unknown): string {
+  try {
+    return JSON.stringify(call);
+  } catch {
+    return String(call);
+  }
+}
+
 /**
- * Whether a model result carries native provider tool calls. This is the
- * transport-neutral detection the loop uses to recognise a native tool-use
- * response. The runtime does not yet consume the native channel (eshyra-1q5),
- * so a `true` here is currently a rejected policy state in `runModelLoop` rather
- * than a second execution path — but the detection lives behind the abstraction
- * so wiring native consumption later does not re-draw the loop boundary.
+ * Normalize provider-adapter tool calls into the canonical request shape.
+ * Runtime guards remain necessary even though ModelClient is typed: provider
+ * payloads cross an untrusted JSON boundary before adapters return them.
  */
-export function hasNativeToolRequests(result: ModelCompleteResult): boolean {
-  return (
-    (result.toolCalls !== undefined && result.toolCalls.length > 0) ||
-    result.stopReason === 'tool_use'
-  );
+export function normalizeNativeToolCalls(
+  calls: readonly ModelToolCall[],
+): ToolRequest[] {
+  return calls.map((typedCall) => {
+    const call = typedCall as unknown;
+    if (typeof call !== 'object' || call === null || Array.isArray(call)) {
+      return {
+        ok: false,
+        source: 'native',
+        error: 'native tool call must be an object',
+        raw: renderRawNativeCall(call),
+      };
+    }
+
+    const candidate = call as {
+      id?: unknown;
+      name?: unknown;
+      args?: unknown;
+    };
+    const callId = typeof candidate.id === 'string' ? candidate.id : undefined;
+    if (candidate.id !== undefined && typeof candidate.id !== 'string') {
+      return {
+        ok: false,
+        source: 'native',
+        error: 'native tool call id must be a string when provided',
+        raw: renderRawNativeCall(call),
+      };
+    }
+    if (typeof candidate.name !== 'string' || candidate.name.length === 0) {
+      return {
+        ok: false,
+        source: 'native',
+        ...(callId ? { callId } : {}),
+        error: 'native tool call must have a non-empty string name',
+        raw: renderRawNativeCall(call),
+      };
+    }
+
+    return {
+      ok: true,
+      source: 'native',
+      ...(callId ? { callId } : {}),
+      tool: candidate.name,
+      args: candidate.args ?? {},
+    };
+  });
 }

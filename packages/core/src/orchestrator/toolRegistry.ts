@@ -7,6 +7,7 @@ import type {
   ModelToolDefinition,
   ToolInputSchema,
 } from '../model/toolSchema.js';
+import { validateToolInput } from '../model/toolSchemaValidation.js';
 import {
   CharacterResolutionError,
   resolveCharacterRef,
@@ -39,9 +40,8 @@ export interface Tool {
   /**
    * Provider-neutral input schema (eshyra-0jq.10). Lifted straight into
    * {@link ToolRegistry.definitions} so adapters can render native tool calls;
-   * the fenced-text protocol does not consult it. Tool authors are still
-   * responsible for runtime validation in `run` — the schema is documentation
-   * and a contract surface, not an enforcement seam.
+   * {@link ToolRegistry.invoke} enforces it before `run`. Tool authors remain
+   * responsible for semantic/runtime validation that the schema cannot express.
    */
   readonly inputSchema: ToolInputSchema;
   run(args: unknown, ctx: ToolContext): ToolResult;
@@ -135,6 +135,13 @@ export class ToolRegistry {
     const tool = this.tools.get(name);
     if (tool === undefined) {
       return err('unknown_tool', `unknown tool: ${name}`);
+    }
+    const schemaError = validateToolInput(tool.inputSchema, args);
+    if (schemaError) {
+      return err(
+        'invalid_args',
+        `${name} arguments failed schema validation: ${schemaError}`,
+      );
     }
     try {
       return tool.run(args, ctx);
