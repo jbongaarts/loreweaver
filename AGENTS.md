@@ -120,7 +120,7 @@ linked worktree being modified.
 
 Fetch `origin/main` before creating a worktree:
 
-```powershell
+```bash
 npm run agent:preflight
 ```
 
@@ -132,24 +132,24 @@ typecheck, or package verification merely to prove `main` is clean. CI keeps
 After creating a linked worktree, immediately enter it and normalize to its git
 root:
 
-```powershell
-Set-Location .worktrees/<worktree-name>
-Set-Location (git rev-parse --show-toplevel)
+```bash
+cd .worktrees/<worktree-name>
+cd "$(git rev-parse --show-toplevel)"
 ```
 
 Run all install, edit, format, lint, test, build, and verification commands from
 that directory. Before commit/push, run full verification there, not from the
 parent checkout:
 
-```powershell
+```bash
 npm run verify:worktree
 ```
 
 The helper resolves the active git root. It runs
 `npm run format` (`biome check --write .`) for safe fixes and import
 organization, then runs the repo checks and tests. The npm commands wrap
-`scripts/agent-preflight-main.ps1` and
-`scripts/verify-current-worktree.ps1`, respectively.
+`scripts/agent-preflight-main.mjs` and
+`scripts/verify-current-worktree.mjs`, respectively.
 
 Full `npm run verify:worktree` is required before commit/push. It may be run
 earlier when a task specifically needs a clean baseline, but agents should not
@@ -161,7 +161,7 @@ If Biome says no relevant files were checked because `.worktrees` is ignored,
 the command ran from the wrong checkout. The parent checkout's `.worktrees/`
 directory remains ignored; do not make Biome scan nested worktrees. In
 response, do not delete or recreate the worktree. Enter the intended worktree,
-run `Set-Location (git rev-parse --show-toplevel)`, and rerun verification.
+run `cd "$(git rev-parse --show-toplevel)"`, and rerun verification.
 
 ## Architecture
 

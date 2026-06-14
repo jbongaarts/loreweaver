@@ -197,13 +197,13 @@ describe('Node runtime policy', () => {
   it('documents the linked-worktree verification workflow for agents', () => {
     const agents = readText('AGENTS.md');
 
-    expect(agents).toContain('scripts/agent-preflight-main.ps1');
-    expect(agents).toContain('scripts/verify-current-worktree.ps1');
+    expect(agents).toContain('scripts/agent-preflight-main.mjs');
+    expect(agents).toContain('scripts/verify-current-worktree.mjs');
     expect(agents).toContain('Fetch `origin/main`');
     expect(agents).toMatch(
       /Do not run full\s+verification from the parent checkout/,
     );
-    expect(agents).toContain('Set-Location (git rev-parse --show-toplevel)');
+    expect(agents).toContain('cd "$(git rev-parse --show-toplevel)"');
     expect(agents).toContain(
       'If Biome says no relevant files were checked because `.worktrees` is ignored',
     );
@@ -212,40 +212,35 @@ describe('Node runtime policy', () => {
     expect(agents).not.toContain('temporary worktree-local Biome config');
   });
 
-  it('provides simple PowerShell helpers for agent worktree workflow', () => {
+  it('provides simple Node helpers for agent worktree workflow', () => {
     const root = readPackageJson('package.json');
     const scripts = root.scripts ?? {};
 
     expect(scripts['agent:preflight']).toBe(
-      'powershell -NoProfile -ExecutionPolicy Bypass -File scripts/agent-preflight-main.ps1',
+      'node scripts/agent-preflight-main.mjs',
     );
     expect(scripts['verify:worktree']).toBe(
-      'powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-current-worktree.ps1',
+      'node scripts/verify-current-worktree.mjs',
     );
     expect(scripts.format).toBe('biome check --write .');
     expect(scripts['format:check']).toBe('biome check .');
 
-    const preflight = readText('scripts/agent-preflight-main.ps1');
-    expect(preflight).toContain("$ErrorActionPreference = 'Stop'");
-    expect(preflight).toContain('git fetch origin main');
+    const preflight = readText('scripts/agent-preflight-main.mjs');
+    expect(preflight).toContain(
+      "checkedNative('git', ['fetch', 'origin', 'main'])",
+    );
     expect(preflight).not.toContain('npm run check');
     expect(preflight).not.toContain('npm run test');
     expect(preflight).not.toContain('npm run build');
 
-    const verify = readText('scripts/verify-current-worktree.ps1');
-    expect(verify).toContain("$ErrorActionPreference = 'Stop'");
-    expect(verify).toContain('git rev-parse --show-toplevel');
-    expect(verify).toContain('Set-Location $repoRoot');
+    const verify = readText('scripts/verify-current-worktree.mjs');
+    expect(verify).toContain("['rev-parse', '--show-toplevel']");
+    expect(verify).toContain('cwd: repoRoot');
     expect(verify).not.toContain('BIOME_CONFIG_PATH');
     expect(verify).not.toContain('.biome-worktree-');
     expect(verify).not.toContain('New-WorktreeBiomeConfig');
-    for (const command of [
-      'npm run format',
-      'npm run check',
-      'npm run typecheck',
-      'npm run test',
-    ]) {
-      expect(verify).toContain(command);
+    for (const script of ['format', 'check', 'typecheck', 'test']) {
+      expect(verify).toContain(`'${script}'`);
     }
     expect(verify).not.toContain('bd preflight --check');
   });
