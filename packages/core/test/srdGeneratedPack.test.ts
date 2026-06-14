@@ -1165,6 +1165,66 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
     });
   });
 
+  // eshyra-4a7.7: ancestry option-table linkage. The Dragonborn "Draconic
+  // Ancestry" trait chooses from a printed option table; that table is emitted
+  // as `table:draconic-ancestry` (eshyra-4a7.3) and the trait must carry a
+  // structured `tableRefs` link to it so the dragon-type -> damage/breath
+  // options are reachable from the ancestry, not only from prose.
+  describe('ancestry option-table linkage (eshyra-4a7.7)', () => {
+    const ancestries = pack.records.filter((r) => r.kind === 'ancestry');
+    const traitsOf = (
+      record: (typeof ancestries)[number],
+    ): ReadonlyArray<{
+      name: string;
+      text: string;
+      tableRefs?: readonly string[];
+    }> =>
+      ((record.data as { traits?: unknown }).traits ?? []) as ReadonlyArray<{
+        name: string;
+        text: string;
+        tableRefs?: readonly string[];
+      }>;
+    const TABLE_REFERENCE =
+      /\bthe\s+[A-Z][\w'’/()&-]*(?:\s+[A-Z][\w'’/()&-]*)*\s+table\b/;
+
+    it('links the Dragonborn Draconic Ancestry trait to its option table', () => {
+      const dragonborn = ancestries.find((r) => r.name === 'Dragonborn');
+      const trait = traitsOf(dragonborn as (typeof ancestries)[number]).find(
+        (t) => t.name === 'Draconic Ancestry',
+      );
+      expect(trait?.tableRefs).toEqual(['table:draconic-ancestry']);
+      // The linked table actually exists in the pack and carries the option
+      // rows (dragon type -> damage type + breath weapon), so the reference is
+      // resolvable to usable structured data.
+      const linked = pack.records.find(
+        (r) => r.key === 'table:draconic-ancestry',
+      );
+      expect(linked?.kind).toBe('table');
+      expect((linked?.data as { rows: unknown[] }).rows).toHaveLength(10);
+    });
+
+    it('every ancestry trait that names an option table carries a tableRefs link', () => {
+      // The structural invariant for this bead: no ancestry source table is
+      // referenced only by prose without a structured mapping.
+      for (const record of ancestries) {
+        for (const trait of traitsOf(record)) {
+          if (!TABLE_REFERENCE.test(trait.text)) continue;
+          expect(
+            (trait.tableRefs ?? []).length,
+            `${record.key} trait "${trait.name}" references an option table in prose but has no tableRefs link`,
+          ).toBeGreaterThan(0);
+        }
+      }
+    });
+
+    it('the structure audit reports zero ancestry-unlinked-table findings', () => {
+      const unlinked = auditSrdStructure(pack).filter(
+        (finding) => finding.category === 'ancestry-unlinked-table',
+      );
+      expect(unlinked).toEqual([]);
+    });
+  });
+
   // `EXPECTED_SRD_5_1_CREATURE_NAMES` (loreweaver-0m9.5.14) is a reviewed,
   // checked-in baseline — a candidate generated from the vendored PDF, reviewed
   // against the SRD source, then committed (see its doc comment and

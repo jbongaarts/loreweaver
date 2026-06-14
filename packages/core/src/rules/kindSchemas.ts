@@ -523,6 +523,25 @@ function validateDnd5eFeature(record: RulesRecord, path: string): void {
   optStrArray(data, 'tableRefs', `${path}.data`);
 }
 
+// An `ancestry` (race/subrace per ADR 0005) carries its racial traits as a
+// nested `{ name, text }` array. A trait that chooses from a printed option
+// table (the Dragonborn "Draconic Ancestry" table) additionally carries
+// `tableRefs` linking to the emitted `table` record(s) so the option rows are
+// reachable as structured data, not prose only (eshyra-4a7.7; mirrors
+// `feature.data.tableRefs`).
+function validateDnd5eAncestry(record: RulesRecord, path: string): void {
+  const data = dataObj(record, path);
+  const traits = objArray(data, 'traits', `${path}.data`);
+  if (traits !== undefined) {
+    traits.forEach((trait, i) => {
+      const traitPath = `${path}.data.traits[${i}]`;
+      reqStr(trait, 'name', traitPath);
+      reqStr(trait, 'text', traitPath);
+      optStrArray(trait, 'tableRefs', traitPath);
+    });
+  }
+}
+
 // A `subclass` (Champion, Life domain, School of Evocation, ...) is its own
 // addressable kind so the DM can lookup_rules it by name. Per ADR 0009 it links
 // to its parent base class through `data.parentClass` (the parent class record
@@ -692,6 +711,7 @@ const SYSTEM_KIND_VALIDATORS: Record<
   'dnd5e-srd': {
     spell: validateDnd5eSpell,
     creature: validateDnd5eCreature,
+    ancestry: validateDnd5eAncestry,
     background: validateDnd5eBackground,
     class: validateDnd5eClass,
     condition: validateDnd5eCondition,
