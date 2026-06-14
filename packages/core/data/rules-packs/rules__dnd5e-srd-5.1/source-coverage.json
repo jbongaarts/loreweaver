@@ -1,7 +1,7 @@
 {
   "summary": {
     "record": 1914,
-    "childOf": 98,
+    "childOf": 99,
     "ignored": {
       "class-progression-table-internal": 9,
       "document-structure": 49,
@@ -15,7 +15,6 @@
     },
     "knownGap": {
       "eshyra-4a7.10": 70,
-      "eshyra-citg": 1,
       "eshyra-o4j7": 9
     },
     "unaccounted": 0
@@ -3147,7 +3146,7 @@
       "structure": "heading",
       "text": "Tenets of Devotion",
       "section": "Paladin",
-      "status": "known-gap:eshyra-citg"
+      "status": "child-of:subclass:oath-of-devotion"
     },
     {
       "page": 33,

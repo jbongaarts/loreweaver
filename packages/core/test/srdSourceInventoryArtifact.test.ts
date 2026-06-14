@@ -171,7 +171,9 @@ describe('committed SRD source-coverage artifacts — integrity', () => {
     // plus the Rogue's "Thieves' Cant" subsection map child-of their owning
     // feature/subclass records (the text rides in those bodies), verified
     // present.
-    expect(coverage.summary.childOf).toBe(98);
+    // 98 -> 99 (eshyra-citg): "Tenets of Devotion" heading now maps child-of
+    // subclass:oath-of-devotion (its prose is a named section on that record).
+    expect(coverage.summary.childOf).toBe(99);
     expect(coverage.summary.unaccounted).toBe(0);
     // eshyra-4a7.6 (PR2) added two class-chapter ignore reasons: the 9 class
     // progression-table column-header fragments (table internals) and the 2
@@ -190,13 +192,11 @@ describe('committed SRD source-coverage artifacts — integrity', () => {
       'variant-rule-excluded': 2,
     });
     // eshyra-4a7.6 (PR2): the broad class-chapter known-gap is removed entirely.
-    // The only class-chapter item still tracked is the Oath of Devotion's
-    // "Tenets of Devotion" prose, dropped by the subclass body parser — held
-    // narrowly under eshyra-citg (subclass sub-subsection prose), not a broad
-    // catchall.
+    // eshyra-citg: the "Tenets of Devotion" heading is now child-of
+    // subclass:oath-of-devotion (its prose is a named section on that record),
+    // so the eshyra-citg known-gap rule is gone.
     expect(coverage.summary.knownGap).toEqual({
       'eshyra-4a7.10': 70,
-      'eshyra-citg': 1,
       'eshyra-o4j7': 9,
     });
   });
@@ -280,6 +280,20 @@ describe('committed SRD source-coverage artifacts — known-gap sentinels', () =
     const entry = entryFor(73, 'Self-Sufficiency');
     expect(entry.structure).toBe('table-caption');
     expect(entry.status).toBe('known-gap:eshyra-4a7.10');
+  });
+
+  it('Tenets of Devotion (p33) is child-of subclass:oath-of-devotion, not a known-gap (eshyra-citg)', () => {
+    // Regression: before eshyra-citg the "Tenets of Devotion" heading was
+    // known-gap:eshyra-citg. Now the parser collects its prose as a named
+    // section on the subclass record; the heading maps child-of that record.
+    const entry = entryFor(33, 'Tenets of Devotion');
+    expect(entry.status).toBe('child-of:subclass:oath-of-devotion');
+  });
+
+  it('known-gap:eshyra-citg does not appear in the committed coverage (eshyra-citg closed)', () => {
+    expect(
+      coverage.entries.some((e) => e.status === 'known-gap:eshyra-citg'),
+    ).toBe(false);
   });
 });
 

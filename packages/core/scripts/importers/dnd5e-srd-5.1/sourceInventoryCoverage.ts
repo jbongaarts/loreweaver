@@ -859,12 +859,11 @@ export const SRD_5_1_COVERAGE_RULES: readonly CoverageRule[] = [
       (i.section === 'Paladin' && i.text === 'Oath Spells' && i.page === 33) ||
       (i.section === 'Warlock' && i.text === 'Expanded Spell List'),
   ),
-  // The Oath of Devotion's "Tenets of Devotion" prose (the five tenets) is
-  // dropped by the subclass body parser — it is in no emitted record. Tracked
-  // narrowly under eshyra-citg (subclass sub-subsection prose), NOT the old
-  // broad class-chapter catchall.
-  knownGapRule(
-    'eshyra-citg',
+  // The Oath of Devotion's "Tenets of Devotion" heading: its prose (the five
+  // tenets) is now represented as a named section on subclass:oath-of-devotion
+  // (eshyra-citg). The heading is child data on that subclass record.
+  childOfRule(
+    'subclass:oath-of-devotion',
     (i) => i.section === 'Paladin' && i.text === 'Tenets of Devotion',
   ),
   // The Rogue's "Thieves' Cant" level-1 feature is not emitted as its own

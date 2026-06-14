@@ -526,6 +526,9 @@ function buildSubclassData(sub: SubclassExtraction): Record<string, unknown> {
   return {
     parentClass: classKey(sub.parentClass),
     description: sub.description,
+    ...(sub.sections && sub.sections.length > 0
+      ? { sections: sub.sections.map((s) => ({ name: s.name, text: s.text })) }
+      : {}),
   };
 }
 
