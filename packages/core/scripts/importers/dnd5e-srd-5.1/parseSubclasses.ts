@@ -49,6 +49,13 @@ interface KnownSubclass {
   readonly name: string;
   /** Parent base-class name. */
   readonly parent: string;
+  /**
+   * Leaf-tier sub-subsection headings whose body prose belongs on this subclass
+   * as named sections — not granted features and not spell-table headings.
+   * Only headings listed here are treated as sections; any other leaf heading
+   * still bounds the subclass body (fail-closed).
+   */
+  readonly namedSections?: readonly string[];
 }
 
 // The 12 SRD 5.1 subclasses (one per base class) and their parent classes.
@@ -62,7 +69,11 @@ export const KNOWN_SUBCLASSES: readonly KnownSubclass[] = [
   { name: 'Circle of the Land', parent: 'Druid' },
   { name: 'Champion', parent: 'Fighter' },
   { name: 'Way of the Open Hand', parent: 'Monk' },
-  { name: 'Oath of Devotion', parent: 'Paladin' },
+  {
+    name: 'Oath of Devotion',
+    parent: 'Paladin',
+    namedSections: ['Tenets of Devotion'],
+  },
   { name: 'Hunter', parent: 'Ranger' },
   { name: 'Thief', parent: 'Rogue' },
   { name: 'Draconic Bloodline', parent: 'Sorcerer' },
@@ -242,11 +253,15 @@ export function parseSubclasses(
 
   const boundaries: number[] = [];
   let currentParent: string = 'Barbarian';
+  // The active subclass while collecting its body; used to identify named prose
+  // sections (leaf headings that extend the subclass rather than bounding it).
+  let currentSubclass: KnownSubclass | undefined;
   for (let i = 0; i < flat.length; i++) {
     // `flat[i].line` is already whitespace-normalized (see `flatten`).
     const line = flat[i].line;
     if (isParentClassHeading(line, flat[i].height, tiersPresent)) {
       currentParent = line;
+      currentSubclass = undefined;
       boundaries.push(i);
       continue;
     }
@@ -257,27 +272,37 @@ export function parseSubclasses(
     // it (`SUBCLASS_BY_NAME.get` is undefined). It does not move the parent
     // cursor. (loreweaver-6fw)
     if (tiersPresent && isCalloutBoxHeading(flat[i].height)) {
+      currentSubclass = undefined;
       boundaries.push(i);
       continue;
     }
     const sc = SUBCLASS_BY_NAME.get(line);
     if (sc !== undefined && sc.parent === currentParent) {
+      currentSubclass = sc;
       boundaries.push(i);
       continue;
     }
     // A leaf/section heading (font tier at or above the callout-box ceiling)
-    // that is not itself a class or subclass heading is a subclass FEATURE
-    // heading (h≈12.0) or a structural group/section title. It bounds the
-    // preceding subclass's overview at its first feature, so the feature
-    // bodies stay out of the subclass description (eshyra-4a7.2). The boundary
-    // index is not a subclass, so the emit loop skips it; it does not move the
-    // parent cursor. Gated on tiersPresent: uniform-font fixtures have no tier
-    // signal and keep the conservative bound-at-next-subclass fallback.
+    // that is not itself a class or subclass heading is either:
+    //   (a) a named prose section declared on the current subclass (e.g.
+    //       "Tenets of Devotion" on Oath of Devotion — eshyra-citg): do NOT
+    //       create a boundary; the heading and its body prose belong on the
+    //       subclass and are collected as a named section in the body loop; or
+    //   (b) a subclass FEATURE heading (h≈12.0) or a structural group/section
+    //       title: creates a boundary that ends the preceding subclass's body
+    //       so feature prose stays out of the subclass description (eshyra-4a7.2).
+    // Gated on tiersPresent: uniform-font fixtures have no tier signal and keep
+    // the conservative bound-at-next-subclass fallback.
     if (
       tiersPresent &&
       flat[i].height !== undefined &&
       (flat[i].height as number) >= FEATURE_LEAF_MIN_H
     ) {
+      if (currentSubclass?.namedSections?.includes(line)) {
+        // Named prose section — extend the subclass body past this heading.
+        continue;
+      }
+      currentSubclass = undefined;
       boundaries.push(i);
     }
   }
@@ -292,8 +317,31 @@ export function parseSubclasses(
 
     const bodyStart = idx + 1;
     const bodyEnd = boundaries[b + 1] ?? flat.length;
+    const body = flat.slice(bodyStart, bodyEnd);
+
+    // Split the body into the intro prose and any named sub-subsections.
+    // Named sections are leaf-tier headings (h ≥ FEATURE_LEAF_MIN_H) whose
+    // text appears in the subclass's `namedSections` list; they extend the body
+    // rather than bounding it (eshyra-citg). Only meaningful when tiersPresent.
+    const namedSectionSet = new Set(known.namedSections ?? []);
+    const sectionStarts: number[] = [];
+    if (tiersPresent && namedSectionSet.size > 0) {
+      for (let j = 0; j < body.length; j++) {
+        const fl = body[j];
+        if (
+          fl.height !== undefined &&
+          fl.height >= FEATURE_LEAF_MIN_H &&
+          namedSectionSet.has(fl.line)
+        ) {
+          sectionStarts.push(j);
+        }
+      }
+    }
+
+    // Intro: body lines before the first section heading (or the whole body).
+    const introEnd = sectionStarts.length > 0 ? sectionStarts[0] : body.length;
     const description = joinParagraphs(
-      flat.slice(bodyStart, bodyEnd).map((f) => f.line),
+      body.slice(0, introEnd).map((f) => f.line),
     );
 
     // A confirmed subclass with no body is malformed (or a layout these anchors
@@ -305,10 +353,24 @@ export function parseSubclasses(
       );
     }
 
+    // Named sections: each section heading + its body prose until the next.
+    const sections: Array<{ name: string; text: string }> = [];
+    for (let s = 0; s < sectionStarts.length; s++) {
+      const headingIdx = sectionStarts[s];
+      const sectionName = body[headingIdx].line;
+      const sectionBodyStart = headingIdx + 1;
+      const sectionBodyEnd = sectionStarts[s + 1] ?? body.length;
+      const text = joinParagraphs(
+        body.slice(sectionBodyStart, sectionBodyEnd).map((f) => f.line),
+      );
+      sections.push({ name: sectionName, text });
+    }
+
     out.push({
       name,
       parentClass: known.parent,
       description,
+      ...(sections.length > 0 ? { sections } : {}),
       sourcePage: flat[idx].page,
     });
   }

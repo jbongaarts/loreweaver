@@ -688,6 +688,15 @@ export interface SubclassExtraction {
   readonly parentClass: string;
   /** Subclass body prose, re-flowed into paragraphs. */
   readonly description: string;
+  /**
+   * Named sub-subsection prose blocks that belong to this subclass but are not
+   * granted features or spell tables (e.g. "Tenets of Devotion" on the Oath of
+   * Devotion). Each carries the heading name and re-flowed body text.
+   */
+  readonly sections?: ReadonlyArray<{
+    readonly name: string;
+    readonly text: string;
+  }>;
   /** 1-based page in the source PDF where the subclass heading begins. */
   readonly sourcePage: number;
 }

@@ -611,6 +611,15 @@ const EXPECTED_PARTIAL_FIELDS: ReadonlyArray<{
     missingCount: 1,
     totalInKind: 2,
   },
+  // Only Oath of Devotion carries the named `sections` array (eshyra-citg):
+  // its "Tenets of Devotion" sub-subsection prose. All other 11 subclasses
+  // have no named prose sections beyond the intro description.
+  {
+    kind: 'subclass',
+    field: 'sections',
+    missingCount: 11,
+    totalInKind: 12,
+  },
   // Only the four subclasses with spell tables carry spellTableRefs
   // (eshyra-4a7.6): Life Domain, Circle of the Land, Oath of Devotion, and the
   // Fiend. The `features` reference list is on all 12 subclasses (missingCount
@@ -832,20 +841,57 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
     it('bounds the Oath of Devotion description to its overview (eshyra-4a7.2)', () => {
       // Before eshyra-4a7.2 the subclass description ran past the Oath Spells
       // table to swallow the Aura of Devotion / Purity of Spirit / Holy Nimbus
-      // feature bodies. The bounded-span parser now stops at the first feature
-      // heading, so the blurb is just the archetype overview and the features
-      // live only in their own `feature:oath-of-devotion:*` records. The
+      // feature bodies. The bounded-span parser now stops at the first non-section
+      // feature heading, so the blurb is just the archetype overview and the
+      // features live only in their own `feature:oath-of-devotion:*` records. The
       // body-font "Paladin" spell-table cell (h≈8.9) is still not mistaken for
       // the parent-class heading (the original loreweaver-fak concern).
       const oath = pack.records.find(
         (record) => record.key === 'subclass:oath-of-devotion',
       );
-      const description = (oath?.data as { description?: unknown }).description;
-      expect(typeof description).toBe('string');
-      expect(description).toContain('binds a paladin to the loftiest ideals');
-      expect(description).not.toContain('Oath of Devotion Spells');
-      expect(description).not.toContain('Aura of Devotion');
-      expect(description).not.toContain('Holy Nimbus');
+      const data = oath?.data as {
+        description?: unknown;
+        sections?: unknown;
+        spellTableRefs?: unknown;
+      };
+      expect(typeof data.description).toBe('string');
+      expect(data.description).toContain(
+        'binds a paladin to the loftiest ideals',
+      );
+      expect(data.description).not.toContain('Oath of Devotion Spells');
+      expect(data.description).not.toContain('Aura of Devotion');
+      expect(data.description).not.toContain('Holy Nimbus');
+    });
+
+    it('represents Tenets of Devotion as a named section on subclass:oath-of-devotion (eshyra-citg)', () => {
+      const oath = pack.records.find(
+        (record) => record.key === 'subclass:oath-of-devotion',
+      );
+      const data = oath?.data as {
+        sections?: Array<{ name: string; text: string }>;
+        spellTableRefs?: string[];
+      };
+      expect(Array.isArray(data.sections)).toBe(true);
+      expect(data.sections).toHaveLength(1);
+      expect(data.sections?.[0].name).toBe('Tenets of Devotion');
+      const tenetsText = data.sections?.[0].text ?? '';
+      expect(tenetsText).toContain('Honesty');
+      expect(tenetsText).toContain('Courage');
+      expect(tenetsText).toContain('Compassion');
+      expect(tenetsText).toContain('Honor');
+      expect(tenetsText).toContain('Duty');
+      // Spell table rows are not duplicated into sections
+      expect(tenetsText).not.toContain('protection from evil and good');
+    });
+
+    it('subclass:oath-of-devotion spellTableRefs still includes the spell table (eshyra-4a7.6)', () => {
+      const oath = pack.records.find(
+        (record) => record.key === 'subclass:oath-of-devotion',
+      );
+      const spellTableRefs = (oath?.data as { spellTableRefs?: unknown })
+        .spellTableRefs;
+      expect(Array.isArray(spellTableRefs)).toBe(true);
+      expect(spellTableRefs).toContain('table:oath-of-devotion-spells');
     });
   });
 

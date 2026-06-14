@@ -534,6 +534,10 @@ function validateDnd5eSubclass(record: RulesRecord, path: string): void {
   const data = dataObj(record, path);
   reqStr(data, 'parentClass', `${path}.data`);
   reqStr(data, 'description', `${path}.data`);
+  // Optional named prose sections (e.g. "Tenets of Devotion" on Oath of
+  // Devotion — eshyra-citg): sub-subsection headings whose body prose belongs
+  // on the subclass but is not a granted feature or spell table.
+  optNamedEntryArray(data, 'sections', `${path}.data`);
   optStrArray(data, 'features', `${path}.data`);
   // Optional references to the subclass's `table` records (eshyra-4a7.6):
   // expanded/domain/oath spell tables and any progression tables, linked

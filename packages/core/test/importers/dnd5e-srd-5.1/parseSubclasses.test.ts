@@ -337,6 +337,98 @@ describe('parseSubclasses — body-font parent-class name inside a subclass tabl
     expect(oath.description).not.toContain('Holy Nimbus');
     expect(oath.description).not.toContain('emanate an aura of sunlight');
   });
+
+  it('produces no sections when no named section heading appears in the body', () => {
+    expect(oath.sections).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Oath of Devotion with Tenets of Devotion prose (eshyra-citg). The SRD
+// prints a "Tenets of Devotion" leaf heading (h≈12.0) between the subclass
+// intro and the "Oath Spells" spell-table heading. Unlike "Oath Spells" (which
+// introduces an emitted table and is ignored as a spell-table heading) and
+// "Aura of Devotion" (a granted feature), "Tenets of Devotion" carries prose
+// that belongs on the subclass — not a feature or a table. The parser must
+// collect its body as a named section rather than bounding the description
+// there. "Oath Spells" (not in namedSections) still bounds the body, so the
+// spell-table rows and granted-feature bodies stay out of the subclass.
+//
+// Excerpts are from the SRD 5.1 (CC-BY-4.0); the five-tenet names are the
+// ground-truth labels the acceptance criteria require.
+// ---------------------------------------------------------------------------
+
+const PALADIN_OATH_WITH_TENETS = tieredPage(33, [
+  ['Paladin', 25.92],
+  ['Sacred Oaths', 13.92],
+  ['Oath of Devotion', 13.92],
+  [
+    'The Oath of Devotion binds a paladin to the loftiest ideals of justice.',
+    9.84,
+  ],
+  ['Tenets of Devotion', 12],
+  ['Though the exact tenets of the Oath of Devotion vary by paladin,', 9.84],
+  ['all who swear this oath share these tenets.', 9.84],
+  ['Honesty. Don’t lie or cheat. Let your word be your promise.', 9.84],
+  ['Courage. Never fear to act, though caution is wise.', 9.84],
+  [
+    'Compassion. Aid others, protect the weak, and punish those who threaten them.',
+    9.84,
+  ],
+  ['Honor. Treat others with fairness.', 9.84],
+  ['Duty. Be responsible for your actions and their consequences.', 9.84],
+  ['Oath Spells', 12],
+  ['You gain oath spells at the paladin levels listed.', 9.84],
+  ['Oath of Devotion Spells', 12],
+  ['Paladin', 8.88],
+  ['Level Spells', 8.88],
+  ['3rd protection from evil and good, sanctuary', 8.88],
+  ['Aura of Devotion', 12],
+  ['Starting at 7th level, you cannot be charmed while you or friendly', 9.84],
+  ['creatures are within 10 feet of you.', 9.84],
+  ['Ranger', 25.92],
+]);
+
+describe('parseSubclasses — Oath of Devotion with Tenets of Devotion named section (eshyra-citg)', () => {
+  const [oath] = parseSubclasses([PALADIN_OATH_WITH_TENETS]);
+
+  it('extracts the subclass', () => {
+    expect(oath.name).toBe('Oath of Devotion');
+    expect(oath.parentClass).toBe('Paladin');
+  });
+
+  it('captures the intro overview prose in description', () => {
+    expect(oath.description).toContain(
+      'binds a paladin to the loftiest ideals',
+    );
+  });
+
+  it('does not bleed the Tenets heading into description', () => {
+    expect(oath.description).not.toContain('Tenets of Devotion');
+    expect(oath.description).not.toContain('all who swear this oath');
+  });
+
+  it('emits a sections array with one entry named Tenets of Devotion', () => {
+    expect(oath.sections).toHaveLength(1);
+    expect(oath.sections?.[0].name).toBe('Tenets of Devotion');
+  });
+
+  it('section text contains all five tenet labels', () => {
+    const text = oath.sections?.[0].text ?? '';
+    expect(text).toContain('Honesty');
+    expect(text).toContain('Courage');
+    expect(text).toContain('Compassion');
+    expect(text).toContain('Honor');
+    expect(text).toContain('Duty');
+  });
+
+  it('does not duplicate Oath Spells table rows or feature bodies in description or sections', () => {
+    const allText =
+      oath.description + (oath.sections?.map((s) => s.text).join(' ') ?? '');
+    expect(allText).not.toContain('Oath Spells');
+    expect(allText).not.toContain('protection from evil and good, sanctuary');
+    expect(allText).not.toContain('Aura of Devotion');
+  });
 });
 
 // ---------------------------------------------------------------------------
