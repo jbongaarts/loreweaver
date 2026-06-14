@@ -615,6 +615,35 @@ export interface StatBlockExtraction {
  * class features are separate record kinds parsed by separate beads
  * (loreweaver-0m9.5.16/0m9.5.17 and 0m9.5.15/0m9.5.18).
  */
+/**
+ * A source-backed proficiency/skill CHOICE entry (eshyra-4a7.6). The verbatim
+ * source `text` is always preserved; `choose`/`from`/`any` carry the structure
+ * parsed out of it where the shape is recognized ("Choose two from A, B, C",
+ * "Choose any three", "Three musical instruments of your choice").
+ */
+export interface ClassChoiceEntry {
+  readonly text: string;
+  readonly choose?: number;
+  readonly from?: readonly string[] | string;
+  readonly any?: boolean;
+}
+
+/** A class's starting-equipment block: verbatim text plus per-option entries. */
+export interface ClassStartingEquipment {
+  readonly text: string;
+  readonly entries?: readonly string[];
+}
+
+/**
+ * A proficiency restriction/note lifted OUT of a normalized proficiency token
+ * (eshyra-4a7.6) — e.g. the Druid's "druids will not wear armor or use shields
+ * made of metal", which must not stay inside the `shields` armor token.
+ */
+export interface ClassProficiencyNote {
+  readonly field: string;
+  readonly text: string;
+}
+
 export interface ClassExtraction {
   readonly name: string;
   readonly hitDie: number;
@@ -622,6 +651,16 @@ export interface ClassExtraction {
   readonly savingThrowProficiencies: readonly string[];
   readonly armorProficiencies: readonly string[];
   readonly weaponProficiencies: readonly string[];
+  /** Tools: fixed grants ("Herbalism kit"); "None" -> []; absent -> undefined. */
+  readonly toolProficiencies?: readonly string[];
+  /** Tools: choice grants ("Three musical instruments of your choice"). */
+  readonly toolProficiencyChoices?: readonly ClassChoiceEntry[];
+  /** Skills: the source choice ("Choose two from …", Bard's "Choose any three"). */
+  readonly skillChoices?: readonly ClassChoiceEntry[];
+  /** The class's Equipment block (starting-equipment options). */
+  readonly startingEquipment?: ClassStartingEquipment;
+  /** Restrictions lifted out of normalized proficiency tokens (Druid metal). */
+  readonly proficiencyNotes?: readonly ClassProficiencyNote[];
   /** 1-based page in the source PDF where the class's Hit Dice line begins. */
   readonly sourcePage: number;
 }

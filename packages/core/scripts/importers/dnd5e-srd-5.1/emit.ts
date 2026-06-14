@@ -24,6 +24,7 @@ import type {
   RulesRecord,
 } from '../../../src/rules/types.js';
 import { validateRulesPack } from '../../../src/rules/validate.js';
+import { enrichClassChapterRecords } from './classProgression.js';
 import type { SourceInventoryItem } from './sourceInventory.js';
 import type { SourceCoverageReport } from './sourceInventoryCoverage.js';
 import type {
@@ -457,6 +458,29 @@ function buildClassData(
     savingThrowProficiencies: [...cls.savingThrowProficiencies],
     armorProficiencies: [...cls.armorProficiencies],
     weaponProficiencies: [...cls.weaponProficiencies],
+    // Options modeling (eshyra-4a7.6); each omitted when the source line was
+    // absent. Structured `progression`/`progressionTableRef`/`features` are
+    // added later by enrichClassChapterRecords (they need the table + feature
+    // records).
+    ...(cls.toolProficiencies !== undefined
+      ? { toolProficiencies: [...cls.toolProficiencies] }
+      : {}),
+    ...(cls.toolProficiencyChoices !== undefined
+      ? {
+          toolProficiencyChoices: cls.toolProficiencyChoices.map((c) => ({
+            ...c,
+          })),
+        }
+      : {}),
+    ...(cls.skillChoices !== undefined
+      ? { skillChoices: cls.skillChoices.map((c) => ({ ...c })) }
+      : {}),
+    ...(cls.startingEquipment !== undefined
+      ? { startingEquipment: { ...cls.startingEquipment } }
+      : {}),
+    ...(cls.proficiencyNotes !== undefined
+      ? { proficiencyNotes: cls.proficiencyNotes.map((n) => ({ ...n })) }
+      : {}),
   };
 }
 
@@ -1151,12 +1175,21 @@ export function buildPack(input: BuildPackInput): RulesPack {
   const backgroundRecords = backgroundExtractionsToRecords(
     input.backgrounds ?? [],
   );
+  // Enrich the class-chapter records with structured progression and the
+  // class/subclass/feature cross-references (eshyra-4a7.6). Derived from the
+  // parsed table extractions and feature records, after all four are built.
+  const enriched = enrichClassChapterRecords({
+    classRecords,
+    subclassRecords,
+    featureRecords,
+    tables: input.tables ?? [],
+  });
   const records = [
     ...spellRecords,
     ...creatureRecords,
-    ...classRecords,
-    ...subclassRecords,
-    ...featureRecords,
+    ...enriched.classRecords,
+    ...enriched.subclassRecords,
+    ...enriched.featureRecords,
     ...conditionRecords,
     ...featRecords,
     ...hazardRecords,
