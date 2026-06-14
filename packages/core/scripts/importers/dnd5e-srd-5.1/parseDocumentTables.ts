@@ -137,6 +137,8 @@ export interface DocumentTableSpec {
   readonly rows: RowRule;
   /** Exact source row count; any drift fails the table closed. */
   readonly expectedRows: number;
+  /** Owning record for a table embedded inside another source entry. */
+  readonly ownerRecordKey?: string;
 }
 
 const ORDINAL_LEVEL = String.raw`\d{1,2}(?:st|nd|rd|th)`;
@@ -339,6 +341,7 @@ export const SRD_5_1_DOCUMENT_TABLE_SPECS: readonly DocumentTableSpec[] = [
   // collide with tables from another source region.
   {
     name: 'Animated Object Statistics',
+    ownerRecordKey: 'spell:animate-objects',
     columns: ['Size', 'HP', 'AC', 'Attack', 'Strength', 'Dexterity'],
     anchorHeading: 'Animated Object Statistics',
     anchor: 'caption',
@@ -366,6 +369,7 @@ export const SRD_5_1_DOCUMENT_TABLE_SPECS: readonly DocumentTableSpec[] = [
   },
   {
     name: 'Confusion Behavior',
+    ownerRecordKey: 'spell:confusion',
     columns: ['d10', 'Behavior'],
     anchorHeading: 'Confusion',
     anchor: 'item',
@@ -376,11 +380,21 @@ export const SRD_5_1_DOCUMENT_TABLE_SPECS: readonly DocumentTableSpec[] = [
     },
     expectedRows: 4,
   },
-  stageConditionSpec('Precipitation', 5),
-  stageConditionSpec('Temperature', 6),
-  stageConditionSpec('Wind', 5),
+  {
+    ...stageConditionSpec('Precipitation', 5),
+    ownerRecordKey: 'spell:control-weather',
+  },
+  {
+    ...stageConditionSpec('Temperature', 6),
+    ownerRecordKey: 'spell:control-weather',
+  },
+  {
+    ...stageConditionSpec('Wind', 5),
+    ownerRecordKey: 'spell:control-weather',
+  },
   {
     name: 'Creation Material Duration',
+    ownerRecordKey: 'spell:creation',
     columns: ['Material', 'Duration'],
     anchorHeading: 'Creation',
     anchor: 'item',
@@ -393,6 +407,7 @@ export const SRD_5_1_DOCUMENT_TABLE_SPECS: readonly DocumentTableSpec[] = [
   },
   {
     name: 'Reincarnate Race',
+    ownerRecordKey: 'spell:reincarnate',
     columns: ['d100', 'Race'],
     anchorHeading: 'Reincarnate',
     anchor: 'item',
@@ -405,6 +420,7 @@ export const SRD_5_1_DOCUMENT_TABLE_SPECS: readonly DocumentTableSpec[] = [
   },
   {
     name: 'Scrying Save Modifiers',
+    ownerRecordKey: 'spell:scrying',
     columns: ['Basis', 'Circumstance', 'Save Modifier'],
     anchorHeading: 'Scrying',
     anchor: 'item',
@@ -437,6 +453,7 @@ export const SRD_5_1_DOCUMENT_TABLE_SPECS: readonly DocumentTableSpec[] = [
   },
   {
     name: 'Teleport Familiarity',
+    ownerRecordKey: 'spell:teleport',
     columns: [
       'Familiarity',
       'Mishap',
@@ -1326,6 +1343,7 @@ function parseSpec(
         columns: [...spec.columns],
         rows: tableRows,
         sourcePage: located.page,
+        ownerRecordKey: spec.ownerRecordKey,
       };
     }
     const headerIdx = findHeaderAt(rows, i, spec);
@@ -1340,6 +1358,7 @@ function parseSpec(
       columns: [...spec.columns],
       rows: tableRows,
       sourcePage: rows[headerIdx].page,
+      ownerRecordKey: spec.ownerRecordKey,
     };
   }
   return undefined;

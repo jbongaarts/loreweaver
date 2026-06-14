@@ -350,6 +350,38 @@ describe('rules pack validation', () => {
     expect(pack.records[0].kind).toBe('spell');
   });
 
+  it('accepts optional spell tableRefs and rejects non-string entries', () => {
+    const spell = record('spell:confusion', {
+      kind: 'spell',
+      name: 'Confusion',
+      data: {
+        level: 4,
+        school: 'enchantment',
+        castingTime: '1 action',
+        range: '90 feet',
+        components: ['V', 'S', 'M'],
+        duration: 'Concentration, up to 1 minute',
+        classes: ['Bard', 'Sorcerer', 'Wizard'],
+        tableRefs: ['table:confusion-behavior'],
+      },
+    });
+    expect(() =>
+      validateRulesPack(validRulesPack({ records: [spell] })),
+    ).not.toThrow();
+    expect(() =>
+      validateRulesPack(
+        validRulesPack({
+          records: [
+            {
+              ...spell,
+              data: { ...spell.data, tableRefs: [42] },
+            },
+          ],
+        }),
+      ),
+    ).toThrow(/tableRefs/);
+  });
+
   it('rejects dnd5e action records missing a description', () => {
     const pack = validRulesPack({
       records: [

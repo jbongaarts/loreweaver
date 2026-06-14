@@ -250,6 +250,11 @@ export interface TableExtraction {
   readonly rows: readonly (readonly unknown[])[];
   /** 1-based page in the source PDF where the table anchor appears. */
   readonly sourcePage: number;
+  /**
+   * Record that owns an embedded table in the source document. Import-only
+   * metadata used to add navigation refs; it is not emitted on table records.
+   */
+  readonly ownerRecordKey?: string;
 }
 
 /**

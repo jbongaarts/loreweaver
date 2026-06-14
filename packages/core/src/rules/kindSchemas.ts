@@ -353,6 +353,10 @@ function validateDnd5eSpell(record: RulesRecord, path: string): void {
   reqStr(data, 'duration', `${path}.data`);
   reqStrArray(data, 'components', `${path}.data`);
   reqStrArray(data, 'classes', `${path}.data`);
+  // Optional references to structured tables embedded in this spell's source
+  // description (eshyra-o4j7). The prose remains source-preserving; tableRefs
+  // provides direct navigation to the separately emitted table records.
+  optStrArray(data, 'tableRefs', `${path}.data`);
 }
 
 function validateDnd5eCreature(record: RulesRecord, path: string): void {

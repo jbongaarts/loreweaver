@@ -574,6 +574,14 @@ const EXPECTED_PARTIAL_FIELDS: ReadonlyArray<{
   },
   { kind: 'spell', field: 'higherLevels', missingCount: 227, totalInKind: 319 },
   { kind: 'spell', field: 'ritual', missingCount: 290, totalInKind: 319 },
+  // Seven spells own the nine embedded spell-description tables (eshyra-o4j7);
+  // Control Weather owns three, while the other six own one each.
+  {
+    kind: 'spell',
+    field: 'tableRefs',
+    missingCount: 312,
+    totalInKind: 319,
+  },
   // The 2 inline stat blocks (eshyra-4a7.4) carry different optional keyed
   // fields: Avatar of Death has damage/condition immunities and a "—"
   // challengeRating with 0 XP; Giant Fly (abbreviated) has neither. senses and
@@ -2237,6 +2245,87 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
       // A faithful Zone of Truth body is short; the contaminated one was
       // ~38k characters of trailing gamemastering text.
       expect(description.length).toBeLessThan(2000);
+    });
+  });
+
+  describe('spell-embedded table linkage (eshyra-o4j7)', () => {
+    const expected: Readonly<Record<string, readonly string[]>> = {
+      'spell:animate-objects': ['table:animated-object-statistics'],
+      'spell:confusion': ['table:confusion-behavior'],
+      'spell:control-weather': [
+        'table:precipitation',
+        'table:temperature',
+        'table:wind',
+      ],
+      'spell:creation': ['table:creation-material-duration'],
+      'spell:reincarnate': ['table:reincarnate-race'],
+      'spell:scrying': ['table:scrying-save-modifiers'],
+      'spell:teleport': ['table:teleport-familiarity'],
+    };
+
+    function refsFor(spellKey: string): readonly string[] {
+      const spell = pack.records.find((record) => record.key === spellKey);
+      expect(spell, `expected ${spellKey} in the committed pack`).toBeDefined();
+      return (spell?.data as { tableRefs?: readonly string[] }).tableRefs ?? [];
+    }
+
+    it('links every affected spell to its exact embedded table set', () => {
+      for (const [spellKey, tableRefs] of Object.entries(expected)) {
+        expect(refsFor(spellKey)).toEqual(tableRefs);
+      }
+    });
+
+    it('links Control Weather to exactly the three weather tables', () => {
+      expect(refsFor('spell:control-weather')).toEqual([
+        'table:precipitation',
+        'table:temperature',
+        'table:wind',
+      ]);
+    });
+
+    it('links Teleport to the familiarity matrix', () => {
+      expect(refsFor('spell:teleport')).toEqual(['table:teleport-familiarity']);
+    });
+
+    it('resolves every spell tableRef to an existing table record', () => {
+      const tables = new Set(
+        pack.records
+          .filter((record) => record.kind === 'table')
+          .map((record) => record.key),
+      );
+      for (const spellKey of Object.keys(expected)) {
+        for (const tableRef of refsFor(spellKey)) {
+          expect(tables.has(tableRef), `${spellKey} -> ${tableRef}`).toBe(true);
+        }
+      }
+    });
+
+    it('makes every embedded spell table reachable from exactly one spell', () => {
+      const owners = new Map<string, string[]>();
+      for (const record of pack.records) {
+        if (record.kind !== 'spell') continue;
+        const refs = (record.data as { tableRefs?: readonly string[] })
+          .tableRefs;
+        for (const ref of refs ?? []) {
+          const list = owners.get(ref) ?? [];
+          list.push(record.key);
+          owners.set(ref, list);
+        }
+      }
+      for (const [spellKey, tableRefs] of Object.entries(expected)) {
+        for (const tableRef of tableRefs) {
+          expect(owners.get(tableRef)).toEqual([spellKey]);
+        }
+      }
+    });
+
+    it('keeps the original spell prose while adding navigation refs', () => {
+      const animateObjects = pack.records.find(
+        (record) => record.key === 'spell:animate-objects',
+      );
+      expect(
+        (animateObjects?.data as { description?: string }).description,
+      ).toContain('Animated Object Statistics');
     });
   });
 
