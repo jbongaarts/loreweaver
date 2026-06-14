@@ -390,6 +390,56 @@ describe('ancestry bogus traits', () => {
   });
 });
 
+describe('ancestry option-table linkage (eshyra-4a7.7)', () => {
+  const unlinked = record({
+    kind: 'ancestry',
+    key: 'ancestry:dragonborn',
+    name: 'Dragonborn',
+    data: {
+      source: 'race',
+      description: 'Your draconic heritage manifests in a variety of traits.',
+      traits: [
+        {
+          name: 'Draconic Ancestry',
+          text: 'You have draconic ancestry. Choose one type of dragon from the Draconic Ancestry table.',
+        },
+      ],
+    },
+  });
+
+  const linked = record({
+    kind: 'ancestry',
+    key: 'ancestry:dragonborn',
+    name: 'Dragonborn',
+    data: {
+      source: 'race',
+      description: 'Your draconic heritage manifests in a variety of traits.',
+      traits: [
+        {
+          name: 'Draconic Ancestry',
+          text: 'You have draconic ancestry. Choose one type of dragon from the Draconic Ancestry table.',
+          tableRefs: ['table:draconic-ancestry'],
+        },
+      ],
+    },
+  });
+
+  it('flags an option-table prose reference with no tableRefs link', () => {
+    const findings = auditSrdStructure(pack([unlinked])).filter(
+      (f) => f.category === 'ancestry-unlinked-table',
+    );
+    expect(findings).toHaveLength(1);
+    expect(findings[0].detail).toContain('Draconic Ancestry');
+  });
+
+  it('is silent once the trait carries a tableRefs link', () => {
+    const findings = auditSrdStructure(pack([linked])).filter(
+      (f) => f.category === 'ancestry-unlinked-table',
+    );
+    expect(findings).toEqual([]);
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Coverage
 // ---------------------------------------------------------------------------

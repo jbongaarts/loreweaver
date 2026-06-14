@@ -24,6 +24,7 @@ import type {
   RulesRecord,
 } from '../../../src/rules/types.js';
 import { validateRulesPack } from '../../../src/rules/validate.js';
+import { linkAncestryOptionTables } from './ancestryOptions.js';
 import { enrichClassChapterRecords } from './classProgression.js';
 import type { SourceInventoryItem } from './sourceInventory.js';
 import type { SourceCoverageReport } from './sourceInventoryCoverage.js';
@@ -1174,7 +1175,14 @@ export function buildPack(input: BuildPackInput): RulesPack {
     input.magicItems ?? [],
     statBlockRefsByItemName,
   );
-  const ancestryRecords = ancestryExtractionsToRecords(input.ancestries ?? []);
+  // Link ancestry option tables (eshyra-4a7.7): add `tableRefs` on any ancestry
+  // trait whose prose names "the <Name> table" (the Dragonborn Draconic
+  // Ancestry table) to the emitted `table` record on the same SRD page, so the
+  // option rows are reachable as structured data rather than prose-only.
+  const ancestryRecords = linkAncestryOptionTables(
+    ancestryExtractionsToRecords(input.ancestries ?? []),
+    tableRecords,
+  );
   const backgroundRecords = backgroundExtractionsToRecords(
     input.backgrounds ?? [],
   );

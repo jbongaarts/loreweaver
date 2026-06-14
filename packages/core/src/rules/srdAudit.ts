@@ -46,6 +46,7 @@ export type SrdAuditCategory =
   | 'feature-setup-label-bleed'
   | 'swallowed-feature-heading'
   | 'ancestry-bogus-trait'
+  | 'ancestry-unlinked-table'
   | 'missing-coverage';
 
 export interface SrdAuditFinding {
@@ -281,6 +282,7 @@ function checkSwallowedFeatures(record: RulesRecord): SrdAuditFinding[] {
 interface AncestryTrait {
   readonly name: string;
   readonly text: string;
+  readonly tableRefs: readonly string[];
 }
 
 function readAncestryTraits(record: RulesRecord): AncestryTrait[] {
@@ -297,7 +299,10 @@ function readAncestryTraits(record: RulesRecord): AncestryTrait[] {
     const name = asString(obj.name);
     const text = asString(obj.text);
     if (name === null) continue;
-    out.push({ name, text: text ?? '' });
+    const tableRefs = Array.isArray(obj.tableRefs)
+      ? obj.tableRefs.filter((r): r is string => typeof r === 'string')
+      : [];
+    out.push({ name, text: text ?? '', tableRefs });
   }
   return out;
 }
@@ -308,6 +313,11 @@ const TRAIT_NAME_FRAGMENT = /\b(?:and|or|the|of|by|with|table)\b/;
 const TERMINAL_PUNCTUATION = /[.!?:)”"']$/;
 // The breath-weapon / similar tables bleed in as repeated "(... save)" cells.
 const TABLE_SAVE_CELL = /\bsave\)/gi;
+// A prose reference to a printed option table ("the Draconic Ancestry table").
+// A trait that names one must link it via `tableRefs` so the option rows are
+// reachable as structured data, not prose only (eshyra-4a7.7).
+const TRAIT_TABLE_REFERENCE =
+  /\bthe\s+[A-Z][A-Za-z'’/()&-]*(?:\s+[A-Z][A-Za-z'’/()&-]*)*\s+table\b/;
 
 function checkAncestryTraits(record: RulesRecord): SrdAuditFinding[] {
   if (record.kind !== 'ancestry') return [];
@@ -341,6 +351,23 @@ function checkAncestryTraits(record: RulesRecord): SrdAuditFinding[] {
   return findings;
 }
 
+function checkAncestryUnlinkedTable(record: RulesRecord): SrdAuditFinding[] {
+  if (record.kind !== 'ancestry') return [];
+  const findings: SrdAuditFinding[] = [];
+  readAncestryTraits(record).forEach((trait, index) => {
+    if (!TRAIT_TABLE_REFERENCE.test(trait.text)) return;
+    if (trait.tableRefs.length > 0) return;
+    findings.push({
+      category: 'ancestry-unlinked-table',
+      key: record.key,
+      kind: record.kind,
+      name: record.name,
+      detail: `data.traits[${index}] (${trait.name}): prose references an option table but the trait has no tableRefs link`,
+    });
+  });
+  return findings;
+}
+
 // ---------------------------------------------------------------------------
 // Structure audit entry point
 // ---------------------------------------------------------------------------
@@ -356,6 +383,7 @@ export function auditSrdStructure(pack: RulesPack): readonly SrdAuditFinding[] {
     findings.push(...checkFeatureSetupLabelBleed(record));
     findings.push(...checkSwallowedFeatures(record));
     findings.push(...checkAncestryTraits(record));
+    findings.push(...checkAncestryUnlinkedTable(record));
   }
   return sortFindings(findings);
 }
