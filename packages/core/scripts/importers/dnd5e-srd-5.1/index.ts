@@ -1287,6 +1287,17 @@ export const EXPECTED_SRD_5_1_TABLE_NAMES: readonly string[] = [
   'Acolyte Ideals',
   'Acolyte Bonds',
   'Acolyte Flaws',
+  // Spell-description tables (eshyra-o4j7). Printed captions stay verbatim;
+  // caption-less tables are qualified by their owning spell.
+  'Animated Object Statistics',
+  'Confusion Behavior',
+  'Creation Material Duration',
+  'Precipitation',
+  'Reincarnate Race',
+  'Scrying Save Modifiers',
+  'Teleport Familiarity',
+  'Temperature',
+  'Wind',
   // The two core-rules tables behind excluded captions, reconstructed by
   // their unique column-header anchors because both captions repeat in the
   // core-rules slice (eshyra-10t).

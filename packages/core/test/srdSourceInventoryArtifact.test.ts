@@ -143,9 +143,9 @@ describe('committed SRD source-coverage artifacts — integrity', () => {
     // record 1849 -> 1873 (eshyra-4a7.3): the 24 document-wide table records
     // claim their captions / caption-less runs. The eshyra-4a7.3 catch-all
     // known-gap rule is gone; its remaining items moved to scoped owners. The
-    // 9 spell-embedded tables are tracked by eshyra-o4j7, and the deity tables
-    // (5 items), Half-Dragon Template tables (2), and the Self-Sufficiency
-    // prose sidebar (1) joined their regions under eshyra-4a7.10 (62 -> 70).
+    // The deity tables (5 items), Half-Dragon Template tables (2), and the
+    // Self-Sufficiency prose sidebar (1) joined their regions under
+    // eshyra-4a7.10 (62 -> 70).
     // eshyra-4a7.6 dropped 128 -> 116 (the Barbarian progression caption,
     // seven Circle of the Land tables, Life Domain / Oath of Devotion /
     // Fiend Expanded spell tables, and Creating Spell Slots are now records);
@@ -165,7 +165,9 @@ describe('committed SRD source-coverage artifacts — integrity', () => {
     // Cleric's Destroy Undead table caption was already record-status (it
     // auto-matched the same-name feature); it now maps explicitly to
     // table:destroy-undead, so the count is unchanged by that one.
-    expect(coverage.summary.record).toBe(1914);
+    // record 1914 -> 1923 (eshyra-o4j7): all nine spell-embedded table
+    // structures now resolve to emitted table records.
+    expect(coverage.summary.record).toBe(1923);
     // childOf 14 -> 98 (eshyra-4a7.6, PR2): the broad class-chapter known-gap is
     // gone. The 86 feature-option / spellcasting-boilerplate leaf subheadings
     // plus the Rogue's "Thieves' Cant" subsection map child-of their owning
@@ -197,7 +199,6 @@ describe('committed SRD source-coverage artifacts — integrity', () => {
     // so the eshyra-citg known-gap rule is gone.
     expect(coverage.summary.knownGap).toEqual({
       'eshyra-4a7.10': 70,
-      'eshyra-o4j7': 9,
     });
   });
 });
@@ -255,10 +256,16 @@ describe('committed SRD source-coverage artifacts — known-gap sentinels', () =
     expect(entry.status).toBe('record:table:carpet-of-flying');
   });
 
-  it('the Teleport familiarity matrix (p186) is a spell-embedded table tracked by eshyra-o4j7', () => {
+  it('the Teleport familiarity matrix (p186) is emitted as a table record', () => {
     const entry = entryFor(186, 'Similar Off On');
     expect(entry.structure).toBe('table-shape');
-    expect(entry.status).toBe('known-gap:eshyra-o4j7');
+    expect(entry.status).toBe('record:table:teleport-familiarity');
+  });
+
+  it('known-gap:eshyra-o4j7 does not remain after the spell tables are emitted', () => {
+    expect(
+      coverage.entries.some((e) => e.status === 'known-gap:eshyra-o4j7'),
+    ).toBe(false);
   });
 
   it('the Celtic Deities table (p360) belongs to the Appendix PH-B region tracked by eshyra-4a7.10', () => {

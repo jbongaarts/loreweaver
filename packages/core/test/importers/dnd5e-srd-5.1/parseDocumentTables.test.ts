@@ -425,6 +425,250 @@ describe('parseDocumentTables — class-progression-reconstruction (eshyra-4a7.6
 });
 
 // ---------------------------------------------------------------------------
+// spell-embedded tables: exact source rows and synthesized owner-qualified names
+// ---------------------------------------------------------------------------
+
+describe('parseDocumentTables — spell-embedded tables (eshyra-o4j7)', () => {
+  const pages = [
+    tieredPage(116, [
+      ['Animate Objects', LEAF],
+      ['Objects come to life at your command.', BODY],
+      ['Animated Object Statistics', LEAF],
+      ['Size HP AC Attack Str Dex', CELL],
+      ['Tiny 20 18 +8 to hit, 1d4 + 4 damage 4 18', CELL],
+      ['Small 25 16 +6 to hit, 1d8 + 2 damage 6 14', CELL],
+      ['Medium 40 13 +5 to hit, 2d6 + 1 damage 10 12', CELL],
+      ['Large 50 10 +6 to hit, 2d10 + 2 14 10', CELL],
+      ['damage', CELL],
+      ['Huge 80 10 +8 to hit, 2d12 + 4 18 6', CELL],
+      ['damage', CELL],
+      ['An animated object is a construct.', BODY],
+    ]),
+    tieredPage(127, [
+      ['Confusion', LEAF],
+      ['An affected target must roll a d10.', BODY],
+      ['d10 Behavior', CELL],
+      ['1 The creature uses all its movement to move in a', CELL],
+      ['random direction. To determine the direction, roll', CELL],
+      ['a d8 and assign a direction to each die face. The', CELL],
+      ['creature doesn’t take an action this turn.', CELL],
+      ['2–6 The creature doesn’t move or take actions this', CELL],
+      ['turn.', CELL],
+      ['7–8 The creature uses its action to make a melee', CELL],
+      ['attack against a randomly determined creature', CELL],
+      ['within its reach. If there is no creature within its', CELL],
+      ['reach, the creature does nothing this turn.', CELL],
+      ['9–10 The creature can act and move normally.', CELL],
+      ['At the end of each of its turns, it can save.', BODY],
+    ]),
+    tieredPage(131, [
+      ['Control Weather', LEAF],
+      ['Change the current weather conditions.', BODY],
+      ['Precipitation', LEAF],
+      ['Stage Condition', CELL],
+      ['1 Clear', CELL],
+      ['2 Light clouds', CELL],
+      ['3 Overcast or ground fog', CELL],
+      ['4 Rain, hail, or snow', CELL],
+      ['5 Torrential rain, driving hail, or blizzard', CELL],
+      ['Temperature', LEAF],
+      ['Stage Condition', CELL],
+      ['1 Unbearable heat', CELL],
+      ['2 Hot', CELL],
+      ['3 Warm', CELL],
+      ['4 Cool', CELL],
+      ['5 Cold', CELL],
+      ['6 Arctic cold', CELL],
+      ['Wind', LEAF],
+      ['Stage Condition', CELL],
+      ['1 Calm', CELL],
+      ['2 Moderate wind', CELL],
+      ['3 Strong wind', CELL],
+      ['4 Gale', CELL],
+      ['5 Storm', CELL],
+    ]),
+    tieredPage(132, [
+      ['Creation', LEAF],
+      ['The duration depends on the object’s material.', BODY],
+      ['Material Duration', CELL],
+      ['Vegetable matter 1 day', CELL],
+      ['Stone or crystal 12 hours', CELL],
+      ['Precious metals 1 hour', CELL],
+      ['Gems 10 minutes', CELL],
+      ['Adamantine or mithral 1 minute', CELL],
+      ['Using the material as a spell component causes failure.', BODY],
+    ]),
+    tieredPage(174, [
+      ['Reincarnate', LEAF],
+      ['The GM rolls a d100 and consults the table.', BODY],
+      ['d100 Race', CELL],
+      ['01–04 Dragonborn', CELL],
+      ['05–13 Dwarf, hill', CELL],
+      ['14–21 Dwarf, mountain', CELL],
+      ['22–25 Elf, dark', CELL],
+      ['26–34 Elf, high', CELL],
+      ['35–42 Elf, wood', CELL],
+      ['43–46 Gnome, forest', CELL],
+      ['47–52 Gnome, rock', CELL],
+      ['53–56 Half-elf', CELL],
+      ['57–60 Half-orc', CELL],
+      ['61–68 Halfling, lightfoot', CELL],
+      ['69–76 Halfling, stout', CELL],
+      ['77–96 Human', CELL],
+      ['97–00 Tiefling', CELL],
+    ]),
+    tieredPage(176, [
+      ['Scrying', LEAF],
+      ['The saving throw is modified by your knowledge.', BODY],
+      ['Knowledge Save Modifier', CELL],
+      ['Secondhand (you have heard of the target) +5', CELL],
+      ['Firsthand (you have met the target) +0', CELL],
+      ['Familiar (you know the target well) −5', CELL],
+      ['Connection Save Modifier', CELL],
+      ['Likeness or picture −2', CELL],
+      ['Possession or garment −4', CELL],
+      ['Body part, lock of hair, bit of nail, or the like −10', CELL],
+    ]),
+    tieredPage(185, [
+      ['Teleport', LEAF],
+      ['Your familiarity determines whether you arrive.', BODY],
+    ]),
+    tieredPage(186, [
+      ['Similar Off On', CELL],
+      ['Familiarity Mishap Area Target Target', CELL],
+      ['Permanent — — — 01–100', CELL],
+      ['circle', CELL],
+      ['Associated — — — 01–100', CELL],
+      ['object', CELL],
+      ['Very familiar 01–05 06–13 14–24 25–100', CELL],
+      ['Seen casually 01–33 34–43 44–53 54–100', CELL],
+      ['Viewed once 01–43 44–53 54–73 74–100', CELL],
+      ['Description 01–43 44–53 54–73 74–100', CELL],
+      ['False 01–50 51–100 — —', CELL],
+      ['destination', CELL],
+      ['Familiarity. “Permanent circle” means a known circle.', BODY],
+    ]),
+  ];
+
+  const tables = byName(pages);
+
+  it('reconstructs Animated Object Statistics wrapped attack cells', () => {
+    expect(tables.get('Animated Object Statistics')).toMatchObject({
+      sourcePage: 116,
+      columns: ['Size', 'HP', 'AC', 'Attack', 'Strength', 'Dexterity'],
+      rows: [
+        ['Tiny', 20, 18, '+8 to hit, 1d4 + 4 damage', 4, 18],
+        ['Small', 25, 16, '+6 to hit, 1d8 + 2 damage', 6, 14],
+        ['Medium', 40, 13, '+5 to hit, 2d6 + 1 damage', 10, 12],
+        ['Large', 50, 10, '+6 to hit, 2d10 + 2 damage', 14, 10],
+        ['Huge', 80, 10, '+8 to hit, 2d12 + 4 damage', 18, 6],
+      ],
+    });
+  });
+
+  it('reconstructs Confusion behavior with wrapped cells', () => {
+    expect(tables.get('Confusion Behavior')?.rows).toEqual([
+      [
+        '1',
+        'The creature uses all its movement to move in a random direction. To determine the direction, roll a d8 and assign a direction to each die face. The creature doesn’t take an action this turn.',
+      ],
+      ['2–6', 'The creature doesn’t move or take actions this turn.'],
+      [
+        '7–8',
+        'The creature uses its action to make a melee attack against a randomly determined creature within its reach. If there is no creature within its reach, the creature does nothing this turn.',
+      ],
+      ['9–10', 'The creature can act and move normally.'],
+    ]);
+  });
+
+  it('preserves all three Control Weather stage tables in source row order', () => {
+    expect(tables.get('Precipitation')?.rows).toEqual([
+      [1, 'Clear'],
+      [2, 'Light clouds'],
+      [3, 'Overcast or ground fog'],
+      [4, 'Rain, hail, or snow'],
+      [5, 'Torrential rain, driving hail, or blizzard'],
+    ]);
+    expect(tables.get('Temperature')?.rows).toEqual([
+      [1, 'Unbearable heat'],
+      [2, 'Hot'],
+      [3, 'Warm'],
+      [4, 'Cool'],
+      [5, 'Cold'],
+      [6, 'Arctic cold'],
+    ]);
+    expect(tables.get('Wind')?.rows).toEqual([
+      [1, 'Calm'],
+      [2, 'Moderate wind'],
+      [3, 'Strong wind'],
+      [4, 'Gale'],
+      [5, 'Storm'],
+    ]);
+  });
+
+  it('reconstructs Creation, Reincarnate, Scrying, and Teleport exactly', () => {
+    expect(tables.get('Creation Material Duration')?.rows).toEqual([
+      ['Vegetable matter', '1 day'],
+      ['Stone or crystal', '12 hours'],
+      ['Precious metals', '1 hour'],
+      ['Gems', '10 minutes'],
+      ['Adamantine or mithral', '1 minute'],
+    ]);
+    expect(tables.get('Reincarnate Race')?.rows).toEqual([
+      ['01–04', 'Dragonborn'],
+      ['05–13', 'Dwarf, hill'],
+      ['14–21', 'Dwarf, mountain'],
+      ['22–25', 'Elf, dark'],
+      ['26–34', 'Elf, high'],
+      ['35–42', 'Elf, wood'],
+      ['43–46', 'Gnome, forest'],
+      ['47–52', 'Gnome, rock'],
+      ['53–56', 'Half-elf'],
+      ['57–60', 'Half-orc'],
+      ['61–68', 'Halfling, lightfoot'],
+      ['69–76', 'Halfling, stout'],
+      ['77–96', 'Human'],
+      ['97–00', 'Tiefling'],
+    ]);
+    expect(tables.get('Scrying Save Modifiers')?.rows).toEqual([
+      ['Knowledge', 'Secondhand (you have heard of the target)', '+5'],
+      ['Knowledge', 'Firsthand (you have met the target)', '+0'],
+      ['Knowledge', 'Familiar (you know the target well)', '−5'],
+      ['Connection', 'Likeness or picture', '−2'],
+      ['Connection', 'Possession or garment', '−4'],
+      [
+        'Connection',
+        'Body part, lock of hair, bit of nail, or the like',
+        '−10',
+      ],
+    ]);
+    expect(tables.get('Teleport Familiarity')).toMatchObject({
+      sourcePage: 186,
+      rows: [
+        ['Permanent circle', '—', '—', '—', '01–100'],
+        ['Associated object', '—', '—', '—', '01–100'],
+        ['Very familiar', '01–05', '06–13', '14–24', '25–100'],
+        ['Seen casually', '01–33', '34–43', '44–53', '54–100'],
+        ['Viewed once', '01–43', '44–53', '54–73', '74–100'],
+        ['Description', '01–43', '44–53', '54–73', '74–100'],
+        ['False destination', '01–50', '51–100', '—', '—'],
+      ],
+    });
+  });
+
+  it('fails a reviewed spell table closed when its source fingerprint drifts', () => {
+    const drifted = tieredPage(186, [
+      ['Teleport', LEAF],
+      ['Similar Off On', CELL],
+      ['Familiarity Mishap Area Target Target', CELL],
+      ['Permanent — — — 01–99', CELL],
+      ['circle', CELL],
+    ]);
+    expect(byName([drifted]).get('Teleport Familiarity')).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // wrapped d100 rows + item anchor + cross-page run: Bag of Beans
 // ---------------------------------------------------------------------------
 
