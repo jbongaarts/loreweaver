@@ -395,6 +395,30 @@ const EXPECTED_PARTIAL_FIELDS: ReadonlyArray<{
 }> = [
   { kind: 'ancestry', field: 'subraceOf', missingCount: 9, totalInKind: 13 },
   { kind: 'ancestry', field: 'subraces', missingCount: 9, totalInKind: 13 },
+  // Class options modeling (eshyra-4a7.6). progression / progressionTableRef /
+  // features / skillChoices / startingEquipment are on all 12 classes
+  // (missingCount 0, not listed). Only these vary:
+  //   - proficiencyNotes: only the Druid lifts a restriction (metal armor).
+  //   - toolProficiencies: present except the Bard/Monk, whose Tools line is a
+  //     pure CHOICE, so they carry toolProficiencyChoices instead.
+  {
+    kind: 'class',
+    field: 'proficiencyNotes',
+    missingCount: 11,
+    totalInKind: 12,
+  },
+  {
+    kind: 'class',
+    field: 'toolProficiencies',
+    missingCount: 2,
+    totalInKind: 12,
+  },
+  {
+    kind: 'class',
+    field: 'toolProficiencyChoices',
+    missingCount: 10,
+    totalInKind: 12,
+  },
   { kind: 'condition', field: 'effects', missingCount: 1, totalInKind: 15 },
   { kind: 'condition', field: 'levels', missingCount: 14, totalInKind: 15 },
   // Creature fields, alphabetical within the kind (matching
@@ -507,6 +531,11 @@ const EXPECTED_PARTIAL_FIELDS: ReadonlyArray<{
     totalInKind: 218,
   },
   { kind: 'equipment', field: 'weight', missingCount: 44, totalInKind: 218 },
+  // Only the two feature-owned class tables carry tableRefs (eshyra-4a7.6):
+  // feature:cleric:destroy-undead -> table:destroy-undead and
+  // feature:druid:wild-shape -> table:beast-shapes; the other 181 features
+  // have no owned table.
+  { kind: 'feature', field: 'tableRefs', missingCount: 181, totalInKind: 183 },
   // hazard sub-families (loreweaver-6ra): of the 25 hazard records, the 8 traps
   // carry `trapType`; the 3 diseases + 14 poisons carry `category`; the 14
   // poisons additionally carry `poisonType` and `price`.
@@ -581,6 +610,16 @@ const EXPECTED_PARTIAL_FIELDS: ReadonlyArray<{
     field: 'traits',
     missingCount: 1,
     totalInKind: 2,
+  },
+  // Only the four subclasses with spell tables carry spellTableRefs
+  // (eshyra-4a7.6): Life Domain, Circle of the Land, Oath of Devotion, and the
+  // Fiend. The `features` reference list is on all 12 subclasses (missingCount
+  // 0, not listed).
+  {
+    kind: 'subclass',
+    field: 'spellTableRefs',
+    missingCount: 8,
+    totalInKind: 12,
   },
 ];
 
@@ -3796,6 +3835,156 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
       for (const record of pack.records) {
         expect(record.provenance.sourceRef).toBe(sourceUrl);
       }
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // Structured class progression + cross-references (eshyra-4a7.6 PR2).
+  // -----------------------------------------------------------------------
+  describe('structured class progression (eshyra-4a7.6)', () => {
+    const byKey = new Map(pack.records.map((r) => [r.key, r]));
+    const data = (key: string) => {
+      const rec = byKey.get(key);
+      expect(rec, `expected ${key} in the committed pack`).toBeDefined();
+      return rec?.data as Record<string, unknown>;
+    };
+
+    it('links the Barbarian class to its progression table and parses level 1 + resources', () => {
+      const barb = data('class:barbarian');
+      expect(barb.progressionTableRef).toBe('table:the-barbarian');
+      expect(barb.features).toContain('feature:barbarian:rage');
+      const progression = barb.progression as Array<Record<string, unknown>>;
+      expect(progression).toHaveLength(20);
+      // Level 1: Rage + Unarmored Defense, linked to their feature records.
+      expect(progression[0]).toMatchObject({
+        level: 1,
+        proficiencyBonus: '+2',
+        features: [
+          { name: 'Rage', ref: 'feature:barbarian:rage' },
+          {
+            name: 'Unarmored Defense',
+            ref: 'feature:barbarian:unarmored-defense',
+          },
+        ],
+        resources: { rages: 2, rageDamage: '+2' },
+      });
+      // Level 20 preserves the verbatim "Unlimited" rages token.
+      expect(progression[19].resources).toEqual({
+        rages: 'Unlimited',
+        rageDamage: '+4',
+      });
+    });
+
+    it('represents a spellcaster spell-slot progression by level (Wizard)', () => {
+      const progression = data('class:wizard').progression as Array<
+        Record<string, unknown>
+      >;
+      expect(progression).toHaveLength(20);
+      // L1: 3 cantrips known, two 1st-level slots, nothing higher.
+      expect(progression[0].spellcasting).toEqual({
+        cantripsKnown: 3,
+        slots: { '1': 2 },
+      });
+      // L20: full 4/3/3/3/3/2/2/1/1 slot progression keyed by spell level.
+      expect(progression[19].spellcasting).toEqual({
+        cantripsKnown: 5,
+        slots: {
+          '1': 4,
+          '2': 3,
+          '3': 3,
+          '4': 3,
+          '5': 3,
+          '6': 2,
+          '7': 2,
+          '8': 1,
+          '9': 1,
+        },
+      });
+    });
+
+    it('exposes the Warlock Pact Magic columns and links Pact Magic as a feature ref', () => {
+      const progression = data('class:warlock').progression as Array<
+        Record<string, unknown>
+      >;
+      expect(progression[0]).toMatchObject({
+        level: 1,
+        features: [
+          {
+            name: 'Otherworldly Patron',
+            ref: 'feature:warlock:otherworldly-patron',
+          },
+          { name: 'Pact Magic', ref: 'feature:warlock:pact-magic' },
+        ],
+        spellcasting: {
+          cantripsKnown: 2,
+          spellsKnown: 2,
+          spellSlots: 1,
+          slotLevel: '1st',
+          invocationsKnown: null,
+        },
+      });
+      expect(
+        (progression[19].spellcasting as Record<string, unknown>)
+          .invocationsKnown,
+      ).toBe(8);
+    });
+
+    it('keeps Fighter repeated-use details as detail, not duplicate feature bodies', () => {
+      const progression = data('class:fighter').progression as Array<
+        Record<string, unknown>
+      >;
+      expect(progression[1].features).toEqual([
+        {
+          name: 'Action Surge',
+          ref: 'feature:fighter:action-surge',
+          detail: 'one use',
+        },
+      ]);
+      // L17 references the SAME action-surge feature with the updated detail,
+      // plus Indomitable — no second feature record is invented.
+      expect(progression[16].features).toEqual([
+        {
+          name: 'Action Surge',
+          ref: 'feature:fighter:action-surge',
+          detail: 'two uses',
+        },
+        {
+          name: 'Indomitable',
+          ref: 'feature:fighter:indomitable',
+          detail: 'three uses',
+        },
+      ]);
+    });
+
+    it('normalizes the Druid metal-armor restriction out of the proficiency token', () => {
+      const druid = data('class:druid');
+      expect(druid.armorProficiencies).toEqual([
+        'Light armor',
+        'medium armor',
+        'shields',
+      ]);
+      expect(druid.proficiencyNotes).toEqual([
+        {
+          field: 'armorProficiencies',
+          text: 'druids will not wear armor or use shields made of metal',
+        },
+      ]);
+    });
+
+    it('links subclass spell tables and feature-owned tables without duplicating rows', () => {
+      expect(data('subclass:oath-of-devotion').spellTableRefs).toEqual([
+        'table:oath-of-devotion-spells',
+      ]);
+      expect(data('subclass:circle-of-the-land').spellTableRefs).toHaveLength(
+        7,
+      );
+      expect(data('feature:druid:wild-shape').tableRefs).toEqual([
+        'table:beast-shapes',
+      ]);
+      // The flattened Beast Shapes rows were trimmed out of the feature prose.
+      const wildShape = data('feature:druid:wild-shape').description as string;
+      expect(wildShape).not.toMatch(/Giant eagle|Limitations Example/);
+      expect(wildShape).toMatch(/as shown in the Beast Shapes table/);
     });
   });
 });

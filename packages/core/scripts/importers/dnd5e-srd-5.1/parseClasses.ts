@@ -65,7 +65,13 @@
  * parser left the field empty (loreweaver-0m9.5.19; see ADR 0009).
  */
 
-import type { ClassExtraction, PageText } from './types.js';
+import type {
+  ClassChoiceEntry,
+  ClassExtraction,
+  ClassProficiencyNote,
+  ClassStartingEquipment,
+  PageText,
+} from './types.js';
 
 // "Hit Dice: 1d10 per fighter level" → hit die size + class name. The class
 // name is captured loosely (everything up to " level") and title-cased; no SRD
@@ -75,6 +81,8 @@ const ARMOR_PATTERN = /^Armor:\s*(.+)$/i;
 const WEAPONS_PATTERN = /^Weapons:\s*(.+)$/i;
 const SAVING_THROWS_PATTERN = /^Saving Throws?:\s*(.+)$/i;
 const PRIMARY_ABILITY_PATTERN = /^Primary Abilit(?:y|ies):\s*(.+)$/i;
+const TOOLS_PATTERN = /^Tools?:\s*(.+)$/i;
+const SKILLS_PATTERN = /^Skills?:\s*(.+)$/i;
 
 // A labeled line ("Tools:", "Skills:", "Saving Throws:", …) or a Class-Features
 // block heading ends a wrapped field's continuation run.
@@ -189,6 +197,160 @@ function parseProficiencyList(value: string): string[] {
   return splitList(value);
 }
 
+// Number words the SRD uses for choice counts ("Choose two from …", "Three
+// musical instruments of your choice").
+const COUNT_WORDS: Readonly<Record<string, number>> = {
+  one: 1,
+  two: 2,
+  three: 3,
+  four: 4,
+  five: 5,
+};
+
+/** First spelled-out count word in `text`, or undefined. */
+function leadingChoiceCount(text: string): number | undefined {
+  for (const word of text.toLowerCase().split(/[^a-z]+/)) {
+    if (word in COUNT_WORDS) return COUNT_WORDS[word];
+  }
+  return undefined;
+}
+
+/**
+ * Extract a trailing parenthetical restriction from a normalized proficiency
+ * token (eshyra-4a7.6). The Druid's "shields (druids will not wear armor or use
+ * shields made of metal)" becomes the clean token "shields" plus the note text;
+ * a token without a trailing "(...)" is returned unchanged with no note. Kept
+ * generic so it is a no-op for the common case and never mangles a token whose
+ * parenthesis is not trailing.
+ */
+function extractTrailingNote(token: string): {
+  readonly token: string;
+  readonly note?: string;
+} {
+  const match = /^(.*\S)\s*\(([^()]+)\)$/.exec(token.trim());
+  if (match === null) return { token: token.trim() };
+  return { token: match[1].trim(), note: match[2].trim() };
+}
+
+/**
+ * Normalize a proficiency list, lifting any trailing parenthetical restriction
+ * off each token into `proficiencyNotes` under `field`. Returns the clean
+ * tokens and the collected notes (empty when none).
+ */
+function normalizeProficiencyList(
+  tokens: readonly string[],
+  field: string,
+): { readonly tokens: string[]; readonly notes: ClassProficiencyNote[] } {
+  const clean: string[] = [];
+  const notes: ClassProficiencyNote[] = [];
+  for (const raw of tokens) {
+    const { token, note } = extractTrailingNote(raw);
+    clean.push(token);
+    if (note !== undefined) notes.push({ field, text: note });
+  }
+  return { tokens: clean, notes };
+}
+
+/**
+ * Parse the "Skills:" value into a single source-backed choice entry. The
+ * verbatim `text` is always kept; `choose` (count) and `from` (the option list)
+ * are parsed when the shape is recognized, and the Bard's "Choose any three"
+ * sets `any: true` with no list.
+ */
+function parseSkillChoice(value: string): ClassChoiceEntry {
+  const text = value.trim().replace(/\.\s*$/, '');
+  const fromMatch = /^choose\s+(\w+)\s+(?:skills?\s+)?from\s+(.+)$/i.exec(text);
+  if (fromMatch !== null) {
+    const entry: ClassChoiceEntry = { text };
+    const choose = leadingChoiceCount(fromMatch[1]);
+    // Strip the Oxford-comma conjunction off the final option ("…, and
+    // Survival" -> "Survival"); splitList breaks on the comma first, leaving
+    // the leading "and"/"or" on the last token.
+    const from = splitList(fromMatch[2]).map((s) =>
+      s.replace(/^(?:and|or)\s+/i, ''),
+    );
+    return { ...entry, ...(choose !== undefined ? { choose } : {}), from };
+  }
+  const anyMatch = /^choose\s+any\s+(\w+)$/i.exec(text);
+  if (anyMatch !== null) {
+    const choose = leadingChoiceCount(anyMatch[1]);
+    return { text, any: true, ...(choose !== undefined ? { choose } : {}) };
+  }
+  return { text };
+}
+
+/**
+ * Parse the "Tools:" value. "None" yields a fixed empty grant; a choice grant
+ * ("Three musical instruments of your choice", "Choose one type of artisan's
+ * tools or one musical instrument") is preserved verbatim in a choice entry;
+ * any other value is a fixed grant list (e.g. "Herbalism kit").
+ */
+function parseToolsValue(value: string): {
+  readonly toolProficiencies?: readonly string[];
+  readonly toolProficiencyChoices?: readonly ClassChoiceEntry[];
+} {
+  const text = value.trim().replace(/\.\s*$/, '');
+  if (/^none$/i.test(text)) return { toolProficiencies: [] };
+  if (/\bchoose\b|of your choice/i.test(text)) {
+    const choose = leadingChoiceCount(text);
+    return {
+      toolProficiencyChoices: [
+        { text, ...(choose !== undefined ? { choose } : {}) },
+      ],
+    };
+  }
+  return { toolProficiencies: splitList(text) };
+}
+
+/**
+ * Collect the class's Equipment block (eshyra-4a7.6): the intro sentence plus
+ * the "(a) … or (b) …" option bullets under the "Equipment" heading, stopping
+ * before the level-progression table or the next structural heading. Bullets
+ * are re-joined across wrapped continuation lines; `text` keeps the whole block
+ * re-flowed and `entries` lists each option line (bullet marker stripped).
+ */
+function collectStartingEquipment(
+  body: readonly string[],
+  headingIdx: number,
+  className: string,
+): ClassStartingEquipment | undefined {
+  const intro: string[] = [];
+  const entries: string[] = [];
+  for (let j = headingIdx + 1; j < body.length; j++) {
+    const line = body[j].trim();
+    if (line.length === 0) break;
+    // The Equipment block is bounded by the next block heading or the
+    // progression table; do NOT break on FIELD_LABEL_PATTERN — the intro
+    // sentence legitimately ends in a colon ("…granted by your background:"),
+    // and Tools:/Skills: already appear earlier in the block.
+    if (BLOCK_HEADING_PATTERN.test(line)) break;
+    if (isProgressionTableStart(line, className)) break;
+    // The spellcaster/monk progression tables print a spell-slot/resource
+    // sub-header right after the equipment bullets (the table caption "The
+    // <Class>" appeared earlier, interleaved); those header lines are not
+    // caught by isProgressionTableStart, so stop on them explicitly to keep
+    // the last bullet from swallowing the table.
+    if (
+      /Spell Slots per Spell Level|Spell Slot Invocations/i.test(line) ||
+      line === 'Features'
+    ) {
+      break;
+    }
+    const bullet = /^[•·▪-]\s*(.+)$/.exec(line);
+    if (bullet !== null) {
+      entries.push(bullet[1].trim());
+    } else if (entries.length === 0) {
+      intro.push(line); // preamble before the first bullet
+    } else {
+      // Wrapped continuation of the current bullet.
+      entries[entries.length - 1] = `${entries[entries.length - 1]} ${line}`;
+    }
+  }
+  if (entries.length === 0 && intro.length === 0) return undefined;
+  const text = [...intro, ...entries.map((e) => `• ${e}`)].join(' ').trim();
+  return entries.length > 0 ? { text, entries } : { text };
+}
+
 /**
  * Collect a labeled field's value: the captured first-line text plus any
  * following unlabeled continuation lines (a wrapped list), stopping at the next
@@ -262,22 +424,35 @@ export function parseClasses(pages: readonly PageText[]): ClassExtraction[] {
     let weapons: string[] | undefined;
     let savingThrows: string[] | undefined;
     let primaryAbilities: string[] | undefined;
+    let toolProficiencies: readonly string[] | undefined;
+    let toolProficiencyChoices: readonly ClassChoiceEntry[] | undefined;
+    let skillChoices: ClassChoiceEntry[] | undefined;
+    let startingEquipment: ClassStartingEquipment | undefined;
+    const proficiencyNotes: ClassProficiencyNote[] = [];
 
     for (let k = 0; k < body.length; k++) {
       const line = body[k];
       if (armor === undefined) {
         const m = ARMOR_PATTERN.exec(line);
         if (m !== null) {
-          armor = parseProficiencyList(collectValue(body, k, m[1], start.name));
+          const normalized = normalizeProficiencyList(
+            parseProficiencyList(collectValue(body, k, m[1], start.name)),
+            'armorProficiencies',
+          );
+          armor = normalized.tokens;
+          proficiencyNotes.push(...normalized.notes);
           continue;
         }
       }
       if (weapons === undefined) {
         const m = WEAPONS_PATTERN.exec(line);
         if (m !== null) {
-          weapons = parseProficiencyList(
-            collectValue(body, k, m[1], start.name),
+          const normalized = normalizeProficiencyList(
+            parseProficiencyList(collectValue(body, k, m[1], start.name)),
+            'weaponProficiencies',
           );
+          weapons = normalized.tokens;
+          proficiencyNotes.push(...normalized.notes);
           continue;
         }
       }
@@ -287,6 +462,33 @@ export function parseClasses(pages: readonly PageText[]): ClassExtraction[] {
           savingThrows = splitList(collectValue(body, k, m[1], start.name));
           continue;
         }
+      }
+      if (
+        toolProficiencies === undefined &&
+        toolProficiencyChoices === undefined
+      ) {
+        const m = TOOLS_PATTERN.exec(line);
+        if (m !== null) {
+          const parsed = parseToolsValue(
+            collectValue(body, k, m[1], start.name),
+          );
+          toolProficiencies = parsed.toolProficiencies;
+          toolProficiencyChoices = parsed.toolProficiencyChoices;
+          continue;
+        }
+      }
+      if (skillChoices === undefined) {
+        const m = SKILLS_PATTERN.exec(line);
+        if (m !== null) {
+          skillChoices = [
+            parseSkillChoice(collectValue(body, k, m[1], start.name)),
+          ];
+          continue;
+        }
+      }
+      if (startingEquipment === undefined && /^Equipment$/i.test(line)) {
+        startingEquipment = collectStartingEquipment(body, k, start.name);
+        continue;
       }
       if (primaryAbilities === undefined) {
         const m = PRIMARY_ABILITY_PATTERN.exec(line);
@@ -324,6 +526,16 @@ export function parseClasses(pages: readonly PageText[]): ClassExtraction[] {
       savingThrowProficiencies: savingThrows,
       armorProficiencies: armor,
       weaponProficiencies: weapons,
+      // Optional options modeling (eshyra-4a7.6) — best-effort, not fail-closed:
+      // omitted when the class block carries no such line. All SRD 5.1 classes
+      // print Tools/Skills/Equipment, so the emitter sees them populated.
+      ...(toolProficiencies !== undefined ? { toolProficiencies } : {}),
+      ...(toolProficiencyChoices !== undefined
+        ? { toolProficiencyChoices }
+        : {}),
+      ...(skillChoices !== undefined ? { skillChoices } : {}),
+      ...(startingEquipment !== undefined ? { startingEquipment } : {}),
+      ...(proficiencyNotes.length > 0 ? { proficiencyNotes } : {}),
       sourcePage: start.page,
     });
   }

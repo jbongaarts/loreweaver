@@ -743,3 +743,118 @@ describe('stat-block kind validation (dnd5e-srd)', () => {
     expect(() => validateRulesPack(pack)).not.toThrow();
   });
 });
+
+describe('class/subclass/feature progression fields (dnd5e-srd, eshyra-4a7.6)', () => {
+  const baseClassData = {
+    hitDie: 12,
+    primaryAbilities: ['Strength'],
+    savingThrowProficiencies: ['Strength', 'Constitution'],
+    armorProficiencies: ['Light armor', 'medium armor', 'shields'],
+    weaponProficiencies: ['Simple weapons', 'martial weapons'],
+  };
+  const classRecord = (data: Record<string, unknown>): RulesRecord =>
+    record('class:barbarian', { kind: 'class', name: 'Barbarian', data });
+
+  it('accepts the full set of optional class options/progression fields', () => {
+    const pack = validRulesPack({
+      records: [
+        classRecord({
+          ...baseClassData,
+          toolProficiencies: ['Herbalism kit'],
+          toolProficiencyChoices: [
+            { text: 'Three musical instruments of your choice', choose: 3 },
+          ],
+          skillChoices: [
+            { text: 'Choose two from A, B', choose: 2, from: ['A', 'B'] },
+            { text: 'Choose any three', any: true, choose: 3 },
+          ],
+          startingEquipment: {
+            text: '• (a) a greataxe or (b) any martial melee weapon',
+            entries: ['(a) a greataxe or (b) any martial melee weapon'],
+          },
+          proficiencyNotes: [
+            { field: 'armorProficiencies', text: 'no metal armor' },
+          ],
+          progressionTableRef: 'table:the-barbarian',
+          features: ['feature:barbarian:rage'],
+          progression: [
+            {
+              level: 1,
+              proficiencyBonus: '+2',
+              features: [
+                { name: 'Rage', ref: 'feature:barbarian:rage' },
+                { name: 'Action Surge', detail: 'two uses' },
+              ],
+              resources: { rages: 2, rageDamage: '+2' },
+              spellcasting: { cantripsKnown: 3, slots: { '1': 2 } },
+            },
+            { level: 20, proficiencyBonus: '+6', resources: { rages: null } },
+          ],
+        }),
+      ],
+    });
+    expect(() => validateRulesPack(pack)).not.toThrow();
+  });
+
+  it('rejects a progression row missing the required level', () => {
+    const pack = validRulesPack({
+      records: [
+        classRecord({
+          ...baseClassData,
+          progression: [{ proficiencyBonus: '+2' }],
+        }),
+      ],
+    });
+    expect(() => validateRulesPack(pack)).toThrow(/level/);
+  });
+
+  it('rejects a skill choice entry without verbatim text', () => {
+    const pack = validRulesPack({
+      records: [
+        classRecord({ ...baseClassData, skillChoices: [{ choose: 2 }] }),
+      ],
+    });
+    expect(() => validateRulesPack(pack)).toThrow(/text/);
+  });
+
+  it('rejects a proficiency note missing its field', () => {
+    const pack = validRulesPack({
+      records: [
+        classRecord({
+          ...baseClassData,
+          proficiencyNotes: [{ text: 'no metal armor' }],
+        }),
+      ],
+    });
+    expect(() => validateRulesPack(pack)).toThrow(/field/);
+  });
+
+  it('accepts subclass spellTableRefs/progressionTableRefs and feature tableRefs', () => {
+    const pack = validRulesPack({
+      records: [
+        record('subclass:life-domain', {
+          kind: 'subclass',
+          name: 'Life Domain',
+          data: {
+            parentClass: 'class:cleric',
+            description: 'A domain of healing.',
+            features: ['feature:life-domain:disciple-of-life'],
+            spellTableRefs: ['table:life-domain-spells'],
+            progressionTableRefs: [],
+          },
+        }),
+        record('feature:cleric:destroy-undead', {
+          kind: 'feature',
+          name: 'Destroy Undead',
+          data: {
+            source: 'class:cleric',
+            level: 5,
+            description: 'Destroys undead as shown in the table.',
+            tableRefs: ['table:destroy-undead'],
+          },
+        }),
+      ],
+    });
+    expect(() => validateRulesPack(pack)).not.toThrow();
+  });
+});

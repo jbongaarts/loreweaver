@@ -158,6 +158,120 @@ function isScalar(value: unknown): value is Scalar {
   );
 }
 
+function objArray(parent: Obj, key: string, path: string): Obj[] | undefined {
+  const value = parent[key];
+  if (value === undefined) {
+    return undefined;
+  }
+  if (!Array.isArray(value)) {
+    throw new RulesPackError(`${path}.${key} must be an array when present`);
+  }
+  return value.map((item, i) => {
+    if (typeof item !== 'object' || item === null || Array.isArray(item)) {
+      throw new RulesPackError(`${path}.${key}[${i}] must be an object`);
+    }
+    return item as Obj;
+  });
+}
+
+// An optional array of source-backed CHOICE entries (tool/skill proficiency
+// choices on a class). Each entry keeps the verbatim source `text`; `choose`
+// (count), `from` (a list or a free-text restriction), and `any` are optional
+// structure parsed out of that text (eshyra-4a7.6).
+function optChoiceArray(parent: Obj, key: string, path: string): void {
+  const entries = objArray(parent, key, path);
+  if (entries === undefined) return;
+  entries.forEach((entry, i) => {
+    reqStr(entry, 'text', `${path}.${key}[${i}]`);
+    optInt(entry, 'choose', `${path}.${key}[${i}]`, 1);
+    optBool(entry, 'any', `${path}.${key}[${i}]`);
+    const from = entry.from;
+    if (
+      from !== undefined &&
+      typeof from !== 'string' &&
+      !Array.isArray(from)
+    ) {
+      throw new RulesPackError(
+        `${path}.${key}[${i}].from must be a string or string array when present`,
+      );
+    }
+    if (Array.isArray(from)) {
+      optStrArray(entry, 'from', `${path}.${key}[${i}]`);
+    }
+  });
+}
+
+// Optional starting-equipment block on a class: verbatim `text` plus optional
+// per-line `entries` (the bulleted options).
+function optStartingEquipment(parent: Obj, key: string, path: string): void {
+  const value = parent[key];
+  if (value === undefined) return;
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new RulesPackError(`${path}.${key} must be an object when present`);
+  }
+  const obj = value as Obj;
+  reqStr(obj, 'text', `${path}.${key}`);
+  optStrArray(obj, 'entries', `${path}.${key}`);
+}
+
+// Optional proficiency-restriction notes ({ field, text }) — e.g. the Druid's
+// "will not wear armor or use shields made of metal" lifted out of the
+// normalized armorProficiencies token (eshyra-4a7.6).
+function optProficiencyNotes(parent: Obj, key: string, path: string): void {
+  const entries = objArray(parent, key, path);
+  if (entries === undefined) return;
+  entries.forEach((entry, i) => {
+    reqStr(entry, 'field', `${path}.${key}[${i}]`);
+    reqStr(entry, 'text', `${path}.${key}[${i}]`);
+  });
+}
+
+// Optional level-by-level class progression (eshyra-4a7.6). Each row carries an
+// integer `level` and a verbatim `proficiencyBonus`; optional `features`
+// (each `{ name, ref?, detail? }`), `resources` (scalar/null map), and
+// `spellcasting` (scalar/null map, possibly one level deep) derive from the
+// emitted progression table rows.
+function optProgression(parent: Obj, key: string, path: string): void {
+  const rows = objArray(parent, key, path);
+  if (rows === undefined) return;
+  rows.forEach((row, i) => {
+    const rowPath = `${path}.${key}[${i}]`;
+    reqInt(row, 'level', rowPath, 1);
+    reqStr(row, 'proficiencyBonus', rowPath);
+    const features = objArray(row, 'features', rowPath);
+    if (features !== undefined) {
+      features.forEach((f, fi) => {
+        reqStr(f, 'name', `${rowPath}.features[${fi}]`);
+        optStr(f, 'ref', `${rowPath}.features[${fi}]`);
+        optStr(f, 'detail', `${rowPath}.features[${fi}]`);
+      });
+    }
+    for (const mapKey of ['resources', 'spellcasting'] as const) {
+      const map = row[mapKey];
+      if (map === undefined) continue;
+      if (typeof map !== 'object' || map === null || Array.isArray(map)) {
+        throw new RulesPackError(
+          `${rowPath}.${mapKey} must be an object when present`,
+        );
+      }
+      for (const [k, v] of Object.entries(map as Obj)) {
+        // Values are scalars/null, or (for nested spellcasting slot maps) a
+        // single further scalar/null map.
+        const nestedOk =
+          typeof v === 'object' &&
+          v !== null &&
+          !Array.isArray(v) &&
+          Object.values(v as Obj).every(isScalar);
+        if (!isScalar(v) && !nestedOk) {
+          throw new RulesPackError(
+            `${rowPath}.${mapKey}.${k} must be a scalar, null, or a flat scalar map`,
+          );
+        }
+      }
+    }
+  });
+}
+
 // Baseline per-kind validators. Every record of the kind must satisfy these
 // minimum shape constraints. The shared rule is `data` is a non-null object
 // and `description` (if present) is a non-empty string; some kinds add a few
@@ -367,6 +481,17 @@ function validateDnd5eClass(record: RulesRecord, path: string): void {
   reqStrArray(data, 'savingThrowProficiencies', `${path}.data`);
   reqStrArray(data, 'armorProficiencies', `${path}.data`);
   reqStrArray(data, 'weaponProficiencies', `${path}.data`);
+  // Optional progression/options modeling (eshyra-4a7.6). Absent on a minimal
+  // class record; present once the importer parses tools/skills/equipment and
+  // derives the structured level progression.
+  optStrArray(data, 'toolProficiencies', `${path}.data`);
+  optChoiceArray(data, 'toolProficiencyChoices', `${path}.data`);
+  optChoiceArray(data, 'skillChoices', `${path}.data`);
+  optStartingEquipment(data, 'startingEquipment', `${path}.data`);
+  optProficiencyNotes(data, 'proficiencyNotes', `${path}.data`);
+  optStr(data, 'progressionTableRef', `${path}.data`);
+  optStrArray(data, 'features', `${path}.data`);
+  optProgression(data, 'progression', `${path}.data`);
 }
 
 function validateDnd5eCondition(record: RulesRecord, path: string): void {
@@ -391,6 +516,11 @@ function validateDnd5eFeature(record: RulesRecord, path: string): void {
   reqStr(data, 'description', `${path}.data`);
   reqStr(data, 'source', `${path}.data`);
   reqInt(data, 'level', `${path}.data`, 1);
+  // Optional references to `table` records this feature owns (eshyra-4a7.6) —
+  // e.g. feature:cleric:destroy-undead -> table:destroy-undead,
+  // feature:druid:wild-shape -> table:beast-shapes — so the table rows live in
+  // one reviewed `table` record instead of flattened into the feature prose.
+  optStrArray(data, 'tableRefs', `${path}.data`);
 }
 
 // A `subclass` (Champion, Life domain, School of Evocation, ...) is its own
@@ -405,6 +535,11 @@ function validateDnd5eSubclass(record: RulesRecord, path: string): void {
   reqStr(data, 'parentClass', `${path}.data`);
   reqStr(data, 'description', `${path}.data`);
   optStrArray(data, 'features', `${path}.data`);
+  // Optional references to the subclass's `table` records (eshyra-4a7.6):
+  // expanded/domain/oath spell tables and any progression tables, linked
+  // rather than duplicated into the description.
+  optStrArray(data, 'spellTableRefs', `${path}.data`);
+  optStrArray(data, 'progressionTableRefs', `${path}.data`);
 }
 
 // A `background` (Acolyte, ...) grants skill proficiencies, optionally tool

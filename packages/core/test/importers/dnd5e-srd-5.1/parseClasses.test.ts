@@ -260,14 +260,22 @@ const DRUID_TABLE_PAGE = page(19, [
 describe('parseClasses — table after a wrapped Armor parenthetical (Druid)', () => {
   const [druid] = parseClasses([DRUID_TABLE_PAGE]);
 
-  it('absorbs the wrapped parenthetical as one intact token and stops at the table', () => {
+  it('normalizes the metal restriction out of the token into proficiencyNotes (eshyra-4a7.6)', () => {
     // The "or" inside "(druids will not wear armor or use shields made of
     // metal)" is parenthetical prose, not a list delimiter, so the shield
-    // qualifier stays a single coherent proficiency token (eshyra-0m9.12 review).
+    // qualifier first parses as one coherent token (eshyra-0m9.12 review); the
+    // trailing parenthetical restriction is then lifted off the normalized
+    // "shields" token into proficiencyNotes (eshyra-4a7.6).
     expect(druid.armorProficiencies).toEqual([
       'Light armor',
       'medium armor',
-      'shields (druids will not wear armor or use shields made of metal)',
+      'shields',
+    ]);
+    expect(druid.proficiencyNotes).toEqual([
+      {
+        field: 'armorProficiencies',
+        text: 'druids will not wear armor or use shields made of metal',
+      },
     ]);
   });
 
@@ -322,5 +330,113 @@ describe('parseClasses — fail closed on a malformed class', () => {
       'This introductory prose names no class features.',
     ]);
     expect(parseClasses([noClasses])).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Tools / Skills / Equipment options modeling (eshyra-4a7.6).
+// ---------------------------------------------------------------------------
+
+// A Bard-shaped block: choice Tools, "Choose any three" skills, equipment
+// bullets, with the table interleaved between Armor and Weapons (as the SRD
+// prints it for spellcasters) so the parser must skip the table to find the
+// later proficiency lines and stop the equipment block at the table.
+const BARD_OPTIONS_PAGE = page(11, [
+  'Bard',
+  'Hit Dice: 1d8 per bard level',
+  'Proficiencies',
+  'Armor: Light armor',
+  'The Bard',
+  'Proficiency Cantrips Spells',
+  'Weapons: Simple weapons, hand crossbows, longswords, rapiers,',
+  'shortswords',
+  'Tools: Three musical instruments of your choice',
+  'Saving Throws: Dexterity, Charisma',
+  'Skills: Choose any three',
+  'Equipment',
+  'You start with the following equipment, in addition',
+  'to the equipment granted by your background:',
+  '• (a) a rapier, (b) a longsword, or (c) any simple',
+  'weapon',
+  '• (a) a diplomat’s pack or (b) an entertainer’s pack',
+  '• Leather armor and a dagger',
+  '—Spell Slots per Spell Level—',
+  'Level Bonus Features Known',
+]);
+
+describe('parseClasses — Tools/Skills/Equipment options (eshyra-4a7.6)', () => {
+  const [bard] = parseClasses([BARD_OPTIONS_PAGE]);
+
+  it('parses a Tools choice grant verbatim with its count', () => {
+    expect(bard.toolProficiencies).toBeUndefined();
+    expect(bard.toolProficiencyChoices).toEqual([
+      { text: 'Three musical instruments of your choice', choose: 3 },
+    ]);
+  });
+
+  it("parses the Bard's 'Choose any three' skills shape", () => {
+    expect(bard.skillChoices).toEqual([
+      { text: 'Choose any three', any: true, choose: 3 },
+    ]);
+  });
+
+  it('re-joins wrapped Weapons across a continuation line', () => {
+    expect(bard.weaponProficiencies).toEqual([
+      'Simple weapons',
+      'hand crossbows',
+      'longswords',
+      'rapiers',
+      'shortswords',
+    ]);
+  });
+
+  it('captures the starting-equipment bullets and stops at the table', () => {
+    expect(bard.startingEquipment?.entries).toEqual([
+      '(a) a rapier, (b) a longsword, or (c) any simple weapon',
+      '(a) a diplomat’s pack or (b) an entertainer’s pack',
+      'Leather armor and a dagger',
+    ]);
+    // The spell-slot table header right after the last bullet must NOT be
+    // swallowed into the final equipment entry.
+    expect(bard.startingEquipment?.text).not.toMatch(/Spell Slots|Level Bonus/);
+  });
+});
+
+// A "Choose two from <list>" skills line that wraps across two extracted lines,
+// plus a fixed Tools grant — exercises the wrapped-value path and the Oxford
+// comma stripping on the final option.
+const FIGHTER_SKILLS_PAGE = page(24, [
+  'Fighter',
+  'Hit Dice: 1d10 per fighter level',
+  'Proficiencies',
+  'Armor: All armor, shields',
+  'Weapons: Simple weapons, martial weapons',
+  'Tools: None',
+  'Saving Throws: Strength, Constitution',
+  'Skills: Choose two skills from Acrobatics, Animal Handling, Athletics,',
+  'History, Insight, Intimidation, Perception, and Survival',
+]);
+
+describe('parseClasses — wrapped Skills list (eshyra-4a7.6)', () => {
+  const [fighter] = parseClasses([FIGHTER_SKILLS_PAGE]);
+
+  it('parses a wrapped "Choose two skills from …" list without the trailing conjunction', () => {
+    expect(fighter.toolProficiencies).toEqual([]);
+    expect(fighter.skillChoices).toEqual([
+      {
+        text: 'Choose two skills from Acrobatics, Animal Handling, Athletics, History, Insight, Intimidation, Perception, and Survival',
+        choose: 2,
+        from: [
+          'Acrobatics',
+          'Animal Handling',
+          'Athletics',
+          'History',
+          'Insight',
+          'Intimidation',
+          'Perception',
+          'Survival',
+        ],
+      },
+    ]);
   });
 });

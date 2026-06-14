@@ -166,29 +166,37 @@ describe('committed SRD source-coverage artifacts — integrity', () => {
     // auto-matched the same-name feature); it now maps explicitly to
     // table:destroy-undead, so the count is unchanged by that one.
     expect(coverage.summary.record).toBe(1914);
-    // childOf 12 -> 14 (eshyra-70xr): the two creature variant sidebars
-    // (Diseased Giant Rats p378, Insect Swarms p391) are now `variants` child
-    // data on the Giant Rat and Swarm of Insects, so the `known-gap:eshyra-4a7.5`
-    // rule (2 items) was removed per the known-gap lifecycle.
-    expect(coverage.summary.childOf).toBe(14);
+    // childOf 14 -> 98 (eshyra-4a7.6, PR2): the broad class-chapter known-gap is
+    // gone. The 86 feature-option / spellcasting-boilerplate leaf subheadings
+    // plus the Rogue's "Thieves' Cant" subsection map child-of their owning
+    // feature/subclass records (the text rides in those bodies), verified
+    // present.
+    expect(coverage.summary.childOf).toBe(98);
     expect(coverage.summary.unaccounted).toBe(0);
+    // eshyra-4a7.6 (PR2) added two class-chapter ignore reasons: the 9 class
+    // progression-table column-header fragments (table internals) and the 2
+    // subclass spell-table headings (their tables are emitted + linked via
+    // subclass.data.spellTableRefs). The 8 subclass-group section headings fall
+    // to the document-structure default (41 -> 49).
     expect(coverage.summary.ignored).toEqual({
-      'document-structure': 41,
+      'class-progression-table-internal': 9,
+      'document-structure': 49,
       'equipment-category-heading': 3,
       'front-matter': 2,
       'record-group-heading': 3,
       'spell-list-header': 78,
+      'subclass-spell-table-heading': 2,
       'table-rows-emitted-as-records': 18,
       'variant-rule-excluded': 2,
     });
-    // eshyra-4a7.6 dropped 116 -> 104: the 11 class progression captions and
-    // the Beast Shapes caption are now emitted table records. The remaining
-    // class-chapter items (feature-option headings, spellcasting boilerplate,
-    // and the progression tables' column-header fragments) stay tracked here
-    // until the structured class-progression follow-up lands.
+    // eshyra-4a7.6 (PR2): the broad class-chapter known-gap is removed entirely.
+    // The only class-chapter item still tracked is the Oath of Devotion's
+    // "Tenets of Devotion" prose, dropped by the subclass body parser — held
+    // narrowly under eshyra-citg (subclass sub-subsection prose), not a broad
+    // catchall.
     expect(coverage.summary.knownGap).toEqual({
-      'eshyra-4a7.6': 104,
       'eshyra-4a7.10': 70,
+      'eshyra-citg': 1,
       'eshyra-o4j7': 9,
     });
   });

@@ -460,6 +460,76 @@ const CLASS_CHAPTER_SECTIONS: ReadonlySet<string> = new Set([
   'Wizard',
 ]);
 
+// --- Class feature-option subheading sets (eshyra-4a7.6) -------------------
+// The SRD prints these as bold leaf headings inside a parent feature's body;
+// the feature parser keeps the text in the parent record, so each maps
+// child-of its owning feature in the coverage rules below.
+
+/** Fighting Style options (Fighter / Paladin / Ranger Fighting Style feature). */
+const FIGHTING_STYLE_OPTIONS: ReadonlySet<string> = new Set([
+  'Archery',
+  'Defense',
+  'Dueling',
+  'Great Weapon Fighting',
+  'Protection',
+  'Two-Weapon Fighting',
+]);
+
+/** Sorcerer Metamagic options (feature:sorcerer:metamagic). */
+const METAMAGIC_OPTIONS: ReadonlySet<string> = new Set([
+  'Careful Spell',
+  'Distant Spell',
+  'Empowered Spell',
+  'Extended Spell',
+  'Heightened Spell',
+  'Quickened Spell',
+  'Subtle Spell',
+  'Twinned Spell',
+]);
+
+/** Monk ki options (feature:monk:ki). */
+const MONK_KI_OPTIONS: ReadonlySet<string> = new Set([
+  'Flurry of Blows',
+  'Patient Defense',
+  'Step of the Wind',
+]);
+
+/** Warlock Pact Boon options (feature:warlock:pact-boon). */
+const WARLOCK_PACT_OPTIONS: ReadonlySet<string> = new Set([
+  'Pact of the Chain',
+  'Pact of the Blade',
+  'Pact of the Tome',
+]);
+
+/** Spellcasting-feature boilerplate subsections, shared across caster classes. */
+const SPELLCASTING_BOILERPLATE: ReadonlySet<string> = new Set([
+  'Preparing and Casting Spells',
+  'Ritual Casting',
+  'Spellcasting Focus',
+  'Spells Known of 1st Level and Higher',
+  'Learning Spells of 1st Level and Higher',
+]);
+
+/**
+ * The emitted feature whose body actually carries each class's spellcasting
+ * boilerplate subsections (Preparing and Casting Spells, Ritual Casting,
+ * Spellcasting Focus, …). The owner is parser-determined and varies: classes
+ * with a separate Cantrips feature fold the trailing boilerplate into it
+ * (Cleric/Druid/Sorcerer), the Wizard folds it into Spellbook, the Warlock has
+ * no Spellcasting feature so it rides in Pact Magic, and the rest keep it in
+ * the Spellcasting feature. Verified against the emitted descriptions.
+ */
+const SPELLCASTING_BOILERPLATE_OWNER: ReadonlyMap<string, string> = new Map([
+  ['Bard', 'feature:bard:spellcasting'],
+  ['Cleric', 'feature:cleric:cantrips'],
+  ['Druid', 'feature:druid:cantrips'],
+  ['Paladin', 'feature:paladin:spellcasting'],
+  ['Ranger', 'feature:ranger:spellcasting'],
+  ['Sorcerer', 'feature:sorcerer:cantrips'],
+  ['Warlock', 'feature:warlock:pact-magic'],
+  ['Wizard', 'feature:wizard:spellbook'],
+]);
+
 /**
  * "<Race> Traits" subsection headings: the trait content is structured child
  * data on the matching ancestry record (`data.traits`).
@@ -691,18 +761,122 @@ export const SRD_5_1_COVERAGE_RULES: readonly CoverageRule[] = [
   // p78, Encumbrance p80) — documented intentional exclusion; see the
   // EXPECTED_SRD_5_1_RULE_KEYS baseline comment in index.ts.
   ignoreRule('variant-rule-excluded', (i) => /^Variant: /.test(i.text)),
-  // Everything unmatched inside the 12 class chapters: progression-table
-  // captions ("The Barbarian"), spell-slot table fragments, feature-option
-  // headings (Fighting Styles, Eldritch Invocations, Metamagic, ki options,
-  // Pact Boons, Domain/Oath/Circle spell lists, spellcasting boilerplate
-  // leaves) — all owned by the class/subclass progression-and-options
-  // modeling bead. Genuine drops of already-emitted class content stay
-  // guarded by the rule/feature/subclass gates and the sourceCoverage.ts
-  // name lists.
-  knownGapRule(
-    'eshyra-4a7.6',
-    (i) => i.section !== null && CLASS_CHAPTER_SECTIONS.has(i.section),
+  // --- Class chapters (eshyra-4a7.6) -------------------------------------
+  // The broad class-chapter known-gap is gone; every remaining class-chapter
+  // structure is now explicitly accounted. Progression-table captions ("The
+  // Barbarian" … "The Wizard"), Beast Shapes, and Destroy Undead auto-match
+  // their emitted `table` records (PR1). The spell-slot/resource column-header
+  // FRAGMENTS of those tables are table internals, represented by the emitted
+  // table record:
+  ignoreRule(
+    'class-progression-table-internal',
+    (i) =>
+      i.section !== null &&
+      CLASS_CHAPTER_SECTIONS.has(i.section) &&
+      i.structure === 'table-shape',
   ),
+  // Feature-OPTION subheadings the SRD prints as bold leaves inside a parent
+  // feature's body; parseFeatures keeps that text in the parent feature record,
+  // so each maps child-of its owning feature. Fighting Styles (Fighter /
+  // Paladin / Ranger), Sorcerer Metamagic, Monk ki options, and Warlock Pact
+  // Boons:
+  ...['Fighter', 'Paladin', 'Ranger'].map((section) =>
+    childOfRule(
+      `feature:${section.toLowerCase()}:fighting-style`,
+      (i) =>
+        i.section === section &&
+        i.structure === 'heading' &&
+        FIGHTING_STYLE_OPTIONS.has(i.text),
+    ),
+  ),
+  childOfRule(
+    'feature:sorcerer:metamagic',
+    (i) => i.section === 'Sorcerer' && METAMAGIC_OPTIONS.has(i.text),
+  ),
+  childOfRule(
+    'feature:monk:ki',
+    (i) => i.section === 'Monk' && MONK_KI_OPTIONS.has(i.text),
+  ),
+  childOfRule(
+    'feature:warlock:pact-boon',
+    (i) => i.section === 'Warlock' && WARLOCK_PACT_OPTIONS.has(i.text),
+  ),
+  // The Eldritch Invocations (the p48–50 Warlock leaf headings) all live in the
+  // feature:warlock:eldritch-invocations body. They are bounded by page (the
+  // Pact Boon block ends on p47) with the two non-invocation headings inside
+  // that page span excluded: "Pact of the Tome" (a Pact Boon, handled above)
+  // and "Expanded Spell List" (the Fiend patron's, handled below).
+  childOfRule(
+    'feature:warlock:eldritch-invocations',
+    (i) =>
+      i.section === 'Warlock' &&
+      i.tier === 'leaf' &&
+      i.structure === 'heading' &&
+      i.page >= 48 &&
+      i.page <= 50 &&
+      i.text !== 'Pact of the Tome' &&
+      i.text !== 'Expanded Spell List',
+  ),
+  // Spellcasting boilerplate subsections (Preparing and Casting Spells, Ritual
+  // Casting, Spellcasting Focus, Spells/Learning Spells Known of 1st Level and
+  // Higher) ride in the per-class owning feature body (see the owner map).
+  ...[...SPELLCASTING_BOILERPLATE_OWNER].map(([section, ownerKey]) =>
+    childOfRule(
+      ownerKey,
+      (i) => i.section === section && SPELLCASTING_BOILERPLATE.has(i.text),
+    ),
+  ),
+  // Sorcerer Font of Magic subsections; Cleric Divine Domain / Channel Divinity
+  // subsections — each in the named feature's body.
+  childOfRule(
+    'feature:sorcerer:font-of-magic',
+    (i) =>
+      i.section === 'Sorcerer' &&
+      (i.text === 'Sorcery Points' || i.text === 'Flexible Casting'),
+  ),
+  childOfRule(
+    'feature:cleric:divine-domain',
+    (i) => i.section === 'Cleric' && i.text === 'Domain Spells',
+  ),
+  childOfRule(
+    'feature:cleric:channel-divinity',
+    (i) => i.section === 'Cleric' && i.text === 'Channel Divinity: Turn Undead',
+  ),
+  // The generic "Oath Spells" subsection (Paladin p32) explains the oath-spell
+  // mechanic and rides in the Sacred Oath feature body.
+  childOfRule(
+    'feature:paladin:sacred-oath',
+    (i) => i.section === 'Paladin' && i.text === 'Oath Spells' && i.page === 32,
+  ),
+  // Subclass spell-table HEADINGS: the Oath of Devotion's own "Oath Spells"
+  // (p33) and the Fiend patron's "Expanded Spell List" (p50) head spell tables
+  // that ARE emitted as `table` records and linked from the subclass via
+  // `data.spellTableRefs` (table:oath-of-devotion-spells /
+  // table:fiend-expanded-spells), so the heading's content is represented.
+  ignoreRule(
+    'subclass-spell-table-heading',
+    (i) =>
+      (i.section === 'Paladin' && i.text === 'Oath Spells' && i.page === 33) ||
+      (i.section === 'Warlock' && i.text === 'Expanded Spell List'),
+  ),
+  // The Oath of Devotion's "Tenets of Devotion" prose (the five tenets) is
+  // dropped by the subclass body parser — it is in no emitted record. Tracked
+  // narrowly under eshyra-citg (subclass sub-subsection prose), NOT the old
+  // broad class-chapter catchall.
+  knownGapRule(
+    'eshyra-citg',
+    (i) => i.section === 'Paladin' && i.text === 'Tenets of Devotion',
+  ),
+  // The Rogue's "Thieves' Cant" level-1 feature is not emitted as its own
+  // record; the SRD prints it as a subheading the feature parser folds into the
+  // Sneak Attack feature body, so it is child-of that feature.
+  childOfRule(
+    'feature:rogue:sneak-attack',
+    (i) => i.section === 'Rogue' && i.text === 'Thieves’ Cant',
+  ),
+  // The 8 subclass-group section headings (Martial Archetypes, Sacred Oaths,
+  // Arcane Traditions, …) are section-tier navigation over the emitted subclass
+  // records and fall through to the document-structure default below.
   // Per-class spell-list headers (p105-113): pure list structure; the lists
   // themselves are represented as `data.classes` on every spell record.
   ignoreRule(

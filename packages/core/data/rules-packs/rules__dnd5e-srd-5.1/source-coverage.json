@@ -1,19 +1,21 @@
 {
   "summary": {
     "record": 1914,
-    "childOf": 14,
+    "childOf": 98,
     "ignored": {
-      "document-structure": 41,
+      "class-progression-table-internal": 9,
+      "document-structure": 49,
       "equipment-category-heading": 3,
       "front-matter": 2,
       "record-group-heading": 3,
       "spell-list-header": 78,
+      "subclass-spell-table-heading": 2,
       "table-rows-emitted-as-records": 18,
       "variant-rule-excluded": 2
     },
     "knownGap": {
       "eshyra-4a7.10": 70,
-      "eshyra-4a7.6": 104,
+      "eshyra-citg": 1,
       "eshyra-o4j7": 9
     },
     "unaccounted": 0
@@ -1516,7 +1518,7 @@
       "structure": "table-shape",
       "text": "—Spell Slots per Spell Level—",
       "section": "Bard",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "ignored:class-progression-table-internal"
     },
     {
       "page": 11,
@@ -1552,7 +1554,7 @@
       "structure": "heading",
       "text": "Spells Known of 1st Level and Higher",
       "section": "Bard",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:bard:spellcasting"
     },
     {
       "page": 12,
@@ -1570,7 +1572,7 @@
       "structure": "heading",
       "text": "Ritual Casting",
       "section": "Bard",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:bard:spellcasting"
     },
     {
       "page": 12,
@@ -1579,7 +1581,7 @@
       "structure": "heading",
       "text": "Spellcasting Focus",
       "section": "Bard",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:bard:spellcasting"
     },
     {
       "page": 12,
@@ -1777,7 +1779,7 @@
       "structure": "table-shape",
       "text": "Spell Slots per Spell Level",
       "section": "Cleric",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "ignored:class-progression-table-internal"
     },
     {
       "page": 15,
@@ -1804,7 +1806,7 @@
       "structure": "heading",
       "text": "Preparing and Casting Spells",
       "section": "Cleric",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:cleric:cantrips"
     },
     {
       "page": 16,
@@ -1822,7 +1824,7 @@
       "structure": "heading",
       "text": "Ritual Casting",
       "section": "Cleric",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:cleric:cantrips"
     },
     {
       "page": 16,
@@ -1831,7 +1833,7 @@
       "structure": "heading",
       "text": "Spellcasting Focus",
       "section": "Cleric",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:cleric:cantrips"
     },
     {
       "page": 16,
@@ -1849,7 +1851,7 @@
       "structure": "heading",
       "text": "Domain Spells",
       "section": "Cleric",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:cleric:divine-domain"
     },
     {
       "page": 16,
@@ -1867,7 +1869,7 @@
       "structure": "heading",
       "text": "Channel Divinity: Turn Undead",
       "section": "Cleric",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:cleric:channel-divinity"
     },
     {
       "page": 17,
@@ -2038,7 +2040,7 @@
       "structure": "table-shape",
       "text": "Spell Slots per Spell Level",
       "section": "Druid",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "ignored:class-progression-table-internal"
     },
     {
       "page": 19,
@@ -2074,7 +2076,7 @@
       "structure": "heading",
       "text": "Preparing and Casting Spells",
       "section": "Druid",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:druid:cantrips"
     },
     {
       "page": 20,
@@ -2092,7 +2094,7 @@
       "structure": "heading",
       "text": "Ritual Casting",
       "section": "Druid",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:druid:cantrips"
     },
     {
       "page": 20,
@@ -2101,7 +2103,7 @@
       "structure": "heading",
       "text": "Spellcasting Focus",
       "section": "Druid",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:druid:cantrips"
     },
     {
       "page": 20,
@@ -2380,7 +2382,7 @@
       "structure": "heading",
       "text": "Archery",
       "section": "Fighter",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:fighter:fighting-style"
     },
     {
       "page": 24,
@@ -2389,7 +2391,7 @@
       "structure": "heading",
       "text": "Defense",
       "section": "Fighter",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:fighter:fighting-style"
     },
     {
       "page": 24,
@@ -2398,7 +2400,7 @@
       "structure": "heading",
       "text": "Dueling",
       "section": "Fighter",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:fighter:fighting-style"
     },
     {
       "page": 24,
@@ -2407,7 +2409,7 @@
       "structure": "heading",
       "text": "Great Weapon Fighting",
       "section": "Fighter",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:fighter:fighting-style"
     },
     {
       "page": 24,
@@ -2416,7 +2418,7 @@
       "structure": "heading",
       "text": "Protection",
       "section": "Fighter",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:fighter:fighting-style"
     },
     {
       "page": 24,
@@ -2488,7 +2490,7 @@
       "structure": "heading",
       "text": "Martial Archetypes",
       "section": "Fighter",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "ignored:document-structure"
     },
     {
       "page": 25,
@@ -2605,7 +2607,7 @@
       "structure": "table-shape",
       "text": "Features",
       "section": "Monk",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "ignored:class-progression-table-internal"
     },
     {
       "page": 26,
@@ -2641,7 +2643,7 @@
       "structure": "heading",
       "text": "Flurry of Blows",
       "section": "Monk",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:monk:ki"
     },
     {
       "page": 27,
@@ -2650,7 +2652,7 @@
       "structure": "heading",
       "text": "Patient Defense",
       "section": "Monk",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:monk:ki"
     },
     {
       "page": 27,
@@ -2659,7 +2661,7 @@
       "structure": "heading",
       "text": "Step of the Wind",
       "section": "Monk",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:monk:ki"
     },
     {
       "page": 27,
@@ -2812,7 +2814,7 @@
       "structure": "heading",
       "text": "Monastic Traditions",
       "section": "Monk",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "ignored:document-structure"
     },
     {
       "page": 28,
@@ -2920,7 +2922,7 @@
       "structure": "table-shape",
       "text": "Spell Slots per Spell Level",
       "section": "Paladin",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "ignored:class-progression-table-internal"
     },
     {
       "page": 30,
@@ -2956,7 +2958,7 @@
       "structure": "heading",
       "text": "Defense",
       "section": "Paladin",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:paladin:fighting-style"
     },
     {
       "page": 31,
@@ -2965,7 +2967,7 @@
       "structure": "heading",
       "text": "Dueling",
       "section": "Paladin",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:paladin:fighting-style"
     },
     {
       "page": 31,
@@ -2974,7 +2976,7 @@
       "structure": "heading",
       "text": "Great Weapon Fighting",
       "section": "Paladin",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:paladin:fighting-style"
     },
     {
       "page": 31,
@@ -2983,7 +2985,7 @@
       "structure": "heading",
       "text": "Protection",
       "section": "Paladin",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:paladin:fighting-style"
     },
     {
       "page": 31,
@@ -3001,7 +3003,7 @@
       "structure": "heading",
       "text": "Preparing and Casting Spells",
       "section": "Paladin",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:paladin:spellcasting"
     },
     {
       "page": 31,
@@ -3019,7 +3021,7 @@
       "structure": "heading",
       "text": "Spellcasting Focus",
       "section": "Paladin",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:paladin:spellcasting"
     },
     {
       "page": 31,
@@ -3055,7 +3057,7 @@
       "structure": "heading",
       "text": "Oath Spells",
       "section": "Paladin",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:paladin:sacred-oath"
     },
     {
       "page": 32,
@@ -3127,7 +3129,7 @@
       "structure": "heading",
       "text": "Sacred Oaths",
       "section": "Paladin",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "ignored:document-structure"
     },
     {
       "page": 32,
@@ -3145,7 +3147,7 @@
       "structure": "heading",
       "text": "Tenets of Devotion",
       "section": "Paladin",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "known-gap:eshyra-citg"
     },
     {
       "page": 33,
@@ -3154,7 +3156,7 @@
       "structure": "heading",
       "text": "Oath Spells",
       "section": "Paladin",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "ignored:subclass-spell-table-heading"
     },
     {
       "page": 33,
@@ -3271,7 +3273,7 @@
       "structure": "table-shape",
       "text": "Spell Slots per Spell Level",
       "section": "Ranger",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "ignored:class-progression-table-internal"
     },
     {
       "page": 35,
@@ -3307,7 +3309,7 @@
       "structure": "heading",
       "text": "Archery",
       "section": "Ranger",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:ranger:fighting-style"
     },
     {
       "page": 36,
@@ -3316,7 +3318,7 @@
       "structure": "heading",
       "text": "Defense",
       "section": "Ranger",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:ranger:fighting-style"
     },
     {
       "page": 36,
@@ -3325,7 +3327,7 @@
       "structure": "heading",
       "text": "Dueling",
       "section": "Ranger",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:ranger:fighting-style"
     },
     {
       "page": 36,
@@ -3361,7 +3363,7 @@
       "structure": "heading",
       "text": "Spells Known of 1st Level and Higher",
       "section": "Ranger",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:ranger:spellcasting"
     },
     {
       "page": 36,
@@ -3460,7 +3462,7 @@
       "structure": "heading",
       "text": "Ranger Archetypes",
       "section": "Ranger",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "ignored:document-structure"
     },
     {
       "page": 37,
@@ -3586,7 +3588,7 @@
       "structure": "heading",
       "text": "Thieves’ Cant",
       "section": "Rogue",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:rogue:sneak-attack"
     },
     {
       "page": 40,
@@ -3685,7 +3687,7 @@
       "structure": "heading",
       "text": "Roguish Archetypes",
       "section": "Rogue",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "ignored:document-structure"
     },
     {
       "page": 40,
@@ -3802,7 +3804,7 @@
       "structure": "table-shape",
       "text": "Spells —Spell Slots per Spell Level—",
       "section": "Sorcerer",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "ignored:class-progression-table-internal"
     },
     {
       "page": 43,
@@ -3838,7 +3840,7 @@
       "structure": "heading",
       "text": "Spells Known of 1st Level and Higher",
       "section": "Sorcerer",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:sorcerer:cantrips"
     },
     {
       "page": 43,
@@ -3856,7 +3858,7 @@
       "structure": "heading",
       "text": "Spellcasting Focus",
       "section": "Sorcerer",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:sorcerer:cantrips"
     },
     {
       "page": 43,
@@ -3883,7 +3885,7 @@
       "structure": "heading",
       "text": "Sorcery Points",
       "section": "Sorcerer",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:sorcerer:font-of-magic"
     },
     {
       "page": 43,
@@ -3892,7 +3894,7 @@
       "structure": "heading",
       "text": "Flexible Casting",
       "section": "Sorcerer",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:sorcerer:font-of-magic"
     },
     {
       "page": 43,
@@ -3919,7 +3921,7 @@
       "structure": "heading",
       "text": "Careful Spell",
       "section": "Sorcerer",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:sorcerer:metamagic"
     },
     {
       "page": 44,
@@ -3928,7 +3930,7 @@
       "structure": "heading",
       "text": "Distant Spell",
       "section": "Sorcerer",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:sorcerer:metamagic"
     },
     {
       "page": 44,
@@ -3937,7 +3939,7 @@
       "structure": "heading",
       "text": "Empowered Spell",
       "section": "Sorcerer",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:sorcerer:metamagic"
     },
     {
       "page": 44,
@@ -3946,7 +3948,7 @@
       "structure": "heading",
       "text": "Extended Spell",
       "section": "Sorcerer",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:sorcerer:metamagic"
     },
     {
       "page": 44,
@@ -3955,7 +3957,7 @@
       "structure": "heading",
       "text": "Heightened Spell",
       "section": "Sorcerer",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:sorcerer:metamagic"
     },
     {
       "page": 44,
@@ -3964,7 +3966,7 @@
       "structure": "heading",
       "text": "Quickened Spell",
       "section": "Sorcerer",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:sorcerer:metamagic"
     },
     {
       "page": 44,
@@ -3973,7 +3975,7 @@
       "structure": "heading",
       "text": "Subtle Spell",
       "section": "Sorcerer",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:sorcerer:metamagic"
     },
     {
       "page": 44,
@@ -3982,7 +3984,7 @@
       "structure": "heading",
       "text": "Twinned Spell",
       "section": "Sorcerer",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:sorcerer:metamagic"
     },
     {
       "page": 44,
@@ -4009,7 +4011,7 @@
       "structure": "heading",
       "text": "Sorcerous Origins",
       "section": "Sorcerer",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "ignored:document-structure"
     },
     {
       "page": 44,
@@ -4135,7 +4137,7 @@
       "structure": "table-shape",
       "text": "Spells Spell Slot Invocations",
       "section": "Warlock",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "ignored:class-progression-table-internal"
     },
     {
       "page": 46,
@@ -4180,7 +4182,7 @@
       "structure": "heading",
       "text": "Spells Known of 1st Level and Higher",
       "section": "Warlock",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:warlock:pact-magic"
     },
     {
       "page": 47,
@@ -4198,7 +4200,7 @@
       "structure": "heading",
       "text": "Spellcasting Focus",
       "section": "Warlock",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:warlock:pact-magic"
     },
     {
       "page": 47,
@@ -4225,7 +4227,7 @@
       "structure": "heading",
       "text": "Pact of the Chain",
       "section": "Warlock",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:warlock:pact-boon"
     },
     {
       "page": 47,
@@ -4234,7 +4236,7 @@
       "structure": "heading",
       "text": "Pact of the Blade",
       "section": "Warlock",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:warlock:pact-boon"
     },
     {
       "page": 48,
@@ -4243,7 +4245,7 @@
       "structure": "heading",
       "text": "Pact of the Tome",
       "section": "Warlock",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:warlock:pact-boon"
     },
     {
       "page": 48,
@@ -4288,7 +4290,7 @@
       "structure": "heading",
       "text": "Agonizing Blast",
       "section": "Warlock",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:warlock:eldritch-invocations"
     },
     {
       "page": 48,
@@ -4297,7 +4299,7 @@
       "structure": "heading",
       "text": "Armor of Shadows",
       "section": "Warlock",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:warlock:eldritch-invocations"
     },
     {
       "page": 48,
@@ -4306,7 +4308,7 @@
       "structure": "heading",
       "text": "Ascendant Step",
       "section": "Warlock",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:warlock:eldritch-invocations"
     },
     {
       "page": 48,
@@ -4315,7 +4317,7 @@
       "structure": "heading",
       "text": "Beast Speech",
       "section": "Warlock",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:warlock:eldritch-invocations"
     },
     {
       "page": 48,
@@ -4324,7 +4326,7 @@
       "structure": "heading",
       "text": "Beguiling Influence",
       "section": "Warlock",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:warlock:eldritch-invocations"
     },
     {
       "page": 48,
@@ -4333,7 +4335,7 @@
       "structure": "heading",
       "text": "Bewitching Whispers",
       "section": "Warlock",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:warlock:eldritch-invocations"
     },
     {
       "page": 48,
@@ -4342,7 +4344,7 @@
       "structure": "heading",
       "text": "Book of Ancient Secrets",
       "section": "Warlock",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:warlock:eldritch-invocations"
     },
     {
       "page": 49,
@@ -4351,7 +4353,7 @@
       "structure": "heading",
       "text": "Chains of Carceri",
       "section": "Warlock",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:warlock:eldritch-invocations"
     },
     {
       "page": 49,
@@ -4360,7 +4362,7 @@
       "structure": "heading",
       "text": "Devil’s Sight",
       "section": "Warlock",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:warlock:eldritch-invocations"
     },
     {
       "page": 49,
@@ -4369,7 +4371,7 @@
       "structure": "heading",
       "text": "Dreadful Word",
       "section": "Warlock",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:warlock:eldritch-invocations"
     },
     {
       "page": 49,
@@ -4378,7 +4380,7 @@
       "structure": "heading",
       "text": "Eldritch Sight",
       "section": "Warlock",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:warlock:eldritch-invocations"
     },
     {
       "page": 49,
@@ -4387,7 +4389,7 @@
       "structure": "heading",
       "text": "Eldritch Spear",
       "section": "Warlock",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:warlock:eldritch-invocations"
     },
     {
       "page": 49,
@@ -4396,7 +4398,7 @@
       "structure": "heading",
       "text": "Eyes of the Rune Keeper",
       "section": "Warlock",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:warlock:eldritch-invocations"
     },
     {
       "page": 49,
@@ -4405,7 +4407,7 @@
       "structure": "heading",
       "text": "Fiendish Vigor",
       "section": "Warlock",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:warlock:eldritch-invocations"
     },
     {
       "page": 49,
@@ -4414,7 +4416,7 @@
       "structure": "heading",
       "text": "Gaze of Two Minds",
       "section": "Warlock",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:warlock:eldritch-invocations"
     },
     {
       "page": 49,
@@ -4423,7 +4425,7 @@
       "structure": "heading",
       "text": "Lifedrinker",
       "section": "Warlock",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:warlock:eldritch-invocations"
     },
     {
       "page": 49,
@@ -4432,7 +4434,7 @@
       "structure": "heading",
       "text": "Mask of Many Faces",
       "section": "Warlock",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:warlock:eldritch-invocations"
     },
     {
       "page": 49,
@@ -4441,7 +4443,7 @@
       "structure": "heading",
       "text": "Master of Myriad Forms",
       "section": "Warlock",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:warlock:eldritch-invocations"
     },
     {
       "page": 49,
@@ -4450,7 +4452,7 @@
       "structure": "heading",
       "text": "Minions of Chaos",
       "section": "Warlock",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:warlock:eldritch-invocations"
     },
     {
       "page": 49,
@@ -4459,7 +4461,7 @@
       "structure": "heading",
       "text": "Mire the Mind",
       "section": "Warlock",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:warlock:eldritch-invocations"
     },
     {
       "page": 49,
@@ -4468,7 +4470,7 @@
       "structure": "heading",
       "text": "Misty Visions",
       "section": "Warlock",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:warlock:eldritch-invocations"
     },
     {
       "page": 49,
@@ -4477,7 +4479,7 @@
       "structure": "heading",
       "text": "One with Shadows",
       "section": "Warlock",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:warlock:eldritch-invocations"
     },
     {
       "page": 49,
@@ -4486,7 +4488,7 @@
       "structure": "heading",
       "text": "Otherworldly Leap",
       "section": "Warlock",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:warlock:eldritch-invocations"
     },
     {
       "page": 49,
@@ -4495,7 +4497,7 @@
       "structure": "heading",
       "text": "Repelling Blast",
       "section": "Warlock",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:warlock:eldritch-invocations"
     },
     {
       "page": 50,
@@ -4504,7 +4506,7 @@
       "structure": "heading",
       "text": "Sculptor of Flesh",
       "section": "Warlock",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:warlock:eldritch-invocations"
     },
     {
       "page": 50,
@@ -4513,7 +4515,7 @@
       "structure": "heading",
       "text": "Sign of Ill Omen",
       "section": "Warlock",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:warlock:eldritch-invocations"
     },
     {
       "page": 50,
@@ -4522,7 +4524,7 @@
       "structure": "heading",
       "text": "Thief of Five Fates",
       "section": "Warlock",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:warlock:eldritch-invocations"
     },
     {
       "page": 50,
@@ -4531,7 +4533,7 @@
       "structure": "heading",
       "text": "Thirsting Blade",
       "section": "Warlock",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:warlock:eldritch-invocations"
     },
     {
       "page": 50,
@@ -4540,7 +4542,7 @@
       "structure": "heading",
       "text": "Visions of Distant Realms",
       "section": "Warlock",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:warlock:eldritch-invocations"
     },
     {
       "page": 50,
@@ -4549,7 +4551,7 @@
       "structure": "heading",
       "text": "Voice of the Chain Master",
       "section": "Warlock",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:warlock:eldritch-invocations"
     },
     {
       "page": 50,
@@ -4558,7 +4560,7 @@
       "structure": "heading",
       "text": "Whispers of the Grave",
       "section": "Warlock",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:warlock:eldritch-invocations"
     },
     {
       "page": 50,
@@ -4567,7 +4569,7 @@
       "structure": "heading",
       "text": "Witch Sight",
       "section": "Warlock",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:warlock:eldritch-invocations"
     },
     {
       "page": 50,
@@ -4576,7 +4578,7 @@
       "structure": "heading",
       "text": "Otherworldly Patrons",
       "section": "Warlock",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "ignored:document-structure"
     },
     {
       "page": 50,
@@ -4594,7 +4596,7 @@
       "structure": "heading",
       "text": "Expanded Spell List",
       "section": "Warlock",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "ignored:subclass-spell-table-heading"
     },
     {
       "page": 50,
@@ -4711,7 +4713,7 @@
       "structure": "table-shape",
       "text": "—Spell Slots per Spell Level—",
       "section": "Wizard",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "ignored:class-progression-table-internal"
     },
     {
       "page": 52,
@@ -4747,7 +4749,7 @@
       "structure": "heading",
       "text": "Preparing and Casting Spells",
       "section": "Wizard",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:wizard:spellbook"
     },
     {
       "page": 53,
@@ -4765,7 +4767,7 @@
       "structure": "heading",
       "text": "Ritual Casting",
       "section": "Wizard",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:wizard:spellbook"
     },
     {
       "page": 53,
@@ -4774,7 +4776,7 @@
       "structure": "heading",
       "text": "Spellcasting Focus",
       "section": "Wizard",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:wizard:spellbook"
     },
     {
       "page": 53,
@@ -4783,7 +4785,7 @@
       "structure": "heading",
       "text": "Learning Spells of 1st Level and Higher",
       "section": "Wizard",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "child-of:feature:wizard:spellbook"
     },
     {
       "page": 53,
@@ -4837,7 +4839,7 @@
       "structure": "heading",
       "text": "Arcane Traditions",
       "section": "Wizard",
-      "status": "known-gap:eshyra-4a7.6"
+      "status": "ignored:document-structure"
     },
     {
       "page": 54,
