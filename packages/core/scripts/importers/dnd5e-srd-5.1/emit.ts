@@ -28,6 +28,7 @@ import { linkAncestryOptionTables } from './ancestryOptions.js';
 import { enrichClassChapterRecords } from './classProgression.js';
 import type { SourceInventoryItem } from './sourceInventory.js';
 import type { SourceCoverageReport } from './sourceInventoryCoverage.js';
+import { linkSpellEmbeddedTables } from './spellTables.js';
 import type {
   ActionExtraction,
   AncestryExtraction,
@@ -1135,7 +1136,7 @@ export function buildPack(input: BuildPackInput): RulesPack {
       bucket ? [...bucket].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)) : [],
     );
   }
-  const spellRecords = spellExtractionsToRecords(input.spells, classByName);
+  const baseSpellRecords = spellExtractionsToRecords(input.spells, classByName);
   const creatureRecords = creatureExtractionsToRecords(input.creatures ?? []);
   const classRecords = classExtractionsToRecords(
     input.classes ?? [],
@@ -1159,6 +1160,11 @@ export function buildPack(input: BuildPackInput): RulesPack {
   const actionRecords = actionExtractionsToRecords(input.actions ?? []);
   const ruleRecords = ruleExtractionsToRecords(input.rules ?? []);
   const tableRecords = tableExtractionsToRecords(input.tables ?? []);
+  const spellRecords = linkSpellEmbeddedTables({
+    spellRecords: baseSpellRecords,
+    tableRecords,
+    tables: input.tables ?? [],
+  });
   const equipmentRecords = equipmentExtractionsToRecords(input.equipment ?? []);
   // Inline stat blocks (eshyra-4a7.4) and the containing magic-item reference
   // map. Both reviewed containers are emitted and link to their embedded block.

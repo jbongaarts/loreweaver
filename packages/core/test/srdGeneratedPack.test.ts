@@ -241,7 +241,10 @@ const EXPECTED_COUNTS_BY_KIND: Readonly<Record<string, number>> = {
   // 80 -> 93 (eshyra-4a7.6): the 11 remaining class progression tables (The
   // Bard … The Wizard) plus the two feature-owned class tables Beast Shapes
   // (Druid Wild Shape) and Destroy Undead (Cleric).
-  table: 93,
+  // 93 -> 102 (eshyra-o4j7): the nine spell-embedded tables from Animate
+  // Objects, Confusion, Control Weather (three), Creation, Reincarnate,
+  // Scrying, and Teleport.
+  table: 102,
 };
 
 /**
@@ -571,6 +574,14 @@ const EXPECTED_PARTIAL_FIELDS: ReadonlyArray<{
   },
   { kind: 'spell', field: 'higherLevels', missingCount: 227, totalInKind: 319 },
   { kind: 'spell', field: 'ritual', missingCount: 290, totalInKind: 319 },
+  // Seven spells own the nine embedded spell-description tables (eshyra-o4j7);
+  // Control Weather owns three, while the other six own one each.
+  {
+    kind: 'spell',
+    field: 'tableRefs',
+    missingCount: 312,
+    totalInKind: 319,
+  },
   // The 2 inline stat blocks (eshyra-4a7.4) carry different optional keyed
   // fields: Avatar of Death has damage/condition immunities and a "—"
   // challengeRating with 0 XP; Giant Fly (abbreviated) has neither. senses and
@@ -2237,6 +2248,87 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
     });
   });
 
+  describe('spell-embedded table linkage (eshyra-o4j7)', () => {
+    const expected: Readonly<Record<string, readonly string[]>> = {
+      'spell:animate-objects': ['table:animated-object-statistics'],
+      'spell:confusion': ['table:confusion-behavior'],
+      'spell:control-weather': [
+        'table:precipitation',
+        'table:temperature',
+        'table:wind',
+      ],
+      'spell:creation': ['table:creation-material-duration'],
+      'spell:reincarnate': ['table:reincarnate-race'],
+      'spell:scrying': ['table:scrying-save-modifiers'],
+      'spell:teleport': ['table:teleport-familiarity'],
+    };
+
+    function refsFor(spellKey: string): readonly string[] {
+      const spell = pack.records.find((record) => record.key === spellKey);
+      expect(spell, `expected ${spellKey} in the committed pack`).toBeDefined();
+      return (spell?.data as { tableRefs?: readonly string[] }).tableRefs ?? [];
+    }
+
+    it('links every affected spell to its exact embedded table set', () => {
+      for (const [spellKey, tableRefs] of Object.entries(expected)) {
+        expect(refsFor(spellKey)).toEqual(tableRefs);
+      }
+    });
+
+    it('links Control Weather to exactly the three weather tables', () => {
+      expect(refsFor('spell:control-weather')).toEqual([
+        'table:precipitation',
+        'table:temperature',
+        'table:wind',
+      ]);
+    });
+
+    it('links Teleport to the familiarity matrix', () => {
+      expect(refsFor('spell:teleport')).toEqual(['table:teleport-familiarity']);
+    });
+
+    it('resolves every spell tableRef to an existing table record', () => {
+      const tables = new Set(
+        pack.records
+          .filter((record) => record.kind === 'table')
+          .map((record) => record.key),
+      );
+      for (const spellKey of Object.keys(expected)) {
+        for (const tableRef of refsFor(spellKey)) {
+          expect(tables.has(tableRef), `${spellKey} -> ${tableRef}`).toBe(true);
+        }
+      }
+    });
+
+    it('makes every embedded spell table reachable from exactly one spell', () => {
+      const owners = new Map<string, string[]>();
+      for (const record of pack.records) {
+        if (record.kind !== 'spell') continue;
+        const refs = (record.data as { tableRefs?: readonly string[] })
+          .tableRefs;
+        for (const ref of refs ?? []) {
+          const list = owners.get(ref) ?? [];
+          list.push(record.key);
+          owners.set(ref, list);
+        }
+      }
+      for (const [spellKey, tableRefs] of Object.entries(expected)) {
+        for (const tableRef of tableRefs) {
+          expect(owners.get(tableRef)).toEqual([spellKey]);
+        }
+      }
+    });
+
+    it('keeps the original spell prose while adding navigation refs', () => {
+      const animateObjects = pack.records.find(
+        (record) => record.key === 'spell:animate-objects',
+      );
+      expect(
+        (animateObjects?.data as { description?: string }).description,
+      ).toContain('Animated Object Statistics');
+    });
+  });
+
   // The canonical table set is Difficulty Classes, two trap tables, three
   // Madness tables, and two Objects tables. XP/treasure reconstruction remains
   // fixture-only because those families are absent from this SRD source.
@@ -2260,6 +2352,7 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
         'table:acolyte-flaws',
         'table:acolyte-ideals',
         'table:acolyte-personality-traits',
+        'table:animated-object-statistics',
         'table:apparatus-of-the-crab-levers',
         'table:armor-of-resistance',
         // Document-wide tables (eshyra-4a7.3), reconstructed by
@@ -2282,7 +2375,9 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
         'table:circle-of-the-land-grassland',
         'table:circle-of-the-land-mountain',
         'table:circle-of-the-land-swamp',
+        'table:confusion-behavior',
         'table:creating-spell-slots',
+        'table:creation-material-duration',
         'table:cube-of-force-charges-lost',
         'table:cube-of-force-faces',
         'table:damage-severity-by-level',
@@ -2323,11 +2418,14 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
         'table:potion-of-giant-strength',
         'table:potion-of-resistance',
         'table:potions-of-healing',
+        'table:precipitation',
         'table:proficiency-bonus-by-challenge-rating',
+        'table:reincarnate-race',
         'table:ring-of-resistance',
         'table:ring-of-shooting-stars',
         'table:robe-of-useful-items',
         'table:rust-bag-of-tricks',
+        'table:scrying-save-modifiers',
         'table:sentient-magic-item-alignment',
         'table:sentient-magic-item-communication',
         'table:sentient-magic-item-senses',
@@ -2342,6 +2440,8 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
         'table:standard-exchange-rates',
         'table:standard-languages',
         'table:tan-bag-of-tricks',
+        'table:teleport-familiarity',
+        'table:temperature',
         'table:the-barbarian',
         // The remaining 11 class progression tables (eshyra-4a7.6): Fighter and
         // Rogue extract one line per row like the Barbarian; the nine
@@ -2363,6 +2463,7 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
         // Core-rules table behind an excluded caption (eshyra-10t).
         'table:travel-pace',
         'table:wand-of-wonder',
+        'table:wind',
       ]);
     });
 
@@ -2397,6 +2498,118 @@ describe('D&D 5e SRD 5.1 committed pack', () => {
           ['66–90', 'Tree'],
           ['91–00', 'Whip'],
         ],
+      });
+    });
+
+    it('pins every spell-embedded table row and source page (eshyra-o4j7)', () => {
+      expect(table('table:animated-object-statistics')).toMatchObject({
+        source: 'SRD 5.1 p. 116',
+        data: {
+          columns: ['Size', 'HP', 'AC', 'Attack', 'Strength', 'Dexterity'],
+          rows: [
+            ['Tiny', 20, 18, '+8 to hit, 1d4 + 4 damage', 4, 18],
+            ['Small', 25, 16, '+6 to hit, 1d8 + 2 damage', 6, 14],
+            ['Medium', 40, 13, '+5 to hit, 2d6 + 1 damage', 10, 12],
+            ['Large', 50, 10, '+6 to hit, 2d10 + 2 damage', 14, 10],
+            ['Huge', 80, 10, '+8 to hit, 2d12 + 4 damage', 18, 6],
+          ],
+        },
+      });
+      expect(table('table:confusion-behavior')).toMatchObject({
+        source: 'SRD 5.1 p. 127',
+        data: {
+          columns: ['d10', 'Behavior'],
+          rows: [
+            [
+              '1',
+              'The creature uses all its movement to move in a random direction. To determine the direction, roll a d8 and assign a direction to each die face. The creature doesn’t take an action this turn.',
+            ],
+            ['2–6', 'The creature doesn’t move or take actions this turn.'],
+            [
+              '7–8',
+              'The creature uses its action to make a melee attack against a randomly determined creature within its reach. If there is no creature within its reach, the creature does nothing this turn.',
+            ],
+            ['9–10', 'The creature can act and move normally.'],
+          ],
+        },
+      });
+      expect(table('table:precipitation')?.data.rows).toEqual([
+        [1, 'Clear'],
+        [2, 'Light clouds'],
+        [3, 'Overcast or ground fog'],
+        [4, 'Rain, hail, or snow'],
+        [5, 'Torrential rain, driving hail, or blizzard'],
+      ]);
+      expect(table('table:temperature')?.data.rows).toEqual([
+        [1, 'Unbearable heat'],
+        [2, 'Hot'],
+        [3, 'Warm'],
+        [4, 'Cool'],
+        [5, 'Cold'],
+        [6, 'Arctic cold'],
+      ]);
+      expect(table('table:wind')?.data.rows).toEqual([
+        [1, 'Calm'],
+        [2, 'Moderate wind'],
+        [3, 'Strong wind'],
+        [4, 'Gale'],
+        [5, 'Storm'],
+      ]);
+      expect(table('table:creation-material-duration')?.data.rows).toEqual([
+        ['Vegetable matter', '1 day'],
+        ['Stone or crystal', '12 hours'],
+        ['Precious metals', '1 hour'],
+        ['Gems', '10 minutes'],
+        ['Adamantine or mithral', '1 minute'],
+      ]);
+      expect(table('table:reincarnate-race')?.data.rows).toEqual([
+        ['01–04', 'Dragonborn'],
+        ['05–13', 'Dwarf, hill'],
+        ['14–21', 'Dwarf, mountain'],
+        ['22–25', 'Elf, dark'],
+        ['26–34', 'Elf, high'],
+        ['35–42', 'Elf, wood'],
+        ['43–46', 'Gnome, forest'],
+        ['47–52', 'Gnome, rock'],
+        ['53–56', 'Half-elf'],
+        ['57–60', 'Half-orc'],
+        ['61–68', 'Halfling, lightfoot'],
+        ['69–76', 'Halfling, stout'],
+        ['77–96', 'Human'],
+        ['97–00', 'Tiefling'],
+      ]);
+      expect(table('table:scrying-save-modifiers')?.data.rows).toEqual([
+        ['Knowledge', 'Secondhand (you have heard of the target)', '+5'],
+        ['Knowledge', 'Firsthand (you have met the target)', '+0'],
+        ['Knowledge', 'Familiar (you know the target well)', '−5'],
+        ['Connection', 'Likeness or picture', '−2'],
+        ['Connection', 'Possession or garment', '−4'],
+        [
+          'Connection',
+          'Body part, lock of hair, bit of nail, or the like',
+          '−10',
+        ],
+      ]);
+      expect(table('table:teleport-familiarity')).toMatchObject({
+        source: 'SRD 5.1 p. 186',
+        data: {
+          columns: [
+            'Familiarity',
+            'Mishap',
+            'Similar Area',
+            'Off Target',
+            'On Target',
+          ],
+          rows: [
+            ['Permanent circle', '—', '—', '—', '01–100'],
+            ['Associated object', '—', '—', '—', '01–100'],
+            ['Very familiar', '01–05', '06–13', '14–24', '25–100'],
+            ['Seen casually', '01–33', '34–43', '44–53', '54–100'],
+            ['Viewed once', '01–43', '44–53', '54–73', '74–100'],
+            ['Description', '01–43', '44–53', '54–73', '74–100'],
+            ['False destination', '01–50', '51–100', '—', '—'],
+          ],
+        },
       });
     });
 

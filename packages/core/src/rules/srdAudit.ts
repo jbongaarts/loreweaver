@@ -47,6 +47,7 @@ export type SrdAuditCategory =
   | 'swallowed-feature-heading'
   | 'ancestry-bogus-trait'
   | 'ancestry-unlinked-table'
+  | 'spell-table-link'
   | 'missing-coverage';
 
 export interface SrdAuditFinding {
@@ -75,6 +76,24 @@ export interface SrdCoverageExpectations {
   /** record keys that MUST be present regardless of kind. */
   readonly requiredKeys?: readonly string[];
 }
+
+/**
+ * Reviewed ownership map for tables embedded in SRD spell descriptions
+ * (eshyra-o4j7). Shared with importer enrichment so audit and generation cannot
+ * drift on the expected spell/table relationship.
+ */
+export const SRD_5_1_SPELL_TABLE_OWNERS: Readonly<Record<string, string>> =
+  Object.freeze({
+    'table:animated-object-statistics': 'spell:animate-objects',
+    'table:confusion-behavior': 'spell:confusion',
+    'table:creation-material-duration': 'spell:creation',
+    'table:precipitation': 'spell:control-weather',
+    'table:reincarnate-race': 'spell:reincarnate',
+    'table:scrying-save-modifiers': 'spell:scrying',
+    'table:teleport-familiarity': 'spell:teleport',
+    'table:temperature': 'spell:control-weather',
+    'table:wind': 'spell:control-weather',
+  });
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -369,6 +388,88 @@ function checkAncestryUnlinkedTable(record: RulesRecord): SrdAuditFinding[] {
 }
 
 // ---------------------------------------------------------------------------
+// Spell-embedded table linkage
+// ---------------------------------------------------------------------------
+
+function spellTableRefs(record: RulesRecord): readonly string[] {
+  if (record.kind !== 'spell') return [];
+  const data = dataObject(record);
+  if (data === null || !Array.isArray(data.tableRefs)) return [];
+  return data.tableRefs.filter(
+    (entry): entry is string => typeof entry === 'string',
+  );
+}
+
+function checkSpellTableLinks(pack: RulesPack): SrdAuditFinding[] {
+  const findings: SrdAuditFinding[] = [];
+  const recordsByKey = new Map(
+    pack.records.map((record) => [record.key, record]),
+  );
+  const referrers = new Map<string, string[]>();
+
+  for (const record of pack.records) {
+    if (record.kind !== 'spell') continue;
+    for (const ref of spellTableRefs(record)) {
+      const target = recordsByKey.get(ref);
+      if (target === undefined || target.kind !== 'table') {
+        findings.push({
+          category: 'spell-table-link',
+          key: record.key,
+          kind: record.kind,
+          name: record.name,
+          detail: `data.tableRefs points to missing table record ${ref}`,
+        });
+      }
+      const owners = referrers.get(ref) ?? [];
+      owners.push(record.key);
+      referrers.set(ref, owners);
+    }
+  }
+
+  for (const [tableKey, expectedOwnerKey] of Object.entries(
+    SRD_5_1_SPELL_TABLE_OWNERS,
+  )) {
+    const table = recordsByKey.get(tableKey);
+    const owner = recordsByKey.get(expectedOwnerKey);
+    // Reduced fixtures and partial packs may omit this entire source region.
+    // Once either side is present, enforce the complete reviewed relationship.
+    if (table === undefined && owner === undefined) continue;
+    if (table === undefined || table.kind !== 'table') {
+      findings.push({
+        category: 'spell-table-link',
+        key: expectedOwnerKey,
+        kind: 'spell',
+        name: expectedOwnerKey,
+        detail: `expected embedded table record ${tableKey} is missing`,
+      });
+      continue;
+    }
+    const actualOwners = referrers.get(tableKey) ?? [];
+    if (owner === undefined || owner.kind !== 'spell') {
+      findings.push({
+        category: 'spell-table-link',
+        key: expectedOwnerKey,
+        kind: 'spell',
+        name: expectedOwnerKey,
+        detail: `expected owner for ${tableKey} is missing`,
+      });
+      continue;
+    }
+    if (actualOwners.length !== 1 || actualOwners[0] !== expectedOwnerKey) {
+      findings.push({
+        category: 'spell-table-link',
+        key: expectedOwnerKey,
+        kind: 'spell',
+        name: owner.name,
+        detail: `${tableKey} must be referenced exactly once by ${expectedOwnerKey}; actual owners: ${actualOwners.join(', ') || 'none'}`,
+      });
+    }
+  }
+
+  return findings;
+}
+
+// ---------------------------------------------------------------------------
 // Structure audit entry point
 // ---------------------------------------------------------------------------
 
@@ -385,6 +486,7 @@ export function auditSrdStructure(pack: RulesPack): readonly SrdAuditFinding[] {
     findings.push(...checkAncestryTraits(record));
     findings.push(...checkAncestryUnlinkedTable(record));
   }
+  findings.push(...checkSpellTableLinks(pack));
   return sortFindings(findings);
 }
 

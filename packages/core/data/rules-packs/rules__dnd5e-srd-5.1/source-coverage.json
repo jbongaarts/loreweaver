@@ -1,6 +1,6 @@
 {
   "summary": {
-    "record": 1914,
+    "record": 1923,
     "childOf": 99,
     "ignored": {
       "class-progression-table-internal": 9,
@@ -14,8 +14,7 @@
       "variant-rule-excluded": 2
     },
     "knownGap": {
-      "eshyra-4a7.10": 70,
-      "eshyra-o4j7": 9
+      "eshyra-4a7.10": 70
     },
     "unaccounted": 0
   },
@@ -7997,7 +7996,7 @@
       "structure": "table-caption",
       "text": "Animated Object Statistics",
       "section": "Spellcasting",
-      "status": "known-gap:eshyra-o4j7"
+      "status": "record:table:animated-object-statistics"
     },
     {
       "page": 116,
@@ -8384,7 +8383,7 @@
       "structure": "table-shape",
       "text": "d10 Behavior",
       "section": "Spellcasting",
-      "status": "known-gap:eshyra-o4j7"
+      "status": "record:table:confusion-behavior"
     },
     {
       "page": 127,
@@ -8501,7 +8500,7 @@
       "structure": "table-caption",
       "text": "Precipitation",
       "section": "Spellcasting",
-      "status": "known-gap:eshyra-o4j7"
+      "status": "record:table:precipitation"
     },
     {
       "page": 131,
@@ -8510,7 +8509,7 @@
       "structure": "table-caption",
       "text": "Temperature",
       "section": "Spellcasting",
-      "status": "known-gap:eshyra-o4j7"
+      "status": "record:table:temperature"
     },
     {
       "page": 131,
@@ -8519,7 +8518,7 @@
       "structure": "table-caption",
       "text": "Wind",
       "section": "Spellcasting",
-      "status": "known-gap:eshyra-o4j7"
+      "status": "record:table:wind"
     },
     {
       "page": 131,
@@ -8573,7 +8572,7 @@
       "structure": "table-shape",
       "text": "Material Duration",
       "section": "Spellcasting",
-      "status": "known-gap:eshyra-o4j7"
+      "status": "record:table:creation-material-duration"
     },
     {
       "page": 132,
@@ -10139,7 +10138,7 @@
       "structure": "table-shape",
       "text": "d100 Race",
       "section": "Spellcasting",
-      "status": "known-gap:eshyra-o4j7"
+      "status": "record:table:reincarnate-race"
     },
     {
       "page": 174,
@@ -10247,7 +10246,7 @@
       "structure": "table-shape",
       "text": "Knowledge Save Modifier",
       "section": "Spellcasting",
-      "status": "known-gap:eshyra-o4j7"
+      "status": "record:table:scrying-save-modifiers"
     },
     {
       "page": 177,
@@ -10580,7 +10579,7 @@
       "structure": "table-shape",
       "text": "Similar Off On",
       "section": "Spellcasting",
-      "status": "known-gap:eshyra-o4j7"
+      "status": "record:table:teleport-familiarity"
     },
     {
       "page": 186,

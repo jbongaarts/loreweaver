@@ -440,6 +440,54 @@ describe('ancestry option-table linkage (eshyra-4a7.7)', () => {
   });
 });
 
+describe('spell-embedded table linkage (eshyra-o4j7)', () => {
+  const confusion = record({
+    kind: 'spell',
+    key: 'spell:confusion',
+    name: 'Confusion',
+    data: {
+      level: 4,
+      school: 'enchantment',
+      tableRefs: ['table:confusion-behavior'],
+    },
+  });
+  const behavior = record({
+    kind: 'table',
+    key: 'table:confusion-behavior',
+    name: 'Confusion Behavior',
+    data: { columns: ['d10', 'Behavior'], rows: [['1', 'Move randomly.']] },
+  });
+
+  it('is silent when an embedded table is linked exactly once by its owner', () => {
+    expect(
+      auditSrdStructure(pack([confusion, behavior])).filter(
+        (finding) => finding.category === 'spell-table-link',
+      ),
+    ).toEqual([]);
+  });
+
+  it('flags an emitted spell table with no owner link', () => {
+    const unlinked = {
+      ...confusion,
+      data: { ...(confusion.data as Record<string, unknown>), tableRefs: [] },
+    };
+    const findings = auditSrdStructure(pack([unlinked, behavior])).filter(
+      (finding) => finding.category === 'spell-table-link',
+    );
+    expect(findings).toHaveLength(1);
+    expect(findings[0].detail).toContain('must be referenced exactly once');
+  });
+
+  it('flags a spell tableRef that points to a missing table record', () => {
+    const findings = auditSrdStructure(pack([confusion])).filter(
+      (finding) => finding.category === 'spell-table-link',
+    );
+    expect(
+      findings.some((finding) => finding.detail.includes('missing table')),
+    ).toBe(true);
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Coverage
 // ---------------------------------------------------------------------------

@@ -590,6 +590,21 @@ const CIRCLE_OF_THE_LAND_TABLE_TERRAINS: ReadonlyArray<
 ];
 
 /**
+ * Caption-less spell tables emitted from reviewed document-wide specs
+ * (eshyra-o4j7). Printed captions auto-match their record names; these table
+ * shapes need explicit header-to-record mappings.
+ */
+const SPELL_TABLE_INVENTORY_RECORDS: ReadonlyArray<
+  readonly [page: number, text: string, key: string]
+> = [
+  [127, 'd10 Behavior', 'table:confusion-behavior'],
+  [132, 'Material Duration', 'table:creation-material-duration'],
+  [174, 'd100 Race', 'table:reincarnate-race'],
+  [176, 'Knowledge Save Modifier', 'table:scrying-save-modifiers'],
+  [186, 'Similar Off On', 'table:teleport-familiarity'],
+];
+
+/**
  * Magic-item tables emitted from reviewed document-wide specifications
  * (eshyra-4a7.3, eshyra-4a7.8). Each surfaces in the inventory as a table
  * structure whose text is either its printed caption or its column-header
@@ -728,6 +743,12 @@ export const SRD_5_1_COVERAGE_RULES: readonly CoverageRule[] = [
         i.section === 'Druid' &&
         i.structure === 'table-caption' &&
         i.text === terrain,
+    ),
+  ),
+  ...SPELL_TABLE_INVENTORY_RECORDS.map(([page, text, key]) =>
+    recordRule(
+      key,
+      (i) => i.section === 'Spellcasting' && i.page === page && i.text === text,
     ),
   ),
   ...MAGIC_ITEM_TABLE_INVENTORY_RECORDS.map(([page, text, key]) =>
@@ -922,17 +943,6 @@ export const SRD_5_1_COVERAGE_RULES: readonly CoverageRule[] = [
       i.section === 'Equipment' &&
       (EQUIPMENT_ROWS_AS_RECORDS_CAPTIONS.has(i.text) ||
         i.structure === 'table-shape'),
-  ),
-  // Spell-embedded tables (Animated Object Statistics p116, Confusion d10
-  // Behavior p127, Control Weather Precipitation/Temperature/Wind p131,
-  // Creation Material Duration p132, Reincarnate d100 Race p174, Scrying
-  // Knowledge/Save p176, Teleport familiarity matrix p186) — currently
-  // flattened into spell descriptions; the follow-up bead emits them.
-  knownGapRule(
-    'eshyra-o4j7',
-    (i) =>
-      i.section === 'Spellcasting' &&
-      (i.structure === 'table-caption' || i.structure === 'table-shape'),
   ),
   // Unimported prose regions, tracked region-by-region in eshyra-4a7.10.
   knownGapRule(

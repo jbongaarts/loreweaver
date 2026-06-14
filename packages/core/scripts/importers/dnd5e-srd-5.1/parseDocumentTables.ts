@@ -137,6 +137,8 @@ export interface DocumentTableSpec {
   readonly rows: RowRule;
   /** Exact source row count; any drift fails the table closed. */
   readonly expectedRows: number;
+  /** Owning record for a table embedded inside another source entry. */
+  readonly ownerRecordKey?: string;
 }
 
 const ORDINAL_LEVEL = String.raw`\d{1,2}(?:st|nd|rd|th)`;
@@ -199,6 +201,25 @@ function bagOfTricksSpec(color: string): DocumentTableSpec {
       integerColumns: [0],
     },
     expectedRows: 8,
+  };
+}
+
+function stageConditionSpec(
+  name: string,
+  expectedRows: number,
+): DocumentTableSpec {
+  return {
+    name,
+    columns: ['Stage', 'Condition'],
+    anchorHeading: name,
+    anchor: 'caption',
+    headerLines: ['Stage Condition'],
+    rows: {
+      kind: 'line-per-row',
+      pattern: /^(\d) (.+)$/,
+      integerColumns: [0],
+    },
+    expectedRows,
   };
 }
 
@@ -314,6 +335,161 @@ export const SRD_5_1_DOCUMENT_TABLE_SPECS: readonly DocumentTableSpec[] = [
     headerLines: ['Spell Level Spells'],
     expectedRows: 5,
   }),
+  // --- Spell descriptions (pp116-186, eshyra-o4j7) -------------------------
+  // Printed captions are kept verbatim. Caption-less tables are qualified by
+  // their owning spell so generic headers such as "d10 Behavior" cannot
+  // collide with tables from another source region.
+  {
+    name: 'Animated Object Statistics',
+    ownerRecordKey: 'spell:animate-objects',
+    columns: ['Size', 'HP', 'AC', 'Attack', 'Strength', 'Dexterity'],
+    anchorHeading: 'Animated Object Statistics',
+    anchor: 'caption',
+    headerLines: ['Size HP AC Attack Str Dex'],
+    rows: {
+      kind: 'reviewed-reconstruction',
+      sourceLines: [
+        'Tiny 20 18 +8 to hit, 1d4 + 4 damage 4 18',
+        'Small 25 16 +6 to hit, 1d8 + 2 damage 6 14',
+        'Medium 40 13 +5 to hit, 2d6 + 1 damage 10 12',
+        'Large 50 10 +6 to hit, 2d10 + 2 14 10',
+        'damage',
+        'Huge 80 10 +8 to hit, 2d12 + 4 18 6',
+        'damage',
+      ],
+      rows: [
+        ['Tiny', 20, 18, '+8 to hit, 1d4 + 4 damage', 4, 18],
+        ['Small', 25, 16, '+6 to hit, 1d8 + 2 damage', 6, 14],
+        ['Medium', 40, 13, '+5 to hit, 2d6 + 1 damage', 10, 12],
+        ['Large', 50, 10, '+6 to hit, 2d10 + 2 damage', 14, 10],
+        ['Huge', 80, 10, '+8 to hit, 2d12 + 4 damage', 18, 6],
+      ],
+    },
+    expectedRows: 5,
+  },
+  {
+    name: 'Confusion Behavior',
+    ownerRecordKey: 'spell:confusion',
+    columns: ['d10', 'Behavior'],
+    anchorHeading: 'Confusion',
+    anchor: 'item',
+    headerLines: ['d10 Behavior'],
+    rows: {
+      kind: 'wrapped-last-column',
+      start: /^(\d+(?:–\d+)?) (.+)$/,
+    },
+    expectedRows: 4,
+  },
+  {
+    ...stageConditionSpec('Precipitation', 5),
+    ownerRecordKey: 'spell:control-weather',
+  },
+  {
+    ...stageConditionSpec('Temperature', 6),
+    ownerRecordKey: 'spell:control-weather',
+  },
+  {
+    ...stageConditionSpec('Wind', 5),
+    ownerRecordKey: 'spell:control-weather',
+  },
+  {
+    name: 'Creation Material Duration',
+    ownerRecordKey: 'spell:creation',
+    columns: ['Material', 'Duration'],
+    anchorHeading: 'Creation',
+    anchor: 'item',
+    headerLines: ['Material Duration'],
+    rows: {
+      kind: 'line-per-row',
+      pattern: /^(.+?) (1 day|12 hours|1 hour|10 minutes|1 minute)$/,
+    },
+    expectedRows: 5,
+  },
+  {
+    name: 'Reincarnate Race',
+    ownerRecordKey: 'spell:reincarnate',
+    columns: ['d100', 'Race'],
+    anchorHeading: 'Reincarnate',
+    anchor: 'item',
+    headerLines: ['d100 Race'],
+    rows: {
+      kind: 'line-per-row',
+      pattern: /^(\d{2}–\d{2}) (.+)$/,
+    },
+    expectedRows: 14,
+  },
+  {
+    name: 'Scrying Save Modifiers',
+    ownerRecordKey: 'spell:scrying',
+    columns: ['Basis', 'Circumstance', 'Save Modifier'],
+    anchorHeading: 'Scrying',
+    anchor: 'item',
+    headerLines: ['Knowledge Save Modifier'],
+    rows: {
+      kind: 'reviewed-reconstruction',
+      sourceLines: [
+        'Secondhand (you have heard of the target) +5',
+        'Firsthand (you have met the target) +0',
+        'Familiar (you know the target well) −5',
+        'Connection Save Modifier',
+        'Likeness or picture −2',
+        'Possession or garment −4',
+        'Body part, lock of hair, bit of nail, or the like −10',
+      ],
+      rows: [
+        ['Knowledge', 'Secondhand (you have heard of the target)', '+5'],
+        ['Knowledge', 'Firsthand (you have met the target)', '+0'],
+        ['Knowledge', 'Familiar (you know the target well)', '−5'],
+        ['Connection', 'Likeness or picture', '−2'],
+        ['Connection', 'Possession or garment', '−4'],
+        [
+          'Connection',
+          'Body part, lock of hair, bit of nail, or the like',
+          '−10',
+        ],
+      ],
+    },
+    expectedRows: 6,
+  },
+  {
+    name: 'Teleport Familiarity',
+    ownerRecordKey: 'spell:teleport',
+    columns: [
+      'Familiarity',
+      'Mishap',
+      'Similar Area',
+      'Off Target',
+      'On Target',
+    ],
+    anchorHeading: 'Teleport',
+    anchor: 'item',
+    headerLines: ['Similar Off On', 'Familiarity Mishap Area Target Target'],
+    rows: {
+      kind: 'reviewed-reconstruction',
+      sourceLines: [
+        'Permanent — — — 01–100',
+        'circle',
+        'Associated — — — 01–100',
+        'object',
+        'Very familiar 01–05 06–13 14–24 25–100',
+        'Seen casually 01–33 34–43 44–53 54–100',
+        'Viewed once 01–43 44–53 54–73 74–100',
+        'Description 01–43 44–53 54–73 74–100',
+        'False 01–50 51–100 — —',
+        'destination',
+      ],
+      rows: [
+        ['Permanent circle', '—', '—', '—', '01–100'],
+        ['Associated object', '—', '—', '—', '01–100'],
+        ['Very familiar', '01–05', '06–13', '14–24', '25–100'],
+        ['Seen casually', '01–33', '34–43', '44–53', '54–100'],
+        ['Viewed once', '01–43', '44–53', '54–73', '74–100'],
+        ['Description', '01–43', '44–53', '54–73', '74–100'],
+        ['False destination', '01–50', '51–100', '—', '—'],
+      ],
+    },
+    expectedRows: 7,
+  },
   // --- Equipment chapter (p64) ----------------------------------------------
   {
     name: 'Donning and Doffing Armor',
@@ -1167,6 +1343,7 @@ function parseSpec(
         columns: [...spec.columns],
         rows: tableRows,
         sourcePage: located.page,
+        ownerRecordKey: spec.ownerRecordKey,
       };
     }
     const headerIdx = findHeaderAt(rows, i, spec);
@@ -1181,6 +1358,7 @@ function parseSpec(
       columns: [...spec.columns],
       rows: tableRows,
       sourcePage: rows[headerIdx].page,
+      ownerRecordKey: spec.ownerRecordKey,
     };
   }
   return undefined;
